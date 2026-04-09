@@ -1,0 +1,817 @@
+﻿{% extends 'base.html' %}
+
+{% block page_title %}
+<h1 class="text-3xl font-bold text-slate-800">Nova Ordem de Servico</h1>
+<p class="text-sm text-slate-500">Fluxo atualizado: sem upgrade, com filtro de pecas por modelo.</p>
+{% endblock %}
+
+{% block content %}
+<form method="POST" id="nova-os-form" class="space-y-6">
+  <section class="bg-white rounded-xl shadow border border-slate-200 p-5">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">1) Cliente</h2>
+    <div class="grid grid-cols-1 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Cliente *</label>
+        <input class="w-full border rounded-lg p-2" name="cliente" id="cliente" placeholder="Nome do cliente" required />
+      </div>
+    </div>
+    <div class="mt-4">
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" id="interna_ir_phones" name="interna_ir_phones" value="1" class="rounded border-slate-300" />
+        OS interna IR Phones (regra antiga de upgrade)
+      </label>
+      <p class="text-xs text-slate-500 mt-1">Quando marcado: tipo vira Assistencia e cliente fica IR Phones.</p>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl shadow border border-slate-200 p-5">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">2) Servico</h2>
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo *</label>
+        <select name="tipo" id="tipo" class="w-full border rounded-lg p-2" required>
+          <option value="">Selecione</option>
+          <option>Assistencia</option>
+          <option>Garantia</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Tecnico *</label>
+        <select name="tecnico" id="tecnico" class="w-full border rounded-lg p-2" required>
+          <option value="">Selecione</option>
+          {% for tecnico_nome in tecnicos %}
+            <option value="{{ tecnico_nome }}">{{ tecnico_nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Vendedor</label>
+        <select name="vendedor" id="vendedor" class="w-full border rounded-lg p-2">
+          <option value="">Sem vendedor</option>
+          {% for vendedor_nome in vendedores %}
+            <option value="{{ vendedor_nome }}">{{ vendedor_nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Reparos *</label>
+        <div class="rounded-lg border border-slate-300 bg-white p-2">
+          <input type="text" id="reparo_busca" class="mb-2 w-full rounded-lg border border-slate-200 p-2 text-sm" placeholder="Buscar reparo..." autocomplete="off" />
+          <div id="reparos_selecionados" class="mb-2 flex flex-wrap gap-2"></div>
+          <div id="reparo_lista" class="max-h-40 overflow-y-auto rounded-lg border border-slate-200"></div>
+        </div>
+        <select name="reparo_ids" id="reparo_ids" class="hidden" multiple required>
+          {% for r in reparos %}
+            <option value="{{ r.0 }}">{{ r.1 }}</option>
+          {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-slate-500">Clique para adicionar ou remover mais de um reparo.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Modelo *</label>
+        <div class="relative">
+          <input class="w-full border rounded-lg p-2" name="modelo" id="modelo" autocomplete="off" placeholder="Selecione ou digite o modelo" required />
+          <div id="modelo_sugestoes" class="absolute z-20 mt-1 hidden max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"></div>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Cor</label>
+        <input class="w-full border rounded-lg p-2" name="cor" id="cor" list="cor_opcoes" autocomplete="off" placeholder="Selecione ou digite a cor" />
+        <datalist id="cor_opcoes"></datalist>
+        <p class="mt-1 text-xs text-slate-500" id="cor-ajuda">As cores sugeridas mudam conforme o modelo.</p>
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Data da OS</label>
+        <input type="date" name="data_os" value="{{ today_str }}" class="w-full border rounded-lg p-2" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">IMEI</label>
+        <input type="text" name="imei" id="imei" class="w-full border rounded-lg p-2" placeholder="Somente numeros" inputmode="numeric" />
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Status inicial</label>
+        <div id="status-preview" class="w-full border rounded-lg p-2 bg-slate-50 text-slate-700 font-semibold">Em andamento</div>
+        <input type="hidden" name="status" id="status_hidden" value="Em andamento" />
+        <p class="mt-1 text-xs text-slate-500">A OS nasce em andamento. Use a edicao ou o kanban para mudar para aguardando peca quando necessario.</p>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <label class="block text-xs font-semibold text-slate-500 mb-1">Observacoes</label>
+      <textarea name="observacoes" rows="3" class="w-full border rounded-lg p-2" placeholder="Detalhes importantes da ordem..."></textarea>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl shadow border border-slate-200 p-5">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">3) Pecas</h2>
+
+    <div class="mb-2 rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm text-blue-800">
+      Filtro ativo por modelo: <strong id="modelo-ativo">(informe o modelo)</strong>
+    </div>
+
+    <input type="text" id="busca_peca" placeholder="Buscar peca por nome..." class="w-full border rounded-lg p-2 mb-3" />
+
+    <div id="resultado_pecas" class="border rounded-lg max-h-56 overflow-y-auto"></div>
+
+    <div class="mt-4">
+      <p class="text-sm font-semibold text-slate-700 mb-2">Pecas selecionadas</p>
+      <div id="pecas_selecionadas" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl shadow border border-slate-200 p-5">
+    <h2 class="text-lg font-bold text-slate-800 mb-4">4) Financeiro</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Custo total de pecas</p>
+        <p class="text-2xl font-bold text-slate-800" id="custo-total">R$ 0.00</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Sugestao de servico</p>
+        <p class="text-2xl font-bold text-blue-700" id="sugestao-valor">R$ 0.00</p>
+        <p class="mt-1 whitespace-pre-line text-xs text-slate-500" id="sugestao-fonte">Baseado no custo das pecas.</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 flex items-end">
+        <button type="button" id="usar-sugestao" class="w-full rounded-lg bg-blue-600 px-3 py-2 text-white font-semibold hover:bg-blue-500">Usar sugestao</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Valor cobrado</label>
+        <input class="w-full border rounded-lg p-2" type="number" min="0" step="0.01" name="valor_cobrado" id="valor_cobrado" placeholder="0.00" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Valor descontado</label>
+        <input class="w-full border rounded-lg p-2" type="number" min="0" step="0.01" name="valor_descontado" id="valor_descontado" placeholder="0.00" />
+      </div>
+    </div>
+  </section>
+
+  <div class="sticky bottom-4 z-20">
+    <div class="mx-auto max-w-2xl rounded-xl bg-slate-900 px-4 py-3 text-white shadow-xl flex items-center justify-between">
+      <p class="text-sm">Revise os dados antes de salvar a OS.</p>
+      <button class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold hover:bg-emerald-400">Salvar OS</button>
+    </div>
+  </div>
+</form>
+
+<script>
+const estoque = {{ pecas|tojson }};
+const modelosIphone = {{ iphone_models|tojson }};
+const iphoneColors = {{ iphone_colors|tojson }};
+const priceTables = {{ price_tables|tojson }};
+let pecasSelecionadas = [];
+let valorCobradoEditado = false;
+
+const buscaInput = document.getElementById('busca_peca');
+const resultado = document.getElementById('resultado_pecas');
+const listaSelecionadas = document.getElementById('pecas_selecionadas');
+const custoTotalEl = document.getElementById('custo-total');
+const sugestaoEl = document.getElementById('sugestao-valor');
+const sugestaoFonteEl = document.getElementById('sugestao-fonte');
+const statusPreviewEl = document.getElementById('status-preview');
+const statusHiddenEl = document.getElementById('status_hidden');
+const valorCobradoInput = document.getElementById('valor_cobrado');
+const form = document.getElementById('nova-os-form');
+const modeloInput = document.getElementById('modelo');
+const corInput = document.getElementById('cor');
+const corOpcoesEl = document.getElementById('cor_opcoes');
+const corAjudaEl = document.getElementById('cor-ajuda');
+const modeloAtivoEl = document.getElementById('modelo-ativo');
+const modeloSugestoesEl = document.getElementById('modelo_sugestoes');
+const internaCheckbox = document.getElementById('interna_ir_phones');
+const clienteInput = document.getElementById('cliente');
+const tipoInput = document.getElementById('tipo');
+const reparoInput = document.getElementById('reparo_ids');
+const reparoBuscaInput = document.getElementById('reparo_busca');
+const reparoListaEl = document.getElementById('reparo_lista');
+const reparosSelecionadosEl = document.getElementById('reparos_selecionados');
+
+const serviceMatchers = [
+  {
+    key: 'tela',
+    terms: ['troca de tela', 'reparo de tela', 'tela'],
+    ir: ['TELA'],
+    clientes: ['TELA ORIGINAL', 'TELA OLED', 'TELA PRIMEIRA LINHA']
+  },
+  {
+    key: 'bateria',
+    terms: ['troca de bateria', 'bateria'],
+    ir: ['BATERIA'],
+    clientes: ['BATERIA']
+  },
+  {
+    key: 'dock',
+    terms: ['troca de dock de carga', 'dock de carga', 'dock', 'conector', 'carga'],
+    ir: ['DOCK DE CARGA'],
+    clientes: ['CONECTOR DE CARGA (DOCK)']
+  },
+  {
+    key: 'vidro_tela',
+    terms: ['troca de vidro da tela', 'vidro da tela'],
+    ir: ['TELA GOLD', 'TELA'],
+    clientes: ['TELA PRIMEIRA LINHA', 'TELA OLED', 'TELA ORIGINAL']
+  },
+  {
+    key: 'lente_camera',
+    terms: ['troca de lente da camera', 'troca de lente da câmera', 'lente da camera', 'lente da câmera'],
+    ir: [],
+    clientes: ['LENTE DA CÂMERA']
+  },
+  {
+    key: 'camera_traseira',
+    terms: ['troca de camera traseira', 'troca de câmera traseira', 'camera traseira', 'câmera traseira'],
+    ir: ['CAMERA TRASEIRA'],
+    clientes: ['CÂMERA TRASEIRA']
+  },
+  {
+    key: 'camera_frontal',
+    terms: ['troca de camera frontal', 'troca de câmera frontal', 'camera frontal', 'câmera frontal'],
+    ir: [],
+    clientes: ['CÂMERA FRONTAL']
+  },
+  {
+    key: 'face_id',
+    terms: ['troca de face id', 'face id'],
+    ir: [],
+    clientes: ['REPARO FACE ID']
+  },
+  {
+    key: 'botoes',
+    terms: ['troca de botoes', 'troca de botões', 'botoes', 'botões'],
+    ir: [],
+    clientes: ['FLEX BOTÕES (NFC / VOLUME / POWER)', 'FLEX NFC']
+  },
+  {
+    key: 'auricular',
+    terms: ['troca de auricular', 'roca de auricular', 'auricular'],
+    ir: ['AURICULAR'],
+    clientes: ['ALTO-FALANTE AURICULAR']
+  },
+  {
+    key: 'tampa_traseira',
+    terms: ['troca de tampa traseira', 'tampa traseira'],
+    ir: [],
+    clientes: ['TAMPA TRASEIRA']
+  },
+  {
+    key: 'vidro_traseiro',
+    terms: ['troca de vidro traseiro', 'vidro traseiro'],
+    ir: ['CARCAÇA'],
+    clientes: ['TAMPA TRASEIRA']
+  },
+  {
+    key: 'carcaca',
+    terms: ['troca de carcaca', 'troca de carcaça', 'carcaca', 'carcaça'],
+    ir: ['CARCAÇA'],
+    clientes: ['CARCAÇA ORIGINAL', 'CARCAÇA']
+  },
+  {
+    key: 'alto_falante',
+    terms: ['troca de alto falante', 'alto falante'],
+    ir: ['ALTO FALANTE'],
+    clientes: ['ALTO-FALANTE']
+  },
+  {
+    key: 'placa',
+    terms: ['reparo de placa', 'placa'],
+    ir: ['PLACA MÃE'],
+    clientes: []
+  },
+  {
+    key: 'flash',
+    terms: ['troca de flash', 'flash'],
+    ir: [],
+    clientes: ['FLASH']
+  }
+];
+
+const irTampaSomenteModels = new Set([
+  '14',
+  '14plus',
+  '14pro',
+  '14promax',
+  '15',
+  '15plus',
+  '15pro',
+  '15promax',
+  '16',
+  '16plus',
+  '16pro',
+  '16promax'
+]);
+
+const estimatedFallbackRules = {
+  ir_phones: {
+    lente_camera: { clientes: ['LENTE DA CÂMERA'] },
+    camera_frontal: { clientes: ['CÂMERA FRONTAL'] },
+    face_id: { clientes: ['REPARO FACE ID'] },
+    botoes: { clientes: ['FLEX BOTÕES (NFC / VOLUME / POWER)', 'FLEX NFC'] },
+    tampa_traseira: { clientes: ['TAMPA TRASEIRA'] },
+    vidro_traseiro: { clientes: ['TAMPA TRASEIRA'] },
+    carcaca: { clientes: ['CARCAÇA ORIGINAL', 'CARCAÇA'] },
+    flash: { clientes: ['FLASH'] }
+  },
+  clientes: {
+    placa: { ir: ['PLACA MÃE'] }
+  }
+};
+
+function moeda(valor) {
+  return 'R$ ' + Number(valor || 0).toFixed(2);
+}
+
+function normalizar(str) {
+  return String(str || '').toLowerCase().trim();
+}
+
+function normalizarPrecoKey(str) {
+  return normalizar(str)
+    .replace('iphone ', '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function obterNomesReparosSelecionados() {
+  return Array.from(reparoInput.selectedOptions || [])
+    .map((option) => String(option.textContent || '').trim())
+    .filter(Boolean);
+}
+
+function obterOpcoesReparo() {
+  return Array.from(reparoInput.options || []).map((option) => ({
+    value: String(option.value || ''),
+    label: String(option.textContent || '').trim(),
+    selected: !!option.selected
+  }));
+}
+
+function alternarReparoSelecionado(valor) {
+  Array.from(reparoInput.options || []).forEach((option) => {
+    if (String(option.value) === String(valor)) {
+      option.selected = !option.selected;
+    }
+  });
+  renderReparoSelector();
+  atualizarFinanceiroEStatus();
+}
+
+function removerReparoSelecionado(valor) {
+  Array.from(reparoInput.options || []).forEach((option) => {
+    if (String(option.value) === String(valor)) {
+      option.selected = false;
+    }
+  });
+  renderReparoSelector();
+  atualizarFinanceiroEStatus();
+}
+
+function renderReparoSelector() {
+  const termo = normalizar(reparoBuscaInput.value);
+  const opcoes = obterOpcoesReparo();
+  const selecionados = opcoes.filter((item) => item.selected);
+  const filtrados = opcoes.filter((item) => !termo || normalizar(item.label).includes(termo));
+
+  reparosSelecionadosEl.innerHTML = selecionados.length
+    ? selecionados.map((item) => `
+        <button type="button" data-remove-reparo="${item.value}" class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 hover:bg-blue-200">
+          ${item.label}
+          <span class="text-blue-600">x</span>
+        </button>
+      `).join('')
+    : '<span class="text-xs text-slate-500">Nenhum reparo selecionado.</span>';
+
+  reparoListaEl.innerHTML = filtrados.length
+    ? filtrados.map((item) => `
+        <button type="button" data-reparo-value="${item.value}" class="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50">
+          <span>${item.label}</span>
+          <span class="${item.selected ? 'text-blue-700 font-semibold' : 'text-slate-400'}">${item.selected ? 'Selecionado' : 'Adicionar'}</span>
+        </button>
+      `).join('')
+    : '<div class="px-3 py-2 text-sm text-slate-500">Nenhum reparo encontrado.</div>';
+
+  Array.from(reparoListaEl.querySelectorAll('[data-reparo-value]')).forEach((button) => {
+    button.addEventListener('click', () => alternarReparoSelecionado(button.getAttribute('data-reparo-value')));
+  });
+
+  Array.from(reparosSelecionadosEl.querySelectorAll('[data-remove-reparo]')).forEach((button) => {
+    button.addEventListener('click', () => removerReparoSelecionado(button.getAttribute('data-remove-reparo')));
+  });
+}
+
+function atualizarOpcoesCor() {
+  const modelo = String(modeloInput.value || '').trim();
+  const cores = iphoneColors[modelo] || [];
+  corOpcoesEl.innerHTML = cores.map((cor) => `<option value="${cor}"></option>`).join('');
+  corAjudaEl.textContent = cores.length > 0
+    ? `Cores sugeridas para ${modelo}.`
+    : 'As cores sugeridas mudam conforme o modelo.';
+}
+
+function detectarTabelaCliente() {
+  return normalizar(clienteInput.value) === 'ir phones' ? 'ir_phones' : 'clientes';
+}
+
+function detectarServicosMapeados() {
+  const nomes = obterNomesReparosSelecionados();
+  return nomes
+    .map((reparoNome) => {
+      const reparoNormalizado = normalizar(reparoNome);
+      const matcher = serviceMatchers.find((item) =>
+        item.terms.some((term) => reparoNormalizado.includes(normalizar(term)))
+      );
+      return { matcher, reparoNome };
+    })
+    .filter((item) => item.reparoNome);
+}
+
+function buscarPrecoParaReparo(matcher, reparoNome) {
+  const tabela = detectarTabelaCliente();
+  const modeloSelecionado = String(modeloInput.value || '').trim();
+  if (!matcher || !modeloSelecionado) return null;
+
+  if (tabela === 'ir_phones') {
+    const reparoNomeNormalizado = normalizar(reparoNome);
+    const modeloKey = normalizarPrecoKey(modeloSelecionado);
+
+    const ehTampaOuVidroTraseiro = reparoNomeNormalizado.includes('tampa traseira') || reparoNomeNormalizado.includes('vidro traseiro');
+    const ehCarcaca = reparoNomeNormalizado.includes('carcaca') || reparoNomeNormalizado.includes('carcaça');
+    let secoesDesejadas = [...matcher.ir];
+
+    if (irTampaSomenteModels.has(modeloKey)) {
+      if (ehTampaOuVidroTraseiro) {
+        secoesDesejadas = ['CARCAÇA'];
+      } else if (ehCarcaca) {
+        return null;
+      }
+    }
+
+    const precoDiretoIr = buscarPrecoIr(secoesDesejadas, modeloKey, reparoNome);
+    if (precoDiretoIr) {
+      return precoDiretoIr;
+    }
+
+    return buscarPrecoEstimado(matcher.key, tabela, modeloKey, reparoNome);
+  }
+
+  const modeloKey = normalizarPrecoKey(modeloSelecionado);
+  const precoDiretoCliente = buscarPrecoCliente(matcher.clientes, modeloKey);
+  if (precoDiretoCliente) {
+    return precoDiretoCliente;
+  }
+
+  return buscarPrecoEstimado(matcher.key, tabela, modeloKey, reparoNome);
+}
+
+function buscarPrecoTabela() {
+  const servicos = detectarServicosMapeados();
+  if (!servicos.length) return null;
+
+  let total = 0;
+  const origens = [];
+  const faltando = [];
+
+  servicos.forEach(({ matcher, reparoNome }) => {
+    if (!matcher) {
+      faltando.push(reparoNome);
+      return;
+    }
+    const preco = buscarPrecoParaReparo(matcher, reparoNome);
+    if (!preco) {
+      faltando.push(reparoNome);
+      return;
+    }
+    total += Number(preco.valor || 0);
+    origens.push(`${reparoNome.toLowerCase()} ${moeda(preco.valor)}`);
+  });
+
+  if (total <= 0) return null;
+
+  let origem = origens.join('\n');
+  if (faltando.length > 0) {
+    origem += `${origem ? '\n' : ''}sem tabela para: ${faltando.map((nome) => nome.toLowerCase()).join(', ')}`;
+  }
+
+  return {
+    valor: total,
+    origem
+  };
+}
+
+function buscarPrecoIr(secoesDesejadas, modeloKey, reparoNome) {
+  const secoes = priceTables.ir_phones || {};
+  for (const secaoDesejada of secoesDesejadas) {
+    for (const [secaoReal, tabelaSecao] of Object.entries(secoes)) {
+      if (normalizarPrecoKey(secaoReal) !== normalizarPrecoKey(secaoDesejada)) {
+        continue;
+      }
+      for (const [modelo, preco] of Object.entries(tabelaSecao || {})) {
+        if (normalizarPrecoKey(modelo) === modeloKey) {
+          return {
+            valor: Number(preco || 0),
+            origem: `Tabela IR Phones (${reparoNome}): ${secaoDesejada}`
+          };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function buscarPrecoCliente(servicosDesejados, modeloKey) {
+  const clientes = priceTables.clientes || {};
+  let modeloEncontrado = null;
+  for (const [modelo, servicos] of Object.entries(clientes)) {
+    if (normalizarPrecoKey(modelo) === modeloKey) {
+      modeloEncontrado = servicos;
+      break;
+    }
+  }
+  if (!modeloEncontrado) return null;
+
+  for (const servicoDesejado of servicosDesejados) {
+    for (const [servicoReal, preco] of Object.entries(modeloEncontrado)) {
+      if (normalizarPrecoKey(servicoReal) === normalizarPrecoKey(servicoDesejado)) {
+          return {
+            valor: Number(preco || 0),
+            origem: `Tabela clientes: ${servicoDesejado}`
+          };
+        }
+      }
+  }
+  return null;
+}
+
+function buscarPrecoEstimado(serviceKey, tabela, modeloKey, reparoNome) {
+  const regra = (estimatedFallbackRules[tabela] || {})[serviceKey];
+  if (!regra) return null;
+
+  if (regra.clientes) {
+    const precoCliente = buscarPrecoCliente(regra.clientes, modeloKey);
+    if (precoCliente) {
+      return {
+        valor: precoCliente.valor,
+        origem: `Estimativa (${reparoNome}) baseada na tabela clientes`
+      };
+    }
+  }
+
+  if (regra.ir) {
+    const precoIr = buscarPrecoIr(regra.ir, modeloKey);
+    if (precoIr) {
+      return {
+        valor: precoIr.valor,
+        origem: `Estimativa (${reparoNome}) baseada na tabela IR Phones`
+      };
+    }
+  }
+
+  return null;
+}
+
+function renderSugestoesModelo() {
+  const termo = normalizar(modeloInput.value);
+  const opcoes = modelosIphone.filter((m) => normalizar(m).includes(termo)).slice(0, 12);
+
+  if (opcoes.length === 0) {
+    modeloSugestoesEl.classList.add('hidden');
+    modeloSugestoesEl.innerHTML = '';
+    return;
+  }
+
+  modeloSugestoesEl.innerHTML = opcoes
+    .map((m) => `<button type="button" class="block w-full border-b px-3 py-2 text-left text-sm hover:bg-slate-50">${m}</button>`)
+    .join('');
+
+  Array.from(modeloSugestoesEl.querySelectorAll('button')).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      modeloInput.value = btn.textContent || '';
+      modeloSugestoesEl.classList.add('hidden');
+      atualizarOpcoesCor();
+      renderResultadosBusca();
+    });
+  });
+
+  modeloSugestoesEl.classList.remove('hidden');
+}
+
+function pecaCompativelComModelo(modeloPeca, modeloSelecionado) {
+  const mPeca = normalizar(modeloPeca);
+  const mSel = normalizar(modeloSelecionado);
+
+  if (!mSel) return false;
+  if (!mPeca) return true;
+
+  const tokens = mPeca.split(/[;,/|]/).map((t) => normalizar(t)).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  return tokens.some((token) => token.includes(mSel) || mSel.includes(token));
+}
+
+function atualizarRegraIrPhones() {
+  if (internaCheckbox.checked) {
+    clienteInput.value = 'IR Phones';
+    clienteInput.readOnly = true;
+    tipoInput.value = 'Assistencia';
+    tipoInput.disabled = true;
+  } else {
+    clienteInput.readOnly = false;
+    tipoInput.disabled = false;
+  }
+  atualizarFinanceiroEStatus();
+}
+
+function atualizarFinanceiroEStatus() {
+  const custoTotal = pecasSelecionadas.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+  const precoTabela = buscarPrecoTabela();
+  const sugestao = precoTabela ? precoTabela.valor : (custoTotal > 0 ? custoTotal * 2.2 : 0);
+
+  custoTotalEl.textContent = moeda(custoTotal);
+  sugestaoEl.textContent = moeda(sugestao);
+  sugestaoFonteEl.textContent = precoTabela
+    ? precoTabela.origem
+    : 'Baseado no custo das pecas.';
+
+  if (!valorCobradoEditado) {
+    valorCobradoInput.value = sugestao.toFixed(2);
+  }
+
+  statusPreviewEl.textContent = 'Em andamento';
+  statusHiddenEl.value = 'Em andamento';
+}
+
+function quantidadeSelecionadaPeca(pecaId) {
+  return pecasSelecionadas.filter((item) => String(item.id) === String(pecaId)).length;
+}
+
+function criarLinhaSelecionada(peca, index) {
+  const alerta = (Number(peca.quantidade) <= 2)
+    ? '<span class="text-xs text-red-600 font-semibold">Baixo estoque</span>'
+    : '<span class="text-xs text-emerald-600 font-semibold">Em estoque</span>';
+
+  return `
+    <div class="rounded-lg border border-slate-200 p-3 bg-slate-50 flex items-center justify-between gap-3">
+      <div>
+        <p class="font-semibold text-slate-800">${peca.nome}</p>
+        <p class="text-xs text-slate-500">Modelo: ${peca.modelo || 'Universal'} | Valor: ${moeda(peca.valor)}</p>
+        ${alerta}
+      </div>
+      <button type="button" class="rounded bg-red-600 px-2 py-1 text-xs text-white" onclick="removerPeca(${index})">Remover</button>
+    </div>
+    <input type="hidden" name="pecas_ids" value="${peca.id}" />
+  `;
+}
+
+function atualizarListaSelecionada() {
+  if (pecasSelecionadas.length === 0) {
+    listaSelecionadas.innerHTML = '<p class="text-sm text-slate-500">Nenhuma peca selecionada.</p>';
+  } else {
+    listaSelecionadas.innerHTML = pecasSelecionadas.map((p, i) => criarLinhaSelecionada(p, i)).join('');
+  }
+  atualizarFinanceiroEStatus();
+}
+
+function adicionarPeca(peca) {
+  if (Number(peca[4]) <= 0) return;
+  if (quantidadeSelecionadaPeca(peca[0]) >= Number(peca[4] || 0)) return;
+
+  pecasSelecionadas.push({
+    id: peca[0],
+    nome: peca[1],
+    valor: Number(peca[2] || 0),
+    fornecedor: peca[3],
+    quantidade: Number(peca[4] || 0),
+    modelo: peca[5] || ''
+  });
+
+  atualizarListaSelecionada();
+}
+
+function renderResultadosBusca() {
+  const termoLimpo = normalizar(buscaInput.value);
+  const modeloSelecionado = normalizar(modeloInput.value);
+  resultado.innerHTML = '';
+
+  modeloAtivoEl.textContent = modeloSelecionado || '(informe o modelo)';
+  atualizarFinanceiroEStatus();
+
+  if (!modeloSelecionado) {
+    resultado.innerHTML = '<div class="p-3 text-sm text-slate-500">Informe o modelo para filtrar as pecas disponiveis.</div>';
+    return;
+  }
+
+  const encontrados = estoque.filter((p) => {
+    const nome = normalizar(p[1]);
+    const casaBusca = !termoLimpo || nome.includes(termoLimpo);
+    const compativel = pecaCompativelComModelo(p[5], modeloSelecionado);
+    return casaBusca && compativel;
+  });
+
+  if (encontrados.length === 0) {
+    resultado.innerHTML = '<div class="p-3 text-sm text-slate-500">Nenhuma peca compativel encontrada para esse modelo.</div>';
+    return;
+  }
+
+  encontrados.forEach((p) => {
+    const qtd = Number(p[4] || 0);
+    const restante = qtd - quantidadeSelecionadaPeca(p[0]);
+    const baixo = restante > 0 && restante <= 2;
+    const semEstoque = restante <= 0;
+
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = `w-full border-b p-3 text-left hover:bg-slate-50 ${semEstoque ? 'opacity-60 cursor-not-allowed' : ''}`;
+    item.disabled = semEstoque;
+
+    item.innerHTML = `
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <p class="font-semibold text-slate-800">${p[1]}</p>
+          <p class="text-xs text-slate-500">${moeda(p[2])} | Lote #${p[0]} | Modelo: ${p[5] || 'Universal'} | Qtd disponivel: ${restante}</p>
+        </div>
+        <div>
+          ${semEstoque
+            ? '<span class="text-xs font-semibold text-red-600">Sem estoque</span>'
+            : baixo
+              ? '<span class="text-xs font-semibold text-amber-600">Baixo</span>'
+              : '<span class="text-xs font-semibold text-emerald-600">Disponivel</span>'}
+        </div>
+      </div>
+    `;
+
+    item.addEventListener('click', () => adicionarPeca(p));
+    resultado.appendChild(item);
+  });
+}
+
+function removerPeca(index) {
+  pecasSelecionadas.splice(index, 1);
+  atualizarListaSelecionada();
+}
+window.removerPeca = removerPeca;
+
+buscaInput.addEventListener('input', renderResultadosBusca);
+reparoBuscaInput.addEventListener('input', renderReparoSelector);
+modeloInput.addEventListener('input', renderResultadosBusca);
+modeloInput.addEventListener('change', renderResultadosBusca);
+modeloInput.addEventListener('focus', renderSugestoesModelo);
+modeloInput.addEventListener('input', renderSugestoesModelo);
+modeloInput.addEventListener('input', atualizarOpcoesCor);
+modeloInput.addEventListener('change', atualizarOpcoesCor);
+internaCheckbox.addEventListener('change', atualizarRegraIrPhones);
+clienteInput.addEventListener('input', atualizarFinanceiroEStatus);
+clienteInput.addEventListener('change', atualizarFinanceiroEStatus);
+reparoInput.addEventListener('change', () => {
+  renderReparoSelector();
+  atualizarFinanceiroEStatus();
+});
+
+document.addEventListener('click', function(e) {
+  if (!modeloSugestoesEl.contains(e.target) && e.target !== modeloInput) {
+    modeloSugestoesEl.classList.add('hidden');
+  }
+});
+
+valorCobradoInput.addEventListener('input', function() {
+  valorCobradoEditado = true;
+});
+
+document.getElementById('usar-sugestao').addEventListener('click', function() {
+  const custoTotal = pecasSelecionadas.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+  const precoTabela = buscarPrecoTabela();
+  const sugestao = precoTabela ? precoTabela.valor : (custoTotal > 0 ? custoTotal * 2.2 : 0);
+  valorCobradoInput.value = sugestao.toFixed(2);
+  valorCobradoEditado = true;
+});
+
+form.addEventListener('submit', function(e) {
+  tipoInput.disabled = false;
+
+  const obrigatorios = ['cliente', 'modelo', 'tipo', 'tecnico'];
+  const faltando = obrigatorios.filter((id) => !String(document.getElementById(id).value || '').trim());
+  const temReparoSelecionado = Array.from(reparoInput.selectedOptions || []).length > 0;
+
+  if (faltando.length > 0 || !temReparoSelecionado) {
+    e.preventDefault();
+    alert('Preencha todos os campos obrigatorios antes de salvar.');
+    atualizarRegraIrPhones();
+    return;
+  }
+});
+
+atualizarRegraIrPhones();
+atualizarOpcoesCor();
+renderReparoSelector();
+atualizarListaSelecionada();
+renderResultadosBusca();
+</script>
+{% endblock %}

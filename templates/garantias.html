@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+<h1 class="text-3xl font-bold text-slate-800">Garantias</h1>
+<p class="text-sm text-slate-500">Controle de garantia de 3 meses apos finalizacao da OS.</p>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Total com garantia</p>
+    <p class="text-2xl font-bold text-slate-800">{{ total }}</p>
+  </div>
+  <div class="rounded-xl border border-green-200 bg-green-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-green-700">Ativas</p>
+    <p class="text-2xl font-bold text-green-800">{{ ativos }}</p>
+  </div>
+  <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-yellow-700">Vencendo (7 dias)</p>
+    <p class="text-2xl font-bold text-yellow-800">{{ vencendo }}</p>
+  </div>
+  <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-red-700">Vencidas</p>
+    <p class="text-2xl font-bold text-red-800">{{ vencidos }}</p>
+  </div>
+</div>
+
+<div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+  <div class="border-b border-slate-200 px-4 py-3">
+    <p class="text-sm text-slate-600">OS de cliente final. Equipamentos internos da IR Phones ficam fora desta lista.</p>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50">
+        <tr class="text-left text-slate-600">
+          <th class="px-4 py-3">OS</th>
+          <th class="px-4 py-3">Cliente</th>
+          <th class="px-4 py-3">Modelo</th>
+          <th class="px-4 py-3">Tecnico</th>
+          <th class="px-4 py-3">Inicio garantia</th>
+          <th class="px-4 py-3">Fim garantia</th>
+          <th class="px-4 py-3">Dias restantes</th>
+          <th class="px-4 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if garantias %}
+          {% for item in garantias %}
+          <tr class="border-t border-slate-100">
+            <td class="px-4 py-3 font-semibold text-slate-800">#{{ item.id }}</td>
+            <td class="px-4 py-3">{{ item.cliente }}</td>
+            <td class="px-4 py-3">{{ item.modelo }}</td>
+            <td class="px-4 py-3">{{ item.tecnico }}</td>
+            <td class="px-4 py-3">{{ item.inicio }}</td>
+            <td class="px-4 py-3">{{ item.fim }}</td>
+            <td class="px-4 py-3">{% if item.dias_restantes < 0 %}0{% else %}{{ item.dias_restantes }}{% endif %}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ item.status_class }}">{{ item.status }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="px-4 py-6 text-center text-slate-500">Nenhuma garantia para exibir.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

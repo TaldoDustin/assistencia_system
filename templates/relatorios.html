@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+<h1 class="text-3xl font-bold text-slate-800">Relatorios</h1>
+<p class="text-sm text-slate-500">Centralize as exportacoes em PDF e filtre o periodo antes de baixar.</p>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 mb-6">
+  <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div>
+      <label class="block text-xs text-slate-500 mb-1">Data inicio</label>
+      <input type="date" name="start_date" value="{{ start_date }}" class="w-full rounded border-slate-300" />
+    </div>
+    <div>
+      <label class="block text-xs text-slate-500 mb-1">Data fim</label>
+      <input type="date" name="end_date" value="{{ end_date }}" class="w-full rounded border-slate-300" />
+    </div>
+    <button type="submit" class="self-end rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-500">Aplicar periodo</button>
+    <a href="/relatorios" class="self-end rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-slate-700 hover:bg-slate-50">Limpar</a>
+  </form>
+  <p class="mt-3 text-sm text-slate-500">Periodo selecionado: {{ periodo }}</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Meses IR Phones</p>
+    <p class="text-2xl font-bold text-slate-800">{{ meses_ir }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">OS IR Phones</p>
+    <p class="text-2xl font-bold text-slate-800">{{ total_os_ir }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Lucro IR Phones</p>
+    <p class="text-2xl font-bold text-emerald-700">R$ {{ "%.2f"|format(total_lucro_ir) }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Tecnicos no periodo</p>
+    <p class="text-2xl font-bold text-slate-800">{{ total_tecnicos }}</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow">
+    <h2 class="text-xl font-bold text-slate-800 mb-2">PDF IR Phones</h2>
+    <p class="text-sm text-slate-500 mb-4">
+      Exporta um resumo mensal com OS finalizadas da IR Phones, quantidade de servicos, faturamento, gastos com pecas, lucro e ticket medio.
+    </p>
+    <a href="/relatorios/pdf/ir-phones?start_date={{ start_date }}&end_date={{ end_date }}" class="inline-flex rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-500">
+      Baixar PDF IR Phones
+    </a>
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow">
+    <h2 class="text-xl font-bold text-slate-800 mb-2">PDF Tecnicos</h2>
+    <p class="text-sm text-slate-500 mb-4">
+      Exporta um resumo mensal por tecnico com servicos executados, quantidade por tipo, faturamento, gastos com pecas e lucro.
+    </p>
+    <a href="/relatorios/pdf/tecnicos?start_date={{ start_date }}&end_date={{ end_date }}" class="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
+      Baixar PDF Tecnicos
+    </a>
+  </div>
+</div>
+{% endblock %}

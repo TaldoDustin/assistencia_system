@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+<h1 class="text-3xl font-bold text-slate-800">Dashboard Financeiro</h1>
+{% endblock %}
+
+{% block content %}
+  {% set faturamento_total = faturamento_total|default(0, true) %}
+  {% set lucro = lucro|default(0, true) %}
+  {% set custos_operacionais_periodo = custos_operacionais_periodo|default(0, true) %}
+  {% set resultado_liquido = resultado_liquido|default(0, true) %}
+  {% set ordens_finalizadas = ordens_finalizadas|default(0, true) %}
+  {% set ordens_abertas = ordens_abertas|default(0, true) %}
+  {% set ticket_medio = ticket_medio|default(0, true) %}
+  {% set gastos = gastos|default(0, true) %}
+  {% set custos_operacionais_total = custos_operacionais_total|default(0, true) %}
+  {% set custos_por_categoria = custos_por_categoria|default([], true) %}
+  {% set dashboard_tab = dashboard_tab|default('visao-geral', true) %}
+  {% set today_str = today_str|default('', true) %}
+  {% set faturamento_labels = faturamento_labels|default([], true) %}
+  {% set faturamento_values = faturamento_values|default([], true) %}
+  {% set servicos_labels = servicos_labels|default([], true) %}
+  {% set servicos_values = servicos_values|default([], true) %}
+  {% set categorias_custos_labels = categorias_custos_labels|default([], true) %}
+  {% set categorias_custos_values = categorias_custos_values|default([], true) %}
+  {% set lucro_por_tecnico = lucro_por_tecnico|default({}, true) %}
+  {% set resumo_por_vendedor = resumo_por_vendedor|default([], true) %}
+  {% set custos_operacionais = custos_operacionais|default([], true) %}
+  <style>
+    .dashboard-shell {
+      background:
+        radial-gradient(circle at top left, rgba(255, 1, 37, 0.10), transparent 28rem),
+        radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 26rem);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+    }
+
+    .metric-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -2rem -2rem auto;
+      width: 7rem;
+      height: 7rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .tab-chip-active {
+      background: linear-gradient(135deg, #111827, #0f172a);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+    }
+  </style>
+
+  <div class="dashboard-shell -mx-6 -mt-6 px-6 pt-6 pb-10">
+    <section class="mb-6 rounded-[2rem] border border-white/60 bg-slate-950 p-6 text-white shadow-2xl shadow-slate-900/10">
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div class="max-w-2xl">
+          <h2 class="text-3xl font-semibold leading-tight">Resumo financeiro</h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Faturamento</p>
+            <p class="mt-2 text-xl font-semibold">R$ {{ "%.2f"|format(faturamento_total) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Lucro OS</p>
+            <p class="mt-2 text-xl font-semibold">R$ {{ "%.2f"|format(lucro) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Custos Gerais</p>
+            <p class="mt-2 text-xl font-semibold">R$ {{ "%.2f"|format(custos_operacionais_periodo) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Resultado</p>
+            <p class="mt-2 text-xl font-semibold {% if resultado_liquido >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">
+              R$ {{ "%.2f"|format(resultado_liquido) }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card mb-6 rounded-[1.75rem] border border-white/70 p-5 shadow-xl shadow-slate-200/50">
+      <form method="get" class="grid grid-cols-1 gap-4 md:grid-cols-6">
+        <input type="hidden" name="tab" value="{{ dashboard_tab }}" />
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Data inicio</label>
+          <input type="date" name="start_date" value="{{ start_date }}" class="w-full rounded-xl border-slate-200 bg-white/80" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Data fim</label>
+          <input type="date" name="end_date" value="{{ end_date }}" class="w-full rounded-xl border-slate-200 bg-white/80" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Tecnico</label>
+          <select name="tecnico" class="w-full rounded-xl border-slate-200 bg-white/80">
+            <option value="">Todos</option>
+            {% for tec in tecnicos %}
+              <option value="{{ tec }}" {% if tec == filtro_tecnico %}selected{% endif %}>{{ tec }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</label>
+          <select name="status" class="w-full rounded-xl border-slate-200 bg-white/80">
+            <option value="">Todos</option>
+            {% for st in status_opcoes %}
+              <option value="{{ st }}" {% if st == filtro_status %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Vendedor</label>
+          <select name="vendedor" class="w-full rounded-xl border-slate-200 bg-white/80">
+            <option value="">Todos</option>
+            {% for vend in vendedores_opcoes %}
+              <option value="{{ vend }}" {% if vend == filtro_vendedor %}selected{% endif %}>{{ vend }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="submit" class="w-full rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Aplicar</button>
+          <a href="{{ url_for('main_views.index', tab=dashboard_tab) }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            Limpar
+          </a>
+        </div>
+      </form>
+    </section>
+
+      <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div class="metric-card rounded-[1.6rem] bg-emerald-600 p-5 text-white shadow-lg shadow-emerald-200">
+          <p class="text-xs uppercase tracking-[0.2em] text-emerald-100">Faturamento finalizado</p>
+          <p class="mt-3 text-3xl font-semibold">R$ {{ "%.2f"|format(faturamento_total) }}</p>
+        </div>
+        <div class="metric-card rounded-[1.6rem] bg-slate-950 p-5 text-white shadow-lg shadow-slate-300/40">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-300">Lucro bruto das OS</p>
+          <p class="mt-3 text-3xl font-semibold">R$ {{ "%.2f"|format(lucro) }}</p>
+        </div>
+        <div class="metric-card rounded-[1.6rem] bg-rose-600 p-5 text-white shadow-lg shadow-rose-200">
+          <p class="text-xs uppercase tracking-[0.2em] text-rose-100">Custos operacionais</p>
+          <p class="mt-3 text-3xl font-semibold">R$ {{ "%.2f"|format(custos_operacionais_periodo) }}</p>
+        </div>
+        <div class="metric-card rounded-[1.6rem] bg-white p-5 text-slate-900 shadow-lg shadow-slate-200">
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Resultado liquido</p>
+          <p class="mt-3 text-3xl font-semibold {% if resultado_liquido >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+            R$ {{ "%.2f"|format(resultado_liquido) }}
+          </p>
+        </div>
+      </section>
+
+      <section class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div class="glass-card rounded-[1.5rem] border border-white/70 p-5 shadow-lg shadow-slate-200/50">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">OS finalizadas</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">{{ ordens_finalizadas }}</p>
+        </div>
+        <div class="glass-card rounded-[1.5rem] border border-white/70 p-5 shadow-lg shadow-slate-200/50">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">OS em aberto</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">{{ ordens_abertas }}</p>
+        </div>
+        <div class="glass-card rounded-[1.5rem] border border-white/70 p-5 shadow-lg shadow-slate-200/50">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Ticket medio</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">R$ {{ "%.2f"|format(ticket_medio) }}</p>
+        </div>
+        <div class="glass-card rounded-[1.5rem] border border-white/70 p-5 shadow-lg shadow-slate-200/50">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Capital no estoque</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">R$ {{ "%.2f"|format(gastos) }}</p>
+        </div>
+      </section>
+
+      <section class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+        <div class="glass-card rounded-[1.75rem] border border-white/70 p-6 shadow-xl shadow-slate-200/50">
+          <div class="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-semibold text-slate-900">Faturamento por dia</h2>
+              <p class="text-sm text-slate-500">Leitura rapida da cadencia de vendas finalizadas.</p>
+            </div>
+            <a href="/relatorios" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Ver relatorios
+            </a>
+          </div>
+          <div class="h-80">
+            <canvas id="faturamentoChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-[1.75rem] border border-white/70 p-6 shadow-xl shadow-slate-200/50">
+          <h2 class="text-xl font-semibold text-slate-900">Servicos mais feitos</h2>
+          <p class="mt-1 text-sm text-slate-500">Top servicos para acompanhar foco da equipe.</p>
+          <div class="mt-5 h-80">
+            <canvas id="servicosChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr_0.9fr]">
+        <div class="glass-card rounded-[1.75rem] border border-white/70 p-6 shadow-xl shadow-slate-200/50">
+          <h2 class="text-xl font-semibold text-slate-900">Tecnicos por lucro</h2>
+          <div class="mt-4 space-y-3">
+            {% for tecnico, lucro_total_tecnico in lucro_por_tecnico.items() %}
+              <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <span class="font-semibold text-slate-700">{{ tecnico }}</span>
+                <span class="text-sm font-semibold {% if lucro_total_tecnico >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                  R$ {{ "%.2f"|format(lucro_total_tecnico) }}
+                </span>
+              </div>
+            {% else %}
+              <p class="text-sm text-slate-500">Nenhum tecnico com OS finalizada no periodo.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="glass-card rounded-[1.75rem] border border-white/70 p-6 shadow-xl shadow-slate-200/50">
+          <h2 class="text-xl font-semibold text-slate-900">Vendedores</h2>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full min-w-[360px] text-left text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-500">
+                  <th class="py-3">Vendedor</th>
+                  <th class="py-3">OS</th>
+                  <th class="py-3">Faturamento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for vendedor, resumo in resumo_por_vendedor %}
+                  <tr class="border-b border-slate-100">
+                    <td class="py-3 font-semibold text-slate-800">{{ vendedor }}</td>
+                    <td class="py-3 text-slate-500">{{ resumo.os_total }}</td>
+                    <td class="py-3 font-semibold text-slate-900">R$ {{ "%.2f"|format(resumo.faturamento) }}</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="3" class="py-6 text-center text-slate-500">Sem dados de vendedor no periodo.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-[1.75rem] border border-white/70 p-6 shadow-xl shadow-slate-200/50">
+          <h2 class="text-xl font-semibold text-slate-900">Custos gerais</h2>
+          <p class="mt-1 text-sm text-slate-500">Resumo rapido das despesas fora da ordem de servico.</p>
+          <div class="mt-4 space-y-3">
+            {% for categoria, total in custos_por_categoria[:5] %}
+              <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <span class="font-semibold text-slate-700">{{ categoria }}</span>
+                <span class="text-sm font-semibold text-rose-600">R$ {{ "%.2f"|format(total) }}</span>
+              </div>
+            {% else %}
+              <p class="text-sm text-slate-500">Nenhum custo operacional registrado ainda.</p>
+            {% endfor %}
+          </div>
+          <a href="{{ url_for('admin_views.cadastrar_custo_operacional') }}" class="mt-5 inline-flex rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">
+            Abrir custos operacionais
+          </a>
+        </div>
+      </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const palette = {
+      ink: '#0f172a',
+      red: '#ff0125',
+      redSoft: 'rgba(255, 1, 37, 0.18)',
+      emerald: '#059669',
+      slate: '#64748b',
+      white: '#ffffff'
+    };
+
+    const defaultGrid = {
+      color: 'rgba(148, 163, 184, 0.18)',
+      drawBorder: false
+    };
+
+    const defaultTicks = {
+      color: '#475569',
+      font: { size: 11 }
+    };
+
+    const faturamentoCanvas = document.getElementById('faturamentoChart');
+    if (faturamentoCanvas) {
+      new Chart(faturamentoCanvas, {
+        type: 'line',
+        data: {
+          labels: {{ faturamento_labels | tojson | safe }},
+          datasets: [{
+            label: 'Faturamento',
+            data: {{ faturamento_values | tojson | safe }},
+            borderColor: palette.red,
+            backgroundColor: palette.redSoft,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: palette.red
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: defaultTicks, grid: { display: false } },
+            y: { beginAtZero: true, ticks: defaultTicks, grid: defaultGrid }
+          }
+        }
+      });
+    }
+
+    const servicosCanvas = document.getElementById('servicosChart');
+    if (servicosCanvas) {
+      new Chart(servicosCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: {{ servicos_labels[:6] | tojson | safe }},
+          datasets: [{
+            data: {{ servicos_values[:6] | tojson | safe }},
+            backgroundColor: ['#ff0125', '#0f172a', '#e11d48', '#334155', '#fb7185', '#94a3b8'],
+            borderColor: palette.white,
+            borderWidth: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#475569', boxWidth: 12, usePointStyle: true }
+            }
+          }
+        }
+      });
+    }
+
+  </script>
+{% endblock %}

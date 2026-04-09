@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build / dist desktop
+*.spec
+build/
+dist/
+build_irflow/
+build_irflow2/
+build_irflow_setup/
+installer_output/
+release/
+
+# Dados locais (não versionar banco nem backups)
+database.db
+backups/
+data/price_tables.json
+
+# Temporários
+tmp*/
+temp_output.txt
+*.bak
+*.old
+*.log
+
+# Fly.io não precisa desses
+integrations.json

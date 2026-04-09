@@ -1,0 +1,208 @@
+﻿{% extends 'base.html' %}
+
+{% block page_title %}
+<h1 class="text-3xl font-bold text-slate-800">Kanban</h1>
+<p class="text-sm text-slate-500">Acompanhe as ordens por etapa, com indicadores em tempo real.</p>
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="kanban-indicadores">
+  <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-amber-700">Em andamento</p>
+    <p class="text-3xl font-bold text-amber-900" data-count="em_andamento">{{ em_andamento|length }}</p>
+  </div>
+  <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-sky-700">Aguardando peca</p>
+    <p class="text-3xl font-bold text-sky-900" data-count="aguardando">{{ aguardando|length }}</p>
+  </div>
+  <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-emerald-700">Finalizado</p>
+    <p class="text-3xl font-bold text-emerald-900" data-count="finalizado">{{ finalizado|length }}</p>
+  </div>
+  <div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-rose-700">Cancelado</p>
+    <p class="text-3xl font-bold text-rose-900" data-count="cancelado">{{ cancelado|length }}</p>
+  </div>
+</div>
+
+<div class="overflow-x-auto pb-2">
+  <div class="flex gap-4 min-w-[1100px]">
+    <section class="w-[270px] shrink-0 rounded-xl border border-amber-200 bg-amber-50/70">
+      <header class="sticky top-0 z-10 rounded-t-xl border-b border-amber-200 bg-amber-100/80 px-4 py-3 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-amber-900">Em andamento</h2>
+          <span class="rounded-full bg-amber-200 px-2 py-1 text-xs font-semibold text-amber-900" data-pill="em_andamento">{{ em_andamento|length }}</span>
+        </div>
+      </header>
+      <div id="em_andamento" class="kanban-col min-h-[480px] p-3 space-y-3">
+        {% for os in em_andamento %}
+          <article class="kanban-card rounded-lg border border-amber-200 bg-white p-3 shadow-sm" data-id="{{ os.id }}">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500">OS #{{ os.id }}</span>
+              <span class="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Ativa</span>
+            </div>
+            <p class="font-semibold text-slate-800">{{ os.cliente }}</p>
+            <p class="text-sm text-slate-600">{{ os.aparelho }}</p>
+            <div class="mt-3 text-xs text-slate-500">
+              <p>Cor: {{ os.cor or '-' }}</p>
+              <p>Tecnico: {{ os.tecnico }}</p>
+              <p>Reparos: {{ os.reparo }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="w-[270px] shrink-0 rounded-xl border border-sky-200 bg-sky-50/70">
+      <header class="sticky top-0 z-10 rounded-t-xl border-b border-sky-200 bg-sky-100/80 px-4 py-3 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-sky-900">Aguardando peca</h2>
+          <span class="rounded-full bg-sky-200 px-2 py-1 text-xs font-semibold text-sky-900" data-pill="aguardando">{{ aguardando|length }}</span>
+        </div>
+      </header>
+      <div id="aguardando" class="kanban-col min-h-[480px] p-3 space-y-3">
+        {% for os in aguardando %}
+          <article class="kanban-card rounded-lg border border-sky-200 bg-white p-3 shadow-sm" data-id="{{ os.id }}">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500">OS #{{ os.id }}</span>
+              <span class="rounded bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">Pendente</span>
+            </div>
+            <p class="font-semibold text-slate-800">{{ os.cliente }}</p>
+            <p class="text-sm text-slate-600">{{ os.aparelho }}</p>
+            <div class="mt-3 text-xs text-slate-500">
+              <p>Cor: {{ os.cor or '-' }}</p>
+              <p>Tecnico: {{ os.tecnico }}</p>
+              <p>Reparos: {{ os.reparo }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="w-[270px] shrink-0 rounded-xl border border-emerald-200 bg-emerald-50/70">
+      <header class="sticky top-0 z-10 rounded-t-xl border-b border-emerald-200 bg-emerald-100/80 px-4 py-3 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-emerald-900">Finalizado</h2>
+          <span class="rounded-full bg-emerald-200 px-2 py-1 text-xs font-semibold text-emerald-900" data-pill="finalizado">{{ finalizado|length }}</span>
+        </div>
+      </header>
+      <div id="finalizado" class="kanban-col min-h-[480px] p-3 space-y-3">
+        {% for os in finalizado %}
+          <article class="kanban-card rounded-lg border border-emerald-200 bg-white p-3 shadow-sm" data-id="{{ os.id }}">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500">OS #{{ os.id }}</span>
+              <span class="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Concluida</span>
+            </div>
+            <p class="font-semibold text-slate-800">{{ os.cliente }}</p>
+            <p class="text-sm text-slate-600">{{ os.aparelho }}</p>
+            <div class="mt-3 text-xs text-slate-500">
+              <p>Cor: {{ os.cor or '-' }}</p>
+              <p>Tecnico: {{ os.tecnico }}</p>
+              <p>Reparos: {{ os.reparo }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="w-[270px] shrink-0 rounded-xl border border-rose-200 bg-rose-50/70">
+      <header class="sticky top-0 z-10 rounded-t-xl border-b border-rose-200 bg-rose-100/80 px-4 py-3 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-rose-900">Cancelado</h2>
+          <span class="rounded-full bg-rose-200 px-2 py-1 text-xs font-semibold text-rose-900" data-pill="cancelado">{{ cancelado|length }}</span>
+        </div>
+      </header>
+      <div id="cancelado" class="kanban-col min-h-[480px] p-3 space-y-3">
+        {% for os in cancelado %}
+          <article class="kanban-card rounded-lg border border-rose-200 bg-white p-3 shadow-sm" data-id="{{ os.id }}">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500">OS #{{ os.id }}</span>
+              <span class="rounded bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">Encerrada</span>
+            </div>
+            <p class="font-semibold text-slate-800">{{ os.cliente }}</p>
+            <p class="text-sm text-slate-600">{{ os.aparelho }}</p>
+            <div class="mt-3 text-xs text-slate-500">
+              <p>Cor: {{ os.cor or '-' }}</p>
+              <p>Tecnico: {{ os.tecnico }}</p>
+              <p>Reparos: {{ os.reparo }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+function atualizarIndicadores() {
+  const ids = ['em_andamento', 'aguardando', 'finalizado', 'cancelado'];
+
+  ids.forEach((id) => {
+    const coluna = document.getElementById(id);
+    const total = coluna ? coluna.querySelectorAll('[data-id]').length : 0;
+
+    const counter = document.querySelector(`[data-count="${id}"]`);
+    const pill = document.querySelector(`[data-pill="${id}"]`);
+
+    if (counter) counter.textContent = String(total);
+    if (pill) pill.textContent = String(total);
+  });
+}
+
+function mapStatus(colunaId) {
+  if (colunaId === 'em_andamento') return 'Em andamento';
+  if (colunaId === 'aguardando') return 'Aguardando peca';
+  if (colunaId === 'finalizado') return 'Finalizado';
+  if (colunaId === 'cancelado') return 'Cancelado';
+  return '';
+}
+
+function iniciarKanban() {
+  const colunas = ['em_andamento', 'aguardando', 'finalizado', 'cancelado'];
+
+  colunas.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    new Sortable(el, {
+      group: 'kanban',
+      animation: 150,
+      ghostClass: 'opacity-60',
+      onEnd: async function(evt) {
+        if (evt.from.id === evt.to.id) return;
+
+        const item = evt.item;
+        const os_id = item.getAttribute('data-id');
+        const novoStatus = mapStatus(evt.to.id);
+
+        try {
+          const res = await fetch('/atualizar_status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'id=' + encodeURIComponent(os_id) + '&status=' + encodeURIComponent(novoStatus)
+          });
+
+          if (!res.ok) {
+            throw new Error('Falha ao atualizar status');
+          }
+
+          atualizarIndicadores();
+        } catch (error) {
+          evt.from.appendChild(item);
+          atualizarIndicadores();
+          alert('Nao foi possivel mover esta OS. Verifique o estoque/status e tente novamente.');
+        }
+      }
+    });
+  });
+
+  atualizarIndicadores();
+}
+
+iniciarKanban();
+</script>
+{% endblock %}

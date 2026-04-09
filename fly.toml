@@ -1,0 +1,43 @@
+# fly.toml — configuração do Fly.io para IR Flow
+# Gerado para deploy com volume persistente (SQLite + arquivos de dados)
+
+app = "irflow"          # Altere para o nome que registrar em: fly apps create
+primary_region = "gru"  # São Paulo — mais próximo do Brasil
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  IR_FLOW_HOST     = "0.0.0.0"
+  IR_FLOW_PORT     = "8080"
+  FLY_DATA_DIR     = "/data"
+  # FLASK_SECRET_KEY → defina via: fly secrets set FLASK_SECRET_KEY="..."
+  # MERCADO_PHONE_WEBHOOK_TOKEN → fly secrets set MERCADO_PHONE_WEBHOOK_TOKEN="..."
+  # MERCADO_PHONE_API_TOKEN     → fly secrets set MERCADO_PHONE_API_TOKEN="..."
+
+[[services]]
+  internal_port = 8080
+  protocol      = "tcp"
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = 30000
+    timeout  = 5000
+    path     = "/dashboard"
+
+[[mounts]]
+  source      = "irflow_data"   # nome do volume criado com: fly volumes create irflow_data
+  destination = "/data"
+  initial_size = "1gb"

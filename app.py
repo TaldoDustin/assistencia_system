@@ -23,7 +23,8 @@ from datetime import datetime, timedelta
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, render_template, request, redirect, jsonify, flash, url_for, send_from_directory, Response, abort
+from flask import Flask, render_template, request, redirect, jsonify, flash, url_for, send_from_directory, Response, abort, session
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
@@ -594,6 +595,17 @@ def criar_tabelas():
             )
             """)
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                usuario TEXT UNIQUE NOT NULL,
+                senha_hash TEXT NOT NULL,
+                perfil TEXT NOT NULL DEFAULT 'tecnico',
+                ativo INTEGER NOT NULL DEFAULT 1
+            )
+            """)
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -686,6 +698,23 @@ def criar_tabelas():
 
 criar_tabelas()
 executar_backup_diario_automatico(BACKUP_DIR, GOOGLE_DRIVE_BACKUP_DIR, conectar)
+
+
+def criar_admin_padrao():
+    """Cria usuário admin padrão se não existir nenhum usuário."""
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
+            ("Administrador", "admin", generate_password_hash("irflow@2024"), "admin"),
+        )
+        conn.commit()
+    conn.close()
+
+
+criar_admin_padrao()
 
 # ============================================================================
 # CONFIGURAÇÃO MERCADO PHONE
@@ -1062,6 +1091,107 @@ app.register_blueprint(
             "carregar_tabelas_preco": carregar_tabelas_preco,
             "salvar_tabelas_preco": salvar_tabelas_preco,
             "iphone_models": IPHONE_MODELS,
+        }
+    )
+)
+
+# ============================================================================
+# AUTENTICAÇÃO — PERMISSÕES E BEFORE_REQUEST
+# ============================================================================
+
+# Perfis disponíveis: admin, tecnico, vendedor
+# None = qualquer perfil logado
+ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
+    # Acesso livre (não requer login)
+    "auth_views.login": [],
+    "auth_views.logout": [],
+    "static": [],
+    # Qualquer usuário logado
+    "main_views.dashboard": None,
+    "main_views.index": None,
+    "main_views.kanban": None,
+    "main_views.garantias": None,
+    "order_views.ordens": None,
+    "order_views.nova": None,
+    "order_views.editar": None,
+    "order_views.atualizar_status": None,
+    "order_views.deletar": None,
+    "order_views.autocomplete_clientes": None,
+    "order_views.api_buscar_pecas": None,
+    "order_views.api_remover_peca": None,
+    "order_views.api_adicionar_peca": None,
+    "inventory_views.estoque": None,
+    "inventory_views.cadastro_peca": ["admin", "tecnico"],
+    "inventory_views.editar_item_estoque": ["admin", "tecnico"],
+    "inventory_views.deletar_item_estoque": ["admin"],
+    # Somente admin
+    "main_views.relatorios": ["admin"],
+    "main_views.backup": ["admin"],
+    "main_views.backup_download": ["admin"],
+    "admin_views.custos_operacionais": ["admin"],
+    "admin_views.salvar_custo": ["admin"],
+    "admin_views.deletar_custo": ["admin"],
+    "admin_views.cadastrar_custo_operacional": ["admin"],
+    "admin_views.excluir_custo_operacional": ["admin"],
+    "admin_views.reparos": ["admin"],
+    "admin_views.salvar_reparo": ["admin"],
+    "admin_views.deletar_reparo": ["admin"],
+    "admin_views.editar_reparo": ["admin"],
+    "admin_views.tabelas_preco": ["admin"],
+    "admin_views.salvar_tabelas_preco": ["admin"],
+    "admin_views.excluir_tabelas_preco": ["admin"],
+    "admin_views.salvar_entrada_tabela": ["admin"],
+    "admin_views.excluir_entrada_tabela": ["admin"],
+    "main_views.relatorio_pdf_ir_phones": ["admin"],
+    "main_views.relatorio_pdf_tecnicos": ["admin"],
+    "auth_views.usuarios": ["admin"],
+    "auth_views.novo_usuario": ["admin"],
+    "auth_views.editar_usuario": ["admin"],
+    "auth_views.deletar_usuario": ["admin"],
+    # Webhook (autenticação própria por token)
+    "receber_os_mercado_phone": [],
+    "sync_os_mercado_phone": [],
+    "status_sync_mercado_phone": [],
+}
+
+
+@app.before_request
+def verificar_autenticacao():
+    endpoint = request.endpoint
+    if not endpoint:
+        return
+
+    # Rotas não mapeadas — bloquear por segurança (exceto estáticos)
+    if endpoint == "static":
+        return
+
+    perms = ROUTE_PERMISSIONS.get(endpoint)
+    if perms == []:
+        # Acesso livre
+        return
+
+    usuario_id = session.get("usuario_id")
+    if not usuario_id:
+        return redirect(url_for("auth_views.login", next=request.path))
+
+    perfil = session.get("usuario_perfil", "")
+    if perms is not None and perfil not in perms:
+        flash("Você não tem permissão para acessar esta página.", "danger")
+        return redirect(url_for("main_views.dashboard"))
+
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
+# ============================================================================
+
+from irflow_blueprints_auth import create_auth_blueprint  # noqa: E402
+
+app.register_blueprint(
+    create_auth_blueprint(
+        {
+            "conectar": conectar,
+            "generate_password_hash": generate_password_hash,
+            "check_password_hash": check_password_hash,
         }
     )
 )

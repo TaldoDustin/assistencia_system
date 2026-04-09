@@ -88,13 +88,13 @@
 
 <div class="flex">
 
-    <div class="sidebar-surface w-72 h-screen text-slate-100 p-5 fixed">
-        <div class="mb-10 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div class="sidebar-surface w-72 h-screen text-slate-100 p-5 fixed flex flex-col">
+        <div class="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
             <p class="text-xs uppercase tracking-[0.24em] text-slate-400">IR Flow</p>
             <h2 class="mt-2 text-2xl font-bold">Painel de Operacao</h2>
         </div>
 
-        <ul>
+        <ul class="flex-1 overflow-y-auto">
             <li class="mb-4">
                 <a href="/dashboard" class="block rounded-md px-3 py-2 hover:bg-slate-800">Dashboard</a>
             </li>
@@ -131,7 +131,29 @@
             <li class="mb-4">
                 <a href="/backup" class="block rounded-md px-3 py-2 hover:bg-slate-800">Backup</a>
             </li>
+            {% if session.get('usuario_perfil') == 'admin' %}
+            <li class="mb-4">
+                <a href="/usuarios" class="block rounded-md px-3 py-2 hover:bg-slate-800">Usuarios</a>
+            </li>
+            {% endif %}
         </ul>
+
+        <!-- Usuário logado + logout -->
+        <div class="mt-4 border-t border-white/10 pt-4">
+            <div class="flex items-center justify-between px-2">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold truncate">{{ session.get('usuario_nome', 'Usuário') }}</p>
+                    <p class="text-xs text-slate-400 capitalize">{{ session.get('usuario_perfil', '') }}</p>
+                </div>
+                <a href="{{ url_for('auth_views.logout') }}" title="Sair"
+                    class="ml-2 shrink-0 text-slate-400 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="ml-72 p-6 w-full bg-slate-100 min-h-screen">

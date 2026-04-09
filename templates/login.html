@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login — IR Flow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --brand-red-600: #FF0125;
+            --brand-red-500: #FF3B57;
+            --brand-dark-900: #0A0A0A;
+            --brand-dark-800: #141414;
+            --brand-bg: #F4F4F5;
+        }
+        body {
+            font-family: "Sora", "Segoe UI", sans-serif;
+            background-color: var(--brand-bg);
+            background-image:
+                radial-gradient(circle at top left, rgba(255,1,37,0.10), transparent 28rem),
+                linear-gradient(180deg, #fafafa 0%, #f4f4f5 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-sm">
+        <!-- Logo / Brand -->
+        <div class="flex flex-col items-center mb-8">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style="background:var(--brand-dark-900);">
+                <span class="text-white font-bold text-2xl">IR</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">IR Flow</h1>
+            <p class="text-sm text-gray-500 mt-1">Assistência Técnica</p>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-6">Entrar na conta</h2>
+
+            {% if erro %}
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm flex items-center gap-2">
+                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.75-4.75a.75.75 0 001.5 0v-4a.75.75 0 00-1.5 0v4zm.75-7.25a.75.75 0 100 1.5.75.75 0 000-1.5z" clip-rule="evenodd"/></svg>
+                {{ erro }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('auth_views.login') }}">
+                {% if request.args.get('next') %}
+                <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+                {% endif %}
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+                    <input
+                        type="text"
+                        name="usuario"
+                        autofocus
+                        autocomplete="username"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                        style="focus:ring-color:var(--brand-red-600);"
+                        placeholder="seu.usuario"
+                        required
+                    >
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input
+                        type="password"
+                        name="senha"
+                        autocomplete="current-password"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                        placeholder="••••••••"
+                        required
+                    >
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full text-white font-semibold rounded-lg py-2.5 text-sm transition"
+                    style="background:var(--brand-red-600);"
+                    onmouseover="this.style.background='var(--brand-red-500)'"
+                    onmouseout="this.style.background='var(--brand-red-600)'"
+                >
+                    Entrar
+                </button>
+            </form>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-6">IR Flow © {{ 2025 }}</p>
+    </div>
+</body>
+</html>

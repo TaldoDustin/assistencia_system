@@ -36,6 +36,10 @@ def create_main_blueprint(deps):
     google_drive_backup_dir = deps["google_drive_backup_dir"]
     garantir_pasta_backup_google_drive = deps["garantir_pasta_backup_google_drive"]
     criar_backup = deps["criar_backup"]
+    enviar_backup_email = deps["enviar_backup_email"]
+    backup_email_remetente = deps["backup_email_remetente"]
+    backup_email_senha_app = deps["backup_email_senha_app"]
+    backup_email_destino = deps["backup_email_destino"]
 
     @bp.route("/")
     @bp.route("/dashboard")
@@ -406,19 +410,54 @@ def create_main_blueprint(deps):
     def backup():
         os.makedirs(backup_dir, exist_ok=True)
         drive_dir = garantir_pasta_backup_google_drive(google_drive_backup_dir)
+        email_configurado = bool(backup_email_remetente and backup_email_senha_app and backup_email_destino)
 
         if request.method == "POST":
+            acao = request.form.get("acao", "criar")
+
+            if acao == "enviar_email":
+                # Envia o backup mais recente por e-mail
+                arquivos_existentes = sorted(
+                    [f for f in os.listdir(backup_dir) if f.lower().endswith(".db")],
+                    reverse=True,
+                )
+                if not arquivos_existentes:
+                    flash("Nenhum backup disponível para enviar. Crie um backup primeiro.", "error")
+                    return redirect(url_for("main_views.backup"))
+                caminho = os.path.join(backup_dir, arquivos_existentes[0])
+                resultado = enviar_backup_email(
+                    caminho, backup_email_remetente, backup_email_senha_app, backup_email_destino
+                )
+                if resultado["ok"]:
+                    flash(f"Backup enviado para {backup_email_destino} com sucesso!", "success")
+                else:
+                    flash(f"Falha ao enviar e-mail: {resultado['erro']}", "error")
+                return redirect(url_for("main_views.backup"))
+
+            # acao == "criar"
             try:
                 info = criar_backup(backup_dir, google_drive_backup_dir, conectar)
             except (OSError, sqlite3.Error) as exc:
                 flash(f"Nao foi possivel gerar o backup: {exc}", "error")
                 return redirect(url_for("main_views.backup"))
+
+            msgs = []
             if info["destino_drive"]:
-                flash(f"Backup criado e copiado para o Google Drive: {info['nome']}", "success")
+                msgs.append("copiado para o Google Drive")
             elif info.get("erro_drive"):
                 flash(f"Backup criado localmente, mas o Google Drive recusou a copia: {info['nome']}", "error")
-            else:
-                flash(f"Backup criado localmente: {info['nome']}", "success")
+
+            if email_configurado:
+                resultado = enviar_backup_email(
+                    info["destino_local"], backup_email_remetente, backup_email_senha_app, backup_email_destino
+                )
+                if resultado["ok"]:
+                    msgs.append(f"e-mail enviado para {backup_email_destino}")
+                else:
+                    flash(f"Backup criado, mas falha ao enviar e-mail: {resultado['erro']}", "error")
+
+            descricao = " e ".join(msgs) if msgs else "localmente"
+            flash(f"Backup criado ({descricao}): {info['nome']}", "success")
             return redirect(url_for("main_views.backup"))
 
         arquivos = []
@@ -444,6 +483,8 @@ def create_main_blueprint(deps):
             backups=arquivos,
             google_drive_disponivel=bool(drive_dir),
             google_drive_pasta=drive_dir,
+            email_configurado=email_configurado,
+            email_destino=backup_email_destino,
         )
 
     @bp.route("/backup/download/<path:nome>")

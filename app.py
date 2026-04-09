@@ -80,8 +80,10 @@ from irflow_storage import (
     carregar_configuracoes_integracoes,
     criar_backup,
     diretorio_google_drive_disponivel,
+    enviar_backup_email,
     executar_backup_diario_automatico,
     garantir_pasta_backup_google_drive,
+    iniciar_thread_backup_automatico,
 )
 
 # ============================================================================
@@ -145,6 +147,11 @@ BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if os.environ.get("FLY_DATA_DIR") else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
+
+# Configuração de e-mail para envio automático de backup
+BACKUP_EMAIL_REMETENTE = os.environ.get("IR_FLOW_BACKUP_EMAIL", "ir.phones.flow@gmail.com")
+BACKUP_EMAIL_SENHA_APP = os.environ.get("IR_FLOW_BACKUP_EMAIL_SENHA", "")
+BACKUP_EMAIL_DESTINO = os.environ.get("IR_FLOW_BACKUP_EMAIL_DESTINO", "ir.phones.flow@gmail.com")
 
 # Tabelas de preço ficam no volume persistente; na primeira execução, copia o
 # arquivo de referência embutido no código para o diretório de dados.
@@ -697,7 +704,14 @@ def criar_tabelas():
 
 
 criar_tabelas()
-executar_backup_diario_automatico(BACKUP_DIR, GOOGLE_DRIVE_BACKUP_DIR, conectar)
+iniciar_thread_backup_automatico(
+    BACKUP_DIR,
+    GOOGLE_DRIVE_BACKUP_DIR,
+    conectar,
+    email_remetente=BACKUP_EMAIL_REMETENTE,
+    email_senha_app=BACKUP_EMAIL_SENHA_APP,
+    email_destino=BACKUP_EMAIL_DESTINO,
+)
 
 
 def criar_admin_padrao():
@@ -1029,6 +1043,10 @@ app.register_blueprint(
             "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
             "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
             "criar_backup": criar_backup,
+            "enviar_backup_email": enviar_backup_email,
+            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
+            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
+            "backup_email_destino": BACKUP_EMAIL_DESTINO,
         }
     )
 )

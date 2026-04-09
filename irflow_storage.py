@@ -1,7 +1,13 @@
+import email.mime.application
+import email.mime.multipart
+import email.mime.text
 import json
 import os
 import shutil
+import smtplib
 import sqlite3
+import threading
+import time
 from datetime import datetime
 
 
@@ -128,3 +134,87 @@ def executar_backup_diario_automatico(backup_dir, google_drive_backup_dir, conec
     except Exception as exc:
         print(f"Falha ao gerar backup automatico diario: {exc}")
         return None
+
+
+def enviar_backup_email(caminho_arquivo, email_remetente, email_senha_app, email_destino):
+    """Envia o arquivo de backup como anexo por e-mail via Gmail SMTP."""
+    if not all([email_remetente, email_senha_app, email_destino, caminho_arquivo]):
+        return {"ok": False, "erro": "Configuração de e-mail incompleta."}
+    if not os.path.isfile(caminho_arquivo):
+        return {"ok": False, "erro": f"Arquivo não encontrado: {caminho_arquivo}"}
+
+    nome_arquivo = os.path.basename(caminho_arquivo)
+    data_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    msg = email.mime.multipart.MIMEMultipart()
+    msg["From"] = email_remetente
+    msg["To"] = email_destino
+    msg["Subject"] = f"[IR Flow] Backup automático — {data_str}"
+
+    corpo = (
+        f"Backup automático do IR Flow gerado em {data_str}.\n\n"
+        f"Arquivo: {nome_arquivo}\n"
+        f"Tamanho: {os.path.getsize(caminho_arquivo) / 1024:.1f} KB\n\n"
+        "Este e-mail foi gerado automaticamente."
+    )
+    msg.attach(email.mime.text.MIMEText(corpo, "plain", "utf-8"))
+
+    with open(caminho_arquivo, "rb") as f:
+        anexo = email.mime.application.MIMEApplication(f.read(), Name=nome_arquivo)
+    anexo["Content-Disposition"] = f'attachment; filename="{nome_arquivo}"'
+    msg.attach(anexo)
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as servidor:
+            servidor.login(email_remetente, email_senha_app)
+            servidor.sendmail(email_remetente, email_destino, msg.as_string())
+        return {"ok": True, "erro": ""}
+    except smtplib.SMTPAuthenticationError:
+        return {"ok": False, "erro": "Autenticação falhou. Verifique o e-mail e a senha de app."}
+    except Exception as exc:
+        return {"ok": False, "erro": str(exc)}
+
+
+def iniciar_thread_backup_automatico(
+    backup_dir,
+    google_drive_backup_dir,
+    conectar,
+    email_remetente="",
+    email_senha_app="",
+    email_destino="",
+    intervalo_verificacao_segundos=3600,
+):
+    """
+    Inicia thread daemon que verifica a cada hora se o backup do dia já existe.
+    Se não existir, cria e opcionalmente envia por e-mail.
+    """
+
+    def _loop():
+        # Aguarda 30s após o boot para não competir com a inicialização do app
+        time.sleep(30)
+        while True:
+            try:
+                info = executar_backup_diario_automatico(
+                    backup_dir, google_drive_backup_dir, conectar
+                )
+                if info:
+                    print(f"[Backup] Arquivo criado: {info['nome']}")
+                    if email_remetente and email_senha_app and email_destino:
+                        resultado = enviar_backup_email(
+                            info["destino_local"],
+                            email_remetente,
+                            email_senha_app,
+                            email_destino,
+                        )
+                        if resultado["ok"]:
+                            print(f"[Backup] E-mail enviado para {email_destino}")
+                        else:
+                            print(f"[Backup] Falha ao enviar e-mail: {resultado['erro']}")
+            except Exception as exc:
+                print(f"[Backup] Erro inesperado na thread: {exc}")
+
+            time.sleep(intervalo_verificacao_segundos)
+
+    t = threading.Thread(target=_loop, daemon=True, name="backup-automatico")
+    t.start()
+    return t

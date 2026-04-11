@@ -1,15 +1,48 @@
 param(
-    [string]$PythonExe = "C:\Program Files\PyManager\python.exe"
+    [string]$PythonExe = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-if (!(Test-Path $PythonExe)) {
+if (-not $PythonExe) {
+    $pythonCommand = Get-Command py -ErrorAction SilentlyContinue
+    if (-not $pythonCommand) {
+        $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    }
+    if (-not $pythonCommand) {
+        throw "Python nao encontrado no PATH"
+    }
+    $PythonExe = $pythonCommand.Source
+}
+
+if (!(Get-Command $PythonExe -ErrorAction SilentlyContinue) -and !(Test-Path $PythonExe)) {
     throw "Python nao encontrado em: $PythonExe"
 }
 
 if (!(Test-Path "assets\ir_flow.ico")) {
     throw "Icone nao encontrado em assets\ir_flow.ico"
+}
+
+if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
+    throw "npm nao encontrado no PATH"
+}
+
+Push-Location "frontend"
+try {
+    if (!(Test-Path "node_modules")) {
+        npm install
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao instalar dependencias do frontend"
+        }
+    }
+
+    npm run build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao gerar frontend\\dist"
+    }
+}
+finally {
+    Pop-Location
 }
 
 & $PythonExe -m PyInstaller `
@@ -18,8 +51,8 @@ if (!(Test-Path "assets\ir_flow.ico")) {
     --windowed `
     --name "IR FLOW" `
     --icon "assets\ir_flow.ico" `
-    --add-data "templates;templates" `
     --add-data "data;data" `
+    --add-data "frontend\dist;frontend\dist" `
     --distpath "release" `
     --workpath "build_irflow2" `
     app.py

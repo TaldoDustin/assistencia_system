@@ -29,6 +29,7 @@ export default function Users() {
   const [editId, setEditId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isAdmin = currentUser?.perfil === "admin";
 
@@ -80,6 +81,7 @@ export default function Users() {
   };
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
       const res = await usuariosApi.delete(deleteId);
       if (res?.ok) {
@@ -87,7 +89,10 @@ export default function Users() {
         setUsers((prev) => prev.filter((u) => u.id !== deleteId));
       } else toast.error(res?.erro || "Erro ao excluir");
     } catch { toast.error("Erro ao excluir usuário"); }
-    finally { setDeleteId(null); }
+    finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
   };
 
   const perfilColor = { admin: "text-primary", tecnico: "text-blue-400", vendedor: "text-emerald-400" };
@@ -97,7 +102,7 @@ export default function Users() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground text-sm">Gerencie o acesso ao sistema</p>
+          <p className="text-muted-foreground text-sm">{users.length} {users.length === 1 ? "usuario cadastrado" : "usuarios cadastrados"}</p>
         </div>
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Usuário</Button>
       </div>
@@ -119,7 +124,7 @@ export default function Users() {
               </thead>
               <tbody className="divide-y divide-border">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-accent/30 transition-colors">
+                  <tr key={u.id} className="hover:bg-accent/30 transition-colors" data-testid={`user-row-${u.id}`}>
                     <td className="px-4 py-3 font-medium text-card-foreground">{u.nome}</td>
                     <td className="px-4 py-3 font-mono text-sm text-muted-foreground">{u.usuario}</td>
                     <td className="px-4 py-3">
@@ -132,11 +137,11 @@ export default function Users() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(u)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar usuário ${u.id}`} onClick={() => openEdit(u)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         {u.id !== currentUser?.id && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(u.id)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir usuário ${u.id}`} onClick={() => setDeleteId(u.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
@@ -155,17 +160,18 @@ export default function Users() {
           <DialogHeader><DialogTitle>{editId ? "Editar Usuário" : "Novo Usuário"}</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-3 mt-2">
             <div className="space-y-1.5">
-              <Label>Nome *</Label>
-              <Input value={form.nome} onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))} required />
+              <Label htmlFor="user-nome">Nome *</Label>
+              <Input id="user-nome" value={form.nome} onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Usuário *</Label>
-                <Input value={form.usuario} onChange={(e) => setForm((p) => ({ ...p, usuario: e.target.value }))} required />
+                <Label htmlFor="user-usuario">Usuário *</Label>
+                <Input id="user-usuario" value={form.usuario} onChange={(e) => setForm((p) => ({ ...p, usuario: e.target.value }))} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{editId ? "Nova Senha" : "Senha *"}</Label>
+                <Label htmlFor="user-senha">{editId ? "Nova Senha" : "Senha *"}</Label>
                 <Input
+                  id="user-senha"
                   type="password"
                   value={form.senha}
                   onChange={(e) => setForm((p) => ({ ...p, senha: e.target.value }))}
@@ -176,7 +182,7 @@ export default function Users() {
               <div className="space-y-1.5">
                 <Label>Perfil</Label>
                 <Select value={form.perfil} onValueChange={(v) => setForm((p) => ({ ...p, perfil: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Perfil"><SelectValue /></SelectTrigger>
                   <SelectContent>{PERFIS.map((p) => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -189,8 +195,11 @@ export default function Users() {
               </div>
             </div>
             <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar</Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>
+              <Button type="submit" disabled={submitting} data-testid="users-save-button">
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {submitting ? "Salvando..." : "Salvar"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -203,8 +212,11 @@ export default function Users() {
             <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

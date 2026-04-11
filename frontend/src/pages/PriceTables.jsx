@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Trash2, ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { precos as precosApi, reparos as reparosApi, constantes } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ const TABELAS = [
 ];
 
 export default function PriceTables() {
+  const { user } = useAuth();
   const [tabelas, setTabelas]       = useState({});
   const [loading, setLoading]       = useState(true);
   const [expanded, setExpanded]     = useState({});
@@ -31,6 +33,8 @@ export default function PriceTables() {
   const [form, setForm]             = useState({ tabela: "ir_phones", servico: "", modelo: "", valor: "" });
   const [submitting, setSubmitting] = useState(false);
   const [toDelete, setToDelete]     = useState(null); // { tabela, servico, modelo }
+
+  const isAdmin = user?.perfil === "admin";
 
   const fetchData = () => {
     setLoading(true);
@@ -43,6 +47,15 @@ export default function PriceTables() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+        <Lock className="h-10 w-10" />
+        <p>Somente administradores podem gerenciar tabelas de preço.</p>
+      </div>
+    );
+  }
 
   const toggleExpand = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -231,4 +244,4 @@ export default function PriceTables() {
       </AlertDialog>
     </div>
   );
-}
+}

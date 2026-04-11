@@ -7,11 +7,11 @@ from flask import (
     Blueprint,
     flash,
     redirect,
-    render_template,
     request,
     session,
     url_for,
 )
+from urllib.parse import quote
 
 
 def create_auth_blueprint(deps: dict):
@@ -28,38 +28,39 @@ def create_auth_blueprint(deps: dict):
     @auth_views.route("/login", methods=["GET", "POST"])
     def login():
         if session.get("usuario_id"):
-            return redirect(url_for("main_views.dashboard"))
+            return redirect("/app")
+
+        if request.method == "GET":
+            return redirect("/app/login")
 
         erro = None
-        if request.method == "POST":
-            usuario_txt = (request.form.get("usuario") or "").strip()
-            senha_txt = request.form.get("senha") or ""
+        usuario_txt = (request.form.get("usuario") or "").strip()
+        senha_txt = request.form.get("senha") or ""
 
-            conn = conectar()
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
-                (usuario_txt,),
-            )
-            row = cursor.fetchone()
-            conn.close()
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
+            (usuario_txt,),
+        )
+        row = cursor.fetchone()
+        conn.close()
 
-            if row and row[4] == 1 and check_password_hash(row[2], senha_txt):
-                session.permanent = True
-                session["usuario_id"] = row[0]
-                session["usuario_nome"] = row[1]
-                session["usuario_perfil"] = row[3]
-                destino = request.form.get("next") or url_for("main_views.dashboard")
-                return redirect(destino)
-            else:
-                erro = "Usuário ou senha inválidos."
+        if row and row[4] == 1 and check_password_hash(row[2], senha_txt):
+            session.permanent = True
+            session["usuario_id"] = row[0]
+            session["usuario_nome"] = row[1]
+            session["usuario_perfil"] = row[3]
+            destino = request.form.get("next") or "/app"
+            return redirect(destino)
 
-        return render_template("login.html", erro=erro)
+        erro = quote("Usuário ou senha inválidos.")
+        return redirect(f"/app/login?erro={erro}")
 
     @auth_views.route("/logout")
     def logout():
         session.clear()
-        return redirect(url_for("auth_views.login"))
+        return redirect("/app/login")
 
     # ------------------------------------------------------------------
     # GESTÃO DE USUÁRIOS (admin)
@@ -67,14 +68,7 @@ def create_auth_blueprint(deps: dict):
 
     @auth_views.route("/usuarios")
     def usuarios():
-        conn = conectar()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, nome, usuario, perfil, ativo FROM usuarios ORDER BY nome"
-        )
-        lista = cursor.fetchall()
-        conn.close()
-        return render_template("usuarios.html", usuarios=lista)
+        return redirect("/app/usuarios")
 
     @auth_views.route("/usuarios/novo", methods=["POST"])
     def novo_usuario():

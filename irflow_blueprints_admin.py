@@ -2,6 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from irflow_web import redirecionar_com_query_string
+
 
 def create_admin_blueprint(deps):
     bp = Blueprint("admin_views", __name__)
@@ -15,6 +17,9 @@ def create_admin_blueprint(deps):
 
     @bp.route("/custos-operacionais", methods=["GET", "POST"])
     def cadastrar_custo_operacional():
+        if request.method == "GET":
+            return redirecionar_com_query_string(request, "/app/custos")
+
         if request.method == "POST":
             descricao = (request.form.get("descricao") or "").strip()
             categoria = (request.form.get("categoria") or "").strip() or "Outros"
@@ -94,6 +99,9 @@ def create_admin_blueprint(deps):
 
     @bp.route("/reparos", methods=["GET", "POST"])
     def reparos():
+        if request.method == "GET":
+            return redirecionar_com_query_string(request, "/app/reparos")
+
         conn = conectar()
         cursor = conn.cursor()
 
@@ -180,12 +188,7 @@ def create_admin_blueprint(deps):
 
     @bp.route("/tabelas-preco", methods=["GET"])
     def tabelas_preco():
-        tabelas = carregar_tabelas_preco()
-        return render_template(
-            "tabelas_preco.html",
-            tabelas=tabelas,
-            iphone_models=iphone_models,
-        )
+        return redirecionar_com_query_string(request, "/app/precos")
 
     @bp.route("/tabelas-preco/salvar", methods=["POST"])
     def salvar_entrada_tabela():

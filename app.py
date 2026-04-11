@@ -7,15 +7,12 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # IMPORTS PADRÃO DA BIBLIOTECA
 # ============================================================================
 import functools
-import json
 import os
-import re
 import shutil
 import sqlite3
 import sys
 import threading
 import time
-import unicodedata
 import webbrowser
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -93,6 +90,25 @@ from irflow_blueprints_main import create_main_blueprint
 from irflow_blueprints_orders import create_orders_blueprint
 from irflow_blueprints_inventory import create_inventory_blueprint
 from irflow_blueprints_admin import create_admin_blueprint
+from irflow_price_tables import (
+    carregar_tabelas_preco as carregar_tabelas_preco_arquivo,
+    salvar_tabelas_preco as salvar_tabelas_preco_arquivo,
+)
+from irflow_reference_data import (
+    CATEGORIAS_CUSTOS_OPERACIONAIS,
+    IPHONE_COLORS,
+    IPHONE_MODELS,
+    REPAROS_PADRAO,
+    TECNICOS,
+    VENDEDORES,
+    extrair_cor_da_descricao_aparelho,
+    extrair_modelo_da_descricao_aparelho,
+    modelo_para_os,
+    nome_reparo_importavel,
+    normalizar_imei,
+    normalizar_modelo_iphone,
+)
+from irflow_web import anexar_query_string
 
 from irflow_reports import (
     agrupar_relatorio_ir_phones,
@@ -182,275 +198,10 @@ MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", 
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
 
+# FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================
-# CONSTANTES - MODELOS DE IPHONE
-# ============================================================================
-IPHONE_MODELS = [
-    "iPhone XR",
-    "iPhone XS",
-    "iPhone XS Max",
-    "iPhone 11",
-    "iPhone 11 Pro",
-    "iPhone 11 Pro Max",
-    "iPhone SE (2a geracao)",
-    "iPhone 12 mini",
-    "iPhone 12",
-    "iPhone 12 Pro",
-    "iPhone 12 Pro Max",
-    "iPhone 13 mini",
-    "iPhone 13",
-    "iPhone 13 Pro",
-    "iPhone 13 Pro Max",
-    "iPhone SE (3a geracao)",
-    "iPhone 14",
-    "iPhone 14 Plus",
-    "iPhone 14 Pro",
-    "iPhone 14 Pro Max",
-    "iPhone 15",
-    "iPhone 15 Plus",
-    "iPhone 15 Pro",
-    "iPhone 15 Pro Max",
-    "iPhone 16",
-    "iPhone 16 Plus",
-    "iPhone 16 Pro",
-    "iPhone 16 Pro Max",
-    "iPhone 16e",
-]
-
-IPHONE_MODEL_MAP = {m.lower(): m for m in IPHONE_MODELS}
-IPHONE_ALIAS_MAP = {}
-for _modelo in IPHONE_MODELS:
-    _base = _modelo.lower().replace("iphone", "").strip()
-    _base = _base.replace("(", " ").replace(")", " ").replace("-", " ")
-    _base = " ".join(_base.split())
-    if _base:
-        IPHONE_ALIAS_MAP[_base] = _modelo
-        IPHONE_ALIAS_MAP[_base.replace(" ", "")] = _modelo
-
-# ============================================================================
-# CONSTANTES - CORES DE IPHONE POR MODELO
-# ============================================================================
-IPHONE_COLORS = {
-    "iPhone XR": ["Preto", "Branco", "Azul", "Amarelo", "Coral", "Vermelho"],
-    "iPhone XS": ["Cinza-espacial", "Prata", "Dourado"],
-    "iPhone XS Max": ["Cinza-espacial", "Prata", "Dourado"],
-    "iPhone 11": ["Preto", "Branco", "Verde", "Amarelo", "Roxo", "Vermelho"],
-    "iPhone 11 Pro": ["Cinza-espacial", "Prata", "Verde-meia-noite", "Dourado"],
-    "iPhone 11 Pro Max": ["Cinza-espacial", "Prata", "Verde-meia-noite", "Dourado"],
-    "iPhone SE (2a geracao)": ["Preto", "Branco", "Vermelho"],
-    "iPhone 12 mini": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
-    "iPhone 12": ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho"],
-    "iPhone 12 Pro": ["Grafite", "Prata", "Dourado", "Azul-pacifico"],
-    "iPhone 12 Pro Max": ["Grafite", "Prata", "Dourado", "Azul-pacifico"],
-    "iPhone 13 mini": ["Meia-noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
-    "iPhone 13": ["Meia-noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho"],
-    "iPhone 13 Pro": ["Grafite", "Prata", "Dourado", "Azul-sierra", "Verde-alpino"],
-    "iPhone 13 Pro Max": ["Grafite", "Prata", "Dourado", "Azul-sierra", "Verde-alpino"],
-    "iPhone SE (3a geracao)": ["Meia-noite", "Estelar", "Vermelho"],
-    "iPhone 14": ["Meia-noite", "Estelar", "Azul", "Roxo", "Amarelo", "Vermelho"],
-    "iPhone 14 Plus": ["Meia-noite", "Estelar", "Azul", "Roxo", "Amarelo", "Vermelho"],
-    "iPhone 14 Pro": ["Preto-espacial", "Prata", "Dourado", "Roxo-profundo"],
-    "iPhone 14 Pro Max": ["Preto-espacial", "Prata", "Dourado", "Roxo-profundo"],
-    "iPhone 15": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
-    "iPhone 15 Plus": ["Preto", "Azul", "Verde", "Amarelo", "Rosa"],
-    "iPhone 15 Pro": ["Titanio preto", "Titanio branco", "Titanio azul", "Titanio natural"],
-    "iPhone 15 Pro Max": ["Titanio preto", "Titanio branco", "Titanio azul", "Titanio natural"],
-    "iPhone 16": ["Preto", "Branco", "Rosa", "Verde-acinzentado", "Azul-ultramarino"],
-    "iPhone 16 Plus": ["Preto", "Branco", "Rosa", "Verde-acinzentado", "Azul-ultramarino"],
-    "iPhone 16 Pro": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
-    "iPhone 16 Pro Max": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
-    "iPhone 16e": ["Preto", "Branco"],
-}
-
-COLOR_ALIAS_MAP = {
-    "preto": "Preto",
-    "black": "Preto",
-    "branco": "Branco",
-    "white": "Branco",
-    "azul": "Azul",
-    "blue": "Azul",
-    "vermelho": "Vermelho",
-    "red": "Vermelho",
-    "rosa": "Rosa",
-    "pink": "Rosa",
-    "roxo": "Roxo",
-    "purple": "Roxo",
-    "amarelo": "Amarelo",
-    "yellow": "Amarelo",
-    "verde": "Verde",
-    "green": "Verde",
-    "estelar": "Estelar",
-    "starlight": "Estelar",
-    "meia noite": "Meia-noite",
-    "midnight": "Meia-noite",
-    "grafite": "Grafite",
-    "graphite": "Grafite",
-    "prata": "Prata",
-    "silver": "Prata",
-    "dourado": "Dourado",
-    "gold": "Dourado",
-    "natural": "Titanio natural",
-    "deserto": "Titanio-deserto",
-    "titanio branco": "Titanio branco",
-    "titanio preto": "Titanio preto",
-    "titanio azul": "Titanio azul",
-    "titanio natural": "Titanio natural",
-    "titanio deserto": "Titanio-deserto",
-}
-
-# ============================================================================
-# CONSTANTES - PESSOAL E CUSTOS
-# ============================================================================
-VENDEDORES = [
-    "Camila",
-    "Kauany",
-    "Camily",
-    "Taina",
-    "Evellyn",
-    "Marcelo",
-    "Isabela",
-]
-
-TECNICOS = [
-    "Aguardando definicao",
-    "Isaque Souza",
-    "Ruan Soares",
-]
-
-CATEGORIAS_CUSTOS_OPERACIONAIS = [
-    "Limpeza e insumos",
-    "Ferramentas",
-    "Embalagem",
-    "Transporte",
-    "Terceiros",
-    "Outros",
-]
-
-# ============================================================================
-# CONSTANTES - REPAROS PADRÃO E MESES
-# ============================================================================
-REPAROS_PADRAO = [
-    "TROCA DE TELA",
-    "TROCA DE BATERIA",
-    "TROCA DE DOCK DE CARGA",
-    "TROCA DE VIDRO DA TELA",
-    "TROCA DE LENTE DA CAMERA",
-    "TROCA DE CAMERA TRASEIRA",
-    "TROCA DE CAMERA FRONTAL",
-    "TROCA DE FACE ID",
-    "TROCA DE BOTOES",
-    "TROCA DE AURICULAR",
-    "TROCA DE TAMPA TRASEIRA",
-    "TROCA DE VIDRO TRASEIRO",
-    "TROCA DE CARCACA",
-    "TROCA DE ALTO FALANTE",
-    "REPARO DE TELA",
-    "REPARO DE PLACA",
-    "TROCA DE FLASH",
-]
-
-MESES_PT = {
-    "01": "Janeiro",
-    "02": "Fevereiro",
-    "03": "Marco",
-    "04": "Abril",
-    "05": "Maio",
-    "06": "Junho",
-    "07": "Julho",
-    "08": "Agosto",
-    "09": "Setembro",
-    "10": "Outubro",
-    "11": "Novembro",
-    "12": "Dezembro",
-}
-
-# ============================================================================
-# LOCKS E FLAGS DE INICIALIZAÇÃO
-# ============================================================================
-SCHEMA_LOCK = threading.Lock()
-SCHEMA_READY = False
-
-# ============================================================================
-# FUNÇÕES AUXILIARES - NORMALIZAÇÃO E CONVERSÃO
-# ============================================================================
-
-
-def normalizar_modelo_iphone(modelo):
-    """Normaliza nome de modelo de iPhone para forma canônica."""
-    valor = (modelo or "").strip()
-    if not valor:
-        return ""
-    return IPHONE_MODEL_MAP.get(valor.lower(), "")
-
-
-def obter_cores_modelo_iphone(modelo):
-    """Retorna lista de cores disponíveis para um modelo de iPhone."""
-    return IPHONE_COLORS.get(modelo or "", [])
-
-
-def normalizar_imei(valor):
-    """Extrai e valida IMEI (14-16 dígitos)."""
-    digitos = "".join(ch for ch in str(valor or "") if ch.isdigit())
-    if 14 <= len(digitos) <= 16:
-        return digitos
-    return ""
-
-
-def modelo_para_os(valor):
-    """Converte descrição de modelo para forma canônica ou fallback."""
-    texto = texto_limpo(valor)
-    if not texto:
-        return ""
-    return normalizar_modelo_iphone(texto) or texto
-
-
-def extrair_modelo_da_descricao_aparelho(descricao):
-    """Extrai modelo de iPhone de uma descrição de aparelho."""
-    texto = normalizar_busca_texto(descricao)
-    if not texto:
-        return ""
-
-    match = re.search(r"\b(?:iphone|ip)\s*(\d{1,2})(?:\s*(pro max|promax|pro|plus|mini|e))?\b", texto)
-    if match:
-        numero = match.group(1)
-        sufixo = (match.group(2) or "").replace("promax", "pro max").strip()
-        chave = f"{numero} {sufixo}".strip()
-        modelo = IPHONE_ALIAS_MAP.get(chave) or IPHONE_ALIAS_MAP.get(chave.replace(" ", ""))
-        if modelo:
-            return modelo
-
-    for alias, modelo in sorted(IPHONE_ALIAS_MAP.items(), key=lambda item: len(item[0]), reverse=True):
-        if alias and alias in texto:
-            return modelo
-    return ""
-
-
-def extrair_cor_da_descricao_aparelho(descricao, modelo=""):
-    """Extrai cor de iPhone de uma descrição de aparelho."""
-    texto = normalizar_busca_texto(descricao)
-    if not texto:
-        return ""
-
-    cores_modelo = set(obter_cores_modelo_iphone(modelo))
-    for alias, cor in COLOR_ALIAS_MAP.items():
-        if alias in texto:
-            if not cores_modelo or cor in cores_modelo:
-                return cor
-    return ""
-
-
-def nome_reparo_importavel(nome):
-    """Verifica se um nome de reparo é válido para importação."""
-    texto = texto_limpo(nome)
-    if not texto:
-        return False
-
-    texto_norm = normalizar_busca_texto(texto)
-    if texto_norm in {"iphone", "ipad", "smartphone", "celular", "assistencia", "garantia", "reparo"}:
-        return False
-    if extrair_modelo_da_descricao_aparelho(texto):
-        return False
-    return True
+carregar_tabelas_preco = functools.partial(carregar_tabelas_preco_arquivo, PRICE_TABLES_PATH)
+salvar_tabelas_preco = functools.partial(salvar_tabelas_preco_arquivo, PRICE_TABLES_PATH)
 
 
 def parse_data_ymd(valor):
@@ -465,26 +216,10 @@ def parse_data_ymd(valor):
 
 
 # ============================================================================
-# FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
+# LOCKS E FLAGS DE INICIALIZAÇÃO
 # ============================================================================
-
-
-def carregar_tabelas_preco():
-    """Carrega tabelas de preço do arquivo JSON."""
-    if not os.path.exists(PRICE_TABLES_PATH):
-        return {"ir_phones": {}, "clientes": {}}
-    try:
-        with open(PRICE_TABLES_PATH, "r", encoding="utf-8") as arquivo:
-            return json.load(arquivo)
-    except (OSError, json.JSONDecodeError):
-        return {"ir_phones": {}, "clientes": {}}
-
-
-def salvar_tabelas_preco(tabelas):
-    """Salva tabelas de preço no arquivo JSON."""
-    os.makedirs(os.path.dirname(PRICE_TABLES_PATH), exist_ok=True)
-    with open(PRICE_TABLES_PATH, "w", encoding="utf-8") as arquivo:
-        json.dump(tabelas, arquivo, ensure_ascii=False, indent=2)
+SCHEMA_LOCK = threading.Lock()
+SCHEMA_READY = False
 
 
 # ============================================================================
@@ -626,6 +361,11 @@ def criar_tabelas():
 
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_fornecedor TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_modelo TEXT")
             except sqlite3.OperationalError:
                 pass
 
@@ -1125,7 +865,6 @@ ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
     "auth_views.logout": [],
     "static": [],
     # Qualquer usuário logado
-    "main_views.dashboard": None,
     "main_views.index": None,
     "main_views.kanban": None,
     "main_views.garantias": None,
@@ -1173,9 +912,49 @@ ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
 }
 
 
+LEGACY_REACT_REDIRECTS = {
+    "/": "/app",
+    "/dashboard": "/app",
+    "/dashboard/": "/app",
+    "/dashboard.html": "/app",
+    "/index": "/app",
+    "/index.html": "/app",
+    "/login": "/app/login",
+    "/ordens": "/app/ordens",
+    "/nova": "/app/ordens/nova",
+    "/kanban": "/app/kanban",
+    "/garantias": "/app/garantias",
+    "/estoque": "/app/estoque",
+    "/estoque/cadastro": "/app/estoque",
+    "/reparos": "/app/reparos",
+    "/tabelas-preco": "/app/precos",
+    "/custos-operacionais": "/app/custos",
+    "/relatorios": "/app/relatorios",
+    "/backup": "/app/backup",
+    "/usuarios": "/app/usuarios",
+}
+
+
+def destino_react_legado(path: str) -> str | None:
+    if path in LEGACY_REACT_REDIRECTS:
+        return LEGACY_REACT_REDIRECTS[path]
+
+    if path.startswith("/editar/"):
+        os_id = path.removeprefix("/editar/").strip("/")
+        if os_id.isdigit():
+            return f"/app/ordens/editar/{os_id}"
+
+    return None
+
+
 @app.before_request
 def verificar_autenticacao():
     endpoint = request.endpoint
+    if request.method in ("GET", "HEAD"):
+        destino_react = destino_react_legado(request.path)
+        if destino_react:
+            return redirect(anexar_query_string(destino_react, request.query_string))
+
     if not endpoint:
         return
 
@@ -1192,12 +971,12 @@ def verificar_autenticacao():
 
     usuario_id = session.get("usuario_id")
     if not usuario_id:
-        return redirect(url_for("auth_views.login", next=request.path))
+        return redirect("/app/login")
 
     perfil = session.get("usuario_perfil", "")
     if perms is not None and perfil not in perms:
         flash("Você não tem permissão para acessar esta página.", "danger")
-        return redirect(url_for("main_views.dashboard"))
+        return redirect("/app")
 
 
 # ============================================================================
@@ -1325,7 +1104,7 @@ if __name__ == "__main__":
         sync_thread.start()
 
     # Abre navegador automaticamente apenas no modo desktop (não no servidor)
-    if not is_server:
+    if not is_server and not os.environ.get("IR_FLOW_NO_BROWSER"):
         threading.Timer(1.2, lambda: webbrowser.open(f"http://{APP_HOST}:{APP_PORT}")).start()
 
     # Inicia servidor Flask

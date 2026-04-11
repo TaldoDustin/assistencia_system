@@ -35,8 +35,8 @@ export default function EditOrder() {
       reparosApi.list(),
       estoqueApi.list(),
     ]).then(([osRes, constRes, rRes, eRes]) => {
-      if (osRes?.ok) {
-        const os = osRes.os;
+      if (osRes?.ok && osRes.ordem) {
+        const os = osRes.ordem;
         setForm({
           tipo: os.tipo || "Assistencia",
           cliente: os.cliente || "",
@@ -48,12 +48,12 @@ export default function EditOrder() {
           status: os.status || "Em andamento",
           valor_cobrado: os.valor_cobrado || "",
           valor_descontado: os.valor_descontado || "",
-          data_os: os.data_os ? os.data_os.split("T")[0] : new Date().toISOString().split("T")[0],
+          data_os: os.data ? os.data.split("T")[0] : new Date().toISOString().split("T")[0],
           observacoes: os.observacoes || "",
         });
-        setSelectedReparos((osRes.reparos || []).map((r) => r.id));
+        setSelectedReparos(os.reparo_ids || []);
         const pecasMap = {};
-        (osRes.pecas || []).forEach((p) => { pecasMap[p.peca_id] = p.quantidade; });
+        (os.pecas_usadas || []).forEach((p) => { pecasMap[p.estoque_id] = p.quantidade; });
         setPecas(pecasMap);
       } else {
         toast.error("Ordem não encontrada");
@@ -64,7 +64,7 @@ export default function EditOrder() {
       if (eRes?.ok) setEstoqueList(eRes.items || []);
       setLoading(false);
     });
-  }, [id]);
+  }, [id, navigate]);
 
   const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -167,13 +167,13 @@ export default function EditOrder() {
           <h2 className="text-sm font-semibold text-card-foreground">Cliente</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-1.5">
-              <Label>Nome do Cliente *</Label>
-              <Input value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} required />
+              <Label htmlFor="edit-order-cliente">Nome do Cliente *</Label>
+              <Input id="edit-order-cliente" value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} required />
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de OS</Label>
               <Select value={form.tipo} onValueChange={(v) => setField("tipo", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Tipo de OS"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(constants?.os_tipos || ["Assistencia", "Garantia", "Upgrade"]).map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -182,8 +182,8 @@ export default function EditOrder() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Data da OS</Label>
-              <Input type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
+              <Label htmlFor="edit-order-data-os">Data da OS</Label>
+              <Input id="edit-order-data-os" type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
             </div>
           </div>
         </section>
@@ -195,7 +195,7 @@ export default function EditOrder() {
             <div className="space-y-1.5">
               <Label>Modelo *</Label>
               <Select value={form.modelo} onValueChange={(v) => setField("modelo", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
+                <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.iphone_models || []).map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -206,7 +206,7 @@ export default function EditOrder() {
             <div className="space-y-1.5">
               <Label>Cor</Label>
               <Select value={form.cor} onValueChange={(v) => setField("cor", v)}>
-                <SelectTrigger><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
+                <SelectTrigger aria-label="Cor"><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.iphone_colors?.[form.modelo] || []).map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -215,8 +215,8 @@ export default function EditOrder() {
               </Select>
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>IMEI</Label>
-              <Input value={form.imei} onChange={(e) => setField("imei", e.target.value)} maxLength={16} />
+              <Label htmlFor="edit-order-imei">IMEI</Label>
+              <Input id="edit-order-imei" value={form.imei} onChange={(e) => setField("imei", e.target.value)} maxLength={16} />
             </div>
           </div>
         </section>
@@ -228,7 +228,7 @@ export default function EditOrder() {
             <div className="space-y-1.5">
               <Label>Técnico</Label>
               <Select value={form.tecnico} onValueChange={(v) => setField("tecnico", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger aria-label="Técnico"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.tecnicos || []).map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -239,7 +239,7 @@ export default function EditOrder() {
             <div className="space-y-1.5">
               <Label>Vendedor</Label>
               <Select value={form.vendedor} onValueChange={(v) => setField("vendedor", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger aria-label="Vendedor"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.vendedores || []).map((v) => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
@@ -250,7 +250,7 @@ export default function EditOrder() {
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setField("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(constants?.status_opcoes || ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"]).map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -283,12 +283,12 @@ export default function EditOrder() {
           <h2 className="text-sm font-semibold text-card-foreground">Financeiro</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Valor Cobrado (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} />
+              <Label htmlFor="edit-order-valor-cobrado">Valor Cobrado (R$)</Label>
+              <Input id="edit-order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Valor com Desconto (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} />
+              <Label htmlFor="edit-order-valor-descontado">Valor com Desconto (R$)</Label>
+              <Input id="edit-order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} />
             </div>
           </div>
         </section>
@@ -328,7 +328,7 @@ export default function EditOrder() {
         </section>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} data-testid="order-save-button">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Alterações
           </Button>

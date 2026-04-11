@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, AlertTriangle, Search } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, AlertTriangle, Search, Lock } from "lucide-react";
 import { estoque as estoqueApi } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ import { formatCurrency } from "@/lib/constants";
 const EMPTY_FORM = { descricao: "", modelo: "", valor: "", fornecedor: "", quantidade: "", data_compra: "" };
 
 export default function Stock() {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -27,6 +29,10 @@ export default function Stock() {
   const [editId, setEditId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const canManage = user?.perfil === "admin" || user?.perfil === "tecnico";
+  const canDelete = user?.perfil === "admin";
 
   const fetchItems = () => {
     estoqueApi.list().then((res) => {
@@ -78,6 +84,7 @@ export default function Stock() {
   };
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
       const res = await estoqueApi.delete(deleteId);
       if (res?.ok) {
@@ -89,6 +96,7 @@ export default function Stock() {
     } catch {
       toast.error("Erro ao excluir");
     } finally {
+      setDeleting(false);
       setDeleteId(null);
     }
   };
@@ -112,7 +120,14 @@ export default function Stock() {
           <h1 className="text-2xl font-bold text-foreground">Estoque</h1>
           <p className="text-muted-foreground text-sm">Gerencie peças e insumos</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Nova Peça</Button>
+        {canManage ? (
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Nova Peça</Button>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card border border-border rounded-lg px-3 py-2">
+            <Lock className="h-4 w-4" />
+            Somente técnicos e administradores podem alterar o estoque
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -145,6 +160,9 @@ export default function Stock() {
             </SelectContent>
           </Select>
         )}
+        <div className="ml-auto flex items-center text-xs text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "item" : "itens"} exibidos
+        </div>
       </div>
 
       {loading ? (
@@ -153,7 +171,7 @@ export default function Stock() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          Nenhum item encontrado.
+          {search || modeloFilter ? "Nenhum item corresponde aos filtros atuais." : "Nenhum item encontrado."}
         </div>
       ) : (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -168,7 +186,7 @@ export default function Stock() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                  <tr key={item.id} className="hover:bg-accent/30 transition-colors" data-testid={`stock-row-${item.id}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {(item.quantidade || 0) <= 2 && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
@@ -188,12 +206,16 @@ export default function Stock() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(item.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {canManage && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar peça ${item.id}`} onClick={() => openEdit(item)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir peça ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -205,62 +227,68 @@ export default function Stock() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editId ? "Editar Peça" : "Nova Peça"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-            <div className="space-y-1.5">
-              <Label>Descrição *</Label>
-              <Input value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} required />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+      {canManage && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editId ? "Editar Peça" : "Nova Peça"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-3 mt-2">
               <div className="space-y-1.5">
-                <Label>Modelo</Label>
-                <Input value={form.modelo} onChange={(e) => setForm((p) => ({ ...p, modelo: e.target.value }))} />
+                <Label htmlFor="stock-descricao">Descrição *</Label>
+                <Input id="stock-descricao" value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} required />
               </div>
-              <div className="space-y-1.5">
-                <Label>Fornecedor</Label>
-                <Input value={form.fornecedor} onChange={(e) => setForm((p) => ({ ...p, fornecedor: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-modelo">Modelo</Label>
+                  <Input id="stock-modelo" value={form.modelo} onChange={(e) => setForm((p) => ({ ...p, modelo: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-fornecedor">Fornecedor</Label>
+                  <Input id="stock-fornecedor" value={form.fornecedor} onChange={(e) => setForm((p) => ({ ...p, fornecedor: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-valor">Valor (R$)</Label>
+                  <Input id="stock-valor" type="number" step="0.01" min="0" value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-quantidade">Quantidade</Label>
+                  <Input id="stock-quantidade" type="number" min="0" value={form.quantidade} onChange={(e) => setForm((p) => ({ ...p, quantidade: e.target.value }))} />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label htmlFor="stock-data-compra">Data de Compra</Label>
+                  <Input id="stock-data-compra" type="date" value={form.data_compra} onChange={(e) => setForm((p) => ({ ...p, data_compra: e.target.value }))} />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Valor (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Quantidade</Label>
-                <Input type="number" min="0" value={form.quantidade} onChange={(e) => setForm((p) => ({ ...p, quantidade: e.target.value }))} />
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>Data de Compra</Label>
-                <Input type="date" value={form.data_compra} onChange={(e) => setForm((p) => ({ ...p, data_compra: e.target.value }))} />
-              </div>
-            </div>
-            <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>
+                <Button type="submit" disabled={submitting} data-testid="stock-save-button">
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {submitting ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Delete Dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Item?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {canDelete && (
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Item?</AlertDialogTitle>
+              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

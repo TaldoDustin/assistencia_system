@@ -2,6 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request
 
+from irflow_web import redirecionar_com_query_string
+
 
 def create_orders_blueprint(deps):
     bp = Blueprint("order_views", __name__)
@@ -40,110 +42,13 @@ def create_orders_blueprint(deps):
 
     @bp.route("/ordens")
     def ordens():
-        conn = conectar()
-        cursor = conn.cursor()
-
-        q = (request.args.get("q") or "").strip().lower()
-        filtro_status = (request.args.get("status") or "").strip()
-        filtro_tipo = (request.args.get("tipo") or "").strip()
-        filtro_tecnico = (request.args.get("tecnico") or "").strip()
-        filtro_vendedor = (request.args.get("vendedor") or "").strip()
-        filtro_modelo = (request.args.get("modelo") or "").strip()
-        data_ini = (request.args.get("data_ini") or "").strip()
-        data_fim = (request.args.get("data_fim") or "").strip()
-
-        dados, reparos_por_os, custos = carregar_os_com_relacoes(cursor, order_by="os.id DESC")
-
-        dados_formatados = []
-        for row in dados:
-            os_id, tipo, cliente, aparelho, tecnico, reparo_id, status, valor_cobrado, valor_descontado, custo_os, data, observacoes, modelo, vendedor, cor, imei, origem_integracao = row
-            status = normalizar_status_os(status)
-            reparos_info = reparos_por_os.get(os_id, {"ids": [], "nomes": []})
-            reparo_nome = texto_reparos_os(reparos_info, tipo or "—")
-
-            if q:
-                haystack = f"{os_id} {cliente} {aparelho} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {cor} {imei} {origem_integracao}".lower()
-                if q not in haystack:
-                    continue
-            if filtro_status and status != filtro_status:
-                continue
-            if filtro_tipo and tipo != filtro_tipo:
-                continue
-            if filtro_tecnico and tecnico != filtro_tecnico:
-                continue
-            if filtro_vendedor and vendedor != filtro_vendedor:
-                continue
-            if filtro_modelo and modelo != filtro_modelo:
-                continue
-            if data_ini and (not data or data < data_ini):
-                continue
-            if data_fim and (not data or data > data_fim):
-                continue
-
-            custo = custos.get(os_id, custo_os or 0)
-            faturamento = calcular_faturamento_os(valor_cobrado, valor_descontado)
-            lucro = calcular_lucro_os(tipo, valor_cobrado, valor_descontado, custo)
-
-            dados_formatados.append(
-                {
-                    "id": os_id,
-                    "tipo": tipo,
-                    "cliente": cliente,
-                    "aparelho": aparelho,
-                    "tecnico": tecnico,
-                    "status": status,
-                    "reparo_id": reparo_id,
-                    "reparo_ids": reparos_info.get("ids", []),
-                    "reparo": reparo_nome,
-                    "vendedor": vendedor,
-                    "cor": cor,
-                    "lucro": round(lucro, 2),
-                    "valor_cobrado": round(valor_cobrado or 0, 2),
-                    "valor_descontado": round(valor_descontado or 0, 2),
-                    "faturamento": round(faturamento or 0, 2),
-                    "custo": round(custo or 0, 2),
-                    "data": data,
-                    "modelo": modelo,
-                    "observacoes": observacoes,
-                    "imei": imei,
-                    "origem_integracao": origem_integracao,
-                }
-            )
-
-        tecnicos_lista = sorted({row[4] for row in dados if row[4]})
-        status_opcoes = coletar_status_opcoes(dados, 6)
-        tipos = sorted({row[1] for row in dados if row[1]})
-        modelos = sorted({row[12] for row in dados if row[12]})
-
-        total = len(dados_formatados)
-        finalizadas = len([d for d in dados_formatados if d["status"] == status_finalizado])
-        abertas = len([d for d in dados_formatados if status_aberto(d["status"])])
-
-        conn.close()
-
-        return render_template(
-            "ordens.html",
-            dados=dados_formatados,
-            tecnicos=tecnicos_lista,
-            status_opcoes=status_opcoes,
-            tipos=tipos,
-            modelos=modelos,
-            vendedores=vendedores,
-            q=q,
-            filtro_status=filtro_status,
-            filtro_tipo=filtro_tipo,
-            filtro_tecnico=filtro_tecnico,
-            filtro_vendedor=filtro_vendedor,
-            filtro_modelo=filtro_modelo,
-            data_ini=data_ini,
-            data_fim=data_fim,
-            total=total,
-            finalizadas=finalizadas,
-            abertas=abertas,
-        )
+        return redirecionar_com_query_string(request, "/app/ordens")
 
     @bp.route("/nova", methods=["GET", "POST"])
     def nova():
+        if request.method == "GET":
+            return redirecionar_com_query_string(request, "/app/ordens/nova")
+
         conn = conectar()
         cursor = conn.cursor()
 
@@ -320,6 +225,9 @@ def create_orders_blueprint(deps):
 
     @bp.route("/editar/<int:id>", methods=["GET", "POST"])
     def editar(id):
+        if request.method == "GET":
+            return redirecionar_com_query_string(request, f"/app/ordens/editar/{id}")
+
         conn = conectar()
         cursor = conn.cursor()
 

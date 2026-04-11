@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
-import { custos as custosApi } from "@/api/client";
+import { Loader2, Plus, Pencil, Trash2, Lock } from "lucide-react";
+import { constantes, custos as custosApi } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle,
@@ -17,14 +17,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/lib/constants";
 
-const CATEGORIAS = ["Aluguel", "Energia", "Internet", "Software", "Marketing", "Salários", "Equipamentos", "Outros"];
-
 const EMPTY_FORM = {
   descricao: "",
   valor: "",
   categoria: "Outros",
   data: new Date().toISOString().split("T")[0],
-  recorrente: false,
   observacoes: "",
 };
 
@@ -37,7 +34,9 @@ function groupByCategory(custos) {
 }
 
 export default function OperationalCosts() {
+  const { user } = useAuth();
   const [custos, setCustos] = useState([]);
+  const [categorias, setCategorias] = useState(["Outros"]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -45,15 +44,31 @@ export default function OperationalCosts() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
+  const isAdmin = user?.perfil === "admin";
+
   const fetchCustos = () => {
-    custosApi.list().then((res) => {
-      if (res?.ok) setCustos(res.custos || []);
+    Promise.all([custosApi.list(), constantes.get()]).then(([custosRes, constantesRes]) => {
+      if (custosRes?.ok) setCustos(custosRes.custos || []);
       else toast.error("Erro ao carregar custos");
+
+      if (constantesRes?.ok && constantesRes.categorias_custos?.length) {
+        setCategorias(constantesRes.categorias_custos);
+      }
+
       setLoading(false);
     });
   };
 
   useEffect(() => { fetchCustos(); }, []);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+        <Lock className="h-10 w-10" />
+        <p>Somente administradores podem gerenciar custos operacionais.</p>
+      </div>
+    );
+  }
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -67,7 +82,6 @@ export default function OperationalCosts() {
       valor: c.valor || "",
       categoria: c.categoria || "Outros",
       data: c.data ? c.data.split("T")[0] : new Date().toISOString().split("T")[0],
-      recorrente: c.recorrente || false,
       observacoes: c.observacoes || "",
     });
     setEditId(c.id);
@@ -153,7 +167,7 @@ export default function OperationalCosts() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Descrição", "Categoria", "Valor", "Data", "Recorrente", ""].map((h) => (
+                  {["Descrição", "Categoria", "Valor", "Data", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -168,9 +182,6 @@ export default function OperationalCosts() {
                     <td className="px-4 py-3 text-red-400 font-medium">{formatCurrency(c.valor)}</td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {c.data ? new Date(c.data).toLocaleDateString("pt-BR") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.recorrente && <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full px-2 py-0.5">Recorrente</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
@@ -203,7 +214,7 @@ export default function OperationalCosts() {
                 <Label>Categoria</Label>
                 <Select value={form.categoria} onValueChange={(v) => setForm((p) => ({ ...p, categoria: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{categorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
@@ -213,13 +224,6 @@ export default function OperationalCosts() {
               <div className="space-y-1.5">
                 <Label>Data</Label>
                 <Input type="date" value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
-              </div>
-              <div className="flex items-center gap-2 mt-6">
-                <Checkbox
-                  checked={form.recorrente}
-                  onCheckedChange={(checked) => setForm((p) => ({ ...p, recorrente: !!checked }))}
-                />
-                <Label>Recorrente</Label>
               </div>
             </div>
             <div className="space-y-1.5">

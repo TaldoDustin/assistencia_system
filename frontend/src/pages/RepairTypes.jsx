@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle,
 } from "@/components/ui/dialog";
@@ -14,9 +13,8 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { formatCurrency } from "@/lib/constants";
 
-const EMPTY_FORM = { nome: "", valor_padrao: "", descricao: "" };
+const EMPTY_FORM = { nome: "" };
 
 export default function RepairTypes() {
   const { user } = useAuth();
@@ -47,7 +45,7 @@ export default function RepairTypes() {
   };
 
   const openEdit = (r) => {
-    setForm({ nome: r.nome || "", valor_padrao: r.valor_padrao || "", descricao: r.descricao || "" });
+    setForm({ nome: r.nome || "" });
     setEditId(r.id);
     setDialogOpen(true);
   };
@@ -56,7 +54,7 @@ export default function RepairTypes() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = { ...form, valor_padrao: parseFloat(form.valor_padrao) || 0 };
+      const payload = { nome: form.nome };
       const res = editId ? await reparosApi.update(editId, payload) : await reparosApi.create(payload);
       if (res?.ok) {
         toast.success(editId ? "Reparo atualizado!" : "Reparo criado!");
@@ -119,7 +117,7 @@ export default function RepairTypes() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Nome", "Valor Padrão", "Descrição", ""].map((h) => (
+                  {["Nome", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -128,8 +126,6 @@ export default function RepairTypes() {
                 {reparos.map((r) => (
                   <tr key={r.id} className="hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-card-foreground">{r.nome}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.valor_padrao ? formatCurrency(r.valor_padrao) : "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">{r.descricao || "—"}</td>
                     <td className="px-4 py-3">
                       {isAdmin && (
                         <div className="flex items-center gap-1 justify-end">
@@ -159,14 +155,6 @@ export default function RepairTypes() {
             <div className="space-y-1.5">
               <Label>Nome *</Label>
               <Input value={form.nome} onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Valor Padrão (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.valor_padrao} onChange={(e) => setForm((p) => ({ ...p, valor_padrao: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Textarea value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} />
             </div>
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

@@ -1,13 +1,24 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, ShoppingCart, BarChart2, Wallet, Activity } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, BarChart2, Wallet } from "lucide-react";
 import { dashboard as dashboardApi, constantes } from "@/api/client";
 import KpiCard from "@/components/dashboard/KpiCard";
-import { RevenueChart, TechnicianProfitChart, ServicesChart } from "@/components/dashboard/DashboardCharts";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/constants";
+
+const RevenueChartCard = lazy(() => import("@/components/dashboard/RevenueChartCard"));
+const TechnicianProfitChartCard = lazy(() => import("@/components/dashboard/TechnicianProfitChartCard"));
+const ServicesChartCard = lazy(() => import("@/components/dashboard/ServicesChartCard"));
+
+function ChartFallback() {
+  return (
+    <div className="bg-card rounded-xl border border-border p-5 flex items-center justify-center h-48 text-muted-foreground text-sm">
+      <Loader2 className="h-5 w-5 animate-spin" />
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -37,17 +48,17 @@ export default function Dashboard() {
 
   const handleSearch = () => fetchData(filters);
 
-  const revenueData = data?.faturamento_por_dia
-    ? Object.entries(data.faturamento_por_dia).map(([data, total]) => ({ data, total }))
-    : [];
+  const revenueData = data?.faturamento_por_dia?.map((item) => ({
+    data: item.date,
+    total: item.value,
+  })) || [];
 
-  const techData = data?.lucro_por_tecnico
-    ? Object.entries(data.lucro_por_tecnico).map(([tecnico, lucro]) => ({ tecnico, lucro }))
-    : [];
+  const techData = data?.lucro_por_tecnico?.map((item) => ({
+    tecnico: item.name,
+    lucro: item.value,
+  })) || [];
 
-  const servicesData = data?.servicos_mais_feitos
-    ? Object.entries(data.servicos_mais_feitos).map(([name, value]) => ({ name, value }))
-    : [];
+  const servicesData = data?.servicos_mais_feitos || [];
 
   return (
     <div className="space-y-6">
@@ -92,31 +103,35 @@ export default function Dashboard() {
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KpiCard title="Faturamento" value={data?.faturamento} icon={DollarSign} color="primary" />
-            <KpiCard title="Lucro Bruto" value={data?.lucro} icon={TrendingUp} color="green" />
-            <KpiCard title="Finalizadas" value={data?.finalizadas} icon={CheckCircle} isCurrency={false} color="green" />
-            <KpiCard title="Em Aberto" value={data?.abertas} icon={Clock} isCurrency={false} color="amber" />
+            <KpiCard title="Faturamento" value={data?.faturamento_total} icon={DollarSign} color="primary" />
+            <KpiCard title="Lucro Bruto" value={data?.lucro_total} icon={TrendingUp} color="green" />
+            <KpiCard title="Finalizadas" value={data?.ordens_finalizadas} icon={CheckCircle} isCurrency={false} color="green" />
+            <KpiCard title="Em Aberto" value={data?.ordens_abertas} icon={Clock} isCurrency={false} color="amber" />
             <KpiCard title="Ticket Médio" value={data?.ticket_medio} icon={BarChart2} color="blue" />
             <KpiCard title="Resultado Líq." value={data?.resultado_liquido} icon={Wallet} color={data?.resultado_liquido >= 0 ? "green" : "red"} />
           </div>
 
           {/* Charts */}
-          <div className="grid lg:grid-cols-2 gap-4">
-            <RevenueChart data={revenueData} />
-            <TechnicianProfitChart data={techData} />
-          </div>
+          <Suspense fallback={<div className="grid lg:grid-cols-2 gap-4"><ChartFallback /><ChartFallback /></div>}>
+            <div className="grid lg:grid-cols-2 gap-4">
+              <RevenueChartCard data={revenueData} />
+              <TechnicianProfitChartCard data={techData} />
+            </div>
+          </Suspense>
           <div className="grid lg:grid-cols-3 gap-4">
-            <ServicesChart data={servicesData} />
+            <Suspense fallback={<ChartFallback />}>
+              <ServicesChartCard data={servicesData} />
+            </Suspense>
 
             {/* Cost Summary */}
             <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
               <h3 className="text-sm font-medium text-card-foreground mb-4">Resumo Financeiro</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Custo de Peças", value: data?.custo_pecas, color: "text-red-400" },
-                  { label: "Custos Operacionais", value: data?.custos_op, color: "text-amber-400" },
-                  { label: "Faturamento", value: data?.faturamento, color: "text-emerald-400" },
-                  { label: "Lucro Bruto", value: data?.lucro, color: "text-blue-400" },
+                  { label: "Custo de Peças", value: data?.custo_consumido_periodo, color: "text-red-400" },
+                  { label: "Custos Operacionais", value: data?.custos_operacionais_periodo, color: "text-amber-400" },
+                  { label: "Faturamento", value: data?.faturamento_total, color: "text-emerald-400" },
+                  { label: "Lucro Bruto", value: data?.lucro_total, color: "text-blue-400" },
                 ].map((item) => (
                   <div key={item.label} className="bg-secondary rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">{item.label}</p>

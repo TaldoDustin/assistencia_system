@@ -782,7 +782,7 @@ def create_api_blueprint(deps):
                 (descricao, modelo, valor, fornecedor, quantidade, data_compra),
             )
             novo_id = cursor.lastrowid
-            registrar_movimentacao(cursor, novo_id, "entrada", quantidade, descricao)
+            registrar_movimentacao(cursor, novo_id, "entrada", quantidade)
             conn.commit()
         except Exception as exc:
             conn.rollback()
@@ -823,7 +823,7 @@ def create_api_blueprint(deps):
             diff = quantidade_nova - qtd_antiga
             if diff != 0:
                 tipo_mov = "entrada" if diff > 0 else "saida"
-                registrar_movimentacao(cursor, item_id, tipo_mov, abs(diff), descricao)
+                registrar_movimentacao(cursor, item_id, tipo_mov, abs(diff))
             conn.commit()
         except Exception as exc:
             conn.rollback()
@@ -897,8 +897,8 @@ def create_api_blueprint(deps):
 
     @api.route("/reparos", methods=["POST"])
     def criar_reparo():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         body = request.get_json(silent=True) or {}
         nome = (body.get("nome") or "").strip()
@@ -924,8 +924,8 @@ def create_api_blueprint(deps):
 
     @api.route("/reparos/<int:reparo_id>", methods=["PUT"])
     def atualizar_reparo(reparo_id):
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         body = request.get_json(silent=True) or {}
         nome = (body.get("nome") or "").strip()
@@ -950,8 +950,8 @@ def create_api_blueprint(deps):
 
     @api.route("/reparos/<int:reparo_id>", methods=["DELETE"])
     def deletar_reparo(reparo_id):
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         conn = conectar()
         cursor = conn.cursor()
@@ -973,8 +973,8 @@ def create_api_blueprint(deps):
 
     @api.route("/custos")
     def listar_custos():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         start_date = (request.args.get("start_date") or "").strip()
         end_date = (request.args.get("end_date") or "").strip()
@@ -983,8 +983,8 @@ def create_api_blueprint(deps):
 
     @api.route("/custos", methods=["POST"])
     def criar_custo():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         body = request.get_json(silent=True) or {}
         descricao = (body.get("descricao") or "").strip()
@@ -1013,10 +1013,49 @@ def create_api_blueprint(deps):
 
         return ok(id=novo_id), 201
 
+    @api.route("/custos/<int:custo_id>", methods=["PUT"])
+    def atualizar_custo(custo_id):
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+
+        body = request.get_json(silent=True) or {}
+        descricao = (body.get("descricao") or "").strip()
+        categoria = (body.get("categoria") or "Outros").strip()
+        valor = float(body.get("valor") or 0)
+        data = (body.get("data") or "").strip() or datetime.now().strftime("%Y-%m-%d")
+        observacoes = (body.get("observacoes") or "").strip()
+
+        if not descricao or valor <= 0:
+            return err("Informe descrição e valor maior que zero.")
+
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT id FROM custos_operacionais WHERE id=?", (custo_id,))
+            if not cursor.fetchone():
+                return err("Custo não encontrado.", 404)
+
+            cursor.execute(
+                """
+                UPDATE custos_operacionais
+                SET descricao=?, categoria=?, valor=?, data=?, observacoes=?
+                WHERE id=?
+                """,
+                (descricao, categoria, valor, data, observacoes, custo_id),
+            )
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
+
+        return ok()
+
     @api.route("/custos/<int:custo_id>", methods=["DELETE"])
     def deletar_custo(custo_id):
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         conn = conectar()
         cursor = conn.cursor()
@@ -1035,14 +1074,14 @@ def create_api_blueprint(deps):
 
     @api.route("/precos")
     def listar_precos():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
         return ok(tabelas=carregar_tabelas_preco())
 
     @api.route("/precos", methods=["POST"])
     def salvar_preco():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         body = request.get_json(silent=True) or {}
         tabela = (body.get("tabela") or "").strip()
@@ -1062,8 +1101,8 @@ def create_api_blueprint(deps):
 
     @api.route("/precos/excluir", methods=["POST"])
     def excluir_preco():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
 
         body = request.get_json(silent=True) or {}
         tabela = (body.get("tabela") or "").strip()
@@ -1324,16 +1363,20 @@ def create_api_blueprint(deps):
 
         try:
             os.makedirs(backup_dir, exist_ok=True)
-            nome_arquivo = criar_backup(
+            info = criar_backup(
                 backup_dir, google_drive_backup_dir,
-                conectar, garantir_pasta_backup_google_drive,
+                conectar,
             )
             if backup_email_senha_app:
                 enviar_backup_email(
-                    nome_arquivo, backup_email_remetente,
+                    info["destino_local"], backup_email_remetente,
                     backup_email_senha_app, backup_email_destino,
                 )
-            return ok(arquivo=nome_arquivo)
+            return ok(
+                arquivo=info["nome"],
+                destino_drive=bool(info.get("destino_drive")),
+                erro_drive=info.get("erro_drive", ""),
+            )
         except Exception as exc:
             return err(str(exc))
 
@@ -1344,14 +1387,19 @@ def create_api_blueprint(deps):
 
         backups = []
         if os.path.isdir(backup_dir):
-            for f in sorted(os.listdir(backup_dir), reverse=True):
+            for f in os.listdir(backup_dir):
                 if f.endswith(".db"):
                     full = os.path.join(backup_dir, f)
                     backups.append({
                         "nome": f,
                         "tamanho": os.path.getsize(full),
                         "data": datetime.fromtimestamp(os.path.getmtime(full)).strftime("%Y-%m-%d %H:%M"),
+                        "modificado_em": os.path.getmtime(full),
                     })
+
+        backups.sort(key=lambda item: item["modificado_em"], reverse=True)
+        for item in backups:
+            item.pop("modificado_em", None)
 
         return ok(backups=backups[:30])
 

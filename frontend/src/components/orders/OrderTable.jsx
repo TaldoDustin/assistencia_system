@@ -31,7 +31,7 @@ export default function OrderTable({ orders = [], onDelete }) {
           </thead>
           <tbody className="divide-y divide-border">
             {orders.map((os) => (
-              <tr key={os.id} className="hover:bg-accent/30 transition-colors">
+              <tr key={os.id} className="hover:bg-accent/30 transition-colors" data-testid={`order-row-${os.id}`}>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                   #{String(os.id).slice(-5)}
                 </td>
@@ -55,7 +55,12 @@ export default function OrderTable({ orders = [], onDelete }) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
                     <Link to={`/ordens/editar/${os.id}`}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        aria-label={`Editar ordem ${os.id}`}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
@@ -63,6 +68,7 @@ export default function OrderTable({ orders = [], onDelete }) {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive"
+                      aria-label={`Excluir ordem ${os.id}`}
                       onClick={() => onDelete?.(os.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { auth } from "@/api/client";
@@ -10,9 +11,17 @@ import { Label } from "@/components/ui/label";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser } = useAuth();
   const [form, setForm] = useState({ usuario: "", senha: "" });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const error = searchParams.get("erro");
+    if (error) {
+      toast.error(error);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

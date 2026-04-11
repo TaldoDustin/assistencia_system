@@ -2,6 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from irflow_web import redirecionar_com_query_string
+
 
 def create_inventory_blueprint(deps):
     bp = Blueprint("inventory_views", __name__)
@@ -13,120 +15,13 @@ def create_inventory_blueprint(deps):
 
     @bp.route("/estoque")
     def estoque():
-        conn = conectar()
-        cursor = conn.cursor()
-
-        filtro_modelo = (request.args.get("modelo") or "").strip()
-        filtro_modelo_norm = ""
-        if filtro_modelo and filtro_modelo != "Universal":
-            filtro_modelo_norm = normalizar_modelo_iphone(filtro_modelo) or filtro_modelo
-
-        cursor.execute(
-            """
-            SELECT
-                COALESCE(NULLIF(modelo, ''), 'Universal') AS modelo_grupo,
-                COUNT(*) AS lotes,
-                COALESCE(SUM(quantidade), 0) AS total_unidades,
-                COALESCE(SUM(valor * quantidade), 0) AS valor_total
-            FROM estoque
-            GROUP BY COALESCE(NULLIF(modelo, ''), 'Universal')
-            ORDER BY CASE WHEN COALESCE(NULLIF(modelo, ''), 'Universal') = 'Universal' THEN 1 ELSE 0 END,
-                     COALESCE(NULLIF(modelo, ''), 'Universal')
-            """
-        )
-        grupos_modelo = [
-            {
-                "modelo": row[0],
-                "lotes": row[1],
-                "quantidade": row[2],
-                "valor_total": round(row[3] or 0, 2),
-            }
-            for row in cursor.fetchall()
-        ]
-
-        filtros_sql = []
-        filtros_params = []
-        if filtro_modelo == "Universal":
-            filtros_sql.append("COALESCE(modelo, '') = ''")
-        elif filtro_modelo_norm:
-            filtros_sql.append("COALESCE(modelo, '') = ?")
-            filtros_params.append(filtro_modelo_norm)
-
-        where_clause = f"WHERE {' AND '.join(filtros_sql)}" if filtros_sql else ""
-
-        cursor.execute(
-            f"""
-            SELECT id, descricao, valor, fornecedor, quantidade, data_compra, COALESCE(modelo, '')
-            FROM estoque
-            {where_clause}
-            ORDER BY id DESC
-            """,
-            filtros_params,
-        )
-        dados = cursor.fetchall()
-
-        cursor.execute(
-            f"""
-            SELECT COALESCE(SUM(valor * quantidade), 0)
-            FROM estoque
-            {where_clause}
-            """,
-            filtros_params,
-        )
-        total_estoque = cursor.fetchone()[0] or 0
-
-        cursor.execute(
-            f"""
-            SELECT
-                descricao,
-                COALESCE(modelo, '') AS modelo,
-                COUNT(*) AS lotes,
-                COALESCE(SUM(quantidade), 0) AS total_unidades,
-                MIN(valor) AS min_valor,
-                MAX(valor) AS max_valor
-            FROM estoque
-            {where_clause}
-            GROUP BY descricao, COALESCE(modelo, '')
-            ORDER BY descricao, modelo
-            """,
-            filtros_params,
-        )
-        agrupado = cursor.fetchall()
-
-        cursor.execute(
-            f"""
-            SELECT estoque_id, tipo, quantidade, data
-            FROM movimentacoes
-            {"WHERE estoque_id IN (SELECT id FROM estoque " + where_clause + ")" if where_clause else ""}
-            ORDER BY id DESC
-            LIMIT 20
-            """,
-            filtros_params,
-        )
-        movimentacoes = cursor.fetchall()
-
-        total_lotes = len(dados)
-        total_itens = sum((item[4] or 0) for item in dados)
-        itens_criticos = sum(1 for item in dados if (item[4] or 0) <= 2)
-
-        conn.close()
-
-        return render_template(
-            "estoque.html",
-            estoque=dados,
-            total_estoque=total_estoque,
-            estoque_agrupado=agrupado,
-            grupos_modelo=grupos_modelo,
-            movimentacoes=movimentacoes,
-            total_lotes=total_lotes,
-            total_itens=total_itens,
-            itens_criticos=itens_criticos,
-            iphone_models=iphone_models,
-            filtro_modelo=(filtro_modelo if filtro_modelo else ""),
-        )
+        return redirecionar_com_query_string(request, "/app/estoque")
 
     @bp.route("/estoque/cadastro", methods=["GET", "POST"])
     def cadastro_peca():
+        if request.method == "GET":
+            return redirecionar_com_query_string(request, "/app/estoque")
+
         conn = conectar()
         cursor = conn.cursor()
 

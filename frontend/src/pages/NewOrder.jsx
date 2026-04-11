@@ -117,13 +117,13 @@ export default function NewOrder() {
           <h2 className="text-sm font-semibold text-card-foreground">Cliente</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-1.5">
-              <Label>Nome do Cliente *</Label>
-              <Input value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} placeholder="Nome completo" required />
+               <Label htmlFor="order-cliente">Nome do Cliente *</Label>
+               <Input id="order-cliente" value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} placeholder="Nome completo" required />
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de OS</Label>
               <Select value={form.tipo} onValueChange={(v) => setField("tipo", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Tipo de OS"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(constants?.os_tipos || ["Assistencia", "Garantia", "Upgrade"]).map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -132,8 +132,8 @@ export default function NewOrder() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Data da OS</Label>
-              <Input type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
+               <Label htmlFor="order-data-os">Data da OS</Label>
+               <Input id="order-data-os" type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
             </div>
           </div>
         </section>
@@ -145,7 +145,7 @@ export default function NewOrder() {
             <div className="space-y-1.5">
               <Label>Modelo *</Label>
               <Select value={form.modelo} onValueChange={(v) => { setField("modelo", v); setField("cor", ""); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
+                <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.iphone_models || []).map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -156,7 +156,7 @@ export default function NewOrder() {
             <div className="space-y-1.5">
               <Label>Cor</Label>
               <Select value={form.cor} onValueChange={(v) => setField("cor", v)}>
-                <SelectTrigger><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
+                <SelectTrigger aria-label="Cor"><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.iphone_colors?.[form.modelo] || []).map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -165,8 +165,8 @@ export default function NewOrder() {
               </Select>
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>IMEI</Label>
-              <Input value={form.imei} onChange={(e) => setField("imei", e.target.value)} placeholder="000000000000000" maxLength={16} />
+               <Label htmlFor="order-imei">IMEI</Label>
+               <Input id="order-imei" value={form.imei} onChange={(e) => setField("imei", e.target.value)} placeholder="000000000000000" maxLength={16} />
             </div>
           </div>
         </section>
@@ -178,7 +178,7 @@ export default function NewOrder() {
             <div className="space-y-1.5">
               <Label>Técnico</Label>
               <Select value={form.tecnico} onValueChange={(v) => setField("tecnico", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger aria-label="Técnico"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.tecnicos || []).map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -189,7 +189,7 @@ export default function NewOrder() {
             <div className="space-y-1.5">
               <Label>Vendedor</Label>
               <Select value={form.vendedor} onValueChange={(v) => setField("vendedor", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger aria-label="Vendedor"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.vendedores || []).map((v) => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
@@ -200,7 +200,7 @@ export default function NewOrder() {
             <div className="space-y-1.5">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setField("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(constants?.status_opcoes || ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"]).map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -233,12 +233,12 @@ export default function NewOrder() {
           <h2 className="text-sm font-semibold text-card-foreground">Financeiro</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Valor Cobrado (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} placeholder="0,00" />
+               <Label htmlFor="order-valor-cobrado">Valor Cobrado (R$)</Label>
+               <Input id="order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} placeholder="0,00" />
             </div>
             <div className="space-y-1.5">
-              <Label>Valor com Desconto (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} placeholder="0,00" />
+               <Label htmlFor="order-valor-descontado">Valor com Desconto (R$)</Label>
+               <Input id="order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} placeholder="0,00" />
             </div>
           </div>
         </section>
@@ -291,10 +291,10 @@ export default function NewOrder() {
         </section>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Criar Ordem
-          </Button>
+            <Button type="submit" disabled={submitting} data-testid="order-create-button">
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar Ordem
+            </Button>
           <Button type="button" variant="outline" onClick={() => navigate("/ordens")}>
             Cancelar
           </Button>

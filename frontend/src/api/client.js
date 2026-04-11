@@ -7,6 +7,67 @@
 
 const BASE = "/api";
 
+function expandPieceMap(pecas = {}) {
+  return Object.entries(pecas).flatMap(([id, quantidade]) => {
+    const itemId = Number.parseInt(id, 10);
+    const total = Number.parseInt(quantidade, 10);
+    if (!Number.isInteger(itemId) || !Number.isInteger(total) || total <= 0) {
+      return [];
+    }
+    return Array.from({ length: total }, () => itemId);
+  });
+}
+
+function normalizeStockResponse(data) {
+  if (data?.ok && data.itens && !data.items) {
+    return { ...data, items: data.itens };
+  }
+  return data;
+}
+
+function normalizeWarrantyResponse(data) {
+  if (!data?.ok || !data.ordens) {
+    return data;
+  }
+
+  const garantias = data.ordens.map((item) => {
+    const color = item.garantia?.color;
+    const statusMap = {
+      green: "ativa",
+      amber: "vencendo",
+      red: "vencida",
+    };
+
+    return {
+      ...item,
+      reparos_texto: (item.reparos || []).join(", "),
+      dias_restantes: item.garantia?.dias_restantes,
+      status_garantia: statusMap[color] || "desconhecida",
+    };
+  });
+
+  return { ...data, garantias };
+}
+
+function normalizeCostsResponse(data) {
+  if (data?.ok && data.itens && !data.custos) {
+    return { ...data, custos: data.itens };
+  }
+  return data;
+}
+
+function withPieceIds(data) {
+  if (!data || !data.pecas) {
+    return data;
+  }
+
+  const { pecas, ...rest } = data;
+  return {
+    ...rest,
+    pecas_ids: expandPieceMap(pecas),
+  };
+}
+
 async function request(method, path, body) {
   const opts = {
     method,
@@ -59,8 +120,8 @@ export const ordens = {
     return get(`/ordens${qs ? "?" + qs : ""}`);
   },
   get:           (id)         => get(`/ordens/${id}`),
-  create:        (data)       => post("/ordens", data),
-  update:        (id, data)   => put(`/ordens/${id}`, data),
+  create:        (data)       => post("/ordens", withPieceIds(data)),
+  update:        (id, data)   => put(`/ordens/${id}`, withPieceIds(data)),
   delete:        (id)         => del(`/ordens/${id}`),
   patchStatus:   (id, status) => request("PATCH", `/ordens/${id}/status`, { status }),
   clienteHistory:(nome)       => get(`/ordens/cliente/${encodeURIComponent(nome)}`),
@@ -68,9 +129,9 @@ export const ordens = {
 
 // ── Estoque ─────────────────────────────────────────────────────────────────
 export const estoque = {
-  list:   (params = {}) => {
+  list:   async (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return get(`/estoque${qs ? "?" + qs : ""}`);
+    return normalizeStockResponse(await get(`/estoque${qs ? "?" + qs : ""}`));
   },
   get:    (id)         => get(`/estoque/${id}`),
   create: (data)       => post("/estoque", data),
@@ -88,9 +149,9 @@ export const reparos = {
 
 // ── Custos Operacionais ──────────────────────────────────────────────────────
 export const custos = {
-  list:   (params = {}) => {
+  list:   async (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return get(`/custos${qs ? "?" + qs : ""}`);
+    return normalizeCostsResponse(await get(`/custos${qs ? "?" + qs : ""}`));
   },
   create: (data)        => post("/custos", data),
   update: (id, data)    => put(`/custos/${id}`, data),
@@ -106,7 +167,7 @@ export const precos = {
 
 // ── Garantias ────────────────────────────────────────────────────────────────
 export const garantias = {
-  list: () => get("/garantias"),
+  list: async () => normalizeWarrantyResponse(await get("/garantias")),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────
@@ -135,7 +196,7 @@ export const usuarios = {
 
 // ── Backup ───────────────────────────────────────────────────────────────────
 export const backup = {
-  criar:    ()       => post("/backup"),
-  list:     ()       => get("/backup/list"),
+  criar:    ()       => post("/backup/criar"),
+  list:     ()       => get("/backup/listar"),
   download: (file)   => `${BASE}/backup/download/${encodeURIComponent(file)}`,
 };

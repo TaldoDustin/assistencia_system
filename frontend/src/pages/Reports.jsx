@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Search, FileDown, Lock } from "lucide-react";
+import { Loader2, Search, FileDown, Lock, HardDriveDownload } from "lucide-react";
 import { relatorios as relatoriosApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,26 @@ const TABS = [
   { key: "tecnicos", label: "Técnicos" },
 ];
 
+function formatMonthLabel(key) {
+  if (!key || typeof key !== "string") return "Período";
+  const [year, month] = key.split("-");
+  const months = {
+    "01": "Jan",
+    "02": "Fev",
+    "03": "Mar",
+    "04": "Abr",
+    "05": "Mai",
+    "06": "Jun",
+    "07": "Jul",
+    "08": "Ago",
+    "09": "Set",
+    "10": "Out",
+    "11": "Nov",
+    "12": "Dez",
+  };
+  return `${months[month] || month}/${year}`;
+}
+
 export default function Reports() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("irphones");
@@ -21,6 +42,7 @@ export default function Reports() {
   const [results, setResults] = useState(null);
 
   const isAdmin = user?.perfil === "admin";
+  const monthlyRows = Object.entries(results?.meses || {});
 
   if (!isAdmin) {
     return (
@@ -95,6 +117,11 @@ export default function Reports() {
           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
           Gerar Relatório
         </Button>
+        <Link to="/backup">
+          <Button variant="outline">
+            <HardDriveDownload className="h-4 w-4 mr-2" />Backups
+          </Button>
+        </Link>
         {results && (
           <Button variant="outline" onClick={handleExportPdf}>
             <FileDown className="h-4 w-4 mr-2" />Exportar PDF
@@ -111,13 +138,12 @@ export default function Reports() {
 
       {results && activeTab === "irphones" && (
         <div className="space-y-4">
-          {/* Summary */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Total OS", value: results.total_os ?? "—", isCurrency: false },
-              { label: "Faturamento", value: formatCurrency(results.faturamento), isCurrency: true },
-              { label: "Lucro", value: formatCurrency(results.lucro), isCurrency: true },
-              { label: "Ticket Médio", value: formatCurrency(results.ticket_medio), isCurrency: true },
+              { label: "Total OS", value: results.total_os ?? "—" },
+              { label: "Lucro Total", value: formatCurrency(results.total_lucro) },
+              { label: "Meses", value: monthlyRows.length },
+              { label: "Média por mês", value: monthlyRows.length ? Math.round((results.total_os || 0) / monthlyRows.length) : 0 },
             ].map((s) => (
               <div key={s.label} className="bg-card border border-border rounded-xl p-4">
                 <p className="text-xl font-bold text-card-foreground">{s.value}</p>
@@ -126,28 +152,32 @@ export default function Reports() {
             ))}
           </div>
 
-          {/* Table */}
-          {results.ordens && results.ordens.length > 0 && (
+          {monthlyRows.length > 0 && (
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      {["#OS", "Cliente", "Modelo", "Técnico", "Status", "Data", "Valor"].map((h) => (
+                      {["Mês", "OS", "Faturamento", "Gastos", "Lucro", "Serviços"].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {results.ordens.map((os) => (
-                      <tr key={os.id} className="hover:bg-accent/30">
-                        <td className="px-4 py-2 font-mono text-xs text-muted-foreground">#{String(os.id).slice(-5)}</td>
-                        <td className="px-4 py-2 text-card-foreground">{os.cliente}</td>
-                        <td className="px-4 py-2 text-muted-foreground">{os.modelo}</td>
-                        <td className="px-4 py-2 text-muted-foreground">{os.tecnico || "—"}</td>
-                        <td className="px-4 py-2 text-muted-foreground">{os.status}</td>
-                        <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{os.data_os ? new Date(os.data_os).toLocaleDateString("pt-BR") : "—"}</td>
-                        <td className="px-4 py-2 font-medium text-card-foreground">{formatCurrency(os.valor_cobrado || 0)}</td>
+                    {monthlyRows.map(([month, summary]) => (
+                      <tr key={month} className="hover:bg-accent/30">
+                        <td className="px-4 py-2 font-medium text-card-foreground">{formatMonthLabel(month)}</td>
+                        <td className="px-4 py-2 text-muted-foreground">{summary.total_os}</td>
+                        <td className="px-4 py-2 text-card-foreground">{formatCurrency(summary.faturamento)}</td>
+                        <td className="px-4 py-2 text-red-400">{formatCurrency(summary.gastos)}</td>
+                        <td className="px-4 py-2 text-emerald-400 font-medium">{formatCurrency(summary.lucro)}</td>
+                        <td className="px-4 py-2 text-muted-foreground">
+                          {Object.entries(summary.servicos || {})
+                            .sort(([, a], [, b]) => b - a)
+                            .slice(0, 2)
+                            .map(([name, count]) => `${name} (${count})`)
+                            .join(", ") || "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -164,21 +194,24 @@ export default function Reports() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Técnico", "OS Finalizadas", "Faturamento", "Custo Peças", "Lucro"].map((h) => (
+                  {["Mês", "Técnico", "OS Finalizadas", "Faturamento", "Gasto Peças", "Lucro"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(results.tecnicos || []).map((t) => (
-                  <tr key={t.tecnico} className="hover:bg-accent/30">
-                    <td className="px-4 py-3 font-medium text-card-foreground">{t.tecnico}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{t.os_finalizadas}</td>
-                    <td className="px-4 py-3 text-card-foreground font-medium">{formatCurrency(t.faturamento)}</td>
-                    <td className="px-4 py-3 text-red-400">{formatCurrency(t.custo_pecas)}</td>
-                    <td className="px-4 py-3 text-emerald-400 font-medium">{formatCurrency(t.lucro)}</td>
-                  </tr>
-                ))}
+                {monthlyRows.flatMap(([month, tecnicos]) =>
+                  Object.entries(tecnicos || {}).map(([tecnico, summary]) => (
+                    <tr key={`${month}-${tecnico}`} className="hover:bg-accent/30">
+                      <td className="px-4 py-3 text-muted-foreground">{formatMonthLabel(month)}</td>
+                      <td className="px-4 py-3 font-medium text-card-foreground">{tecnico}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{summary.total_os}</td>
+                      <td className="px-4 py-3 text-card-foreground font-medium">{formatCurrency(summary.faturamento)}</td>
+                      <td className="px-4 py-3 text-red-400">{formatCurrency(summary.gastos)}</td>
+                      <td className="px-4 py-3 text-emerald-400 font-medium">{formatCurrency(summary.lucro)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

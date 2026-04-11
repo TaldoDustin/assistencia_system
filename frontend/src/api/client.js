@@ -1,0 +1,141 @@
+/**
+ * IR Flow API Client
+ * Talks to Flask backend at /api/*.
+ * Uses session cookies — credentials: 'include' on every request.
+ * In Vite dev mode, the proxy in vite.config.js forwards /api → http://localhost:5080.
+ */
+
+const BASE = "/api";
+
+async function request(method, path, body) {
+  const opts = {
+    method,
+    credentials: "include",
+    headers: {},
+  };
+  if (body !== undefined) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(`${BASE}${path}`, opts);
+  const data = await res.json().catch(() => ({}));
+  return data;
+}
+
+const get  = (path)        => request("GET",    path);
+const post = (path, body)  => request("POST",   path, body);
+const put  = (path, body)  => request("PUT",    path, body);
+const del  = (path)        => request("DELETE", path);
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+export const auth = {
+  login:  (usuario, senha) => post("/auth/login",  { usuario, senha }),
+  logout: ()               => post("/auth/logout"),
+  me:     ()               => get("/auth/me"),
+};
+
+// ── Constants ───────────────────────────────────────────────────────────────
+export const constantes = {
+  get: () => get("/constantes"),
+};
+
+// ── Alerts ──────────────────────────────────────────────────────────────────
+export const alertas = {
+  list: () => get("/alertas"),
+};
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+export const dashboard = {
+  get: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/dashboard${qs ? "?" + qs : ""}`);
+  },
+};
+
+// ── Ordens de Serviço ───────────────────────────────────────────────────────
+export const ordens = {
+  list:          (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/ordens${qs ? "?" + qs : ""}`);
+  },
+  get:           (id)         => get(`/ordens/${id}`),
+  create:        (data)       => post("/ordens", data),
+  update:        (id, data)   => put(`/ordens/${id}`, data),
+  delete:        (id)         => del(`/ordens/${id}`),
+  patchStatus:   (id, status) => request("PATCH", `/ordens/${id}/status`, { status }),
+  clienteHistory:(nome)       => get(`/ordens/cliente/${encodeURIComponent(nome)}`),
+};
+
+// ── Estoque ─────────────────────────────────────────────────────────────────
+export const estoque = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/estoque${qs ? "?" + qs : ""}`);
+  },
+  get:    (id)         => get(`/estoque/${id}`),
+  create: (data)       => post("/estoque", data),
+  update: (id, data)   => put(`/estoque/${id}`, data),
+  delete: (id)         => del(`/estoque/${id}`),
+};
+
+// ── Reparos ─────────────────────────────────────────────────────────────────
+export const reparos = {
+  list:   ()          => get("/reparos"),
+  create: (data)      => post("/reparos", data),
+  update: (id, data)  => put(`/reparos/${id}`, data),
+  delete: (id)        => del(`/reparos/${id}`),
+};
+
+// ── Custos Operacionais ──────────────────────────────────────────────────────
+export const custos = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/custos${qs ? "?" + qs : ""}`);
+  },
+  create: (data)        => post("/custos", data),
+  update: (id, data)    => put(`/custos/${id}`, data),
+  delete: (id)          => del(`/custos/${id}`),
+};
+
+// ── Tabelas de Preço ─────────────────────────────────────────────────────────
+export const precos = {
+  list:   ()     => get("/precos"),
+  save:   (data) => post("/precos", data),          // { tabela, servico, modelo, valor }
+  remove: (data) => post("/precos/excluir", data),  // { tabela, servico, modelo }
+};
+
+// ── Garantias ────────────────────────────────────────────────────────────────
+export const garantias = {
+  list: () => get("/garantias"),
+};
+
+// ── Relatórios ───────────────────────────────────────────────────────────────
+export const relatorios = {
+  irphones:  (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/relatorios/ir-phones${qs ? "?" + qs : ""}`);
+  },
+  tecnicos:  (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/relatorios/tecnicos${qs ? "?" + qs : ""}`);
+  },
+  pdfUrl:    (tipo, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return `${BASE}/relatorios/pdf/${tipo}${qs ? "?" + qs : ""}`;
+  },
+};
+
+// ── Usuários ─────────────────────────────────────────────────────────────────
+export const usuarios = {
+  list:   ()          => get("/usuarios"),
+  create: (data)      => post("/usuarios", data),
+  update: (id, data)  => put(`/usuarios/${id}`, data),
+  delete: (id)        => del(`/usuarios/${id}`),
+};
+
+// ── Backup ───────────────────────────────────────────────────────────────────
+export const backup = {
+  criar:    ()       => post("/backup"),
+  list:     ()       => get("/backup/list"),
+  download: (file)   => `${BASE}/backup/download/${encodeURIComponent(file)}`,
+};

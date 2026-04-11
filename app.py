@@ -1179,8 +1179,10 @@ def verificar_autenticacao():
     if not endpoint:
         return
 
-    # Rotas não mapeadas — bloquear por segurança (exceto estáticos)
-    if endpoint == "static":
+    # Rotas estáticas e API — autenticação gerenciada pela própria API
+    if endpoint in ("static", "serve_react", "serve_react_assets"):
+        return
+    if endpoint and endpoint.startswith("api."):
         return
 
     perms = ROUTE_PERMISSIONS.get(endpoint)
@@ -1203,6 +1205,7 @@ def verificar_autenticacao():
 # ============================================================================
 
 from irflow_blueprints_auth import create_auth_blueprint  # noqa: E402
+from irflow_blueprints_api import create_api_blueprint  # noqa: E402
 
 app.register_blueprint(
     create_auth_blueprint(
@@ -1213,6 +1216,95 @@ app.register_blueprint(
         }
     )
 )
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE API (JSON — consumido pelo frontend React)
+# ============================================================================
+
+app.register_blueprint(
+    create_api_blueprint(
+        {
+            "conectar": conectar,
+            "normalizar_status_os": normalizar_status_os,
+            "status_finalizado": status_finalizado,
+            "status_cancelado": status_cancelado,
+            "status_aberto": status_aberto,
+            "status_em_andamento": STATUS_EM_ANDAMENTO,
+            "status_aguardando_peca": STATUS_AGUARDANDO_PECA,
+            "calcular_faturamento_os": calcular_faturamento_os,
+            "calcular_lucro_os": calcular_lucro_os,
+            "carregar_os_com_relacoes": carregar_os_com_relacoes,
+            "extrair_reparo_ids": extrair_reparo_ids,
+            "validar_reparo_ids": validar_reparo_ids,
+            "vendedor_valido": vendedor_valido,
+            "salvar_reparos_os": salvar_reparos_os,
+            "modelo_compativel": modelo_compativel,
+            "consumir_peca_da_os": consumir_peca_da_os,
+            "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
+            "devolver_pecas_da_os": devolver_pecas_da_os,
+            "registrar_movimentacao": registrar_movimentacao,
+            "obter_reparos_por_os": obter_reparos_por_os,
+            "modelo_para_os": modelo_para_os,
+            "normalizar_imei": normalizar_imei,
+            "normalizar_modelo_iphone": normalizar_modelo_iphone,
+            "carregar_tabelas_preco": carregar_tabelas_preco,
+            "salvar_tabelas_preco": salvar_tabelas_preco,
+            "texto_reparos_os": texto_reparos_os,
+            "listar_custos_operacionais": listar_custos_operacionais,
+            "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
+            "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
+            "montar_linhas_relatorio_ir_phones": functools.partial(montar_linhas_relatorio_ir_phones, conectar=conectar),
+            "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
+            "montar_pdf_texto": montar_pdf_texto,
+            "formatar_periodo_relatorio": formatar_periodo_relatorio,
+            "parse_data_ymd": parse_data_ymd,
+            "obter_alertas_sistema": obter_alertas_sistema,
+            "iphone_models": IPHONE_MODELS,
+            "iphone_colors": IPHONE_COLORS,
+            "vendedores": VENDEDORES,
+            "tecnicos": TECNICOS,
+            "status_os_opcoes": STATUS_OS_OPCOES,
+            "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
+            "reparos_padrao": REPAROS_PADRAO,
+            "backup_dir": BACKUP_DIR,
+            "criar_backup": criar_backup,
+            "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
+            "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
+            "enviar_backup_email": enviar_backup_email,
+            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
+            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
+            "backup_email_destino": BACKUP_EMAIL_DESTINO,
+            "check_password_hash": check_password_hash,
+            "generate_password_hash": generate_password_hash,
+            "sincronizar_mercado_phone": sincronizar_mercado_phone,
+            "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
+            "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
+        }
+    )
+)
+
+# ============================================================================
+# SERVE REACT SPA — catch-all para todas as rotas não-API
+# ============================================================================
+
+REACT_DIST = os.path.join(RESOURCE_DIR, "frontend", "dist")
+
+
+@app.route("/app", defaults={"path": ""})
+@app.route("/app/<path:path>")
+def serve_react(path):
+    """Serve o frontend React. O React Router cuida da navegação interna."""
+    if path and os.path.exists(os.path.join(REACT_DIST, path)):
+        return send_from_directory(REACT_DIST, path)
+    index_path = os.path.join(REACT_DIST, "index.html")
+    if os.path.exists(index_path):
+        return send_from_directory(REACT_DIST, "index.html")
+    return "Frontend não encontrado. Execute: cd frontend && npm run build", 404
+
+
+@app.route("/app/assets/<path:filename>")
+def serve_react_assets(filename):
+    return send_from_directory(os.path.join(REACT_DIST, "assets"), filename)
 
 # ============================================================================
 # MAIN

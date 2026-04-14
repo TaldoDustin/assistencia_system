@@ -127,6 +127,19 @@ export const ordens = {
   clienteHistory:(nome)       => get(`/ordens/cliente/${encodeURIComponent(nome)}`),
 };
 
+// ── Checklist de Aparelho ──────────────────────────────────────────────────
+export const checklist = {
+  getByOrder:       (orderId)     => get(`/ordens/${orderId}/checklist`),
+  generateToken:    (orderId)     => post(`/ordens/${orderId}/checklist/token`),
+  getPublic:        (token)       => get(`/checklist/${encodeURIComponent(token)}`),
+  savePublic:       (token, data) => post(`/checklist/${encodeURIComponent(token)}`, data),
+  publicUrl:        (token, baseUrl = "") => {
+    const suffix = `/app/checklist/${encodeURIComponent(token)}`;
+    return baseUrl ? `${baseUrl.replace(/\/$/, "")}${suffix}` : suffix;
+  },
+  qrImageUrl:       (url)         => `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`,
+};
+
 // ── Estoque ─────────────────────────────────────────────────────────────────
 export const estoque = {
   list:   async (params = {}) => {

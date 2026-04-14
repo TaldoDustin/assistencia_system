@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Plus, Minus, Search } from "lucide-react";
-import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi } from "@/api/client";
+import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
+import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
@@ -27,6 +28,9 @@ export default function EditOrder() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
+  const [checklistMeta, setChecklistMeta] = useState(null);
+  const [checklistDialog, setChecklistDialog] = useState(false);
+  const [checklistLoading, setChecklistLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -63,6 +67,12 @@ export default function EditOrder() {
       if (rRes?.ok) setReparosList(rRes.reparos || []);
       if (eRes?.ok) setEstoqueList(eRes.items || []);
       setLoading(false);
+    });
+
+    checklistApi.getByOrder(id).then((res) => {
+      if (res?.ok) {
+        setChecklistMeta(res.checklist || null);
+      }
     });
   }, [id, navigate]);
 
@@ -135,6 +145,36 @@ export default function EditOrder() {
     }
   };
 
+  const handleChecklistQr = async () => {
+    setChecklistLoading(true);
+    try {
+      const res = await checklistApi.generateToken(id);
+      if (!res?.ok) {
+        toast.error(res?.erro || "Nao foi possivel gerar o QR do checklist");
+        return;
+      }
+      setChecklistMeta(res.checklist || null);
+      setChecklistDialog(true);
+    } catch {
+      toast.error("Nao foi possivel gerar o QR do checklist");
+    } finally {
+      setChecklistLoading(false);
+    }
+  };
+
+  const checklistLink = checklistMeta?.public_url || "";
+  const checklistQr = checklistLink ? checklistApi.qrImageUrl(checklistLink) : "";
+
+  const copyChecklistLink = async () => {
+    if (!checklistLink) return;
+    try {
+      await navigator.clipboard.writeText(checklistLink);
+      toast.success("Link do checklist copiado");
+    } catch {
+      toast.error("Nao foi possivel copiar o link");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -156,10 +196,35 @@ export default function EditOrder() {
           <p className="text-muted-foreground text-sm">Atualize os dados da OS</p>
         </div>
         <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleChecklistQr} disabled={checklistLoading}>
+            {checklistLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+            Checklist QR
+          </Button>
           <Button type="button" variant="outline" onClick={handleFinalize}>Finalizar OS</Button>
           <Button type="button" variant="destructive" onClick={() => setCancelDialog(true)}>Cancelar OS</Button>
         </div>
       </div>
+
+      {checklistMeta ? (
+        <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-sm font-semibold text-card-foreground">Checklist do aparelho</h2>
+              <p className="text-sm text-muted-foreground">
+                Touch: {checklistMeta.status_touch} • Audio: {checklistMeta.status_audio} • Microfone: {checklistMeta.status_microfone}
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => setChecklistDialog(true)} disabled={!checklistMeta.access_token}>
+              Ver QR
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {checklistMeta.atualizado_em
+              ? `Ultima atualizacao: ${checklistMeta.atualizado_em}`
+              : "Checklist ainda nao preenchido."}
+          </p>
+        </section>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Cliente / Tipo */}
@@ -350,6 +415,47 @@ export default function EditOrder() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={checklistDialog} onOpenChange={setChecklistDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Checklist por QR Code</DialogTitle>
+            <DialogDescription>
+              Abra no celular do cliente ou tecnico para testar touch, audio, microfone, camera e botoes.
+            </DialogDescription>
+          </DialogHeader>
+
+          {checklistMeta?.access_token ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border bg-background p-4 flex justify-center">
+                <img src={checklistQr} alt="QR code do checklist" className="h-60 w-60 rounded-lg" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="checklist-link">Link publico</Label>
+                <Input id="checklist-link" value={checklistLink} readOnly />
+              </div>
+              <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                Ultima atualizacao: {checklistMeta.atualizado_em || "ainda nao preenchido"}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Gere o token para exibir o checklist.</p>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={copyChecklistLink} disabled={!checklistMeta?.access_token}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar link
+            </Button>
+            <Button type="button" asChild disabled={!checklistMeta?.access_token}>
+                <a href={checklistLink} target="_blank" rel="noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Abrir checklist
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

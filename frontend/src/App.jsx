@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import { Loader2 } from "lucide-react";
 
 const Login = lazy(() => import("@/pages/Login"));
+const ChecklistDevice = lazy(() => import("@/pages/ChecklistDevice"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Orders = lazy(() => import("@/pages/Orders"));
 const NewOrder = lazy(() => import("@/pages/NewOrder"));
@@ -44,6 +45,7 @@ function AppRoutes() {
     >
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/checklist/:token" element={<ChecklistDevice />} />
         <Route
           element={
             <ProtectedRoute>

@@ -162,6 +162,7 @@ if getattr(sys, "frozen", False) and not os.path.exists(DB_PATH) and os.path.exi
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if os.environ.get("FLY_DATA_DIR") else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
+PUBLIC_BASE_URL = (os.environ.get("IR_FLOW_PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
 GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
 
 # Configuração de e-mail para envio automático de backup
@@ -345,6 +346,25 @@ def criar_tabelas():
                 senha_hash TEXT NOT NULL,
                 perfil TEXT NOT NULL DEFAULT 'tecnico',
                 ativo INTEGER NOT NULL DEFAULT 1
+            )
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS os_checklists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                os_id INTEGER NOT NULL UNIQUE,
+                access_token TEXT UNIQUE,
+                status_touch TEXT NOT NULL DEFAULT 'nao_testado',
+                status_audio TEXT NOT NULL DEFAULT 'nao_testado',
+                status_microfone TEXT NOT NULL DEFAULT 'nao_testado',
+                status_camera TEXT NOT NULL DEFAULT 'nao_testado',
+                status_botoes TEXT NOT NULL DEFAULT 'nao_testado',
+                observacoes TEXT NOT NULL DEFAULT '',
+                executado_por TEXT NOT NULL DEFAULT '',
+                origem TEXT NOT NULL DEFAULT '',
+                resultado_json TEXT NOT NULL DEFAULT '{}',
+                criado_em TEXT NOT NULL DEFAULT '',
+                atualizado_em TEXT NOT NULL DEFAULT ''
             )
             """)
 
@@ -1058,6 +1078,7 @@ app.register_blueprint(
             "sincronizar_mercado_phone": sincronizar_mercado_phone,
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
             "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
+            "public_base_url": PUBLIC_BASE_URL,
         }
     )
 )

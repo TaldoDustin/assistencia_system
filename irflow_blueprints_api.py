@@ -5,6 +5,8 @@ Authentication: Flask session cookies (same-origin, credentials: 'include').
 """
 
 from datetime import datetime, timedelta
+import json
+import secrets
 
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
@@ -67,6 +69,7 @@ def create_api_blueprint(deps):
     sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
     mercado_phone_runtime_config = deps["mercado_phone_runtime_config"]
     mercado_phone_helpers = deps["mercado_phone_helpers"]
+    public_base_url = (deps.get("public_base_url") or "").strip().rstrip("/")
 
     STATUS_FINALIZADO = status_finalizado
     STATUS_CANCELADO = status_cancelado
@@ -90,6 +93,103 @@ def create_api_blueprint(deps):
             payload.update(data if isinstance(data, dict) else {"data": data})
         payload.update(kwargs)
         return jsonify(payload)
+
+    def _checklist_status(value):
+        status = (value or "nao_testado").strip().lower()
+        return status if status in {"ok", "falha", "nao_testado"} else "nao_testado"
+
+    def _parse_checklist_json(value):
+        texto = (value or "").strip()
+        if not texto:
+            return {}
+        try:
+            parsed = json.loads(texto)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+
+    def _serialize_checklist(cursor, row):
+        if not row:
+            return None
+
+        resultado = _parse_checklist_json(row[10])
+        return {
+            "id": row[0],
+            "os_id": row[1],
+            "access_token": row[2] or "",
+            "status_touch": _checklist_status(row[3]),
+            "status_audio": _checklist_status(row[4]),
+            "status_microfone": _checklist_status(row[5]),
+            "status_camera": _checklist_status(row[6]),
+            "status_botoes": _checklist_status(row[7]),
+            "observacoes": row[8] or "",
+            "executado_por": row[9] or "",
+            "resultado": resultado,
+            "origem": row[11] or "",
+            "criado_em": row[12] or "",
+            "atualizado_em": row[13] or "",
+        }
+
+    def _resolve_public_base_url():
+        if public_base_url:
+            return public_base_url
+        return request.host_url.rstrip("/")
+
+    def _enriquecer_checklist_urls(checklist):
+        if not checklist:
+            return None
+        enriched = dict(checklist)
+        token = enriched.get("access_token") or ""
+        if token:
+            enriched["public_url"] = f"{_resolve_public_base_url()}/app/checklist/{token}"
+        else:
+            enriched["public_url"] = ""
+        return enriched
+
+    def _buscar_checklist_por_os(cursor, os_id):
+        cursor.execute(
+            """
+            SELECT id, os_id, COALESCE(access_token, ''), COALESCE(status_touch, 'nao_testado'),
+                   COALESCE(status_audio, 'nao_testado'), COALESCE(status_microfone, 'nao_testado'),
+                   COALESCE(status_camera, 'nao_testado'), COALESCE(status_botoes, 'nao_testado'),
+                   COALESCE(observacoes, ''), COALESCE(executado_por, ''), COALESCE(resultado_json, '{}'),
+                   COALESCE(origem, ''), COALESCE(criado_em, ''), COALESCE(atualizado_em, '')
+            FROM os_checklists
+            WHERE os_id=?
+            """,
+            (os_id,),
+        )
+        return _enriquecer_checklist_urls(_serialize_checklist(cursor, cursor.fetchone()))
+
+    def _buscar_checklist_por_token(cursor, token):
+        cursor.execute(
+            """
+            SELECT id, os_id, COALESCE(access_token, ''), COALESCE(status_touch, 'nao_testado'),
+                   COALESCE(status_audio, 'nao_testado'), COALESCE(status_microfone, 'nao_testado'),
+                   COALESCE(status_camera, 'nao_testado'), COALESCE(status_botoes, 'nao_testado'),
+                   COALESCE(observacoes, ''), COALESCE(executado_por, ''), COALESCE(resultado_json, '{}'),
+                   COALESCE(origem, ''), COALESCE(criado_em, ''), COALESCE(atualizado_em, '')
+            FROM os_checklists
+            WHERE access_token=?
+            """,
+            (token,),
+        )
+        return _enriquecer_checklist_urls(_serialize_checklist(cursor, cursor.fetchone()))
+
+    def _garantir_checklist_os(cursor, os_id):
+        checklist = _buscar_checklist_por_os(cursor, os_id)
+        if checklist:
+            return checklist
+
+        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute(
+            """
+            INSERT INTO os_checklists (os_id, criado_em, atualizado_em)
+            VALUES (?, ?, ?)
+            """,
+            (os_id, agora, agora),
+        )
+        return _buscar_checklist_por_os(cursor, os_id)
 
     # ── AUTHENTICATION ─────────────────────────────────────────────────────
 
@@ -424,6 +524,174 @@ def create_api_blueprint(deps):
             "pecas_usadas": pecas_usadas,
         })
 
+    @api.route("/ordens/<int:os_id>/checklist")
+    def obter_checklist_os(os_id):
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '') FROM os WHERE id=?",
+            (os_id,),
+        )
+        ordem = cursor.fetchone()
+        if not ordem:
+            conn.close()
+            return err("OS não encontrada.", 404)
+
+        checklist = _garantir_checklist_os(cursor, os_id)
+        conn.commit()
+        conn.close()
+
+        return ok(
+            checklist=checklist,
+            ordem={
+                "id": ordem[0],
+                "cliente": ordem[1] or "",
+                "modelo": ordem[2] or "",
+                "cor": ordem[3] or "",
+                "imei": ordem[4] or "",
+                "status": normalizar_status_os(ordem[5]),
+            },
+        )
+
+    @api.route("/ordens/<int:os_id>/checklist/token", methods=["POST"])
+    def gerar_token_checklist_os(os_id):
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '') FROM os WHERE id=?",
+            (os_id,),
+        )
+        ordem = cursor.fetchone()
+        if not ordem:
+            conn.close()
+            return err("OS não encontrada.", 404)
+
+        checklist = _garantir_checklist_os(cursor, os_id)
+        token = checklist.get("access_token") or secrets.token_urlsafe(18)
+        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute(
+            """
+            UPDATE os_checklists
+            SET access_token=?, atualizado_em=?
+            WHERE os_id=?
+            """,
+            (token, agora, os_id),
+        )
+        conn.commit()
+        checklist = _buscar_checklist_por_os(cursor, os_id)
+        conn.close()
+
+        return ok(
+            checklist=checklist,
+            ordem={
+                "id": ordem[0],
+                "cliente": ordem[1] or "",
+                "modelo": ordem[2] or "",
+                "cor": ordem[3] or "",
+                "imei": ordem[4] or "",
+                "status": normalizar_status_os(ordem[5]),
+            },
+        )
+
+    @api.route("/checklist/<token>")
+    def obter_checklist_publico(token):
+        token = (token or "").strip()
+        if not token:
+            return err("Token inválido.", 404)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        checklist = _buscar_checklist_por_token(cursor, token)
+        if not checklist:
+            conn.close()
+            return err("Checklist não encontrado.", 404)
+
+        cursor.execute(
+            """
+            SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '')
+            FROM os
+            WHERE id=?
+            """,
+            (checklist["os_id"],),
+        )
+        ordem = cursor.fetchone()
+        conn.close()
+        if not ordem:
+            return err("OS não encontrada.", 404)
+
+        return ok(
+            checklist=checklist,
+            ordem={
+                "id": ordem[0],
+                "cliente": ordem[1] or "",
+                "modelo": ordem[2] or "",
+                "cor": ordem[3] or "",
+                "imei": ordem[4] or "",
+                "status": normalizar_status_os(ordem[5]),
+            },
+        )
+
+    @api.route("/checklist/<token>", methods=["POST"])
+    def salvar_checklist_publico(token):
+        token = (token or "").strip()
+        if not token:
+            return err("Token inválido.", 404)
+
+        body = request.get_json(silent=True) or {}
+        testes = body.get("testes") or {}
+        if not isinstance(testes, dict):
+            return err("Formato do checklist inválido.")
+
+        status_touch = _checklist_status((testes.get("touch") or {}).get("status"))
+        status_audio = _checklist_status((testes.get("audio") or {}).get("status"))
+        status_microfone = _checklist_status((testes.get("microfone") or {}).get("status"))
+        status_camera = _checklist_status((testes.get("camera") or {}).get("status"))
+        status_botoes = _checklist_status((testes.get("botoes") or {}).get("status"))
+        executado_por = (body.get("executado_por") or "").strip()
+        observacoes = (body.get("observacoes") or "").strip()
+        origem = (body.get("origem") or "qr_publico").strip() or "qr_publico"
+        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        resultado_json = json.dumps({"testes": testes}, ensure_ascii=True)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        checklist = _buscar_checklist_por_token(cursor, token)
+        if not checklist:
+            conn.close()
+            return err("Checklist não encontrado.", 404)
+
+        cursor.execute(
+            """
+            UPDATE os_checklists
+            SET status_touch=?, status_audio=?, status_microfone=?, status_camera=?, status_botoes=?,
+                observacoes=?, executado_por=?, origem=?, resultado_json=?, atualizado_em=?
+            WHERE access_token=?
+            """,
+            (
+                status_touch,
+                status_audio,
+                status_microfone,
+                status_camera,
+                status_botoes,
+                observacoes,
+                executado_por,
+                origem,
+                resultado_json,
+                agora,
+                token,
+            ),
+        )
+        conn.commit()
+        checklist_atualizado = _buscar_checklist_por_token(cursor, token)
+        conn.close()
+        return ok(checklist=checklist_atualizado)
+
     @api.route("/ordens", methods=["POST"])
     def criar_ordem():
         if not usuario_logado():
@@ -619,6 +887,7 @@ def create_api_blueprint(deps):
                     devolver_pecas_da_os(cursor, os_id, "devolucao")
             cursor.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
+            cursor.execute("DELETE FROM os_checklists WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os WHERE id=?", (os_id,))
             conn.commit()
         except Exception as exc:

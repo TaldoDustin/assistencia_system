@@ -29,4 +29,6 @@ temp_output.txt
 # Fly.io não precisa desses
 integrations.json
 
+.openclaude-profile.json.openclaude-profile.json
+.openclaude-profile.json
 .openclaude-profile.json

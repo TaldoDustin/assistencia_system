@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
@@ -29,6 +29,7 @@ export default function EditOrder() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
+  const [suggestedPrice, setSuggestedPrice] = useState(null);
   const [checklistMeta, setChecklistMeta] = useState(null);
   const [checklistDialog, setChecklistDialog] = useState(false);
   const [checklistLoading, setChecklistLoading] = useState(false);
@@ -83,7 +84,10 @@ export default function EditOrder() {
 
   // Auto-preenche valor_cobrado a partir da tabela de preços (somente após carga inicial)
   useEffect(() => {
-    if (!initialized.current || !form?.modelo || selectedReparos.length === 0) return;
+    if (!initialized.current || !form?.modelo || selectedReparos.length === 0) {
+      setSuggestedPrice(null);
+      return;
+    }
     const tabela = form.tipo === "Upgrade" ? "ir_phones" : "clientes";
     precosApi.sugerir({
       modelo: form.modelo,
@@ -91,10 +95,15 @@ export default function EditOrder() {
       tabela,
     }).then((res) => {
       if (res?.ok && res.encontrado) {
-        setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+        setSuggestedPrice(res.valor);
+        if (!form.valor_cobrado) {
+          setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+        }
+      } else {
+        setSuggestedPrice(null);
       }
     });
-  }, [form?.modelo, form?.tipo, selectedReparos]);
+  }, [form?.modelo, form?.tipo, form?.valor_cobrado, selectedReparos]);
 
   const toggleReparo = (rid) => {
     setSelectedReparos((prev) => prev.includes(rid) ? prev.filter((x) => x !== rid) : [...prev, rid]);
@@ -117,7 +126,7 @@ export default function EditOrder() {
         valor_cobrado: parseFloat(form.valor_cobrado) || 0,
         valor_descontado: parseFloat(form.valor_descontado) || 0,
         reparo_ids: selectedReparos,
-        pecas: Object.fromEntries(Object.entries(pecas).map(([k, v]) => [String(k), v])),
+        pecas_ids: Object.entries(pecas).flatMap(([k, v]) => Array.from({ length: v }, () => parseInt(k, 10))),
       };
       const res = await ordensApi.update(id, payload);
       if (res?.ok) {
@@ -208,6 +217,13 @@ export default function EditOrder() {
     const matchesModelo = !normalizedModelo || itemModelo === "universal" || itemModelo === normalizedModelo;
     return matchesSearch && matchesModelo;
   });
+
+  const pecasTotal = useMemo(() => {
+    return Object.entries(pecas).reduce((sum, [id, quantity]) => {
+      const estoqueItem = estoqueList.find((item) => String(item.id) === String(id));
+      return sum + (estoqueItem?.valor || 0) * (quantity || 0);
+    }, 0);
+  }, [pecas, estoqueList]);
 
   return (
     <div className="max-w-4xl space-y-5">
@@ -367,6 +383,24 @@ export default function EditOrder() {
         {/* Financeiro */}
         <section className="bg-card rounded-xl border border-border p-5 space-y-4">
           <h2 className="text-sm font-semibold text-card-foreground">Financeiro</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Custo total de peças</p>
+              <p className="mt-3 text-2xl font-bold text-foreground">{formatCurrency(pecasTotal)}</p>
+            </div>
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Sugestão de serviço</p>
+              <p className="mt-3 text-2xl font-bold text-rose-500">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Baseado na tabela de preços.</p>
+            </div>
+            <div className="flex items-end justify-end">
+              <Button type="button" disabled={!suggestedPrice} onClick={() => suggestedPrice !== null && setField("valor_cobrado", String(suggestedPrice))}>
+                Usar sugestão
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="edit-order-valor-cobrado">Valor Cobrado (R$)</Label>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search } from "lucide-react";
@@ -37,6 +37,7 @@ export default function NewOrder() {
   const [stockSearch, setStockSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [suggestedPrice, setSuggestedPrice] = useState(null);
 
   useEffect(() => {
     Promise.all([constApi.get(), reparosApi.list(), estoqueApi.list()]).then(([c, r, e]) => {
@@ -51,7 +52,11 @@ export default function NewOrder() {
 
   // Auto-preenche valor_cobrado a partir da tabela de preços
   useEffect(() => {
-    if (!form.modelo || selectedReparos.length === 0) return;
+    if (!form.modelo || selectedReparos.length === 0) {
+      setSuggestedPrice(null);
+      return;
+    }
+
     const tabela = form.tipo === "Upgrade" ? "ir_phones" : "clientes";
     precosApi.sugerir({
       modelo: form.modelo,
@@ -59,10 +64,15 @@ export default function NewOrder() {
       tabela,
     }).then((res) => {
       if (res?.ok && res.encontrado) {
-        setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+        setSuggestedPrice(res.valor);
+        if (!form.valor_cobrado) {
+          setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+        }
+      } else {
+        setSuggestedPrice(null);
       }
     });
-  }, [form.modelo, form.tipo, selectedReparos]);
+  }, [form.modelo, form.tipo, form.valor_cobrado, selectedReparos]);
 
   const toggleReparo = (id) => {
     setSelectedReparos((prev) =>
@@ -91,7 +101,7 @@ export default function NewOrder() {
         valor_cobrado: parseFloat(form.valor_cobrado) || 0,
         valor_descontado: parseFloat(form.valor_descontado) || 0,
         reparo_ids: selectedReparos,
-        pecas: Object.fromEntries(Object.entries(pecas).map(([k, v]) => [String(k), v])),
+        pecas_ids: Object.entries(pecas).flatMap(([k, v]) => Array.from({ length: v }, () => parseInt(k, 10))),
       };
       const res = await ordensApi.create(payload);
       if (res?.ok) {
@@ -122,6 +132,13 @@ export default function NewOrder() {
     const matchesModelo = !normalizedModelo || itemModelo === "universal" || itemModelo === normalizedModelo;
     return matchesSearch && matchesModelo;
   });
+
+  const pecasTotal = useMemo(() => {
+    return Object.entries(pecas).reduce((sum, [id, quantity]) => {
+      const estoqueItem = estoqueList.find((item) => String(item.id) === String(id));
+      return sum + (estoqueItem?.valor || 0) * (quantity || 0);
+    }, 0);
+  }, [pecas, estoqueList]);
 
   return (
     <div className="max-w-4xl space-y-5">
@@ -250,14 +267,32 @@ export default function NewOrder() {
         {/* Financeiro */}
         <section className="bg-card rounded-xl border border-border p-5 space-y-4">
           <h2 className="text-sm font-semibold text-card-foreground">Financeiro</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Custo total de peças</p>
+              <p className="mt-3 text-2xl font-bold text-foreground">{formatCurrency(pecasTotal)}</p>
+            </div>
+            <div className="bg-secondary rounded-xl p-4">
+              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Sugestão de serviço</p>
+              <p className="mt-3 text-2xl font-bold text-rose-500">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Baseado na tabela de preços.</p>
+            </div>
+            <div className="flex items-end justify-end">
+              <Button type="button" disabled={!suggestedPrice} onClick={() => suggestedPrice !== null && setField("valor_cobrado", String(suggestedPrice))}>
+                Usar sugestão
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-               <Label htmlFor="order-valor-cobrado">Valor Cobrado (R$)</Label>
-               <Input id="order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} placeholder="0,00" />
+              <Label htmlFor="order-valor-cobrado">Valor Cobrado (R$)</Label>
+              <Input id="order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} placeholder="0,00" />
             </div>
             <div className="space-y-1.5">
-               <Label htmlFor="order-valor-descontado">Valor com Desconto (R$)</Label>
-               <Input id="order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} placeholder="0,00" />
+              <Label htmlFor="order-valor-descontado">Valor com Desconto (R$)</Label>
+              <Input id="order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} placeholder="0,00" />
             </div>
           </div>
         </section>

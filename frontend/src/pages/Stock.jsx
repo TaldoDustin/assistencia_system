@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2, AlertTriangle, Search, Lock } from "lucide-react";
-import { estoque as estoqueApi } from "@/api/client";
+import { estoque as estoqueApi, constantes as constApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export default function Stock() {
   const [modeloFilter, setModeloFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [constants, setConstants] = useState(null);
   const [editId, setEditId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -42,7 +43,12 @@ export default function Stock() {
     });
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    fetchItems();
+    constApi.get().then((res) => {
+      if (res?.ok) setConstants(res);
+    });
+  }, []);
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -102,6 +108,7 @@ export default function Stock() {
   };
 
   const modelos = [...new Set(items.map((i) => i.modelo).filter(Boolean))];
+  const modeloOptions = [...new Set(["Universal", ...(constants?.iphone_models || modelos)])];
   const filtered = items.filter((item) => {
     if (search && !item.descricao?.toLowerCase().includes(search.toLowerCase()) && !item.modelo?.toLowerCase().includes(search.toLowerCase())) return false;
     if (modeloFilter && item.modelo !== modeloFilter) return false;
@@ -151,12 +158,12 @@ export default function Stock() {
           <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar peça..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
         </div>
-        {modelos.length > 0 && (
+        {modeloOptions.length > 0 && (
           <Select value={modeloFilter || ""} onValueChange={(v) => setModeloFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-44"><SelectValue placeholder="Modelo" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os modelos</SelectItem>
-              {modelos.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              {modeloOptions.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
@@ -240,8 +247,14 @@ export default function Stock() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="stock-modelo">Modelo</Label>
-                  <Input id="stock-modelo" value={form.modelo} onChange={(e) => setForm((p) => ({ ...p, modelo: e.target.value }))} />
+                  <Label htmlFor="stock-modelo">Modelo compatível</Label>
+                  <Select value={form.modelo} onValueChange={(v) => setForm((p) => ({ ...p, modelo: v }))}>
+                    <SelectTrigger className="w-full" aria-label="Modelo compatível"><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Universal">Universal (serve para qualquer modelo)</SelectItem>
+                      {modeloOptions.map((m) => m && <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="stock-fornecedor">Fornecedor</Label>

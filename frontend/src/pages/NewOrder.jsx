@@ -114,10 +114,12 @@ export default function NewOrder() {
     );
   }
 
-  const filteredEstoque = estoqueList.filter((item) =>
-    item.descricao?.toLowerCase().includes(stockSearch.toLowerCase()) ||
-    item.modelo?.toLowerCase().includes(stockSearch.toLowerCase())
-  );
+  const filteredEstoque = estoqueList.filter((item) => {
+    const matchesSearch = item.descricao?.toLowerCase().includes(stockSearch.toLowerCase()) ||
+      item.modelo?.toLowerCase().includes(stockSearch.toLowerCase());
+    const matchesModelo = !form?.modelo || form.modelo === "" || item.modelo === "Universal" || item.modelo === form.modelo;
+    return matchesSearch && matchesModelo;
+  });
 
   return (
     <div className="max-w-4xl space-y-5">
@@ -278,7 +280,9 @@ export default function NewOrder() {
                 <div key={item.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-card-foreground truncate">{item.descricao}</p>
-                    <p className="text-xs text-muted-foreground">{item.modelo} • Estoque: {item.quantidade}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.modelo} • Estoque: {item.quantidade} • {formatCurrency(item.valor || 0)}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => adjustPeca(item.id, -1)}>

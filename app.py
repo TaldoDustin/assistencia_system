@@ -539,8 +539,11 @@ def autenticar_integracao_mercado_phone():
     token_header = texto_limpo(request.headers.get("X-Webhook-Token"))
 
     token_informado = token_header
-    if auth_header.lower().startswith("bearer "):
-        token_informado = auth_header[7:].strip()
+    if not token_informado and auth_header:
+        if auth_header.lower().startswith("bearer "):
+            token_informado = auth_header[7:].strip()
+        else:
+            token_informado = auth_header.strip()
 
     if token_informado != MERCADO_PHONE_WEBHOOK_TOKEN:
         abort(401)

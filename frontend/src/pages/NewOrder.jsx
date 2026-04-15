@@ -117,14 +117,6 @@ export default function NewOrder() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const normalizedModelo = form?.modelo?.toLowerCase().trim();
   const filteredEstoque = estoqueList.filter((item) => {
     const itemModelo = item.modelo?.toLowerCase().trim() || "";
@@ -139,6 +131,14 @@ export default function NewOrder() {
       return sum + (estoqueItem?.valor || 0) * (quantity || 0);
     }, 0);
   }, [pecas, estoqueList]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl space-y-5">

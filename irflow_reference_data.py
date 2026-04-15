@@ -125,8 +125,8 @@ VENDEDORES = [
 
 TECNICOS = [
     "Aguardando definicao",
-    "Isaque Souza",
-    "Ruan Soares",
+    "ISAQUE SOUZA",
+    "RUAM SOARES",
 ]
 
 CATEGORIAS_CUSTOS_OPERACIONAIS = [

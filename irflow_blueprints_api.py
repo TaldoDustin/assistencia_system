@@ -11,6 +11,8 @@ import secrets
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
 
+from irflow_price_tables import sugerir_preco_tabela
+
 
 def create_api_blueprint(deps):
     api = Blueprint("api", __name__, url_prefix="/api")
@@ -1418,16 +1420,7 @@ def create_api_blueprint(deps):
         conn.close()
 
         tabelas = carregar_tabelas_preco()
-        tabela_data = tabelas.get(tabela, {})
-
-        total = 0.0
-        encontrou = False
-        for nome in nomes:
-            val = tabela_data.get(nome, {}).get(modelo)
-            if val is not None:
-                total += float(val)
-                encontrou = True
-
+        total, encontrou = sugerir_preco_tabela(tabelas, tabela, modelo, nomes)
         return ok(valor=round(total, 2), encontrado=encontrou)
 
     # ── WARRANTIES ─────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 # fly.toml — configuração do Fly.io para IR Flow
 # Gerado para deploy com volume persistente (SQLite + arquivos de dados)
 
-app = "irflow"          # Altere para o nome que registrar em: fly apps create
+app = "assistencia-system-isaque"          # Altere para o nome que registrar em: fly apps create
 primary_region = "gru"  # São Paulo — mais próximo do Brasil
 
 [build]
@@ -35,7 +35,7 @@ primary_region = "gru"  # São Paulo — mais próximo do Brasil
   [[services.http_checks]]
     interval = 30000
     timeout  = 5000
-    path     = "/dashboard"
+    path     = "/app"
 
 [[mounts]]
   source      = "irflow_data"   # nome do volume criado com: fly volumes create irflow_data

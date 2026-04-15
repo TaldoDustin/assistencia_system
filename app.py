@@ -553,7 +553,7 @@ def autenticar_integracao_mercado_phone():
         candidatos.append(token_header)
 
     # Alguns provedores enviam em headers alternativos.
-    for header_name in ("X-Api-Key", "X-Auth-Token", "X-Token"):
+    for header_name in ("X-Api-Key", "X-Auth-Token", "X-Token", "Mp-Auth-Code"):
         valor = texto_limpo(request.headers.get(header_name))
         if valor:
             candidatos.append(valor)

@@ -51,8 +51,7 @@ def create_auth_blueprint(deps: dict):
             session["usuario_id"] = row[0]
             session["usuario_nome"] = row[1]
             session["usuario_perfil"] = row[3]
-            destino = request.form.get("next") or "/app"
-            return redirect(destino)
+            return redirect("/app")
 
         erro = quote("Usuário ou senha inválidos.")
         return redirect(f"/app/login?erro={erro}")

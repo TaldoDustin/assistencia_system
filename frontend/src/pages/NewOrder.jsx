@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { formatCurrency } from "@/lib/constants";
 
 const EMPTY_FORM = {
   tipo: "Assistencia",
@@ -114,10 +115,11 @@ export default function NewOrder() {
     );
   }
 
+  const normalizedModelo = form?.modelo?.toLowerCase().trim();
   const filteredEstoque = estoqueList.filter((item) => {
-    const matchesSearch = item.descricao?.toLowerCase().includes(stockSearch.toLowerCase()) ||
-      item.modelo?.toLowerCase().includes(stockSearch.toLowerCase());
-    const matchesModelo = !form?.modelo || form.modelo === "" || item.modelo === "Universal" || item.modelo === form.modelo;
+    const itemModelo = item.modelo?.toLowerCase().trim() || "";
+    const matchesSearch = item.descricao?.toLowerCase().includes(stockSearch.toLowerCase()) || itemModelo.includes(stockSearch.toLowerCase());
+    const matchesModelo = !normalizedModelo || itemModelo === "universal" || itemModelo === normalizedModelo;
     return matchesSearch && matchesModelo;
   });
 

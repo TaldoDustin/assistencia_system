@@ -107,11 +107,13 @@ export default function Stock() {
     }
   };
 
-  const modelos = [...new Set(items.map((i) => i.modelo).filter(Boolean))];
-  const modeloOptions = [...new Set(["Universal", ...(constants?.iphone_models || modelos)])];
+  const modelos = [...new Set([...(constants?.iphone_models || []), ...items.map((i) => i.modelo).filter(Boolean)])];
+  const modeloOptions = [...new Set(["Universal", ...modelos])];
+  const normalizedFilter = modeloFilter?.toLowerCase().trim();
   const filtered = items.filter((item) => {
-    if (search && !item.descricao?.toLowerCase().includes(search.toLowerCase()) && !item.modelo?.toLowerCase().includes(search.toLowerCase())) return false;
-    if (modeloFilter && item.modelo !== modeloFilter) return false;
+    const itemModelo = item.modelo?.toLowerCase().trim() || "";
+    if (search && !item.descricao?.toLowerCase().includes(search.toLowerCase()) && !itemModelo.includes(search.toLowerCase())) return false;
+    if (normalizedFilter && itemModelo !== normalizedFilter && itemModelo !== "universal") return false;
     return true;
   });
 

@@ -125,12 +125,12 @@ def chamar_api_mercado_phone(method_name, payload, config):
         return parse_json_response(response.read())
 
 
-def listar_os_mercado_phone(config):
+def listar_os_mercado_phone(config, page=1, limit=300):
     return chamar_api_mercado_phone(
         "index",
         {
-            "page": 1,
-            "limit": 300,
+            "page": page,
+            "limit": limit,
             "order": "id",
             "direction": "desc",
             "filters": {
@@ -283,6 +283,8 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
     if not reparos_nomes:
         reparos_nomes = ["Nao informado"]
 
+    aparelho = descricao_aparelho or modelo
+
     reparo_ids = []
     for nome_reparo in reparos_nomes:
         reparo_id = obter_ou_criar_reparo(cursor, nome_reparo)
@@ -332,7 +334,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
         (
             tipo,
             cliente,
-            modelo,
+            aparelho,
             tecnico,
             reparo_ids[0],
             status,
@@ -361,8 +363,30 @@ def sincronizar_mercado_phone(conectar, config, helpers):
     origem = "mercado_phone"
 
     try:
-        listagem = listar_os_mercado_phone(config)
-        ids_encontrados = extrair_ids_os_listagem_mercado_phone(listagem, helpers["texto_limpo"])
+        ids_encontrados = []
+        seen_ids = set()
+        page = 1
+        page_limit = 300
+        max_pages = int(config.get("sync_max_pages", 100) or 100)
+
+        while page <= max_pages:
+            listagem = listar_os_mercado_phone(config, page=page, limit=page_limit)
+            page_ids = extrair_ids_os_listagem_mercado_phone(listagem, helpers["texto_limpo"])
+            if not page_ids:
+                break
+
+            added = 0
+            for external_id in page_ids:
+                if external_id not in seen_ids:
+                    seen_ids.add(external_id)
+                    ids_encontrados.append(external_id)
+                    added += 1
+
+            if added == 0 or len(page_ids) < page_limit:
+                break
+
+            page += 1
+
         if not ids_encontrados:
             definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             conn.commit()

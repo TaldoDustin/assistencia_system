@@ -1391,6 +1391,45 @@ def create_api_blueprint(deps):
 
         return err("Entrada não encontrada.", 404)
 
+    @api.route("/precos/sugerir")
+    def sugerir_preco():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        modelo = (request.args.get("modelo") or "").strip()
+        tabela = (request.args.get("tabela") or "clientes").strip()
+        reparo_ids_raw = (request.args.get("reparo_ids") or "").strip()
+
+        if not modelo or not reparo_ids_raw:
+            return ok(valor=0, encontrado=False)
+
+        reparo_ids = [int(x) for x in reparo_ids_raw.split(",") if x.strip().isdigit()]
+        if not reparo_ids:
+            return ok(valor=0, encontrado=False)
+
+        if tabela not in ("ir_phones", "clientes"):
+            tabela = "clientes"
+
+        conn = conectar()
+        cursor = conn.cursor()
+        placeholders = ",".join("?" * len(reparo_ids))
+        cursor.execute(f"SELECT nome FROM reparos WHERE id IN ({placeholders})", reparo_ids)
+        nomes = [r[0].upper() for r in cursor.fetchall()]
+        conn.close()
+
+        tabelas = carregar_tabelas_preco()
+        tabela_data = tabelas.get(tabela, {})
+
+        total = 0.0
+        encontrou = False
+        for nome in nomes:
+            val = tabela_data.get(nome, {}).get(modelo)
+            if val is not None:
+                total += float(val)
+                encontrou = True
+
+        return ok(valor=round(total, 2), encontrado=encontrou)
+
     # ── WARRANTIES ─────────────────────────────────────────────────────────
 
     @api.route("/garantias")

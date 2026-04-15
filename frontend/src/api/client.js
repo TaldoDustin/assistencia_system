@@ -124,7 +124,7 @@ export const ordens = {
   update:        (id, data)   => put(`/ordens/${id}`, withPieceIds(data)),
   delete:        (id)         => del(`/ordens/${id}`),
   patchStatus:   (id, status) => request("PATCH", `/ordens/${id}/status`, { status }),
-  clienteHistory:(nome)       => get(`/ordens/cliente/${encodeURIComponent(nome)}`),
+  clienteHistory:(nome)       => get(`/ordens/historico-cliente?cliente=${encodeURIComponent(nome)}`),
 };
 
 // ── Checklist de Aparelho ──────────────────────────────────────────────────
@@ -176,6 +176,10 @@ export const precos = {
   list:   ()     => get("/precos"),
   save:   (data) => post("/precos", data),          // { tabela, servico, modelo, valor }
   remove: (data) => post("/precos/excluir", data),  // { tabela, servico, modelo }
+  sugerir: (params) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/precos/sugerir?${qs}`);
+  },
 };
 
 // ── Garantias ────────────────────────────────────────────────────────────────
@@ -195,7 +199,8 @@ export const relatorios = {
   },
   pdfUrl:    (tipo, params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return `${BASE}/relatorios/pdf/${tipo}${qs ? "?" + qs : ""}`;
+    const endpoint = tipo === "irphones" ? "ir-phones" : tipo;
+    return `${BASE}/relatorios/pdf/${endpoint}${qs ? "?" + qs : ""}`;
   },
 };
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search } from "lucide-react";
-import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi } from "@/api/client";
+import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, precos as precosApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,21 @@ export default function NewOrder() {
   }, []);
 
   const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  // Auto-preenche valor_cobrado a partir da tabela de preços
+  useEffect(() => {
+    if (!form.modelo || selectedReparos.length === 0) return;
+    const tabela = form.tipo === "Upgrade" ? "ir_phones" : "clientes";
+    precosApi.sugerir({
+      modelo: form.modelo,
+      reparo_ids: selectedReparos.join(","),
+      tabela,
+    }).then((res) => {
+      if (res?.ok && res.encontrado) {
+        setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+      }
+    });
+  }, [form.modelo, form.tipo, selectedReparos]);
 
   const toggleReparo = (id) => {
     setSelectedReparos((prev) =>

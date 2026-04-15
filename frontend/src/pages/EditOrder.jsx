@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
-import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi } from "@/api/client";
+import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi, precos as precosApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ export default function EditOrder() {
   const [checklistMeta, setChecklistMeta] = useState(null);
   const [checklistDialog, setChecklistDialog] = useState(false);
   const [checklistLoading, setChecklistLoading] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
     Promise.all([
@@ -67,6 +68,7 @@ export default function EditOrder() {
       if (rRes?.ok) setReparosList(rRes.reparos || []);
       if (eRes?.ok) setEstoqueList(eRes.items || []);
       setLoading(false);
+      initialized.current = true;
     });
 
     checklistApi.getByOrder(id).then((res) => {
@@ -77,6 +79,21 @@ export default function EditOrder() {
   }, [id, navigate]);
 
   const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  // Auto-preenche valor_cobrado a partir da tabela de preços (somente após carga inicial)
+  useEffect(() => {
+    if (!initialized.current || !form?.modelo || selectedReparos.length === 0) return;
+    const tabela = form.tipo === "Upgrade" ? "ir_phones" : "clientes";
+    precosApi.sugerir({
+      modelo: form.modelo,
+      reparo_ids: selectedReparos.join(","),
+      tabela,
+    }).then((res) => {
+      if (res?.ok && res.encontrado) {
+        setForm((p) => ({ ...p, valor_cobrado: String(res.valor) }));
+      }
+    });
+  }, [form?.modelo, form?.tipo, selectedReparos]);
 
   const toggleReparo = (rid) => {
     setSelectedReparos((prev) => prev.includes(rid) ? prev.filter((x) => x !== rid) : [...prev, rid]);
@@ -259,7 +276,7 @@ export default function EditOrder() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Modelo *</Label>
-              <Select value={form.modelo} onValueChange={(v) => setField("modelo", v)}>
+              <Select value={form.modelo} onValueChange={(v) => { setField("modelo", v); setField("cor", ""); }}>
                 <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
                 <SelectContent>
                   {(constants?.iphone_models || []).map((m) => (

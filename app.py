@@ -535,6 +535,14 @@ def autenticar_integracao_mercado_phone():
     if not MERCADO_PHONE_WEBHOOK_TOKEN:
         return
 
+    def _mascarar_token(valor):
+        texto = texto_limpo(valor)
+        if not texto:
+            return "<vazio>"
+        if len(texto) <= 8:
+            return "*" * len(texto)
+        return f"{texto[:4]}...{texto[-4:]} (len={len(texto)})"
+
     auth_header = texto_limpo(request.headers.get("Authorization"))
     token_header = texto_limpo(request.headers.get("X-Webhook-Token"))
     payload = request.get_json(silent=True)
@@ -573,6 +581,13 @@ def autenticar_integracao_mercado_phone():
             candidatos.append(valor)
 
     if MERCADO_PHONE_WEBHOOK_TOKEN not in candidatos:
+        print(
+            "[MercadoPhone] Token webhook inválido. "
+            f"esperado={_mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN)} "
+            f"candidatos={[ _mascarar_token(c) for c in candidatos ]} "
+            f"headers={sorted(list(request.headers.keys()))} "
+            f"query_keys={sorted(list(request.args.keys()))}"
+        )
         abort(401)
 
 

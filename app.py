@@ -537,15 +537,42 @@ def autenticar_integracao_mercado_phone():
 
     auth_header = texto_limpo(request.headers.get("Authorization"))
     token_header = texto_limpo(request.headers.get("X-Webhook-Token"))
+    payload = request.get_json(silent=True)
 
-    token_informado = token_header
-    if not token_informado and auth_header:
+    candidatos = []
+
+    if token_header:
+        candidatos.append(token_header)
+
+    # Alguns provedores enviam em headers alternativos.
+    for header_name in ("X-Api-Key", "X-Auth-Token", "X-Token"):
+        valor = texto_limpo(request.headers.get(header_name))
+        if valor:
+            candidatos.append(valor)
+
+    if auth_header:
         if auth_header.lower().startswith("bearer "):
-            token_informado = auth_header[7:].strip()
+            candidatos.append(auth_header[7:].strip())
         else:
-            token_informado = auth_header.strip()
+            candidatos.append(auth_header.strip())
 
-    if token_informado != MERCADO_PHONE_WEBHOOK_TOKEN:
+    for query_name in ("token", "webhook_token", "security_token"):
+        valor = texto_limpo(request.args.get(query_name))
+        if valor:
+            candidatos.append(valor)
+
+    if isinstance(payload, dict):
+        for body_key in ("token", "webhook_token", "security_token"):
+            valor = texto_limpo(payload.get(body_key))
+            if valor:
+                candidatos.append(valor)
+
+    for form_key in ("token", "webhook_token", "security_token"):
+        valor = texto_limpo(request.form.get(form_key))
+        if valor:
+            candidatos.append(valor)
+
+    if MERCADO_PHONE_WEBHOOK_TOKEN not in candidatos:
         abort(401)
 
 

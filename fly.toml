@@ -1,7 +1,7 @@
 # fly.toml — configuração do Fly.io para IR Flow
 # Gerado para deploy com volume persistente (SQLite + arquivos de dados)
 
-app = "assistencia-system-isaque"          # Altere para o nome que registrar em: fly apps create
+app = "assistencia-system"          # Altere para o nome que registrar em: fly apps create
 primary_region = "gru"  # São Paulo — mais próximo do Brasil
 
 [build]

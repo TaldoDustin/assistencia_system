@@ -338,6 +338,71 @@ def agrupar_relatorio_tecnicos(data_inicio="", data_fim="", conectar=None):
     return {mes: dict(sorted(tecnicos.items())) for mes, tecnicos in sorted(meses.items())}
 
 
+def agrupar_relatorio_custos_operacionais(data_inicio="", data_fim="", conectar=None):
+    """Agrega custos operacionais por mes e categoria."""
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(id, 0),
+            COALESCE(descricao, ''),
+            COALESCE(categoria, 'Outros'),
+            COALESCE(valor, 0),
+            COALESCE(data, ''),
+            COALESCE(observacoes, '')
+        FROM custos_operacionais
+        ORDER BY COALESCE(data, '') ASC, id ASC
+        """
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    meses = defaultdict(lambda: {
+        "total_itens": 0,
+        "total_valor": 0.0,
+        "categorias": defaultdict(float),
+        "itens": [],
+    })
+
+    for custo_id, descricao, categoria, valor, data, observacoes in rows:
+        if not data:
+            continue
+        if data_inicio and data < data_inicio:
+            continue
+        if data_fim and data > data_fim:
+            continue
+
+        chave_mes = data[:7]
+        bucket = meses[chave_mes]
+        bucket["total_itens"] += 1
+        bucket["total_valor"] += float(valor or 0)
+        bucket["categorias"][categoria or "Outros"] += float(valor or 0)
+        bucket["itens"].append(
+            {
+                "id": custo_id,
+                "descricao": descricao,
+                "categoria": categoria or "Outros",
+                "valor": round(float(valor or 0), 2),
+                "data": data,
+                "observacoes": observacoes,
+            }
+        )
+
+    resultado = {}
+    for chave_mes, resumo in sorted(meses.items()):
+        categorias_ordenadas = dict(
+            sorted(resumo["categorias"].items(), key=lambda item: (-item[1], item[0]))
+        )
+        resultado[chave_mes] = {
+            "total_itens": resumo["total_itens"],
+            "total_valor": round(resumo["total_valor"], 2),
+            "categorias": {categoria: round(valor, 2) for categoria, valor in categorias_ordenadas.items()},
+            "itens": resumo["itens"],
+        }
+    return resultado
+
+
 def montar_linhas_relatorio_ir_phones(data_inicio="", data_fim="", conectar=None):
     """Monta linhas de relatorio formatadas para IR Phones."""
     agrupado = agrupar_relatorio_ir_phones(data_inicio, data_fim, conectar)
@@ -434,4 +499,74 @@ def montar_linhas_relatorio_tecnicos(data_inicio="", data_fim="", conectar=None)
             linhas.append("-" * 92)
         linhas.append("")
 
+    return linhas
+
+
+def montar_linhas_relatorio_custos_operacionais(data_inicio="", data_fim="", conectar=None):
+    """Monta linhas do relatorio de custos operacionais."""
+    agrupado = agrupar_relatorio_custos_operacionais(data_inicio, data_fim, conectar)
+    linhas = []
+    total_geral_itens = 0
+    total_geral_valor = 0.0
+
+    if not agrupado:
+        linhas.append("Nenhum custo operacional encontrado para o periodo informado.")
+        return linhas
+
+    for chave_mes, resumo in agrupado.items():
+        total_geral_itens += resumo["total_itens"]
+        total_geral_valor += resumo["total_valor"]
+
+        linhas.append(f"CUSTOS OPERACIONAIS - {formatar_mes_referencia(chave_mes)}")
+        linhas.append("-" * 92)
+        ticket_medio = resumo["total_valor"] / resumo["total_itens"] if resumo["total_itens"] else 0
+        linhas.append(
+            linha_tabela(
+                [
+                    limitar_texto(f"Lancamentos: {resumo['total_itens']}", 24),
+                    limitar_texto(f"Total: {moeda_pdf(resumo['total_valor'])}", 24),
+                    limitar_texto(f"Media: {moeda_pdf(ticket_medio)}", 24),
+                ]
+            )
+        )
+        linhas.append("")
+        linhas.append("Categorias do mes")
+        linhas.append(linha_tabela([limitar_texto("Categoria", 56), limitar_texto("Valor", 18)]))
+        for categoria, valor in resumo["categorias"].items():
+            linhas.append(linha_tabela([limitar_texto(categoria, 56), limitar_texto(moeda_pdf(valor), 18)]))
+        linhas.append("")
+        linhas.append("Lancamentos do mes")
+        linhas.append(
+            linha_tabela(
+                [
+                    limitar_texto("Data", 12),
+                    limitar_texto("Categoria", 22),
+                    limitar_texto("Descricao", 34),
+                    limitar_texto("Valor", 14),
+                ]
+            )
+        )
+        for item in resumo.get("itens", []):
+            linhas.append(
+                linha_tabela(
+                    [
+                        limitar_texto(item.get("data") or "-", 12),
+                        limitar_texto(item.get("categoria") or "Outros", 22),
+                        limitar_texto(item.get("descricao") or "Sem descricao", 34),
+                        limitar_texto(moeda_pdf(item.get("valor")), 14),
+                    ]
+                )
+            )
+        linhas.append("")
+
+    linhas.append("=" * 92)
+    linhas.append("RESUMO GERAL DO PERIODO")
+    linhas.append(
+        linha_tabela(
+            [
+                limitar_texto(f"Lancamentos: {total_geral_itens}", 24),
+                limitar_texto(f"Total: {moeda_pdf(total_geral_valor)}", 24),
+            ]
+        )
+    )
     return linhas

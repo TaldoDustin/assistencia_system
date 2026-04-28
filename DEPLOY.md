@@ -1,106 +1,88 @@
-# Deploy IR Flow → Fly.io
 
-## Pré-requisitos
+# Deploy IR Flow → Render (backend) & Vercel (frontend)
 
-1. Conta em https://fly.io (gratuita)
-2. CLI do Fly.io instalada:
-   ```
-   # Windows (PowerShell como admin)
-   powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
-   ```
-3. Login:
-   ```
-   fly auth login
-   ```
+## Backend (Render.com)
 
----
+### 1. Crie uma conta em https://render.com
 
-## 1. Criar a aplicação
+### 2. Novo serviço web
+- Clique em **New +** > **Web Service**
+- Conecte seu repositório (GitHub/GitLab)
+- Escolha o repositório do projeto
 
-```bash
-# Escolha um nome único (ex: meu-irflow)
-fly apps create irflow
-```
+### 3. Configuração do serviço
+- **Environment**: Docker
+- **Docker Build Context**: `.`
+- **Dockerfile Path**: `Dockerfile`
+- **Start Command**: (deixe em branco, o Dockerfile já define)
+- **Port**: 8080
 
-Se o nome já existir, edite `fly.toml` → campo `app = "..."`.
+### 4. Variáveis de ambiente
+Adicione as variáveis necessárias em **Environment > Add Environment Variable**:
+- `FLASK_SECRET_KEY` (obrigatório)
+- `MERCADO_PHONE_WEBHOOK_TOKEN` (opcional)
+- `MERCADO_PHONE_API_TOKEN` (opcional)
+- `IR_FLOW_HOST=0.0.0.0`
+- `IR_FLOW_PORT=8080`
+- `FLY_DATA_DIR=/data` (ou `RENDER_DISK_PATH=/data` se preferir)
 
----
+### 5. Volume persistente (Disks)
+- Em **Disks**, clique em **Add Disk**
+- Nome: `irflow_data`
+- Mount Path: `/data`
+- Size: 1GB (ou mais, conforme necessidade)
 
-## 2. Criar o volume persistente (banco de dados + arquivos)
+### 6. Deploy
+- Clique em **Create Web Service**
+- O Render irá buildar e subir o backend automaticamente
 
-```bash
-fly volumes create irflow_data --region gru --size 1
-```
-
-> ⚠️ O volume guarda o `database.db`, `price_tables.json` e backups.
-> Sem ele, os dados são perdidos a cada redeploy.
-
----
-
-## 3. Definir secrets (variáveis sensíveis)
-
-```bash
-# Obrigatório: chave secreta do Flask
-fly secrets set FLASK_SECRET_KEY="troque-por-uma-chave-aleatoria-longa"
-
-# Opcional: integração Mercado Phone
-fly secrets set MERCADO_PHONE_WEBHOOK_TOKEN="seu-token"
-fly secrets set MERCADO_PHONE_API_TOKEN="seu-token"
-```
+### 7. Acesso
+- O Render fornecerá uma URL pública (ex: `https://irflow-backend.onrender.com`)
 
 ---
 
-## 4. Deploy
+## Frontend (Vercel)
 
-```bash
-fly deploy
-```
+### 1. Crie uma conta em https://vercel.com
 
-O Fly.io vai:
-- Construir a imagem Docker
-- Subir a aplicação em São Paulo (região `gru`)
-- Montar o volume em `/data`
+### 2. Novo projeto
+- Clique em **Add New... > Project**
+- Importe o repositório (ou apenas a pasta `frontend`)
 
----
+### 3. Configuração
+- **Framework Preset**: Vite
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
 
-## 5. Abrir no navegador
+### 4. Variáveis de ambiente (opcional)
+Se precisar apontar para a API do backend Render, adicione:
+- `VITE_API_URL=https://irflow-backend.onrender.com/api`
 
-```bash
-fly open
-```
+No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 
-Ou acesse: `https://irflow.fly.dev` (substitua pelo nome da sua app)
+### 5. Deploy
+- Clique em **Deploy**
+- A Vercel irá buildar e publicar o frontend automaticamente
 
----
-
-## Comandos úteis no dia a dia
-
-```bash
-# Ver logs em tempo real
-fly logs
-
-# Status da aplicação
-fly status
-
-# Acessar o banco de dados via SSH
-fly ssh console
-sqlite3 /data/database.db
-
-# Escalar para zero (pausar e não cobrar)
-fly scale count 0
-
-# Voltar a funcionar
-fly scale count 1
-
-# Fazer backup manual do banco
-fly ssh console -C "cp /data/database.db /data/database.db.bak"
-```
+### 6. Acesso
+- A Vercel fornecerá uma URL pública (ex: `https://irflow-frontend.vercel.app`)
 
 ---
 
 ## Observações
 
-- **Região `gru`**: São Paulo, BR. Mude em `fly.toml` se preferir outro local.
-- **Free tier**: 3 VMs compartilhadas gratuitas + 3GB de volume grátis por conta.
-- **Sleep automático**: a app NÃO dorme no Fly.io (diferente do Render free tier).
-- **Scaling**: para produção com mais usuários, aumente os workers no `Dockerfile`.
+- O backend (Render) serve apenas a API e arquivos de dados.
+- O frontend (Vercel) serve o app React estático e consome a API do backend.
+- Ajuste o CORS no backend se necessário para aceitar requisições do domínio da Vercel.
+- Para backups, acesse o disco `/data` no Render via SSH ou painel.
+
+---
+
+## Passo a passo resumido
+
+1. Suba o backend no Render seguindo as instruções acima.
+2. Suba o frontend na Vercel seguindo as instruções acima.
+3. Teste o fluxo completo: frontend (Vercel) consumindo a API (Render).
+4. Ajuste variáveis de ambiente e CORS conforme necessário.
+5. (Opcional) Remova arquivos do Fly.io (`fly.toml`) se não for mais usar.

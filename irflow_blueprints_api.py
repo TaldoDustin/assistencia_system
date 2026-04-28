@@ -6,7 +6,9 @@ Authentication: Flask session cookies (same-origin, credentials: 'include').
 
 from datetime import datetime, timedelta
 import json
+import re
 import secrets
+import math
 
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
@@ -16,6 +18,9 @@ from irflow_price_tables import sugerir_preco_tabela
 
 def create_api_blueprint(deps):
     api = Blueprint("api", __name__, url_prefix="/api")
+
+    ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
+    ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
 
     # ── Inject dependencies ────────────────────────────────────────────────
     conectar = deps["conectar"]
@@ -42,8 +47,10 @@ def create_api_blueprint(deps):
     salvar_tabelas_preco = deps["salvar_tabelas_preco"]
     texto_reparos_os = deps["texto_reparos_os"]
     listar_custos_operacionais = deps["listar_custos_operacionais"]
+    agrupar_relatorio_custos_operacionais = deps["agrupar_relatorio_custos_operacionais"]
     agrupar_relatorio_ir_phones = deps["agrupar_relatorio_ir_phones"]
     agrupar_relatorio_tecnicos = deps["agrupar_relatorio_tecnicos"]
+    montar_linhas_relatorio_custos_operacionais = deps["montar_linhas_relatorio_custos_operacionais"]
     montar_linhas_relatorio_ir_phones = deps["montar_linhas_relatorio_ir_phones"]
     montar_linhas_relatorio_tecnicos = deps["montar_linhas_relatorio_tecnicos"]
     montar_pdf_texto = deps["montar_pdf_texto"]
@@ -95,6 +102,90 @@ def create_api_blueprint(deps):
             payload.update(data if isinstance(data, dict) else {"data": data})
         payload.update(kwargs)
         return jsonify(payload)
+
+    def _slug_estoque(valor):
+        base = (valor or "").strip().upper()
+        base = re.sub(r"[^A-Z0-9]+", "-", base)
+        base = re.sub(r"-+", "-", base).strip("-")
+        return base
+
+    def _normalizar_tipo_estoque(valor):
+        texto = (valor or "").strip()
+        if not texto:
+            return "Outros"
+        for tipo in ESTOQUE_TIPOS:
+            if tipo.lower() == texto.lower():
+                return tipo
+        return "Outros"
+
+    def _normalizar_qualidade_estoque(valor):
+        texto = (valor or "").strip()
+        if not texto:
+            return "Padrao"
+        for qualidade in ESTOQUE_QUALIDADES:
+            if qualidade.lower() == texto.lower():
+                return qualidade
+        return "Padrao"
+
+    def _gerar_sku_estoque(modelo, tipo, qualidade, descricao):
+        base_modelo = _slug_estoque((modelo or "").replace("iPhone", "IP")) or "GEN"
+        base_tipo = _slug_estoque(tipo) or "OUTROS"
+        base_qualidade = _slug_estoque(qualidade) or "PADRAO"
+        base_desc = _slug_estoque(descricao)[:18]
+        if base_desc:
+            return f"{base_modelo}-{base_tipo}-{base_qualidade}-{base_desc}"
+        return f"{base_modelo}-{base_tipo}-{base_qualidade}"
+
+    def _recalcular_custo_medio(cursor, estoque_id):
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(SUM(COALESCE(quantidade_disponivel, 0)), 0),
+                COALESCE(SUM(COALESCE(quantidade_disponivel, 0) * COALESCE(valor_compra, 0)), 0)
+            FROM estoque_lotes
+            WHERE estoque_id=?
+            """,
+            (estoque_id,),
+        )
+        qtd_total, custo_total = cursor.fetchone() or (0, 0)
+        qtd_total = int(qtd_total or 0)
+        custo_total = float(custo_total or 0)
+        custo_medio = (custo_total / qtd_total) if qtd_total > 0 else 0.0
+        cursor.execute(
+            "UPDATE estoque SET quantidade=?, valor=? WHERE id=?",
+            (qtd_total, round(custo_medio, 4), estoque_id),
+        )
+        return qtd_total, round(custo_medio, 4)
+
+    def _parse_data_segura(valor):
+        texto = (valor or "").strip()
+        if not texto:
+            return None
+        formatos = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
+        for formato in formatos:
+            try:
+                return datetime.strptime(texto[:19], formato)
+            except ValueError:
+                continue
+        return None
+
+    def _status_item_estoque(quantidade, ultima_mov_data, consumo_90d):
+        qtd = int(quantidade or 0)
+        consumo = int(consumo_90d or 0)
+        ultima_mov = _parse_data_segura(ultima_mov_data)
+
+        if qtd > 0:
+            return "disponivel"
+        if consumo > 0:
+            return "esgotado_ativo"
+
+        if not ultima_mov:
+            return "inativo"
+
+        dias_sem_mov = (datetime.now() - ultima_mov).days
+        if dias_sem_mov >= 90:
+            return "inativo"
+        return "esgotado"
 
     def _checklist_status(value):
         status = (value or "nao_testado").strip().lower()
@@ -249,6 +340,8 @@ def create_api_blueprint(deps):
             status_opcoes=status_os_opcoes,
             os_tipos=["Assistencia", "Garantia", "Upgrade"],
             categorias_custos=categorias_custos,
+            estoque_tipos=ESTOQUE_TIPOS,
+            estoque_qualidades=ESTOQUE_QUALIDADES,
             reparos_padrao=reparos_padrao,
             garantia_dias=90,
         )
@@ -984,7 +1077,15 @@ def create_api_blueprint(deps):
             return err("Não autenticado.", 401)
 
         filtro_modelo = (request.args.get("modelo") or "").strip()
+        filtro_tipo = (request.args.get("tipo") or "").strip()
+        filtro_qualidade = (request.args.get("qualidade") or "").strip()
+        filtro_status = (request.args.get("status") or "").strip().lower()
+        include_zerados = str(request.args.get("include_zerados") or "").strip().lower() in {"1", "true", "sim", "yes"}
         q = (request.args.get("q") or "").strip().lower()
+
+        agora = datetime.now()
+        corte_30 = (agora - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+        corte_90 = (agora - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
 
         conn = conectar()
         cursor = conn.cursor()
@@ -997,20 +1098,85 @@ def create_api_blueprint(deps):
             where.append("COALESCE(modelo,'') = ?")
             params.append(normalizar_modelo_iphone(filtro_modelo) or filtro_modelo)
 
+        if filtro_tipo:
+            where.append("COALESCE(tipo,'Outros') = ?")
+            params.append(_normalizar_tipo_estoque(filtro_tipo))
+
+        if filtro_qualidade:
+            where.append("COALESCE(qualidade,'Padrao') = ?")
+            params.append(_normalizar_qualidade_estoque(filtro_qualidade))
+
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         cursor.execute(
-            f"SELECT id, descricao, valor, fornecedor, quantidade, data_compra, COALESCE(modelo,'') FROM estoque {clause} ORDER BY id DESC",
-            params,
+            f"""
+            SELECT
+                id,
+                descricao,
+                valor,
+                fornecedor,
+                quantidade,
+                data_compra,
+                COALESCE(modelo,''),
+                COALESCE(sku,''),
+                COALESCE(tipo,'Outros'),
+                COALESCE(qualidade,'Padrao'),
+                (
+                    SELECT COALESCE(MAX(m.data), '')
+                    FROM movimentacoes m
+                    WHERE m.estoque_id = estoque.id
+                ) AS ultima_movimentacao,
+                (
+                    SELECT COALESCE(SUM(m.quantidade), 0)
+                    FROM movimentacoes m
+                    WHERE m.estoque_id = estoque.id
+                      AND m.tipo = 'saida'
+                      AND m.data >= ?
+                ) AS consumo_30d,
+                (
+                    SELECT COALESCE(SUM(m.quantidade), 0)
+                    FROM movimentacoes m
+                    WHERE m.estoque_id = estoque.id
+                      AND m.tipo = 'saida'
+                      AND m.data >= ?
+                ) AS consumo_90d
+            FROM estoque {clause}
+            ORDER BY id DESC
+            """,
+            [*params, corte_30, corte_90],
         )
-        itens = [
-            {"id": r[0], "descricao": r[1] or "", "valor": round(r[2] or 0, 2),
-             "fornecedor": r[3] or "", "quantidade": r[4] or 0,
-             "data_compra": r[5] or "", "modelo": r[6] or ""}
-            for r in cursor.fetchall()
-        ]
+        itens = []
+        for r in cursor.fetchall():
+            status_item = _status_item_estoque(r[4] or 0, r[10] or "", r[12] or 0)
+            item = {
+                "id": r[0],
+                "descricao": r[1] or "",
+                "valor": round(r[2] or 0, 2),
+                "fornecedor": r[3] or "",
+                "quantidade": r[4] or 0,
+                "data_compra": r[5] or "",
+                "modelo": r[6] or "",
+                "sku": r[7] or "",
+                "tipo": r[8] or "Outros",
+                "qualidade": r[9] or "Padrao",
+                "ultima_movimentacao": r[10] or "",
+                "consumo_30d": int(r[11] or 0),
+                "consumo_90d": int(r[12] or 0),
+                "status_estoque": status_item,
+            }
+            itens.append(item)
+
+        if not include_zerados:
+            itens = [i for i in itens if int(i.get("quantidade") or 0) > 0]
+
+        if filtro_status:
+            itens = [i for i in itens if (i.get("status_estoque") or "") == filtro_status]
 
         if q:
-            itens = [i for i in itens if q in f"{i['descricao']} {i['modelo']} {i['fornecedor']}".lower()]
+            itens = [
+                i
+                for i in itens
+                if q in f"{i['descricao']} {i['modelo']} {i['fornecedor']} {i['sku']} {i['tipo']} {i['qualidade']}".lower()
+            ]
 
         # Summary stats
         cursor.execute("SELECT COALESCE(SUM(valor*quantidade),0) FROM estoque")
@@ -1029,6 +1195,85 @@ def create_api_blueprint(deps):
             criticos=criticos,
         )
 
+    @api.route("/estoque/reposicao-sugerida")
+    def reposicao_sugerida_estoque():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        dias_base = int(request.args.get("dias") or 30)
+        if dias_base < 7:
+            dias_base = 7
+        if dias_base > 120:
+            dias_base = 120
+
+        corte = (datetime.now() - timedelta(days=dias_base)).strftime("%Y-%m-%d %H:%M:%S")
+
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                e.id,
+                COALESCE(e.sku, ''),
+                COALESCE(e.descricao, ''),
+                COALESCE(e.modelo, ''),
+                COALESCE(e.tipo, 'Outros'),
+                COALESCE(e.qualidade, 'Padrao'),
+                COALESCE(e.quantidade, 0),
+                COALESCE(e.valor, 0),
+                COALESCE(SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END), 0) AS consumo_periodo
+            FROM estoque e
+            LEFT JOIN movimentacoes m
+                ON m.estoque_id = e.id
+               AND m.data >= ?
+            GROUP BY e.id
+            ORDER BY consumo_periodo DESC, e.id DESC
+            """,
+            (corte,),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        itens = []
+        for r in rows:
+            quantidade = int(r[6] or 0)
+            consumo_periodo = int(r[8] or 0)
+            if consumo_periodo <= 0:
+                continue
+            if quantidade > 2:
+                continue
+
+            consumo_mensal = (consumo_periodo / max(dias_base, 1)) * 30.0
+            estoque_alvo = max(1, int(math.ceil(consumo_mensal * 1.5)))
+            sugestao = max(1, estoque_alvo - quantidade)
+
+            if quantidade <= 0 and consumo_mensal >= 6:
+                prioridade = "alta"
+            elif quantidade <= 1 and consumo_mensal >= 3:
+                prioridade = "media"
+            else:
+                prioridade = "baixa"
+
+            itens.append(
+                {
+                    "id": r[0],
+                    "sku": r[1],
+                    "descricao": r[2],
+                    "modelo": r[3],
+                    "tipo": r[4],
+                    "qualidade": r[5],
+                    "quantidade_atual": quantidade,
+                    "valor_medio": round(float(r[7] or 0), 2),
+                    "consumo_periodo": consumo_periodo,
+                    "consumo_mensal_estimado": round(consumo_mensal, 2),
+                    "estoque_alvo": estoque_alvo,
+                    "sugestao_reposicao": sugestao,
+                    "prioridade": prioridade,
+                }
+            )
+
+        return ok(itens=itens, dias_base=dias_base)
+
     @api.route("/estoque", methods=["POST"])
     def criar_estoque():
         if not usuario_logado():
@@ -1037,6 +1282,9 @@ def create_api_blueprint(deps):
         body = request.get_json(silent=True) or {}
         descricao = (body.get("descricao") or "").strip()
         modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
+        tipo = _normalizar_tipo_estoque(body.get("tipo"))
+        qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
+        sku = (body.get("sku") or "").strip().upper()
         valor = float(body.get("valor") or 0)
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
         quantidade = int(body.get("quantidade") or 0)
@@ -1044,16 +1292,58 @@ def create_api_blueprint(deps):
 
         if not descricao or valor <= 0 or quantidade < 0:
             return err("Preencha descrição, valor e quantidade.")
+        if not sku:
+            sku = _gerar_sku_estoque(modelo, tipo, qualidade, descricao)
 
         conn = conectar()
         cursor = conn.cursor()
         try:
+            cursor.execute("SELECT id FROM estoque WHERE upper(COALESCE(sku,''))=upper(?)", (sku,))
+            existente_sku = cursor.fetchone()
+            if existente_sku:
+                return err("SKU já cadastrado. Use outro SKU ou atualize o item existente.")
+
             cursor.execute(
-                "INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra) VALUES (?,?,?,?,?,?)",
-                (descricao, modelo, valor, fornecedor, quantidade, data_compra),
+                """
+                SELECT id
+                FROM estoque
+                WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=?
+                """,
+                (modelo, tipo, qualidade),
+            )
+            existente_tripla = cursor.fetchone()
+            if existente_tripla and not body.get("forcar_novo"):
+                return err("Já existe item com mesmo modelo, tipo e qualidade. Reaproveite o cadastro existente.")
+
+            cursor.execute(
+                """
+                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, sku, tipo, qualidade)
+                VALUES (?,?,?,?,?,?,?,?,?)
+                """,
+                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, sku, tipo, qualidade),
             )
             novo_id = cursor.lastrowid
-            registrar_movimentacao(cursor, novo_id, "entrada", quantidade)
+            if quantidade > 0:
+                cursor.execute(
+                    """
+                    INSERT INTO estoque_lotes (
+                        estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        novo_id,
+                        fornecedor,
+                        valor,
+                        quantidade,
+                        quantidade,
+                        data_compra,
+                        "compra inicial",
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    ),
+                )
+                registrar_movimentacao(cursor, novo_id, "entrada", quantidade)
+            _recalcular_custo_medio(cursor, novo_id)
             conn.commit()
         except Exception as exc:
             conn.rollback()
@@ -1071,6 +1361,9 @@ def create_api_blueprint(deps):
         body = request.get_json(silent=True) or {}
         descricao = (body.get("descricao") or "").strip()
         modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
+        tipo = _normalizar_tipo_estoque(body.get("tipo"))
+        qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
+        sku = (body.get("sku") or "").strip().upper()
         valor = float(body.get("valor") or 0)
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
         quantidade_nova = int(body.get("quantidade") or 0)
@@ -1078,23 +1371,87 @@ def create_api_blueprint(deps):
 
         if not descricao or valor <= 0:
             return err("Preencha descrição e valor.")
+        if not sku:
+            sku = _gerar_sku_estoque(modelo, tipo, qualidade, descricao)
 
         conn = conectar()
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT quantidade, descricao FROM estoque WHERE id=?", (item_id,))
+            cursor.execute("SELECT quantidade, descricao, sku FROM estoque WHERE id=?", (item_id,))
             row = cursor.fetchone()
             if not row:
                 return err("Item não encontrado.", 404)
             qtd_antiga = row[0] or 0
+
+            cursor.execute("SELECT id FROM estoque WHERE upper(COALESCE(sku,''))=upper(?) AND id<>?", (sku, item_id))
+            if cursor.fetchone():
+                return err("SKU já utilizado por outro item.")
+
             cursor.execute(
-                "UPDATE estoque SET descricao=?,modelo=?,valor=?,fornecedor=?,quantidade=?,data_compra=? WHERE id=?",
-                (descricao, modelo, valor, fornecedor, quantidade_nova, data_compra, item_id),
+                """
+                SELECT id
+                FROM estoque
+                WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=? AND id<>?
+                """,
+                (modelo, tipo, qualidade, item_id),
+            )
+            if cursor.fetchone() and not body.get("forcar_novo"):
+                return err("Já existe item com mesmo modelo, tipo e qualidade.")
+
+            cursor.execute(
+                """
+                UPDATE estoque
+                SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, sku=?, tipo=?, qualidade=?
+                WHERE id=?
+                """,
+                (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, sku, tipo, qualidade, item_id),
             )
             diff = quantidade_nova - qtd_antiga
             if diff != 0:
                 tipo_mov = "entrada" if diff > 0 else "saida"
                 registrar_movimentacao(cursor, item_id, tipo_mov, abs(diff))
+                if diff > 0:
+                    cursor.execute(
+                        """
+                        INSERT INTO estoque_lotes (
+                            estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            item_id,
+                            fornecedor,
+                            valor,
+                            diff,
+                            diff,
+                            data_compra,
+                            "ajuste manual",
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        ),
+                    )
+                else:
+                    restante = abs(diff)
+                    cursor.execute(
+                        """
+                        SELECT id, COALESCE(quantidade_disponivel, 0)
+                        FROM estoque_lotes
+                        WHERE estoque_id=? AND COALESCE(quantidade_disponivel, 0) > 0
+                        ORDER BY COALESCE(data_compra, '') ASC, id ASC
+                        """,
+                        (item_id,),
+                    )
+                    for lote_id, disponivel in cursor.fetchall():
+                        if restante <= 0:
+                            break
+                        usar = min(restante, int(disponivel or 0))
+                        if usar <= 0:
+                            continue
+                        cursor.execute(
+                            "UPDATE estoque_lotes SET quantidade_disponivel = MAX(0, quantidade_disponivel - ?) WHERE id=?",
+                            (usar, lote_id),
+                        )
+                        restante -= usar
+            _recalcular_custo_medio(cursor, item_id)
             conn.commit()
         except Exception as exc:
             conn.rollback()
@@ -1119,6 +1476,7 @@ def create_api_blueprint(deps):
             em_uso = cursor.fetchone()[0] or 0
             if em_uso > 0:
                 return err("Não é possível excluir: peça está em uso em OS abertas.")
+            cursor.execute("DELETE FROM estoque_lotes WHERE estoque_id=?", (item_id,))
             cursor.execute("DELETE FROM estoque WHERE id=?", (item_id,))
             conn.commit()
         except Exception as exc:
@@ -1139,7 +1497,7 @@ def create_api_blueprint(deps):
         cursor.execute(
             """
             SELECT m.id, m.estoque_id, m.tipo, m.quantidade, m.data,
-                   COALESCE(e.descricao, m.descricao_peca, '')
+                   COALESCE(e.descricao, '')
             FROM movimentacoes m
             LEFT JOIN estoque e ON e.id = m.estoque_id
             ORDER BY m.id DESC LIMIT 30
@@ -1517,6 +1875,30 @@ def create_api_blueprint(deps):
         resumo = agrupar_relatorio_tecnicos(start_date, end_date)
         return ok(meses=resumo)
 
+    @api.route("/relatorios/custos-operacionais")
+    def relatorio_custos_operacionais():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        start_date = (request.args.get("start_date") or "").strip()
+        end_date = (request.args.get("end_date") or "").strip()
+        resumo = agrupar_relatorio_custos_operacionais(start_date, end_date)
+        total_lancamentos = sum(v["total_itens"] for v in resumo.values())
+        total_custos = sum(v["total_valor"] for v in resumo.values())
+
+        categorias = {}
+        for mes in resumo.values():
+            for categoria, valor in (mes.get("categorias") or {}).items():
+                categorias[categoria] = categorias.get(categoria, 0) + valor
+
+        categorias_ordenadas = dict(sorted(categorias.items(), key=lambda item: (-item[1], item[0])))
+        return ok(
+            meses=resumo,
+            total_lancamentos=total_lancamentos,
+            total_custos=round(total_custos, 2),
+            categorias=categorias_ordenadas,
+        )
+
     @api.route("/relatorios/pdf/ir-phones")
     def pdf_ir_phones():
         if not usuario_logado():
@@ -1545,6 +1927,21 @@ def create_api_blueprint(deps):
             f"Servicos finalizados por tecnico com gastos e lucro. Periodo: {periodo}",
             linhas,
             "relatorio-tecnicos.pdf",
+        )
+
+    @api.route("/relatorios/pdf/custos-operacionais")
+    def pdf_custos_operacionais():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        data_inicio = (request.args.get("start_date") or "").strip()
+        data_fim = (request.args.get("end_date") or "").strip()
+        linhas = montar_linhas_relatorio_custos_operacionais(data_inicio, data_fim)
+        periodo = formatar_periodo_relatorio(data_inicio, data_fim)
+        return montar_pdf_texto(
+            "Relatorio Mensal - Custos Operacionais",
+            f"Custos operacionais agregados por mes e categoria. Periodo: {periodo}",
+            linhas,
+            "relatorio-custos-operacionais.pdf",
         )
 
     # ── USERS ──────────────────────────────────────────────────────────────

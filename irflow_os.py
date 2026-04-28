@@ -3,6 +3,60 @@ from datetime import datetime
 from irflow_core import texto_limpo, to_float
 
 
+def _consumir_lotes_fifo(cursor, estoque_id, quantidade):
+    restante = int(quantidade or 0)
+    if restante <= 0:
+        return
+
+    cursor.execute(
+        """
+        SELECT id, COALESCE(quantidade_disponivel, 0)
+        FROM estoque_lotes
+        WHERE estoque_id=? AND COALESCE(quantidade_disponivel, 0) > 0
+        ORDER BY COALESCE(data_compra, '') ASC, id ASC
+        """,
+        (estoque_id,),
+    )
+    lotes = cursor.fetchall()
+
+    for lote_id, disponivel in lotes:
+        if restante <= 0:
+            break
+        consumir = min(restante, int(disponivel or 0))
+        if consumir <= 0:
+            continue
+        cursor.execute(
+            "UPDATE estoque_lotes SET quantidade_disponivel = MAX(0, quantidade_disponivel - ?) WHERE id=?",
+            (consumir, lote_id),
+        )
+        restante -= consumir
+
+
+def _criar_lote_retorno(cursor, estoque_id, quantidade, valor, fornecedor, observacoes):
+    qtd = int(quantidade or 0)
+    if qtd <= 0:
+        return
+    data_ref = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute(
+        """
+        INSERT INTO estoque_lotes (
+            estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            estoque_id,
+            fornecedor or "Nao informado",
+            float(valor or 0),
+            qtd,
+            qtd,
+            data_ref,
+            observacoes or "devolucao",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        ),
+    )
+
+
 def extrair_reparo_ids(formulario):
     valores = formulario.getlist("reparo_ids")
     if not valores:
@@ -203,6 +257,7 @@ def consumir_peca_da_os(cursor, os_id, estoque_id):
         "UPDATE estoque SET quantidade = MAX(0, quantidade - 1) WHERE id = ?",
         (estoque_id,),
     )
+    _consumir_lotes_fifo(cursor, estoque_id, 1)
     registrar_movimentacao(cursor, estoque_id, "saida", 1)
     return True, ""
 
@@ -260,11 +315,21 @@ def devolver_pecas_da_os(cursor, os_id, tipo_movimentacao):
                 """,
                 (qtd, estoque_id),
             )
+            _criar_lote_retorno(
+                cursor,
+                estoque_id,
+                qtd,
+                valor,
+                fornecedor,
+                f"retorno {tipo_movimentacao}",
+            )
         else:
             cursor.execute(
                 """
-                INSERT OR REPLACE INTO estoque (id, descricao, valor, fornecedor, quantidade, data_compra, modelo)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO estoque (
+                    id, descricao, valor, fornecedor, quantidade, data_compra, modelo, sku, tipo, qualidade
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     estoque_id,
@@ -274,7 +339,18 @@ def devolver_pecas_da_os(cursor, os_id, tipo_movimentacao):
                     qtd or 0,
                     datetime.now().strftime("%Y-%m-%d"),
                     modelo or "",
+                    f"RET-{estoque_id:05d}",
+                    "Outros",
+                    "Padrao",
                 ),
+            )
+            _criar_lote_retorno(
+                cursor,
+                estoque_id,
+                qtd,
+                valor,
+                fornecedor,
+                f"retorno {tipo_movimentacao}",
             )
 
         registrar_movimentacao(cursor, estoque_id, tipo_movimentacao, qtd or 0)

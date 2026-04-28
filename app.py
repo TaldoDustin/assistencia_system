@@ -111,6 +111,7 @@ from irflow_reference_data import (
 from irflow_web import anexar_query_string
 
 from irflow_reports import (
+    agrupar_relatorio_custos_operacionais,
     agrupar_relatorio_ir_phones,
     agrupar_relatorio_tecnicos,
     buscar_dados_relatorios,
@@ -119,6 +120,7 @@ from irflow_reports import (
     linha_tabela,
     limitar_texto,
     moeda_pdf,
+    montar_linhas_relatorio_custos_operacionais,
     montar_linhas_relatorio_ir_phones,
     montar_linhas_relatorio_tecnicos,
     montar_pdf_texto,
@@ -193,11 +195,21 @@ MERCADO_PHONE_SYNC_TIMEOUT_SECONDS = int(os.environ.get("MERCADO_PHONE_SYNC_TIME
 MERCADO_PHONE_SYNC_ONLY_AFTER_BOOT = os.environ.get("MERCADO_PHONE_SYNC_ONLY_AFTER_BOOT", "0") == "1"
 MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", "2026-04-01")
 
+
 # ============================================================================
 # BOOTSTRAP FLASK
 # ============================================================================
+from flask_cors import CORS
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
+
+# Configuração de CORS para aceitar requisições do frontend Vercel
+VERCEL_URL = os.environ.get("VERCEL_URL")  # Ex: https://irflow-frontend.vercel.app
+if VERCEL_URL:
+    CORS(app, origins=[VERCEL_URL], supports_credentials=True)
+else:
+    # Permite tudo em desenvolvimento/local
+    CORS(app, supports_credentials=True)
 
 # FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================
@@ -279,7 +291,25 @@ def criar_tabelas():
                 valor REAL,
                 fornecedor TEXT,
                 quantidade INTEGER,
-                data_compra TEXT
+                data_compra TEXT,
+                modelo TEXT,
+                sku TEXT,
+                tipo TEXT,
+                qualidade TEXT
+            )
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS estoque_lotes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                estoque_id INTEGER NOT NULL,
+                fornecedor TEXT,
+                valor_compra REAL,
+                quantidade INTEGER,
+                quantidade_disponivel INTEGER,
+                data_compra TEXT,
+                observacoes TEXT,
+                criado_em TEXT
             )
             """)
 
@@ -434,6 +464,43 @@ def criar_tabelas():
             except sqlite3.OperationalError:
                 pass
 
+            try:
+                cursor.execute("ALTER TABLE estoque ADD COLUMN sku TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE estoque ADD COLUMN tipo TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE estoque ADD COLUMN qualidade TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_estoque_sku_unico
+                ON estoque (sku)
+                WHERE COALESCE(sku, '') <> ''
+                """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_estoque_tripla
+                ON estoque (modelo, tipo, qualidade)
+                """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_lotes_estoque_id
+                ON estoque_lotes (estoque_id)
+                """
+            )
+
             conn.commit()
 
             cursor.execute("SELECT id, modelo FROM estoque")
@@ -441,6 +508,39 @@ def criar_tabelas():
                 modelo_norm = normalizar_modelo_iphone(modelo_atual)
                 if modelo_norm != (modelo_atual or ""):
                     cursor.execute("UPDATE estoque SET modelo=? WHERE id=?", (modelo_norm, item_id))
+
+            cursor.execute("SELECT id, COALESCE(sku,''), COALESCE(tipo,''), COALESCE(qualidade,'') FROM estoque")
+            for item_id, sku_atual, tipo_atual, qualidade_atual in cursor.fetchall():
+                sku_novo = (sku_atual or "").strip().upper() or f"LEG-{item_id:05d}"
+                tipo_novo = (tipo_atual or "").strip() or "Outros"
+                qualidade_nova = (qualidade_atual or "").strip() or "Padrao"
+                if sku_novo != (sku_atual or "") or tipo_novo != (tipo_atual or "") or qualidade_nova != (qualidade_atual or ""):
+                    cursor.execute(
+                        "UPDATE estoque SET sku=?, tipo=?, qualidade=? WHERE id=?",
+                        (sku_novo, tipo_novo, qualidade_nova, item_id),
+                    )
+
+            cursor.execute(
+                """
+                INSERT INTO estoque_lotes (
+                    estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+                )
+                SELECT
+                    e.id,
+                    COALESCE(e.fornecedor, 'Nao informado'),
+                    COALESCE(e.valor, 0),
+                    COALESCE(e.quantidade, 0),
+                    COALESCE(e.quantidade, 0),
+                    COALESCE(e.data_compra, ''),
+                    'lote inicial legado',
+                    datetime('now')
+                FROM estoque e
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM estoque_lotes l WHERE l.estoque_id = e.id
+                )
+                AND COALESCE(e.quantidade, 0) > 0
+                """
+            )
 
             cursor.execute("SELECT id, modelo FROM os")
             for os_id, modelo_atual in cursor.fetchall():
@@ -1095,8 +1195,10 @@ app.register_blueprint(
             "salvar_tabelas_preco": salvar_tabelas_preco,
             "texto_reparos_os": texto_reparos_os,
             "listar_custos_operacionais": listar_custos_operacionais,
+            "agrupar_relatorio_custos_operacionais": functools.partial(agrupar_relatorio_custos_operacionais, conectar=conectar),
             "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
             "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
+            "montar_linhas_relatorio_custos_operacionais": functools.partial(montar_linhas_relatorio_custos_operacionais, conectar=conectar),
             "montar_linhas_relatorio_ir_phones": functools.partial(montar_linhas_relatorio_ir_phones, conectar=conectar),
             "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
             "montar_pdf_texto": montar_pdf_texto,

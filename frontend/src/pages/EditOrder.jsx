@@ -217,6 +217,15 @@ export default function EditOrder() {
     }, 0);
   }, [pecas, estoqueList]);
 
+  const reparosDisponiveis = useMemo(() => {
+    return [...reparosList]
+      .filter((reparo) => {
+        const nome = (reparo?.nome || "").trim().toLowerCase();
+        return nome && !["nao informado", "não informado", "analise", "análise"].includes(nome);
+      })
+      .sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  }, [reparosList]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -299,6 +308,10 @@ export default function EditOrder() {
               <Select value={form.modelo} onValueChange={(v) => { setField("modelo", v); setField("cor", ""); }}>
                 <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
                 <SelectContent>
+                  {/* Garante que o modelo atual apareça mesmo se não estiver na lista */}
+                  {(!constants?.iphone_models?.includes(form.modelo) && form.modelo) && (
+                    <SelectItem key={form.modelo} value={form.modelo}>{form.modelo}</SelectItem>
+                  )}
                   {(constants?.iphone_models || []).map((m) => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
@@ -310,6 +323,10 @@ export default function EditOrder() {
               <Select value={form.cor} onValueChange={(v) => setField("cor", v)}>
                 <SelectTrigger aria-label="Cor"><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
                 <SelectContent>
+                  {/* Garante que a cor atual apareça mesmo se não estiver na lista */}
+                  {(!constants?.iphone_colors?.[form.modelo]?.includes(form.cor) && form.cor) && (
+                    <SelectItem key={form.cor} value={form.cor}>{form.cor}</SelectItem>
+                  )}
                   {(constants?.iphone_colors?.[form.modelo] || []).map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
@@ -362,19 +379,36 @@ export default function EditOrder() {
             </div>
           </div>
 
-          {reparosList.length > 0 && (
-            <div className="space-y-2">
-              <Label>Tipos de Reparo</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {reparosList.map((r) => (
-                  <label key={r.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                    <Checkbox
-                      checked={selectedReparos.includes(r.id)}
-                      onCheckedChange={() => toggleReparo(r.id)}
-                    />
-                    <span className="text-card-foreground">{r.nome}</span>
-                  </label>
-                ))}
+          {reparosDisponiveis.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label>Tipos de Reparo</Label>
+                <span className="text-xs text-muted-foreground">{selectedReparos.length} selecionado(s)</span>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-secondary/30 p-3">
+                <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+                  {reparosDisponiveis.map((r) => {
+                    const selecionado = selectedReparos.includes(r.id);
+                    return (
+                      <label
+                        key={r.id}
+                        className={[
+                          "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors",
+                          selecionado
+                            ? "border-rose-500/60 bg-rose-500/10"
+                            : "border-border/70 bg-background/50 hover:border-rose-500/40 hover:bg-background",
+                        ].join(" ")}
+                      >
+                        <Checkbox
+                          checked={selecionado}
+                          onCheckedChange={() => toggleReparo(r.id)}
+                          className="border-rose-500/80 data-[state=checked]:border-rose-500 data-[state=checked]:bg-rose-500"
+                        />
+                        <span className="font-medium uppercase tracking-wide text-card-foreground">{r.nome}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

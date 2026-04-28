@@ -146,6 +146,10 @@ export const estoque = {
     const qs = new URLSearchParams(params).toString();
     return normalizeStockResponse(await get(`/estoque${qs ? "?" + qs : ""}`));
   },
+  reposicaoSugestao: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return await get(`/estoque/reposicao-sugerida${qs ? "?" + qs : ""}`);
+  },
   get:    (id)         => get(`/estoque/${id}`),
   create: (data)       => post("/estoque", data),
   update: (id, data)   => put(`/estoque/${id}`, data),
@@ -197,9 +201,13 @@ export const relatorios = {
     const qs = new URLSearchParams(params).toString();
     return get(`/relatorios/tecnicos${qs ? "?" + qs : ""}`);
   },
+  custosOperacionais: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/relatorios/custos-operacionais${qs ? "?" + qs : ""}`);
+  },
   pdfUrl:    (tipo, params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    const endpoint = tipo === "irphones" ? "ir-phones" : tipo;
+    const endpoint = tipo === "irphones" ? "ir-phones" : tipo === "custos" ? "custos-operacionais" : tipo;
     return `${BASE}/relatorios/pdf/${endpoint}${qs ? "?" + qs : ""}`;
   },
 };

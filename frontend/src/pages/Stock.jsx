@@ -16,7 +16,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/lib/constants";
 
-const EMPTY_FORM = { descricao: "", modelo: "", valor: "", fornecedor: "", quantidade: "", data_compra: "" };
+const EMPTY_FORM = {
+  sku: "",
+  descricao: "",
+  modelo: "",
+  tipo: "Outros",
+  qualidade: "Padrao",
+  valor: "",
+  fornecedor: "",
+  quantidade: "",
+  data_compra: "",
+};
 
 export default function Stock() {
   const { user } = useAuth();
@@ -24,6 +34,12 @@ export default function Stock() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modeloFilter, setModeloFilter] = useState("");
+  const [tipoFilter, setTipoFilter] = useState("");
+  const [qualidadeFilter, setQualidadeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [incluirZerados, setIncluirZerados] = useState(false);
+  const [reposicao, setReposicao] = useState([]);
+  const [loadingReposicao, setLoadingReposicao] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [constants, setConstants] = useState(null);
@@ -35,16 +51,37 @@ export default function Stock() {
   const canManage = user?.perfil === "admin" || user?.perfil === "tecnico";
   const canDelete = user?.perfil === "admin";
 
-  const fetchItems = () => {
-    estoqueApi.list().then((res) => {
-      if (res?.ok) setItems(res.items || []);
-      else toast.error("Erro ao carregar estoque");
-      setLoading(false);
-    });
+  const fetchItems = async () => {
+    const params = { include_zerados: incluirZerados ? "1" : "0" };
+    if (statusFilter) params.status = statusFilter;
+    const res = await estoqueApi.list(params);
+    if (res?.ok) setItems(res.items || []);
+    else toast.error("Erro ao carregar estoque");
+    setLoading(false);
+  };
+
+  const fetchReposicao = async () => {
+    setLoadingReposicao(true);
+    try {
+      const res = await estoqueApi.reposicaoSugestao({ dias: 30 });
+      if (res?.ok) {
+        setReposicao(res.itens || []);
+      } else {
+        toast.error(res?.erro || "Erro ao carregar reposição sugerida");
+      }
+    } catch {
+      toast.error("Erro ao carregar reposição sugerida");
+    } finally {
+      setLoadingReposicao(false);
+    }
   };
 
   useEffect(() => {
     fetchItems();
+    fetchReposicao();
+  }, [incluirZerados, statusFilter]);
+
+  useEffect(() => {
     constApi.get().then((res) => {
       if (res?.ok) setConstants(res);
     });
@@ -58,8 +95,11 @@ export default function Stock() {
 
   const openEdit = (item) => {
     setForm({
+      sku: item.sku || "",
       descricao: item.descricao || "",
       modelo: item.modelo || "",
+      tipo: item.tipo || "Outros",
+      qualidade: item.qualidade || "Padrao",
       valor: item.valor || "",
       fornecedor: item.fornecedor || "",
       quantidade: item.quantidade || "",
@@ -109,13 +149,35 @@ export default function Stock() {
 
   const modelos = [...new Set([...(constants?.iphone_models || []), ...items.map((i) => i.modelo).filter(Boolean)])];
   const modeloOptions = [...new Set(["Universal", ...modelos])];
+  const tipoOptions = constants?.estoque_tipos || ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"];
+  const qualidadeOptions = constants?.estoque_qualidades || ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"];
   const normalizedFilter = modeloFilter?.toLowerCase().trim();
   const filtered = items.filter((item) => {
     const itemModelo = item.modelo?.toLowerCase().trim() || "";
-    if (search && !item.descricao?.toLowerCase().includes(search.toLowerCase()) && !itemModelo.includes(search.toLowerCase())) return false;
+    const itemTipo = item.tipo || "Outros";
+    const itemQualidade = item.qualidade || "Padrao";
+    if (search && !(`${item.descricao || ""} ${itemModelo} ${item.sku || ""}`.toLowerCase().includes(search.toLowerCase()))) return false;
     if (normalizedFilter && itemModelo !== normalizedFilter && itemModelo !== "universal") return false;
+    if (tipoFilter && itemTipo !== tipoFilter) return false;
+    if (qualidadeFilter && itemQualidade !== qualidadeFilter) return false;
     return true;
   });
+
+  const labelStatus = (status) => {
+    if (status === "disponivel") return "Disponível";
+    if (status === "esgotado_ativo") return "Esgotado ativo";
+    if (status === "inativo") return "Inativo";
+    if (status === "esgotado") return "Esgotado";
+    return "—";
+  };
+
+  const classesStatus = (status) => {
+    if (status === "disponivel") return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+    if (status === "esgotado_ativo") return "bg-red-500/10 text-red-300 border-red-500/30";
+    if (status === "inativo") return "bg-zinc-500/10 text-zinc-300 border-zinc-500/30";
+    if (status === "esgotado") return "bg-amber-500/10 text-amber-300 border-amber-500/30";
+    return "bg-secondary/70 text-muted-foreground border-border";
+  };
 
   const totalLotes = items.length;
   const totalUnidades = items.reduce((acc, i) => acc + (i.quantidade || 0), 0);
@@ -154,6 +216,57 @@ export default function Stock() {
         ))}
       </div>
 
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-card-foreground">Reposição sugerida</p>
+            <p className="text-xs text-muted-foreground">Peças com baixo saldo e consumo recente.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchReposicao} disabled={loadingReposicao}>
+            {loadingReposicao && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Atualizar sugestões
+          </Button>
+        </div>
+        {reposicao.length === 0 ? (
+          <p className="text-sm text-muted-foreground mt-3">Sem itens para reposição no momento.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["SKU", "Peça", "Saldo", "Consumo 30d", "Sugestão", "Prioridade"].map((h) => (
+                    <th key={h} className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {reposicao.slice(0, 8).map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{item.sku || "—"}</td>
+                    <td className="px-3 py-2 text-card-foreground">{item.descricao}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{item.quantidade_atual}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{item.consumo_periodo}</td>
+                    <td className="px-3 py-2 font-semibold text-emerald-300">{item.sugestao_reposicao}</td>
+                    <td className="px-3 py-2">
+                      <span className={[
+                        "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
+                        item.prioridade === "alta"
+                          ? "bg-red-500/10 text-red-300 border-red-500/30"
+                          : item.prioridade === "media"
+                            ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                            : "bg-zinc-500/10 text-zinc-300 border-zinc-500/30",
+                      ].join(" ")}>
+                        {item.prioridade}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
@@ -169,6 +282,38 @@ export default function Stock() {
             </SelectContent>
           </Select>
         )}
+        <Select value={tipoFilter || ""} onValueChange={(v) => setTipoFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {tipoOptions.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={qualidadeFilter || ""} onValueChange={(v) => setQualidadeFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Qualidade" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as qualidades</SelectItem>
+            {qualidadeOptions.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter || ""} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Status de estoque" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="disponivel">Disponível</SelectItem>
+            <SelectItem value="esgotado_ativo">Esgotado ativo</SelectItem>
+            <SelectItem value="esgotado">Esgotado</SelectItem>
+            <SelectItem value="inativo">Inativo</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant={incluirZerados ? "default" : "outline"}
+          onClick={() => setIncluirZerados((v) => !v)}
+          className="whitespace-nowrap"
+        >
+          {incluirZerados ? "Ocultar zerados" : "Incluir zerados"}
+        </Button>
         <div className="ml-auto flex items-center text-xs text-muted-foreground">
           {filtered.length} {filtered.length === 1 ? "item" : "itens"} exibidos
         </div>
@@ -180,7 +325,9 @@ export default function Stock() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {search || modeloFilter ? "Nenhum item corresponde aos filtros atuais." : "Nenhum item encontrado."}
+          {search || modeloFilter || tipoFilter || qualidadeFilter || statusFilter
+            ? "Nenhum item corresponde aos filtros atuais."
+            : (incluirZerados ? "Nenhum item encontrado." : "Nenhum item disponível. Ative \"Incluir zerados\" para visualizar esgotados.")}
         </div>
       ) : (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -188,7 +335,7 @@ export default function Stock() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["Descrição", "Modelo", "Valor", "Fornecedor", "Qtd", "Compra", ""].map((h) => (
+                  {["SKU", "Descrição", "Modelo", "Tipo", "Qualidade", "Status", "Valor", "Fornecedor", "Qtd", "Compra", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -196,6 +343,7 @@ export default function Stock() {
               <tbody className="divide-y divide-border">
                 {filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-accent/30 transition-colors" data-testid={`stock-row-${item.id}`}>
+                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs whitespace-nowrap">{item.sku || "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {(item.quantidade || 0) <= 2 && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
@@ -203,6 +351,13 @@ export default function Stock() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.modelo || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.tipo || "Outros"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.qualidade || "Padrao"}</td>
+                    <td className="px-4 py-3">
+                      <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", classesStatus(item.status_estoque)].join(" ")}>
+                        {labelStatus(item.status_estoque)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-card-foreground font-medium">{formatCurrency(item.valor)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.fornecedor || "—"}</td>
                     <td className="px-4 py-3">
@@ -244,6 +399,16 @@ export default function Stock() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
               <div className="space-y-1.5">
+                <Label htmlFor="stock-sku">SKU *</Label>
+                <Input
+                  id="stock-sku"
+                  value={form.sku}
+                  onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value.toUpperCase() }))}
+                  placeholder="Ex: IP12-TELA-OLED-ORIG"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="stock-descricao">Descrição *</Label>
                 <Input id="stock-descricao" value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} required />
               </div>
@@ -255,6 +420,24 @@ export default function Stock() {
                     <SelectContent>
                       <SelectItem value="Universal">Universal (serve para qualquer modelo)</SelectItem>
                       {modeloOptions.map((m) => m && <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-tipo">Tipo *</Label>
+                  <Select value={form.tipo} onValueChange={(v) => setForm((p) => ({ ...p, tipo: v }))}>
+                    <SelectTrigger className="w-full" aria-label="Tipo da peça"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {tipoOptions.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock-qualidade">Qualidade *</Label>
+                  <Select value={form.qualidade} onValueChange={(v) => setForm((p) => ({ ...p, qualidade: v }))}>
+                    <SelectTrigger className="w-full" aria-label="Qualidade da peça"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {qualidadeOptions.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

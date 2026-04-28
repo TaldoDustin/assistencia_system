@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from datetime import datetime
 from urllib import error as urllib_error
@@ -162,6 +163,107 @@ def detalhar_os_mercado_phone(external_id, config):
     )
 
 
+def _dividir_reparos_texto_mercado_phone(valor_texto, texto_limpo):
+    texto = " ".join(texto_limpo(valor_texto).replace("\n", " ").split())
+    if not texto:
+        return []
+
+    separadas = [p.strip() for p in re.split(r"\s*(?:\||;|,)\s*", texto) if p.strip()]
+    partes = []
+
+    for item in separadas:
+        marcadores = [m.start() for m in re.finditer(r"\b(?:troca|reparo)\s+de\b", item, flags=re.IGNORECASE)]
+        if len(marcadores) <= 1:
+            partes.append(item)
+            continue
+
+        marcadores.append(len(item))
+        for idx in range(len(marcadores) - 1):
+            trecho = item[marcadores[idx]:marcadores[idx + 1]].strip(" -/|")
+            if trecho:
+                partes.append(trecho)
+
+    return partes
+
+
+def _normalizar_nome_reparo_mercado_phone(nome_reparo, normalizar_busca_texto, texto_limpo):
+    nome = texto_limpo(nome_reparo)
+    if not nome:
+        return ""
+
+    nome_norm = normalizar_busca_texto(nome)
+
+    if nome_norm in {"analise", "analise tecnica", "diagnostico", "avaliacao", "nao informado"}:
+        return ""
+
+    if "bateria" in nome_norm:
+        return "TROCA DE BATERIA"
+    if "dock" in nome_norm or ("conector" in nome_norm and "carga" in nome_norm) or ("porta" in nome_norm and "carga" in nome_norm):
+        return "TROCA DE DOCK DE CARGA"
+    if "reparo" in nome_norm and "face id" in nome_norm:
+        return "REPARO FACE ID"
+    if "face id" in nome_norm:
+        return "TROCA DE FACE ID"
+    if "camera traseira" in nome_norm:
+        return "TROCA DE CAMERA TRASEIRA"
+    if "camera frontal" in nome_norm:
+        return "TROCA DE CAMERA FRONTAL"
+    if "lente" in nome_norm and "camera" in nome_norm:
+        return "TROCA DE LENTE DA CAMERA"
+    if "vidro" in nome_norm and "traseir" in nome_norm:
+        return "TROCA DE VIDRO TRASEIRO"
+    if (
+        "tampa traseira" in nome_norm
+        or (
+            "traseira" in nome_norm
+            and "camera" not in nome_norm
+            and "lente" not in nome_norm
+            and "vidro" not in nome_norm
+        )
+    ):
+        return "TROCA DE TAMPA TRASEIRA"
+    if "vidro" in nome_norm and "tela" in nome_norm:
+        return "TROCA DE VIDRO DA TELA"
+    if "reparo" in nome_norm and "placa" in nome_norm:
+        return "REPARO DE PLACA"
+    if "reparo" in nome_norm and "tela" in nome_norm:
+        return "REPARO DE TELA"
+    if "tela" in nome_norm or "display" in nome_norm:
+        return "TROCA DE TELA"
+    if "flash" in nome_norm:
+        return "TROCA DE FLASH"
+
+    if "analise" in nome_norm or "diagnost" in nome_norm or "avaliac" in nome_norm:
+        return ""
+
+    return " ".join(nome.upper().split())
+
+
+def _extrair_reparos_mercado_phone(texto, nome_reparo_importavel, normalizar_busca_texto, texto_limpo):
+    reparos = []
+    for trecho in _dividir_reparos_texto_mercado_phone(texto, texto_limpo):
+        reparo_nome = _normalizar_nome_reparo_mercado_phone(trecho, normalizar_busca_texto, texto_limpo)
+        if not reparo_nome:
+            continue
+        if nome_reparo_importavel(reparo_nome) and reparo_nome not in reparos:
+            reparos.append(reparo_nome)
+
+    texto_norm = normalizar_busca_texto(texto)
+    reparos_por_termo = {
+        "tampa traseira": "TROCA DE TAMPA TRASEIRA",
+        "vidro traseiro": "TROCA DE VIDRO TRASEIRO",
+        "face id": "TROCA DE FACE ID",
+        "dock de carga": "TROCA DE DOCK DE CARGA",
+        "bateria": "TROCA DE BATERIA",
+        "tela": "TROCA DE TELA",
+    }
+    for termo, reparo_nome in reparos_por_termo.items():
+        if termo in texto_norm and reparo_nome not in reparos and nome_reparo_importavel(reparo_nome):
+            reparos.append(reparo_nome)
+
+    return reparos
+
+
 def importar_os_mercado_phone(cursor, payload, config, helpers):
     if not isinstance(payload, dict):
         raise ValueError("Payload invalido.")
@@ -204,7 +306,14 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
         return {"os_id": existente[0], "duplicada": True}
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
-    servicos = lista_payload(payload, "servicos")
+    if not aparelho_info and isinstance(payload.get("aparelho"), dict):
+        aparelho_info = payload.get("aparelho")
+
+    servicos = []
+    for chave_lista in ("servicos", "servicosOs", "servicos_os", "itensServico", "itens_servico"):
+        servicos = lista_payload(payload, chave_lista)
+        if servicos:
+            break
 
     cliente = texto_limpo(
         valor_payload(
@@ -216,13 +325,28 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
             ("cliente",),
         )
     )
-    descricao_aparelho = texto_limpo(aparelho_info.get("descricao"))
+    descricao_aparelho = texto_limpo(
+        valor_payload(
+            payload,
+            ("descricaoAparelho",),
+            ("aparelho", "descricao"),
+            ("descricao",),
+        )
+        or valor_payload(
+            aparelho_info,
+            ("descricao",),
+            ("modeloDescricao",),
+            ("modeloDescricaoAparelho",),
+        )
+    )
     modelo = modelo_para_os(
         valor_payload(
             payload,
             ("modeloDescricao",),
             ("modeloDescricaoAparelho",),
             ("aparelho", "modelo"),
+            ("aparelho", "modeloDescricao"),
+            ("aparelho", "modeloDescricaoAparelho"),
             ("modelo",),
             ("modelo_celular",),
             ("celular_modelo",),
@@ -230,37 +354,86 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
         )
     )
     if not modelo:
+        modelo = modelo_para_os(
+            valor_payload(
+                aparelho_info,
+                ("modelo",),
+                ("modeloDescricao",),
+                ("modeloDescricaoAparelho",),
+                ("nomeModelo",),
+                ("descricao",),
+            )
+        )
+    if not modelo:
         modelo = modelo_para_os(descricao_aparelho)
     if not modelo:
         modelo = extrair_modelo_da_descricao_aparelho(descricao_aparelho)
+
     cor = texto_limpo(
         valor_payload(
             payload,
             ("aparelho", "cor"),
+            ("aparelho", "corDescricao"),
+            ("aparelho", "corNome"),
             ("cor",),
+            ("corDescricao",),
+            ("corNome",),
             ("cor_celular",),
         )
     )
     if not cor:
+        cor = texto_limpo(
+            valor_payload(
+                aparelho_info,
+                ("cor",),
+                ("corDescricao",),
+                ("corNome",),
+            )
+        )
+    cor = extrair_cor_da_descricao_aparelho(cor, modelo) or cor
+    if not cor:
         cor = extrair_cor_da_descricao_aparelho(descricao_aparelho, modelo)
+
     imei = normalizar_imei(
         valor_payload(
             payload,
             ("aparelho", "imei"),
+            ("aparelho", "imei1"),
             ("imei",),
             ("imei1",),
         )
     )
     if not imei:
-        imei = normalizar_imei(aparelho_info.get("imei"))
+        imei = normalizar_imei(
+            valor_payload(
+                aparelho_info,
+                ("imei",),
+                ("imei1",),
+            )
+        )
 
     reparos_nomes = []
     for servico in servicos:
         if not isinstance(servico, dict):
             continue
-        nome_servico = texto_limpo(servico.get("servicoDescricao"))
-        if nome_reparo_importavel(nome_servico) and nome_servico not in reparos_nomes:
-            reparos_nomes.append(nome_servico)
+        nome_servico = texto_limpo(
+            valor_payload(
+                servico,
+                ("servicoDescricao",),
+                ("descricao",),
+                ("nome",),
+                ("tipoServico",),
+            )
+        )
+        reparos_extraidos = _extrair_reparos_mercado_phone(
+            nome_servico,
+            nome_reparo_importavel,
+            normalizar_busca_texto,
+            texto_limpo,
+        )
+        for reparo_nome in reparos_extraidos:
+            if reparo_nome not in reparos_nomes:
+                reparos_nomes.append(reparo_nome)
 
     reparo_principal = texto_limpo(
         valor_payload(
@@ -273,8 +446,15 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
             ("solucao",),
         )
     )
-    if nome_reparo_importavel(reparo_principal) and reparo_principal not in reparos_nomes:
-        reparos_nomes.insert(0, reparo_principal)
+    reparos_principais = _extrair_reparos_mercado_phone(
+        reparo_principal,
+        nome_reparo_importavel,
+        normalizar_busca_texto,
+        texto_limpo,
+    )
+    for reparo_nome in reversed(reparos_principais):
+        if reparo_nome not in reparos_nomes:
+            reparos_nomes.insert(0, reparo_nome)
 
     if not cliente:
         cliente = "Cliente nao informado"

@@ -13,8 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Copia o backup para o local do banco de dados
-RUN mkdir -p /app/IR\ Flow
-COPY backup-20260429-015724.db /app/IR\ Flow/database.db
+COPY backup-20260429-015724.db /app/database.db
 
 # Volume persistente para banco de dados e dados gravados em disco
 # O Fly.io monta /data — a app detecta e usa automaticamente via FLY_DATA_DIR

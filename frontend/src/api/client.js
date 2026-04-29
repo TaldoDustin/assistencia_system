@@ -5,7 +5,7 @@
  * In Vite dev mode, the proxy in vite.config.js forwards /api → http://localhost:5080.
  */
 
-const BASE = "/api";
+const BASE = import.meta.env.VITE_API_URL || "/api";
 
 function expandPieceMap(pecas = {}) {
   return Object.entries(pecas).flatMap(([id, quantidade]) => {

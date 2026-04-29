@@ -1,3 +1,5 @@
+# Ignorar backups de banco de dados
+backup-*.db
 # Python
 __pycache__/
 *.pyc

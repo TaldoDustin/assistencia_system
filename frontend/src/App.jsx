@@ -75,7 +75,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/app">
+    <BrowserRouter>
       <AuthProvider>
         <Toaster position="top-right" richColors />
         <AppRoutes />

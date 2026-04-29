@@ -578,15 +578,20 @@ def criar_admin_padrao():
     """Cria usuário admin padrão se não existir nenhum usuário."""
     conn = conectar()
     cursor = conn.cursor()
-    # Verifica se já existe um usuário admin
-    cursor.execute("SELECT 1 FROM usuarios WHERE usuario = ?", ("admin",))
-    if cursor.fetchone() is None:
-        cursor.execute(
-            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
-            ("Administrador", "admin", generate_password_hash("irflow@2024"), "admin"),
-        )
-        conn.commit()
-    conn.close()
+    try:
+        # Verifica se já existe um usuário com o nome 'admin'
+        cursor.execute("SELECT 1 FROM usuarios WHERE usuario = ?", ("admin",))
+        if cursor.fetchone() is None:
+            cursor.execute(
+                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
+                ("Administrador", "admin", generate_password_hash("irflow@2024"), "admin"),
+            )
+            conn.commit()
+    except Exception as exc:
+        # Loga o erro mas não interrompe o boot
+        print(f"[WARN] Erro ao criar admin padrão: {exc}")
+    finally:
+        conn.close()
 
 
 criar_admin_padrao()

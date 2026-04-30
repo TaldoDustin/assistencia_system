@@ -17,7 +17,6 @@ import {
 import { formatCurrency } from "@/lib/constants";
 
 const EMPTY_FORM = {
-  sku: "",
   descricao: "",
   modelo: "",
   tipo: "Outros",
@@ -95,7 +94,6 @@ export default function Stock() {
 
   const openEdit = (item) => {
     setForm({
-      sku: item.sku || "",
       descricao: item.descricao || "",
       modelo: item.modelo || "",
       tipo: item.tipo || "Outros",
@@ -156,7 +154,7 @@ export default function Stock() {
     const itemModelo = item.modelo?.toLowerCase().trim() || "";
     const itemTipo = item.tipo || "Outros";
     const itemQualidade = item.qualidade || "Padrao";
-    if (search && !(`${item.descricao || ""} ${itemModelo} ${item.sku || ""}`.toLowerCase().includes(search.toLowerCase()))) return false;
+    if (search && !(`${item.descricao || ""} ${itemModelo}`.toLowerCase().includes(search.toLowerCase()))) return false;
     if (normalizedFilter && itemModelo !== normalizedFilter && itemModelo !== "universal") return false;
     if (tipoFilter && itemTipo !== tipoFilter) return false;
     if (qualidadeFilter && itemQualidade !== qualidadeFilter) return false;
@@ -234,7 +232,7 @@ export default function Stock() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["SKU", "Peça", "Saldo", "Consumo 30d", "Sugestão", "Prioridade"].map((h) => (
+                  { ["Peça", "Saldo", "Consumo 30d", "Sugestão", "Prioridade"].map((h) => (
                     <th key={h} className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -242,7 +240,7 @@ export default function Stock() {
               <tbody className="divide-y divide-border">
                 {reposicao.slice(0, 8).map((item) => (
                   <tr key={item.id}>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{item.sku || "—"}</td>
+                    {/* SKU removido */}
                     <td className="px-3 py-2 text-card-foreground">{item.descricao}</td>
                     <td className="px-3 py-2 text-muted-foreground">{item.quantidade_atual}</td>
                     <td className="px-3 py-2 text-muted-foreground">{item.consumo_periodo}</td>
@@ -335,7 +333,7 @@ export default function Stock() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["SKU", "Descrição", "Modelo", "Tipo", "Qualidade", "Status", "Valor", "Fornecedor", "Qtd", "Compra", ""].map((h) => (
+                  { ["Descrição", "Modelo", "Tipo", "Qualidade", "Status", "Valor", "Fornecedor", "Qtd", "Compra", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -343,7 +341,7 @@ export default function Stock() {
               <tbody className="divide-y divide-border">
                 {filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-accent/30 transition-colors" data-testid={`stock-row-${item.id}`}>
-                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs whitespace-nowrap">{item.sku || "—"}</td>
+                    {/* SKU removido */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {(item.quantidade || 0) <= 2 && <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
@@ -398,16 +396,7 @@ export default function Stock() {
               <DialogTitle>{editId ? "Editar Peça" : "Nova Peça"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="stock-sku">SKU *</Label>
-                <Input
-                  id="stock-sku"
-                  value={form.sku}
-                  onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value.toUpperCase() }))}
-                  placeholder="Ex: IP12-TELA-OLED-ORIG"
-                  required
-                />
-              </div>
+              {/* Campo SKU removido */}
               <div className="space-y-1.5">
                 <Label htmlFor="stock-descricao">Descrição *</Label>
                 <Input id="stock-descricao" value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} required />

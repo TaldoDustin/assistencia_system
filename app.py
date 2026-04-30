@@ -293,7 +293,6 @@ def criar_tabelas():
                 quantidade INTEGER,
                 data_compra TEXT,
                 modelo TEXT,
-                sku TEXT,
                 tipo TEXT,
                 qualidade TEXT
             )
@@ -464,10 +463,7 @@ def criar_tabelas():
             except sqlite3.OperationalError:
                 pass
 
-            try:
-                cursor.execute("ALTER TABLE estoque ADD COLUMN sku TEXT")
-            except sqlite3.OperationalError:
-                pass
+            # Campo SKU removido
 
             try:
                 cursor.execute("ALTER TABLE estoque ADD COLUMN tipo TEXT")
@@ -479,13 +475,7 @@ def criar_tabelas():
             except sqlite3.OperationalError:
                 pass
 
-            cursor.execute(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_estoque_sku_unico
-                ON estoque (sku)
-                WHERE COALESCE(sku, '') <> ''
-                """
-            )
+            # Índice SKU removido
 
             cursor.execute(
                 """
@@ -509,16 +499,7 @@ def criar_tabelas():
                 if modelo_norm != (modelo_atual or ""):
                     cursor.execute("UPDATE estoque SET modelo=? WHERE id=?", (modelo_norm, item_id))
 
-            cursor.execute("SELECT id, COALESCE(sku,''), COALESCE(tipo,''), COALESCE(qualidade,'') FROM estoque")
-            for item_id, sku_atual, tipo_atual, qualidade_atual in cursor.fetchall():
-                sku_novo = (sku_atual or "").strip().upper() or f"LEG-{item_id:05d}"
-                tipo_novo = (tipo_atual or "").strip() or "Outros"
-                qualidade_nova = (qualidade_atual or "").strip() or "Padrao"
-                if sku_novo != (sku_atual or "") or tipo_novo != (tipo_atual or "") or qualidade_nova != (qualidade_atual or ""):
-                    cursor.execute(
-                        "UPDATE estoque SET sku=?, tipo=?, qualidade=? WHERE id=?",
-                        (sku_novo, tipo_novo, qualidade_nova, item_id),
-                    )
+            # Normalização SKU removida
 
             cursor.execute(
                 """

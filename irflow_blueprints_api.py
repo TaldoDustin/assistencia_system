@@ -23,71 +23,53 @@ def create_api_blueprint(deps):
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
 
     # ── Inject dependencies ────────────────────────────────────────────────
-    conectar = deps["conectar"]
-    normalizar_status_os = deps["normalizar_status_os"]
-    status_finalizado = deps["status_finalizado"]
-    status_cancelado = deps["status_cancelado"]
-    status_aberto = deps["status_aberto"]
-    calcular_faturamento_os = deps["calcular_faturamento_os"]
-    calcular_lucro_os = deps["calcular_lucro_os"]
-    carregar_os_com_relacoes = deps["carregar_os_com_relacoes"]
-    extrair_reparo_ids = deps["extrair_reparo_ids"]
-    validar_reparo_ids = deps["validar_reparo_ids"]
-    vendedor_valido = deps["vendedor_valido"]
-    salvar_reparos_os = deps["salvar_reparos_os"]
-    modelo_compativel = deps["modelo_compativel"]
-    consumir_peca_da_os = deps["consumir_peca_da_os"]
-    adicionar_peca_os_sem_consumir = deps["adicionar_peca_os_sem_consumir"]
-    devolver_pecas_da_os = deps["devolver_pecas_da_os"]
-    registrar_movimentacao = deps["registrar_movimentacao"]
-    obter_reparos_por_os = deps["obter_reparos_por_os"]
-    modelo_para_os = deps["modelo_para_os"]
-    normalizar_imei = deps["normalizar_imei"]
-    carregar_tabelas_preco = deps["carregar_tabelas_preco"]
-    salvar_tabelas_preco = deps["salvar_tabelas_preco"]
-    texto_reparos_os = deps["texto_reparos_os"]
-    listar_custos_operacionais = deps["listar_custos_operacionais"]
-    agrupar_relatorio_custos_operacionais = deps["agrupar_relatorio_custos_operacionais"]
-    agrupar_relatorio_ir_phones = deps["agrupar_relatorio_ir_phones"]
-    agrupar_relatorio_tecnicos = deps["agrupar_relatorio_tecnicos"]
-    montar_linhas_relatorio_custos_operacionais = deps["montar_linhas_relatorio_custos_operacionais"]
-    montar_linhas_relatorio_ir_phones = deps["montar_linhas_relatorio_ir_phones"]
-    montar_linhas_relatorio_tecnicos = deps["montar_linhas_relatorio_tecnicos"]
-    montar_pdf_texto = deps["montar_pdf_texto"]
-    formatar_periodo_relatorio = deps["formatar_periodo_relatorio"]
-    parse_data_ymd = deps["parse_data_ymd"]
-    obter_alertas_sistema = deps["obter_alertas_sistema"]
-    normalizar_modelo_iphone = deps["normalizar_modelo_iphone"]
-    iphone_models = deps["iphone_models"]
-    iphone_colors = deps["iphone_colors"]
-    vendedores = deps["vendedores"]
-    tecnicos = deps["tecnicos"]
-    status_os_opcoes = deps["status_os_opcoes"]
-    categorias_custos = deps["categorias_custos"]
-    reparos_padrao = deps["reparos_padrao"]
-    backup_dir = deps["backup_dir"]
-    criar_backup = deps["criar_backup"]
-    google_drive_backup_dir = deps["google_drive_backup_dir"]
-    garantir_pasta_backup_google_drive = deps["garantir_pasta_backup_google_drive"]
-    enviar_backup_email = deps["enviar_backup_email"]
-    backup_email_remetente = deps["backup_email_remetente"]
-    backup_email_senha_app = deps["backup_email_senha_app"]
-    backup_email_destino = deps["backup_email_destino"]
-    check_password_hash = deps["check_password_hash"]
-    generate_password_hash = deps["generate_password_hash"]
-    sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
-    mercado_phone_runtime_config = deps["mercado_phone_runtime_config"]
-    mercado_phone_helpers = deps["mercado_phone_helpers"]
-    public_base_url = (deps.get("public_base_url") or "").strip().rstrip("/")
+    def criar_estoque():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
 
-    STATUS_FINALIZADO = status_finalizado
-    STATUS_CANCELADO = status_cancelado
-    STATUS_EM_ANDAMENTO = deps["status_em_andamento"]
-    STATUS_AGUARDANDO_PECA = deps["status_aguardando_peca"]
+        body = request.get_json(silent=True) or {}
+        descricao = (body.get("descricao") or "").strip()
+        modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
+        tipo = _normalizar_tipo_estoque(body.get("tipo"))
+        qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
+        valor = float(body.get("valor") or 0)
+        fornecedor = (body.get("fornecedor") or "Nao informado").strip()
+        quantidade = int(body.get("quantidade") or 0)
+        data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-    # ── Auth helpers ───────────────────────────────────────────────────────
+        if not descricao or valor <= 0 or quantidade < 0:
+            return err("Preencha descrição, valor e quantidade.")
 
-    def usuario_logado():
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            # Permitir sempre cadastrar novo produto, mesmo com modelo/tipo/qualidade igual
+
+            cursor.execute(
+                """
+                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, tipo, qualidade)
+                VALUES (?,?,?,?,?,?,?,?)
+                """,
+                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, tipo, qualidade),
+            )
+            novo_id = cursor.lastrowid
+            if quantidade > 0:
+                cursor.execute(
+                    """
+                    INSERT INTO estoque_lotes (
+                        estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+                    )
+                    VALUES (?,?,?,?,?,?,?,?)
+                    """,
+                    (novo_id, fornecedor, valor, quantidade, quantidade, data_compra, "", datetime.now().isoformat()),
+                )
+            conn.commit()
+            return ok(id=novo_id)
+        except Exception as e:
+            conn.rollback()
+            return err(f"Erro ao criar item: {e}")
+        finally:
+            conn.close()
         return bool(session.get("usuario_id"))
 
     def usuario_admin():
@@ -110,86 +92,79 @@ def create_api_blueprint(deps):
         return base
 
     def _normalizar_tipo_estoque(valor):
-        texto = (valor or "").strip()
-        if not texto:
-            return "Outros"
-        for tipo in ESTOQUE_TIPOS:
-            if tipo.lower() == texto.lower():
-                return tipo
-        return "Outros"
+        def atualizar_estoque(item_id):
+            if not usuario_logado():
+                return err("Não autenticado.", 401)
 
-    def _normalizar_qualidade_estoque(valor):
-        texto = (valor or "").strip()
-        if not texto:
-            return "Padrao"
-        for qualidade in ESTOQUE_QUALIDADES:
-            if qualidade.lower() == texto.lower():
-                return qualidade
-        return "Padrao"
+            body = request.get_json(silent=True) or {}
+            descricao = (body.get("descricao") or "").strip()
+            modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
+            tipo = _normalizar_tipo_estoque(body.get("tipo"))
+            qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
+            valor = float(body.get("valor") or 0)
+            fornecedor = (body.get("fornecedor") or "Nao informado").strip()
+            quantidade_nova = int(body.get("quantidade") or 0)
+            data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-    def _gerar_sku_estoque(modelo, tipo, qualidade, descricao):
-        base_modelo = _slug_estoque((modelo or "").replace("iPhone", "IP")) or "GEN"
-        base_tipo = _slug_estoque(tipo) or "OUTROS"
-        base_qualidade = _slug_estoque(qualidade) or "PADRAO"
-        base_desc = _slug_estoque(descricao)[:18]
-        if base_desc:
-            return f"{base_modelo}-{base_tipo}-{base_qualidade}-{base_desc}"
-        return f"{base_modelo}-{base_tipo}-{base_qualidade}"
+            if not descricao or valor <= 0:
+                return err("Preencha descrição e valor.")
 
-    def _recalcular_custo_medio(cursor, estoque_id):
-        cursor.execute(
-            """
-            SELECT
-                COALESCE(SUM(COALESCE(quantidade_disponivel, 0)), 0),
-                COALESCE(SUM(COALESCE(quantidade_disponivel, 0) * COALESCE(valor_compra, 0)), 0)
-            FROM estoque_lotes
-            WHERE estoque_id=?
-            """,
-            (estoque_id,),
-        )
-        qtd_total, custo_total = cursor.fetchone() or (0, 0)
-        qtd_total = int(qtd_total or 0)
-        custo_total = float(custo_total or 0)
-        custo_medio = (custo_total / qtd_total) if qtd_total > 0 else 0.0
-        cursor.execute(
-            "UPDATE estoque SET quantidade=?, valor=? WHERE id=?",
-            (qtd_total, round(custo_medio, 4), estoque_id),
-        )
-        return qtd_total, round(custo_medio, 4)
-
-    def _parse_data_segura(valor):
-        texto = (valor or "").strip()
-        if not texto:
-            return None
-        formatos = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
-        for formato in formatos:
+            conn = conectar()
+            cursor = conn.cursor()
             try:
-                return datetime.strptime(texto[:19], formato)
-            except ValueError:
-                continue
-        return None
+                cursor.execute("SELECT quantidade, descricao FROM estoque WHERE id=?", (item_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return err("Item não encontrado.", 404)
+                qtd_antiga = row[0] or 0
 
-    def _status_item_estoque(quantidade, ultima_mov_data, consumo_90d):
-        qtd = int(quantidade or 0)
-        consumo = int(consumo_90d or 0)
-        ultima_mov = _parse_data_segura(ultima_mov_data)
+                cursor.execute(
+                    """
+                    SELECT id
+                    FROM estoque
+                    WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=? AND id<>?
+                    """,
+                    (modelo, tipo, qualidade, item_id),
+                )
+                if cursor.fetchone() and not body.get("forcar_novo"):
+                    return err("Já existe item com mesmo modelo, tipo e qualidade.")
 
-        if qtd > 0:
-            return "disponivel"
-        if consumo > 0:
-            return "esgotado_ativo"
-
-        if not ultima_mov:
-            return "inativo"
-
-        dias_sem_mov = (datetime.now() - ultima_mov).days
-        if dias_sem_mov >= 90:
-            return "inativo"
-        return "esgotado"
-
-    def _checklist_status(value):
-        status = (value or "nao_testado").strip().lower()
-        return status if status in {"ok", "falha", "nao_testado"} else "nao_testado"
+                cursor.execute(
+                    """
+                    UPDATE estoque
+                    SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, tipo=?, qualidade=?
+                    WHERE id=?
+                    """,
+                    (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, tipo, qualidade, item_id),
+                )
+                diff = quantidade_nova - qtd_antiga
+                if diff != 0:
+                    if diff > 0:
+                        cursor.execute(
+                            """
+                            INSERT INTO estoque_lotes (
+                                estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
+                            )
+                            VALUES (?,?,?,?,?,?,?,?)
+                            """,
+                            (item_id, fornecedor, valor, diff, diff, data_compra, "", datetime.now().isoformat()),
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            UPDATE estoque_lotes
+                            SET quantidade_disponivel = quantidade_disponivel + ?
+                            WHERE estoque_id = ?
+                            """,
+                            (diff, item_id),
+                        )
+                conn.commit()
+                return ok()
+            except Exception as e:
+                conn.rollback()
+                return err(f"Erro ao atualizar item: {e}")
+            finally:
+                conn.close()
 
     def _parse_checklist_json(value):
         texto = (value or "").strip()
@@ -1107,6 +1082,7 @@ def create_api_blueprint(deps):
             params.append(_normalizar_qualidade_estoque(filtro_qualidade))
 
         clause = f"WHERE {' AND '.join(where)}" if where else ""
+
         cursor.execute(
             f"""
             SELECT
@@ -1117,7 +1093,6 @@ def create_api_blueprint(deps):
                 quantidade,
                 data_compra,
                 COALESCE(modelo,''),
-                COALESCE(sku,''),
                 COALESCE(tipo,'Outros'),
                 COALESCE(qualidade,'Padrao'),
                 (
@@ -1146,27 +1121,26 @@ def create_api_blueprint(deps):
         )
         itens = []
         for r in cursor.fetchall():
-            status_item = _status_item_estoque(r[4] or 0, r[10] or "", r[12] or 0)
-            item = {
-                "id": r[0],
-                "descricao": r[1] or "",
-                "valor": round(r[2] or 0, 2),
-                "fornecedor": r[3] or "",
-                "quantidade": r[4] or 0,
-                "data_compra": r[5] or "",
-                "modelo": r[6] or "",
-                "sku": r[7] or "",
-                "tipo": r[8] or "Outros",
-                "qualidade": r[9] or "Padrao",
-                "ultima_movimentacao": r[10] or "",
-                "consumo_30d": int(r[11] or 0),
-                "consumo_90d": int(r[12] or 0),
-                "status_estoque": status_item,
-            }
-            itens.append(item)
+            status_item = _status_item_estoque(r[4] or 0, r[9] or "", r[11] or 0)
+            if int(r[4] or 0) > 0:  # Só adiciona se quantidade > 0
+                item = {
+                    "id": r[0],
+                    "descricao": r[1] or "",
+                    "valor": round(r[2] or 0, 2),
+                    "fornecedor": r[3] or "",
+                    "quantidade": r[4] or 0,
+                    "data_compra": r[5] or "",
+                    "modelo": r[6] or "",
+                    "tipo": r[7] or "Outros",
+                    "qualidade": r[8] or "Padrao",
+                    "ultima_movimentacao": r[9] or "",
+                    "consumo_30d": int(r[10] or 0),
+                    "consumo_90d": int(r[11] or 0),
+                    "status_estoque": status_item,
+                }
+                itens.append(item)
 
-        if not include_zerados:
-            itens = [i for i in itens if int(i.get("quantidade") or 0) > 0]
+        # Nunca inclui zerados, mesmo se include_zerados for True
 
         if filtro_status:
             itens = [i for i in itens if (i.get("status_estoque") or "") == filtro_status]
@@ -1175,7 +1149,7 @@ def create_api_blueprint(deps):
             itens = [
                 i
                 for i in itens
-                if q in f"{i['descricao']} {i['modelo']} {i['fornecedor']} {i['sku']} {i['tipo']} {i['qualidade']}".lower()
+                if q in f"{i['descricao']} {i['modelo']} {i['fornecedor']} {i['tipo']} {i['qualidade']}".lower()
             ]
 
         # Summary stats
@@ -1387,16 +1361,7 @@ def create_api_blueprint(deps):
             if cursor.fetchone():
                 return err("SKU já utilizado por outro item.")
 
-            cursor.execute(
-                """
-                SELECT id
-                FROM estoque
-                WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=? AND id<>?
-                """,
-                (modelo, tipo, qualidade, item_id),
-            )
-            if cursor.fetchone() and not body.get("forcar_novo"):
-                return err("Já existe item com mesmo modelo, tipo e qualidade.")
+            # Permitir sempre editar, mesmo se existir outro com modelo/tipo/qualidade igual
 
             cursor.execute(
                 """

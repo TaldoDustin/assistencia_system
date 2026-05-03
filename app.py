@@ -222,9 +222,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
 if IS_SERVER_RUNTIME:
     app.config["SESSION_COOKIE_SAMESITE"] = "None"
     app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_PARTITIONED"] = True
 else:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["SESSION_COOKIE_PARTITIONED"] = False
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 # Configuração de CORS para aceitar requisições do frontend.

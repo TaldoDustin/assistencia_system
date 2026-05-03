@@ -653,7 +653,7 @@ def create_api_blueprint(deps):
             ordens=result,
             total=len(result),
             abertas=len([o for o in result if status_aberto(o["status"])]),
-            finalizadas=len([o for o in result if o["status"] == STATUS_FINALIZADO]),
+            finalizadas=len([o for o in result if status_finalizado(o["status"])]),
         )
 
     @api.route("/ordens/<int:os_id>")
@@ -1018,7 +1018,7 @@ def create_api_blueprint(deps):
             data_finalizado_atual = row_atual[1]
 
             data_finalizado_valor = None
-            if status == STATUS_FINALIZADO:
+            if status_finalizado(status):
                 data_finalizado_valor = data_finalizado_atual or datetime.now().strftime("%Y-%m-%d")
 
             cursor.execute(
@@ -1034,7 +1034,7 @@ def create_api_blueprint(deps):
             )
             salvar_reparos_os(cursor, os_id, reparo_ids)
 
-            if status_atual != STATUS_CANCELADO:
+            if not status_cancelado(status_atual):
                 devolver_pecas_da_os(cursor, os_id, "devolucao-edicao")
             cursor.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
 
@@ -1047,7 +1047,7 @@ def create_api_blueprint(deps):
                 if not modelo_compativel(modelo_peca, modelo):
                     conn.rollback()
                     return err("Peça incompatível com o modelo da OS.")
-                if status == STATUS_CANCELADO:
+                if status_cancelado(status):
                     ok_peca, erro_peca = adicionar_peca_os_sem_consumir(cursor, os_id, peca_id)
                 else:
                     ok_peca, erro_peca = consumir_peca_da_os(cursor, os_id, peca_id)
@@ -1078,7 +1078,7 @@ def create_api_blueprint(deps):
             row = cursor.fetchone()
             if row:
                 s = normalizar_status_os(row[0])
-                if s not in {STATUS_FINALIZADO, STATUS_CANCELADO}:
+                if not status_finalizado(s) and not status_cancelado(s):
                     devolver_pecas_da_os(cursor, os_id, "devolucao")
             cursor.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
@@ -1114,7 +1114,7 @@ def create_api_blueprint(deps):
             data_finalizado_atual = row[1]
 
             data_finalizado_valor = None
-            if status == STATUS_FINALIZADO:
+            if status_finalizado(status):
                 data_finalizado_valor = data_finalizado_atual or datetime.now().strftime("%Y-%m-%d")
 
             cursor.execute(
@@ -1122,7 +1122,7 @@ def create_api_blueprint(deps):
                 (status, data_finalizado_valor, os_id),
             )
 
-            if status == STATUS_CANCELADO and status_atual != STATUS_CANCELADO:
+            if status_cancelado(status) and not status_cancelado(status_atual):
                 devolver_pecas_da_os(cursor, os_id, "devolucao")
 
             conn.commit()

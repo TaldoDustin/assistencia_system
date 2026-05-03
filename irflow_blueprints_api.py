@@ -12,6 +12,7 @@ import math
 
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
+from app import conectar
 
 from irflow_price_tables import sugerir_preco_tabela
 

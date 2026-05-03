@@ -214,7 +214,10 @@ MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", 
 # ============================================================================
 # BOOTSTRAP FLASK
 # ============================================================================
-from flask_cors import CORS
+try:
+    from flask_cors import CORS
+except Exception:
+    CORS = None
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
 
@@ -257,11 +260,56 @@ else:
         "http://127.0.0.1:5173",
     ]
 
-CORS(
-    app,
-    resources={r"/api/*": {"origins": cors_origins}},
-    supports_credentials=True,
-)
+if CORS is not None:
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": cors_origins}},
+        supports_credentials=True,
+    )
+
+
+def _origem_permitida_cors(origem):
+    if not origem:
+        return False
+
+    origem = origem.strip()
+    if not origem:
+        return False
+
+    for permitido in cors_origins:
+        permitido_txt = (permitido or "").strip()
+        if not permitido_txt:
+            continue
+
+        if permitido_txt == origem:
+            return True
+
+        # Suporte simples ao padrao de preview do Vercel.
+        if "vercel" in permitido_txt and (".*" in permitido_txt or "\\." in permitido_txt):
+            if origem.startswith("https://") and origem.endswith(".vercel.app"):
+                return True
+
+    return False
+
+
+@app.after_request
+def _cors_fallback_headers(response):
+    if not request.path.startswith("/api/"):
+        return response
+
+    origem = request.headers.get("Origin", "")
+    if _origem_permitida_cors(origem):
+        response.headers["Access-Control-Allow-Origin"] = origem
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+
+        if request.method == "OPTIONS":
+            request_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization")
+            response.headers["Access-Control-Allow-Headers"] = request_headers
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            response.headers["Access-Control-Max-Age"] = "86400"
+
+    return response
 
 # FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================

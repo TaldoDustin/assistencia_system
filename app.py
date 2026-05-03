@@ -234,17 +234,34 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 # Pode ser definido como lista separada por vírgula em IR_FLOW_CORS_ORIGINS.
 VERCEL_URL = os.environ.get("VERCEL_URL")  # Ex: https://assistencia-system.vercel.app
 cors_origins_env = (os.environ.get("IR_FLOW_CORS_ORIGINS") or "").strip()
+
+
+def _normalizar_origem_cors(valor):
+    texto = (valor or "").strip()
+    if not texto:
+        return ""
+    if texto.startswith("http://") or texto.startswith("https://"):
+        return texto
+    # Em alguns ambientes o VERCEL_URL pode vir sem esquema.
+    return f"https://{texto}"
+
+
 if cors_origins_env:
-    cors_origins = [item.strip() for item in cors_origins_env.split(",") if item.strip()]
+    cors_origins = [_normalizar_origem_cors(item) for item in cors_origins_env.split(",") if item.strip()]
 elif VERCEL_URL:
-    cors_origins = [VERCEL_URL]
+    cors_origins = [_normalizar_origem_cors(VERCEL_URL)]
 else:
     cors_origins = [
-        r"https://.*\\.vercel\\.app",
+        r"https://.*\.vercel\.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
-CORS(app, origins=cors_origins, supports_credentials=True)
+
+CORS(
+    app,
+    resources={r"/api/*": {"origins": cors_origins}},
+    supports_credentials=True,
+)
 
 # FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================

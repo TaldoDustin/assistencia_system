@@ -76,9 +76,71 @@ def create_api_blueprint(deps):
     mercado_phone_runtime_config = deps["mercado_phone_runtime_config"]
     mercado_phone_helpers = deps["mercado_phone_helpers"]
     public_base_url = deps.get("public_base_url", "")
+    integrations_config_path = deps["integrations_config_path"]
+    carregar_configuracoes_integracoes = deps["carregar_configuracoes_integracoes"]
+    salvar_configuracoes_integracoes = deps["salvar_configuracoes_integracoes"]
 
     def usuario_logado():
         return bool(session.get("usuario_id"))
+
+    def _texto_limpo_local(valor):
+        return (valor or "").strip()
+
+    def _to_bool(valor, padrao=False):
+        if valor is None:
+            return padrao
+        if isinstance(valor, bool):
+            return valor
+        return str(valor).strip().lower() not in {"", "0", "false", "nao", "off"}
+
+    def _carregar_config_mercadophone():
+        dados = carregar_configuracoes_integracoes(integrations_config_path)
+        if not isinstance(dados, dict):
+            dados = {}
+        mp = dados.get("mercado_phone")
+        if not isinstance(mp, dict):
+            mp = {}
+            dados["mercado_phone"] = mp
+        return dados, mp
+
+    def _atualizar_runtime_mercadophone(mp_cfg):
+        token_cfg = _texto_limpo_local(mp_cfg.get("api_token"))
+        token_runtime = _texto_limpo_local(mercado_phone_runtime_config.get("api_token"))
+        token = token_cfg or token_runtime
+
+        intervalo_cfg = mp_cfg.get("sync_interval_seconds", mercado_phone_runtime_config.get("sync_interval_seconds", 180))
+        timeout_cfg = mp_cfg.get("sync_timeout_seconds", mercado_phone_runtime_config.get("sync_timeout_seconds", 20))
+
+        try:
+            intervalo = max(30, int(intervalo_cfg or 180))
+        except (TypeError, ValueError):
+            intervalo = 180
+
+        try:
+            timeout = max(5, int(timeout_cfg or 20))
+        except (TypeError, ValueError):
+            timeout = 20
+
+        start_date = _texto_limpo_local(mp_cfg.get("sync_start_date") or mercado_phone_runtime_config.get("sync_start_date") or "2026-04-01")
+
+        mercado_phone_runtime_config.update(
+            {
+                "api_token": token,
+                "sync_enabled": _to_bool(mp_cfg.get("sync_enabled"), padrao=bool(token)),
+                "sync_interval_seconds": intervalo,
+                "sync_timeout_seconds": timeout,
+                "sync_start_date": start_date,
+            }
+        )
+
+        return {
+            "configurado": bool(token),
+            "sync_enabled": bool(mercado_phone_runtime_config.get("sync_enabled")),
+            "sync_interval_seconds": int(mercado_phone_runtime_config.get("sync_interval_seconds") or 0),
+            "sync_timeout_seconds": int(mercado_phone_runtime_config.get("sync_timeout_seconds") or 0),
+            "sync_start_date": mercado_phone_runtime_config.get("sync_start_date") or "",
+            "api_base": mercado_phone_runtime_config.get("api_base") or "",
+        }
 
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
@@ -2087,9 +2149,18 @@ def create_api_blueprint(deps):
 
         try:
             os.makedirs(backup_dir, exist_ok=True)
+            body = request.get_json(silent=True) or {}
+            versao_bruta = _texto_limpo_local(body.get("versao"))
+            versao = re.sub(r"[^A-Za-z0-9._-]", "", versao_bruta)[:40]
+            nome_arquivo = None
+            if versao:
+                stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                nome_arquivo = f"backup-v{versao}-{stamp}.db"
+
             info = criar_backup(
                 backup_dir, google_drive_backup_dir,
                 conectar,
+                nome_arquivo=nome_arquivo,
             )
             if backup_email_senha_app:
                 enviar_backup_email(
@@ -2140,11 +2211,66 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
         try:
+            _, mp_cfg = _carregar_config_mercadophone()
+            status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
+            if not status_cfg["configurado"]:
+                return err("Mercado Phone não configurado. Informe o token da API.", 400)
+
             resultado = sincronizar_mercado_phone(
                 conectar, mercado_phone_runtime_config, mercado_phone_helpers
             )
             return ok(resultado=resultado)
         except Exception as exc:
             return err(str(exc))
+
+    @api.route("/integracoes/mercadophone/status")
+    def status_mercadophone():
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+
+        _, mp_cfg = _carregar_config_mercadophone()
+        status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
+
+        return ok(
+            mercado_phone={
+                **status_cfg,
+                "tem_token": status_cfg["configurado"],
+            }
+        )
+
+    @api.route("/integracoes/mercadophone/config", methods=["POST"])
+    def salvar_config_mercadophone():
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+
+        body = request.get_json(silent=True) or {}
+        dados, mp_cfg = _carregar_config_mercadophone()
+
+        if "api_token" in body:
+            mp_cfg["api_token"] = _texto_limpo_local(body.get("api_token"))
+
+        if "sync_enabled" in body:
+            mp_cfg["sync_enabled"] = _to_bool(body.get("sync_enabled"), padrao=True)
+
+        if "sync_interval_seconds" in body:
+            try:
+                mp_cfg["sync_interval_seconds"] = max(30, int(body.get("sync_interval_seconds") or 180))
+            except (TypeError, ValueError):
+                return err("sync_interval_seconds inválido.", 400)
+
+        if "sync_timeout_seconds" in body:
+            try:
+                mp_cfg["sync_timeout_seconds"] = max(5, int(body.get("sync_timeout_seconds") or 20))
+            except (TypeError, ValueError):
+                return err("sync_timeout_seconds inválido.", 400)
+
+        if "sync_start_date" in body:
+            mp_cfg["sync_start_date"] = _texto_limpo_local(body.get("sync_start_date")) or "2026-04-01"
+
+        dados["mercado_phone"] = mp_cfg
+        salvar_configuracoes_integracoes(integrations_config_path, dados)
+
+        status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
+        return ok(mercado_phone=status_cfg)
 
     return api

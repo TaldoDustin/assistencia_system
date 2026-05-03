@@ -17,6 +17,7 @@ export default function Backup() {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [versao, setVersao] = useState("");
   const latestBackup = backups[0];
 
   const isAdmin = user?.perfil === "admin";
@@ -48,9 +49,11 @@ export default function Backup() {
   const handleCreateBackup = async () => {
     setCreating(true);
     try {
-      const res = await backupApi.criar();
+      const payload = versao.trim() ? { versao: versao.trim() } : undefined;
+      const res = await backupApi.criar(payload);
       if (res?.ok) {
         toast.success(res?.arquivo ? `Backup criado: ${res.arquivo}` : "Backup criado com sucesso");
+        setVersao("");
         fetchBackups();
       } else {
         toast.error(res?.erro || "Erro ao criar backup");
@@ -83,6 +86,15 @@ export default function Backup() {
           </p>
         </div>
         <div className="flex gap-2">
+          <input
+            type="text"
+            value={versao}
+            onChange={(e) => setVersao(e.target.value)}
+            placeholder="Versão (opcional): v2"
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
+            maxLength={40}
+            disabled={creating}
+          />
           <Button variant="outline" onClick={fetchBackups} disabled={loading || creating}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Atualizar

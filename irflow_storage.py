@@ -38,6 +38,18 @@ def carregar_configuracoes_integracoes(integrations_config_path):
     return padrao
 
 
+def salvar_configuracoes_integracoes(integrations_config_path, dados):
+    if not isinstance(dados, dict):
+        raise ValueError("Configuracao de integracoes invalida.")
+
+    pasta = os.path.dirname(integrations_config_path)
+    if pasta:
+        os.makedirs(pasta, exist_ok=True)
+
+    with open(integrations_config_path, "w", encoding="utf-8") as arquivo:
+        json.dump(dados, arquivo, ensure_ascii=False, indent=2)
+
+
 def diretorio_google_drive_disponivel(google_drive_backup_dir):
     pasta = (google_drive_backup_dir or "").strip()
     if pasta and os.path.isdir(pasta):

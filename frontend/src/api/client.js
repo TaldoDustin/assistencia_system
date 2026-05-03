@@ -222,7 +222,7 @@ export const usuarios = {
 
 // ── Backup ───────────────────────────────────────────────────────────────────
 export const backup = {
-  criar:    ()       => post("/backup/criar"),
+  criar:    (data)   => post("/backup/criar", data),
   list:     ()       => get("/backup/listar"),
   download: (file)   => `${BASE}/backup/download/${encodeURIComponent(file)}`,
 };

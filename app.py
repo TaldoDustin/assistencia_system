@@ -81,6 +81,7 @@ from irflow_storage import (
     executar_backup_diario_automatico,
     garantir_pasta_backup_google_drive,
     iniciar_thread_backup_automatico,
+    salvar_configuracoes_integracoes,
 )
 
 # ============================================================================
@@ -1247,6 +1248,9 @@ app.register_blueprint(
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
             "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
             "public_base_url": PUBLIC_BASE_URL,
+            "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
+            "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
+            "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
         }
     )
 )

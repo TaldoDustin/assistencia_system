@@ -22,6 +22,11 @@ Adicione as variáveis necessárias em **Environment > Add Environment Variable*
 - `FLASK_SECRET_KEY` (obrigatório)
 - `MERCADO_PHONE_WEBHOOK_TOKEN` (opcional)
 - `MERCADO_PHONE_API_TOKEN` (opcional)
+- `MERCADO_PHONE_SYNC_ENABLED=1` (opcional)
+- `MERCADO_PHONE_SYNC_INTERVAL_SECONDS=180` (opcional)
+- `MERCADO_PHONE_SYNC_TIMEOUT_SECONDS=20` (opcional)
+- `MERCADO_PHONE_SYNC_START_DATE=2026-04-01` (opcional)
+- `MERCADO_PHONE_DEFAULT_TECNICO=Aguardando definicao` (opcional)
 - `IR_FLOW_HOST=0.0.0.0`
 - `IR_FLOW_PORT=8080`
 - `IR_FLOW_DATA_DIR=/data` (recomendado)
@@ -80,6 +85,8 @@ No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 - O frontend (Vercel) serve o app React estático e consome a API do backend.
 - Ajuste o CORS no backend se necessário para aceitar requisições do domínio da Vercel.
 - Para backups, acesse o disco `/data` no Render via SSH ou painel.
+- Backups versionados podem ser criados via `POST /api/backup/criar` enviando `{ "versao": "v2" }`.
+- Configuração persistente do Mercado Phone pode ser salva via `POST /api/integracoes/mercadophone/config`.
 
 ---
 

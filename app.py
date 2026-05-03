@@ -579,6 +579,13 @@ def criar_tabelas():
             conn.close()
 
 
+def forcar_migracao_schema():
+    """Reexecuta migrações de schema no banco atual (útil após restore de arquivo legado)."""
+    global SCHEMA_READY
+    SCHEMA_READY = False
+    criar_tabelas()
+
+
 criar_tabelas()
 iniciar_thread_backup_automatico(
     BACKUP_DIR,
@@ -1252,6 +1259,7 @@ app.register_blueprint(
             "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
             "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
             "db_path": DB_PATH,
+            "forcar_migracao_schema": forcar_migracao_schema,
         }
     )
 )

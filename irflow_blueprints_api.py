@@ -80,6 +80,7 @@ def create_api_blueprint(deps):
     carregar_configuracoes_integracoes = deps["carregar_configuracoes_integracoes"]
     salvar_configuracoes_integracoes = deps["salvar_configuracoes_integracoes"]
     db_path = deps["db_path"]
+    forcar_migracao_schema = deps["forcar_migracao_schema"]
 
     def usuario_logado():
         return bool(session.get("usuario_id"))
@@ -2236,6 +2237,8 @@ def create_api_blueprint(deps):
                 os.makedirs(backup_dir, exist_ok=True)
                 shutil.copy2(db_path, os.path.join(backup_dir, f"pre-restore-{stamp}.db"))
             shutil.copy2(tmp.name, db_path)
+            # Garante colunas/tabelas novas quando o backup é de schema antigo.
+            forcar_migracao_schema()
         finally:
             try:
                 os.unlink(tmp.name)

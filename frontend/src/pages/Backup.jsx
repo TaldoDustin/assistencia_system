@@ -96,7 +96,7 @@ export default function Backup() {
     }
   };
 
-
+  if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
         <Lock className="h-10 w-10" />

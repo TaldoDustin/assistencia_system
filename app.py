@@ -1352,6 +1352,33 @@ def serve_react(path):
 def serve_react_assets(filename):
     return send_from_directory(os.path.join(REACT_DIST, "assets"), filename)
 
+
+_MERCADO_PHONE_SYNC_THREAD_STARTED = False
+
+
+def iniciar_sync_mercadophone_se_habilitado():
+    """Inicia thread de sincronização automática no processo atual, quando configurado."""
+    global _MERCADO_PHONE_SYNC_THREAD_STARTED
+
+    if _MERCADO_PHONE_SYNC_THREAD_STARTED:
+        return
+
+    if not (MERCADO_PHONE_SYNC_ENABLED and MERCADO_PHONE_API_TOKEN):
+        return
+
+    sync_thread = threading.Thread(
+        target=loop_sincronizacao_mercado_phone,
+        args=(conectar, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS),
+        daemon=True,
+    )
+    sync_thread.start()
+    _MERCADO_PHONE_SYNC_THREAD_STARTED = True
+
+
+# Em produção (Render/Gunicorn), o módulo é importado sem passar por __main__.
+# Por isso iniciamos a sincronização aqui também.
+iniciar_sync_mercadophone_se_habilitado()
+
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -1362,13 +1389,7 @@ if __name__ == "__main__":
     debug_mode = not is_frozen and not is_server
 
     # Inicia thread de sincronização Mercado Phone se habilitada
-    if MERCADO_PHONE_SYNC_ENABLED and MERCADO_PHONE_API_TOKEN:
-        sync_thread = threading.Thread(
-            target=loop_sincronizacao_mercado_phone,
-            args=(conectar, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS),
-            daemon=True,
-        )
-        sync_thread.start()
+    iniciar_sync_mercadophone_se_habilitado()
 
     # Abre navegador automaticamente apenas no modo desktop (não no servidor)
     if not is_server and not os.environ.get("IR_FLOW_NO_BROWSER"):

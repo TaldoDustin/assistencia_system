@@ -24,7 +24,11 @@ Adicione as variáveis necessárias em **Environment > Add Environment Variable*
 - `MERCADO_PHONE_API_TOKEN` (opcional)
 - `IR_FLOW_HOST=0.0.0.0`
 - `IR_FLOW_PORT=8080`
-- `FLY_DATA_DIR=/data` (ou `RENDER_DISK_PATH=/data` se preferir)
+- `IR_FLOW_DATA_DIR=/data` (recomendado)
+- `RENDER_DISK_PATH=/data` (alternativa)
+- `IR_FLOW_CORS_ORIGINS=https://assistencia-system.vercel.app` (ou uma lista separada por vírgula)
+
+> Dica: se usar preview URLs do Vercel, inclua também esses domínios em `IR_FLOW_CORS_ORIGINS`.
 
 ### 5. Volume persistente (Disks)
 - Em **Disks**, clique em **Add Disk**

@@ -12,13 +12,19 @@ import math
 
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
-from app import conectar
 
 from irflow_price_tables import sugerir_preco_tabela
 
 
 def create_api_blueprint(deps):
     api = Blueprint("api", __name__, url_prefix="/api")
+    conectar = deps["conectar"]
+    check_password_hash = deps["check_password_hash"]
+    generate_password_hash = deps["generate_password_hash"]
+    public_base_url = deps.get("public_base_url", "")
+
+    def usuario_logado():
+        return bool(session.get("usuario_id"))
 
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]

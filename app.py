@@ -142,9 +142,16 @@ if getattr(sys, "frozen", False):
 else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
     RESOURCE_DIR = APP_DIR
-    # FLY_DATA_DIR é definido no fly.toml e aponta para o volume persistente (/data)
-    # Em desenvolvimento local, usa o próprio diretório da app
-    DATA_DIR = os.environ.get("FLY_DATA_DIR") or APP_DIR
+    # Em produção (Fly/Render), usa diretório persistente quando configurado.
+    # Em desenvolvimento local, usa o próprio diretório da app.
+    SERVER_DATA_DIR = (
+        os.environ.get("IR_FLOW_DATA_DIR")
+        or os.environ.get("FLY_DATA_DIR")
+        or os.environ.get("RENDER_DISK_PATH")
+    )
+    if not SERVER_DATA_DIR and os.path.isdir("/data"):
+        SERVER_DATA_DIR = "/data"
+    DATA_DIR = SERVER_DATA_DIR or APP_DIR
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -162,7 +169,14 @@ if getattr(sys, "frozen", False) and not os.path.exists(DB_PATH) and os.path.exi
 # CONFIGURAÇÃO DE BACKUP E ARMAZENAMENTO
 # ============================================================================
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
-APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if os.environ.get("FLY_DATA_DIR") else "127.0.0.1")
+IS_SERVER_RUNTIME = bool(
+    os.environ.get("IR_FLOW_DATA_DIR")
+    or os.environ.get("FLY_DATA_DIR")
+    or os.environ.get("RENDER_DISK_PATH")
+    or os.environ.get("RENDER")
+    or os.environ.get("RENDER_SERVICE_ID")
+)
+APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 PUBLIC_BASE_URL = (os.environ.get("IR_FLOW_PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
 GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
@@ -203,13 +217,31 @@ from flask_cors import CORS
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
 
-# Configuração de CORS para aceitar requisições do frontend Vercel
-VERCEL_URL = os.environ.get("VERCEL_URL")  # Ex: https://irflow-frontend.vercel.app
-if VERCEL_URL:
-    CORS(app, origins=[VERCEL_URL], supports_credentials=True)
+# Cookies de sessão: em produção cross-site (Vercel -> Render), o navegador
+# exige SameSite=None + Secure para enviar cookie com credentials: include.
+if IS_SERVER_RUNTIME:
+    app.config["SESSION_COOKIE_SAMESITE"] = "None"
+    app.config["SESSION_COOKIE_SECURE"] = True
 else:
-    # Permite tudo em desenvolvimento/local
-    CORS(app, supports_credentials=True)
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+
+# Configuração de CORS para aceitar requisições do frontend.
+# Pode ser definido como lista separada por vírgula em IR_FLOW_CORS_ORIGINS.
+VERCEL_URL = os.environ.get("VERCEL_URL")  # Ex: https://assistencia-system.vercel.app
+cors_origins_env = (os.environ.get("IR_FLOW_CORS_ORIGINS") or "").strip()
+if cors_origins_env:
+    cors_origins = [item.strip() for item in cors_origins_env.split(",") if item.strip()]
+elif VERCEL_URL:
+    cors_origins = [VERCEL_URL]
+else:
+    cors_origins = [
+        r"https://.*\\.vercel\\.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+CORS(app, origins=cors_origins, supports_credentials=True)
 
 # FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================
@@ -1246,7 +1278,7 @@ def serve_react_assets(filename):
 
 if __name__ == "__main__":
     is_frozen = getattr(sys, "frozen", False)
-    is_server = bool(os.environ.get("FLY_DATA_DIR"))
+    is_server = IS_SERVER_RUNTIME
     debug_mode = not is_frozen and not is_server
 
     # Inicia thread de sincronização Mercado Phone se habilitada

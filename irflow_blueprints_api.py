@@ -79,6 +79,7 @@ def create_api_blueprint(deps):
     integrations_config_path = deps["integrations_config_path"]
     carregar_configuracoes_integracoes = deps["carregar_configuracoes_integracoes"]
     salvar_configuracoes_integracoes = deps["salvar_configuracoes_integracoes"]
+    db_path = deps["db_path"]
 
     def usuario_logado():
         return bool(session.get("usuario_id"))
@@ -2204,7 +2205,45 @@ def create_api_blueprint(deps):
             return err("Acesso negado.", 403)
         return send_from_directory(backup_dir, filename, as_attachment=True)
 
-    # ── MERCADOPHONE SYNC ──────────────────────────────────────────────────
+    @api.route("/backup/restaurar", methods=["POST"])
+    def restaurar_backup_upload():
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+        if "arquivo" not in request.files:
+            return err("Envie o arquivo no campo 'arquivo'.", 400)
+        f = request.files["arquivo"]
+        if not f.filename or not f.filename.lower().endswith(".db"):
+            return err("O arquivo deve ter extensão .db", 400)
+        # Valida que é um SQLite legítimo lendo o magic header
+        header = f.read(16)
+        if not header.startswith(b"SQLite format 3"):
+            return err("Arquivo inválido: não é um banco SQLite.", 400)
+        f.seek(0)
+        import sqlite3 as _sqlite3, tempfile, shutil
+        # Salva em temp para validar antes de sobrescrever
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+        try:
+            f.save(tmp.name)
+            # Testa integridade
+            test_conn = _sqlite3.connect(tmp.name)
+            result = test_conn.execute("PRAGMA integrity_check").fetchone()
+            test_conn.close()
+            if result[0] != "ok":
+                return err(f"Banco corrompido: {result[0]}", 400)
+            # Faz backup do atual antes de substituir
+            if os.path.exists(db_path):
+                stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                os.makedirs(backup_dir, exist_ok=True)
+                shutil.copy2(db_path, os.path.join(backup_dir, f"pre-restore-{stamp}.db"))
+            shutil.copy2(tmp.name, db_path)
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except Exception:
+                pass
+        return ok(mensagem="Backup restaurado com sucesso.")
+
+
 
     @api.route("/integracoes/mercadophone/sincronizar", methods=["POST"])
     def sincronizar_mercadophone():

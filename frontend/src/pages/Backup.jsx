@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, HardDriveDownload, Loader2, Lock, RefreshCw } from "lucide-react";
+import { Download, HardDriveDownload, Loader2, Lock, RefreshCw, Upload } from "lucide-react";
 import { backup as backupApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,9 @@ export default function Backup() {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [versao, setVersao] = useState("");
+  const fileInputRef = useRef(null);
   const latestBackup = backups[0];
 
   const isAdmin = user?.perfil === "admin";
@@ -46,8 +48,7 @@ export default function Backup() {
     }
   }, [isAdmin]);
 
-  const handleCreateBackup = async () => {
-    setCreating(true);
+  const handleCreateBackup = async () => {    setCreating(true);
     try {
       const payload = versao.trim() ? { versao: versao.trim() } : undefined;
       const res = await backupApi.criar(payload);
@@ -65,7 +66,37 @@ export default function Backup() {
     }
   };
 
-  if (!isAdmin) {
+  const handleRestaurar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".db")) {
+      toast.error("Selecione um arquivo .db");
+      return;
+    }
+    if (!window.confirm(`Restaurar "${file.name}"? O banco atual será substituído (um backup automático será feito antes).`)) {
+      e.target.value = "";
+      return;
+    }
+    setRestoring(true);
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", file);
+      const res = await backupApi.restaurar(fd);
+      if (res?.ok) {
+        toast.success("Backup restaurado com sucesso! Recarregue a página.");
+        fetchBackups();
+      } else {
+        toast.error(res?.erro || "Erro ao restaurar backup");
+      }
+    } catch {
+      toast.error("Erro ao restaurar backup");
+    } finally {
+      setRestoring(false);
+      e.target.value = "";
+    }
+  };
+
+
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
         <Lock className="h-10 w-10" />
@@ -102,6 +133,17 @@ export default function Backup() {
           <Button onClick={handleCreateBackup} disabled={creating}>
             {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDriveDownload className="h-4 w-4 mr-2" />}
             {creating ? "Criando..." : "Criar backup"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".db"
+            className="hidden"
+            onChange={handleRestaurar}
+          />
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={restoring || creating}>
+            {restoring ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            {restoring ? "Restaurando..." : "Restaurar backup"}
           </Button>
         </div>
       </div>

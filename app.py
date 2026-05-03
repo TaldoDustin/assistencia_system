@@ -1251,6 +1251,7 @@ app.register_blueprint(
             "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
             "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
             "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
+            "db_path": DB_PATH,
         }
     )
 )

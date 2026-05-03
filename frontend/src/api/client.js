@@ -225,4 +225,9 @@ export const backup = {
   criar:    (data)   => post("/backup/criar", data),
   list:     ()       => get("/backup/listar"),
   download: (file)   => `${BASE}/backup/download/${encodeURIComponent(file)}`,
+  restaurar: (formData) => fetch(`${BASE}/backup/restaurar`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  }).then((r) => r.json()),
 };

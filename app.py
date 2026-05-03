@@ -392,6 +392,7 @@ def criar_tabelas():
                 fornecedor TEXT,
                 quantidade INTEGER,
                 data_compra TEXT,
+                sku TEXT,
                 modelo TEXT,
                 tipo TEXT,
                 qualidade TEXT
@@ -563,7 +564,10 @@ def criar_tabelas():
             except sqlite3.OperationalError:
                 pass
 
-            # Campo SKU removido
+            try:
+                cursor.execute("ALTER TABLE estoque ADD COLUMN sku TEXT")
+            except sqlite3.OperationalError:
+                pass
 
             try:
                 cursor.execute("ALTER TABLE estoque ADD COLUMN tipo TEXT")
@@ -575,7 +579,12 @@ def criar_tabelas():
             except sqlite3.OperationalError:
                 pass
 
-            # Índice SKU removido
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_estoque_sku
+                ON estoque (sku)
+                """
+            )
 
             cursor.execute(
                 """
@@ -599,7 +608,10 @@ def criar_tabelas():
                 if modelo_norm != (modelo_atual or ""):
                     cursor.execute("UPDATE estoque SET modelo=? WHERE id=?", (modelo_norm, item_id))
 
-            # Normalização SKU removida
+            cursor.execute("SELECT id, COALESCE(sku, '') FROM estoque")
+            for item_id, sku_atual in cursor.fetchall():
+                if not (sku_atual or "").strip():
+                    cursor.execute("UPDATE estoque SET sku=? WHERE id=?", (f"ITEM-{item_id}", item_id))
 
             cursor.execute(
                 """

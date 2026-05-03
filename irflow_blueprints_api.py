@@ -217,79 +217,59 @@ def create_api_blueprint(deps):
         return base
 
     def _normalizar_tipo_estoque(valor):
-        def atualizar_estoque(item_id):
-            if not usuario_logado():
-                return err("Não autenticado.", 401)
+        texto = (valor or "").strip().lower()
+        for opcao in ESTOQUE_TIPOS:
+            if texto == opcao.lower():
+                return opcao
+        return "Outros"
 
-            body = request.get_json(silent=True) or {}
-            descricao = (body.get("descricao") or "").strip()
-            modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
-            tipo = _normalizar_tipo_estoque(body.get("tipo"))
-            qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
-            valor = float(body.get("valor") or 0)
-            fornecedor = (body.get("fornecedor") or "Nao informado").strip()
-            quantidade_nova = int(body.get("quantidade") or 0)
-            data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
+    def _normalizar_qualidade_estoque(valor):
+        texto = (valor or "").strip().lower()
+        for opcao in ESTOQUE_QUALIDADES:
+            if texto == opcao.lower():
+                return opcao
+        return "Padrao"
 
-            if not descricao or valor <= 0:
-                return err("Preencha descrição e valor.")
+    def _gerar_sku_estoque(modelo, tipo, qualidade, descricao):
+        partes = [
+            _slug_estoque(modelo)[:10],
+            _slug_estoque(tipo)[:8],
+            _slug_estoque(qualidade)[:8],
+            _slug_estoque(descricao)[:10],
+        ]
+        partes = [p for p in partes if p]
+        if not partes:
+            return "ITEM"
+        return "-".join(partes)
 
-            conn = conectar()
-            cursor = conn.cursor()
-            try:
-                cursor.execute("SELECT quantidade, descricao FROM estoque WHERE id=?", (item_id,))
-                row = cursor.fetchone()
-                if not row:
-                    return err("Item não encontrado.", 404)
-                qtd_antiga = row[0] or 0
+    def _recalcular_custo_medio(cursor, estoque_id):
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(SUM(COALESCE(valor_compra, 0) * COALESCE(quantidade_disponivel, 0)), 0),
+                COALESCE(SUM(COALESCE(quantidade_disponivel, 0)), 0)
+            FROM estoque_lotes
+            WHERE estoque_id = ?
+            """,
+            (estoque_id,),
+        )
+        total_valor, total_qtd = cursor.fetchone() or (0, 0)
+        total_qtd = int(total_qtd or 0)
 
-                cursor.execute(
-                    """
-                    SELECT id
-                    FROM estoque
-                    WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=? AND id<>?
-                    """,
-                    (modelo, tipo, qualidade, item_id),
-                )
-                if cursor.fetchone() and not body.get("forcar_novo"):
-                    return err("Já existe item com mesmo modelo, tipo e qualidade.")
+        if total_qtd > 0:
+            valor_medio = float(total_valor or 0) / total_qtd
+            cursor.execute("UPDATE estoque SET valor=? WHERE id=?", (round(valor_medio, 2), estoque_id))
 
-                cursor.execute(
-                    """
-                    UPDATE estoque
-                    SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, tipo=?, qualidade=?
-                    WHERE id=?
-                    """,
-                    (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, tipo, qualidade, item_id),
-                )
-                diff = quantidade_nova - qtd_antiga
-                if diff != 0:
-                    if diff > 0:
-                        cursor.execute(
-                            """
-                            INSERT INTO estoque_lotes (
-                                estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
-                            )
-                            VALUES (?,?,?,?,?,?,?,?)
-                            """,
-                            (item_id, fornecedor, valor, diff, diff, data_compra, "", datetime.now().isoformat()),
-                        )
-                    else:
-                        cursor.execute(
-                            """
-                            UPDATE estoque_lotes
-                            SET quantidade_disponivel = quantidade_disponivel + ?
-                            WHERE estoque_id = ?
-                            """,
-                            (diff, item_id),
-                        )
-                conn.commit()
-                return ok()
-            except Exception as e:
-                conn.rollback()
-                return err(f"Erro ao atualizar item: {e}")
-            finally:
-                conn.close()
+    def _status_item_estoque(quantidade, ultima_movimentacao, consumo_90d):
+        qtd = int(quantidade or 0)
+        consumo = int(consumo_90d or 0)
+        if qtd > 0:
+            return "disponivel"
+        if consumo > 0:
+            return "esgotado_ativo"
+        if not (ultima_movimentacao or "").strip():
+            return "inativo"
+        return "esgotado"
 
     def _parse_checklist_json(value):
         texto = (value or "").strip()

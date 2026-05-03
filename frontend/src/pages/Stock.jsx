@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -394,6 +394,9 @@ export default function Stock() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editId ? "Editar Peça" : "Nova Peça"}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados da peça para cadastrar ou atualizar no estoque.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
               {/* Campo SKU removido */}

@@ -177,6 +177,7 @@ IS_SERVER_RUNTIME = bool(
     or os.environ.get("RENDER")
     or os.environ.get("RENDER_SERVICE_ID")
 )
+BACKGROUND_JOBS_ENABLED = (os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "0" if IS_SERVER_RUNTIME else "1").strip().lower() not in {"0", "false", "nao", "off"})
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 PUBLIC_BASE_URL = (os.environ.get("IR_FLOW_PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
@@ -685,14 +686,15 @@ def forcar_migracao_schema():
 
 
 criar_tabelas()
-iniciar_thread_backup_automatico(
-    BACKUP_DIR,
-    GOOGLE_DRIVE_BACKUP_DIR,
-    conectar,
-    email_remetente=BACKUP_EMAIL_REMETENTE,
-    email_senha_app=BACKUP_EMAIL_SENHA_APP,
-    email_destino=BACKUP_EMAIL_DESTINO,
-)
+if BACKGROUND_JOBS_ENABLED:
+    iniciar_thread_backup_automatico(
+        BACKUP_DIR,
+        GOOGLE_DRIVE_BACKUP_DIR,
+        conectar,
+        email_remetente=BACKUP_EMAIL_REMETENTE,
+        email_senha_app=BACKUP_EMAIL_SENHA_APP,
+        email_destino=BACKUP_EMAIL_DESTINO,
+    )
 
 
 def criar_admin_padrao():
@@ -1394,6 +1396,9 @@ def iniciar_sync_mercadophone_se_habilitado():
     global _MERCADO_PHONE_SYNC_THREAD_STARTED
 
     if _MERCADO_PHONE_SYNC_THREAD_STARTED:
+        return
+
+    if not BACKGROUND_JOBS_ENABLED:
         return
 
     if not (MERCADO_PHONE_SYNC_ENABLED and MERCADO_PHONE_API_TOKEN):

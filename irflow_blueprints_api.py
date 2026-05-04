@@ -281,6 +281,23 @@ def create_api_blueprint(deps):
             return {}
         return parsed if isinstance(parsed, dict) else {}
 
+    def _checklist_status(value):
+        texto = (value or "").strip().lower().replace(" ", "_")
+        aliases = {
+            "": "nao_testado",
+            "nao": "reprovado",
+            "nao_testado": "nao_testado",
+            "nao-testado": "nao_testado",
+            "pendente": "nao_testado",
+            "ok": "aprovado",
+            "passou": "aprovado",
+            "aprovado": "aprovado",
+            "falhou": "reprovado",
+            "falha": "reprovado",
+            "reprovado": "reprovado",
+        }
+        return aliases.get(texto, "nao_testado")
+
     def _serialize_checklist(cursor, row):
         if not row:
             return None

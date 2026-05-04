@@ -337,6 +337,17 @@ SQLITE_TIMEOUT_SECONDS = max(5, int(os.environ.get("IR_FLOW_SQLITE_TIMEOUT_SECON
 SQLITE_BUSY_TIMEOUT_MS = SQLITE_TIMEOUT_SECONDS * 1000
 
 
+def _configurar_conexao_sqlite(conn, habilitar_wal=False):
+    conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    if habilitar_wal:
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower():
+                raise
+
+
 # ============================================================================
 # FUNÇÕES DE DATABASE
 # ============================================================================
@@ -346,9 +357,7 @@ def conectar():
     """Cria conexão com banco de dados e garante schema."""
     criar_tabelas()
     conn = sqlite3.connect(DB_PATH, timeout=SQLITE_TIMEOUT_SECONDS)
-    conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA synchronous = NORMAL")
+    _configurar_conexao_sqlite(conn)
     return conn
 
 
@@ -364,9 +373,7 @@ def criar_tabelas():
             return
 
         conn = sqlite3.connect(DB_PATH, timeout=SQLITE_TIMEOUT_SECONDS)
-        conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA synchronous = NORMAL")
+        _configurar_conexao_sqlite(conn, habilitar_wal=True)
         cursor = conn.cursor()
 
         try:
@@ -661,6 +668,11 @@ def criar_tabelas():
 
             conn.commit()
             SCHEMA_READY = True
+        except sqlite3.OperationalError as exc:
+            if "locked" in str(exc).lower():
+                # Outro worker pode estar aplicando o schema neste instante.
+                return
+            raise
         finally:
             conn.close()
 

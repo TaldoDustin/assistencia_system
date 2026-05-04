@@ -333,6 +333,8 @@ def parse_data_ymd(valor):
 # ============================================================================
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
+SQLITE_TIMEOUT_SECONDS = max(5, int(os.environ.get("IR_FLOW_SQLITE_TIMEOUT_SECONDS", "30")))
+SQLITE_BUSY_TIMEOUT_MS = SQLITE_TIMEOUT_SECONDS * 1000
 
 
 # ============================================================================
@@ -343,7 +345,11 @@ SCHEMA_READY = False
 def conectar():
     """Cria conexão com banco de dados e garante schema."""
     criar_tabelas()
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=SQLITE_TIMEOUT_SECONDS)
+    conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    return conn
 
 
 def criar_tabelas():
@@ -357,7 +363,10 @@ def criar_tabelas():
         if SCHEMA_READY:
             return
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DB_PATH, timeout=SQLITE_TIMEOUT_SECONDS)
+        conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
         cursor = conn.cursor()
 
         try:

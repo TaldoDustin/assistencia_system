@@ -1388,29 +1388,10 @@ def create_api_blueprint(deps):
 
         if not descricao or valor <= 0 or quantidade < 0:
             return err("Preencha descrição, valor e quantidade.")
-        if not sku:
-            sku = _gerar_sku_estoque(modelo, tipo, qualidade, descricao)
 
         conn = conectar()
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT id FROM estoque WHERE upper(COALESCE(sku,''))=upper(?)", (sku,))
-            existente_sku = cursor.fetchone()
-            if existente_sku:
-                return err("SKU já cadastrado. Use outro SKU ou atualize o item existente.")
-
-            cursor.execute(
-                """
-                SELECT id
-                FROM estoque
-                WHERE COALESCE(modelo,'')=? AND COALESCE(tipo,'Outros')=? AND COALESCE(qualidade,'Padrao')=?
-                """,
-                (modelo, tipo, qualidade),
-            )
-            existente_tripla = cursor.fetchone()
-            if existente_tripla and not body.get("forcar_novo"):
-                return err("Já existe item com mesmo modelo, tipo e qualidade. Reaproveite o cadastro existente.")
-
             cursor.execute(
                 """
                 INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, sku, tipo, qualidade)
@@ -1467,8 +1448,6 @@ def create_api_blueprint(deps):
 
         if not descricao or valor <= 0:
             return err("Preencha descrição e valor.")
-        if not sku:
-            sku = _gerar_sku_estoque(modelo, tipo, qualidade, descricao)
 
         conn = conectar()
         cursor = conn.cursor()
@@ -1478,10 +1457,9 @@ def create_api_blueprint(deps):
             if not row:
                 return err("Item não encontrado.", 404)
             qtd_antiga = row[0] or 0
-
-            cursor.execute("SELECT id FROM estoque WHERE upper(COALESCE(sku,''))=upper(?) AND id<>?", (sku, item_id))
-            if cursor.fetchone():
-                return err("SKU já utilizado por outro item.")
+            sku_atual = (row[2] or "").strip().upper()
+            if not sku:
+                sku = sku_atual
 
             # Permitir sempre editar, mesmo se existir outro com modelo/tipo/qualidade igual
 

@@ -91,7 +91,7 @@ def extrair_ids_os_listagem_mercado_phone(payload, texto_limpo):
     for item in itens:
         if not isinstance(item, dict):
             continue
-        external_id = texto_limpo(item.get("id") or item.get("codigo"))
+        external_id = texto_limpo(item.get("codigo") or item.get("id"))
         if external_id and external_id not in ids:
             ids.append(external_id)
     return ids
@@ -284,6 +284,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
             payload,
             ("id_externo",),
             ("external_id",),
+            ("codigo",),
             ("id",),
             ("os_id",),
             ("ordem_servico_id",),
@@ -302,8 +303,22 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
         ("mercado_phone", external_id),
     )
     existente = cursor.fetchone()
+    
+    # Se a OS já existe, atualizar o status e outras informações
     if existente:
-        return {"os_id": existente[0], "duplicada": True}
+        os_id = existente[0]
+        status = normalizar_status_os(
+            valor_payload(
+                payload,
+                ("situacaoDescricao",),
+                ("status",),
+            )
+        )
+        
+        if status:
+            cursor.execute("UPDATE os SET status=? WHERE id=?", (status, os_id))
+        
+        return {"os_id": os_id, "duplicada": False, "atualizada": True}
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
     if not aparelho_info and isinstance(payload.get("aparelho"), dict):
@@ -577,26 +592,20 @@ def sincronizar_mercado_phone(conectar, config, helpers):
         ignoradas = 0
 
         if not inicializada and config["sync_only_after_boot"]:
-            for external_id in ids_encontrados:
-                marcar_os_integracao_vista(cursor, origem, external_id)
             definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
             definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             conn.commit()
             return {"ok": True, "importadas": 0, "ignoradas": len(ids_encontrados), "inicializada": True}
 
         for external_id in ids_encontrados:
-            if os_integracao_ja_vista(cursor, origem, external_id):
-                ignoradas += 1
-                continue
-
             detalhes = detalhar_os_mercado_phone(external_id, config)
             payload_importacao = detalhes if isinstance(detalhes, dict) else {}
             if isinstance(payload_importacao.get("data"), dict):
                 payload_importacao = payload_importacao["data"]
 
             resultado = importar_os_mercado_phone(cursor, payload_importacao, config, helpers)
-            marcar_os_integracao_vista(cursor, origem, external_id)
-            if resultado["duplicada"]:
+            
+            if resultado.get("atualizada"):
                 ignoradas += 1
             else:
                 importadas += 1

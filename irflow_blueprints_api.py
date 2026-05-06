@@ -74,6 +74,7 @@ def create_api_blueprint(deps):
     check_password_hash = deps["check_password_hash"]
     generate_password_hash = deps["generate_password_hash"]
     sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
+    reimportar_todas_os_mercado_phone = deps["reimportar_todas_os_mercado_phone"]
     reprocessar_todas_os_mercado_phone = deps["reprocessar_todas_os_mercado_phone"]
     mercado_phone_runtime_config = deps["mercado_phone_runtime_config"]
     mercado_phone_helpers = deps["mercado_phone_helpers"]
@@ -178,6 +179,39 @@ def create_api_blueprint(deps):
                 reprocessamento_mp_estado["rodando"] = False
                 reprocessamento_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 reprocessamento_mp_estado["erro"] = str(exc)
+
+    reimportacao_mp_lock = threading.Lock()
+    reimportacao_mp_estado = {
+        "rodando": False,
+        "iniciado_em": None,
+        "finalizado_em": None,
+        "removidas": 0,
+        "importadas": 0,
+        "atualizadas": 0,
+        "erro": "",
+    }
+
+    def _snapshot_reimportacao_mp():
+        with reimportacao_mp_lock:
+            return dict(reimportacao_mp_estado)
+
+    def _executar_reimportacao_mp_async():
+        try:
+            resultado = reimportar_todas_os_mercado_phone(
+                conectar, mercado_phone_runtime_config, mercado_phone_helpers
+            )
+            with reimportacao_mp_lock:
+                reimportacao_mp_estado["rodando"] = False
+                reimportacao_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reimportacao_mp_estado["removidas"] = int(resultado.get("removidas") or 0)
+                reimportacao_mp_estado["importadas"] = int(resultado.get("importadas") or 0)
+                reimportacao_mp_estado["atualizadas"] = int(resultado.get("atualizadas") or 0)
+                reimportacao_mp_estado["erro"] = ""
+        except Exception as exc:
+            with reimportacao_mp_lock:
+                reimportacao_mp_estado["rodando"] = False
+                reimportacao_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reimportacao_mp_estado["erro"] = str(exc)
 
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
@@ -2311,6 +2345,43 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
         return ok(reprocessamento=_snapshot_reprocessamento_mp())
+
+    @api.route("/integracoes/mercadophone/reimportar", methods=["POST", "OPTIONS"])
+    def reimportar_mercadophone():
+        if request.method == "OPTIONS":
+            return ("", 204)
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        try:
+            _, mp_cfg = _carregar_config_mercadophone()
+            status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
+            if not status_cfg["configurado"]:
+                return err("Mercado Phone não configurado. Informe o token da API.", 400)
+
+            with reimportacao_mp_lock:
+                if reimportacao_mp_estado["rodando"]:
+                    estado = dict(reimportacao_mp_estado)
+                    return ok(iniciado=False, reimportacao=estado)
+
+                reimportacao_mp_estado["rodando"] = True
+                reimportacao_mp_estado["iniciado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reimportacao_mp_estado["finalizado_em"] = None
+                reimportacao_mp_estado["removidas"] = 0
+                reimportacao_mp_estado["importadas"] = 0
+                reimportacao_mp_estado["atualizadas"] = 0
+                reimportacao_mp_estado["erro"] = ""
+                estado = dict(reimportacao_mp_estado)
+
+            threading.Thread(target=_executar_reimportacao_mp_async, daemon=True).start()
+            return ok(iniciado=True, reimportacao=estado), 202
+        except Exception as exc:
+            return err(str(exc))
+
+    @api.route("/integracoes/mercadophone/reimportar/status")
+    def status_reimportar_mercadophone():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        return ok(reimportacao=_snapshot_reimportacao_mp())
 
     @api.route("/integracoes/mercadophone/status")
     def status_mercadophone():

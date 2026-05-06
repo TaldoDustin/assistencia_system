@@ -41,7 +41,9 @@ export default function Orders() {
   const [filters, setFilters] = useState({});
   const [deleteId, setDeleteId] = useState(null);
   const [reprocessando, setReprocessando] = useState(false);
+  const [reimportando, setReimportando] = useState(false);
   const pollReprocessRef = useRef(null);
+  const pollReimportRef = useRef(null);
 
   const fetchOrdens = async (opts = {}) => {
     const { silent = false } = opts;
@@ -68,6 +70,10 @@ export default function Orders() {
     if (pollReprocessRef.current) {
       clearInterval(pollReprocessRef.current);
       pollReprocessRef.current = null;
+    }
+    if (pollReimportRef.current) {
+      clearInterval(pollReimportRef.current);
+      pollReimportRef.current = null;
     }
   }, []);
 
@@ -132,6 +138,57 @@ export default function Orders() {
     }
   }, []);
 
+  const handleReimportar = useCallback(async () => {
+    const confirmado = window.confirm(
+      "Isso vai remover todas as OSs importadas do Mercado Phone e importar novamente do zero. Deseja continuar?"
+    );
+    if (!confirmado) return;
+
+    setReimportando(true);
+    try {
+      const res = await integracoesApi.mercadophone.reimportar();
+      if (res?.ok) {
+        toast.success(res?.iniciado ? "Reimportação total iniciada" : "Reimportação já está em execução");
+
+        if (pollReimportRef.current) {
+          clearInterval(pollReimportRef.current);
+          pollReimportRef.current = null;
+        }
+
+        pollReimportRef.current = setInterval(async () => {
+          try {
+            const st = await integracoesApi.mercadophone.reimportarStatus();
+            const rp = st?.reimportacao || {};
+            if (!st?.ok) {
+              return;
+            }
+            if (!rp.rodando) {
+              clearInterval(pollReimportRef.current);
+              pollReimportRef.current = null;
+              setReimportando(false);
+              if (rp.erro) {
+                toast.error(`Reimportação falhou: ${rp.erro}`);
+              } else {
+                toast.success(
+                  `Reimportação concluída: ${rp.removidas ?? 0} removidas, ${rp.importadas ?? 0} importadas`
+                );
+              }
+              fetchOrdens({ silent: true });
+            }
+          } catch {
+            // Mantém o polling; o auto-refresh já atualiza a tela.
+          }
+        }, 3000);
+      } else {
+        toast.error(res?.erro || "Erro ao iniciar reimportação");
+        setReimportando(false);
+      }
+    } catch {
+      toast.error("Erro ao reimportar ordens");
+      setReimportando(false);
+    }
+  }, []);
+
   const filtered = applyFilters(ordens, filters);
   const { tecnicos, vendedores } = extractMeta(ordens);
   const abertas = ordens.filter((o) => o.status === "Em andamento" || o.status === "Aguardando peca").length;
@@ -151,13 +208,25 @@ export default function Orders() {
           variant="outline"
           size="sm"
           onClick={handleReprocessar}
-          disabled={reprocessando}
+          disabled={reprocessando || reimportando}
           title="Busca dados atualizados do Mercado Phone para todas as OSs importadas"
         >
           {reprocessando
             ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             : <RefreshCw className="h-4 w-4 mr-2" />}
           Sincronizar OSs
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={handleReimportar}
+          disabled={reimportando || reprocessando}
+          title="Remove e importa novamente todas as OSs do Mercado Phone"
+        >
+          {reimportando
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <RefreshCw className="h-4 w-4 mr-2" />}
+          Reimportar do zero
         </Button>
       </div>
 

@@ -977,3 +977,42 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
             print(f"[MercadoPhone] Erro ao reprocessar OS local {os_id_local}: {type(exc).__name__}: {exc}")
 
     return {"ok": True, "total": total, "atualizadas": atualizadas, "erros": erros}
+
+
+def reimportar_todas_os_mercado_phone(conectar, config, helpers):
+    """
+    Remove todas as OSs importadas do MercadoPhone e importa novamente do zero.
+    """
+    conn = conectar()
+    cursor = conn.cursor()
+    removidas = 0
+
+    try:
+        cursor.execute("SELECT COUNT(1) FROM os WHERE origem_integracao='mercado_phone'")
+        row = cursor.fetchone()
+        removidas = int(row[0] or 0) if row else 0
+
+        cursor.execute(
+            """
+            DELETE FROM os_reparos
+            WHERE os_id IN (SELECT id FROM os WHERE origem_integracao='mercado_phone')
+            """
+        )
+        cursor.execute("DELETE FROM os WHERE origem_integracao='mercado_phone'")
+        cursor.execute("DELETE FROM integracao_os_vistas WHERE origem='mercado_phone'")
+        definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
+        conn.commit()
+    finally:
+        conn.close()
+
+    # Força sincronização manual sem pular por sync_only_after_boot
+    config_forcada = dict(config)
+    config_forcada["sync_only_after_boot"] = False
+    resultado_sync = sincronizar_mercado_phone(conectar, config_forcada, helpers)
+
+    return {
+        "ok": True,
+        "removidas": removidas,
+        "importadas": int(resultado_sync.get("importadas") or 0),
+        "atualizadas": int(resultado_sync.get("ignoradas") or 0),
+    }

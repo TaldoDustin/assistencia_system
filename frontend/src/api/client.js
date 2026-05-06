@@ -263,6 +263,8 @@ export const integracoes = {
     sincronizar: ()    => post("/integracoes/mercadophone/sincronizar"),
     reprocessar: ()    => post("/integracoes/mercadophone/reprocessar"),
     reprocessarStatus: () => get("/integracoes/mercadophone/reprocessar/status"),
+    reimportar: ()     => post("/integracoes/mercadophone/reimportar"),
+    reimportarStatus: () => get("/integracoes/mercadophone/reimportar/status"),
     status:      ()    => get("/integracoes/mercadophone/status"),
   },
 };

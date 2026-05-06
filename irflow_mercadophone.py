@@ -191,11 +191,32 @@ def listar_os_mercado_phone(config, page=1, limit=300):
 
 
 def detalhar_os_mercado_phone(external_id, config):
-    return chamar_api_mercado_phone(
-        "get",
-        {"filters": {"codigo": str(external_id), "id": str(external_id)}},
-        config,
-    )
+    # A API do MercadoPhone retorna payload vazio quando recebe codigo e id juntos.
+    # Primeiro consulta por codigo (ID visível); se vier vazio, tenta por id.
+    tentativas_payload = [
+        {"filters": {"codigo": str(external_id)}},
+        {"filters": {"id": str(external_id)}},
+    ]
+
+    ultima_resposta = {}
+    for payload in tentativas_payload:
+        resposta = chamar_api_mercado_phone("get", payload, config)
+        ultima_resposta = resposta if isinstance(resposta, dict) else {}
+        data = ultima_resposta.get("data") if isinstance(ultima_resposta, dict) else None
+        if isinstance(data, dict) and any(
+            [
+                data.get("codigo"),
+                data.get("id"),
+                data.get("clienteNome"),
+                data.get("situacaoDescricao"),
+                data.get("valorTotal"),
+                bool(data.get("aparelhos")),
+                bool(data.get("servicos")),
+            ]
+        ):
+            return ultima_resposta
+
+    return ultima_resposta
 
 
 def _dividir_reparos_texto_mercado_phone(valor_texto, texto_limpo):

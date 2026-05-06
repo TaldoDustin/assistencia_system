@@ -315,8 +315,15 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
             )
         )
         
-        if status:
+        # Buscar status atual
+        cursor.execute("SELECT status FROM os WHERE id=?", (os_id,))
+        row_status = cursor.fetchone()
+        status_anterior = row_status[0] if row_status else None
+        
+        # Atualizar se status mudou
+        if status and status != status_anterior:
             cursor.execute("UPDATE os SET status=? WHERE id=?", (status, os_id))
+            print(f"[MercadoPhone] Atualizado status da OS {os_id} (código {external_id}): {status_anterior} → {status}")
         
         return {"os_id": os_id, "duplicada": False, "atualizada": True}
 
@@ -692,7 +699,9 @@ def loop_sincronizacao_mercado_phone(conectar, config, helpers):
     while True:
         try:
             if config["sync_enabled"] and config["api_token"]:
-                sincronizar_mercado_phone(conectar, config, helpers)
+                resultado = sincronizar_mercado_phone(conectar, config, helpers)
+                if resultado.get("importadas") > 0 or resultado.get("ignoradas") > 0:
+                    print(f"[MercadoPhone] Sincronização: importadas={resultado.get('importadas')}, atualizadas={resultado.get('ignoradas')}")
         except urllib_error.URLError as exc:
             print(f"[MercadoPhone] Falha de rede na sincronizacao: {type(exc).__name__}: {exc}")
         except Exception as exc:

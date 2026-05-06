@@ -54,7 +54,12 @@ export default function Orders() {
     }
   };
 
-  useEffect(() => { fetchOrdens(); }, []);
+  useEffect(() => { 
+    fetchOrdens();
+    // Auto-refresh a cada 30 segundos
+    const interval = setInterval(fetchOrdens, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleDelete = async () => {
     if (!deleteId) return;

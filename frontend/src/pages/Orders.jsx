@@ -41,23 +41,24 @@ export default function Orders() {
   const [filters, setFilters] = useState({});
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchOrdens = async () => {
-    setLoading(true);
+  const fetchOrdens = async (opts = {}) => {
+    const { silent = false } = opts;
+    if (!silent) setLoading(true);
     try {
       const res = await ordensApi.list();
       if (res?.ok) setOrdens(res.ordens || []);
-      else toast.error("Erro ao carregar ordens");
+      else if (!silent) toast.error("Erro ao carregar ordens");
     } catch {
-      toast.error("Erro ao carregar ordens");
+      if (!silent) toast.error("Erro ao carregar ordens");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => { 
     fetchOrdens();
     // Auto-refresh a cada 30 segundos
-    const interval = setInterval(fetchOrdens, 30000);
+    const interval = setInterval(() => fetchOrdens({ silent: true }), 30000);
     return () => clearInterval(interval);
   }, []);
 

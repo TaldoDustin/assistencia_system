@@ -158,7 +158,7 @@ def listar_os_mercado_phone(config, page=1, limit=300):
 def detalhar_os_mercado_phone(external_id, config):
     return chamar_api_mercado_phone(
         "get",
-        {"filters": {"codigo": "", "id": str(external_id)}},
+        {"filters": {"codigo": str(external_id), "id": str(external_id)}},
         config,
     )
 
@@ -264,7 +264,7 @@ def _extrair_reparos_mercado_phone(texto, nome_reparo_importavel, normalizar_bus
     return reparos
 
 
-def importar_os_mercado_phone(cursor, payload, config, helpers):
+def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_external_id=""):
     if not isinstance(payload, dict):
         raise ValueError("Payload invalido.")
 
@@ -290,7 +290,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers):
             ("ordem_servico_id",),
             ("ordem_servico", "id"),
         )
-    )
+    ) or texto_limpo(fallback_external_id)
     if not external_id:
         raise ValueError("Nao foi encontrado um identificador externo da OS.")
 
@@ -605,17 +605,36 @@ def sincronizar_mercado_phone(conectar, config, helpers):
             return {"ok": True, "importadas": 0, "ignoradas": len(ids_encontrados), "inicializada": True}
 
         for external_id in ids_encontrados:
-            detalhes = detalhar_os_mercado_phone(external_id, config)
-            payload_importacao = detalhes if isinstance(detalhes, dict) else {}
-            if isinstance(payload_importacao.get("data"), dict):
-                payload_importacao = payload_importacao["data"]
+            try:
+                detalhes = detalhar_os_mercado_phone(external_id, config)
+                payload_importacao = detalhes if isinstance(detalhes, dict) else {}
+                if isinstance(payload_importacao.get("data"), dict):
+                    payload_importacao = payload_importacao["data"]
 
-            resultado = importar_os_mercado_phone(cursor, payload_importacao, config, helpers)
-            
-            if resultado.get("atualizada"):
+                if not isinstance(payload_importacao, dict):
+                    payload_importacao = {}
+
+                if "codigo" not in payload_importacao and "id" not in payload_importacao:
+                    payload_importacao["id_externo"] = external_id
+
+                resultado = importar_os_mercado_phone(
+                    cursor,
+                    payload_importacao,
+                    config,
+                    helpers,
+                    fallback_external_id=external_id,
+                )
+
+                if resultado.get("atualizada"):
+                    ignoradas += 1
+                else:
+                    importadas += 1
+            except ValueError as exc:
                 ignoradas += 1
-            else:
-                importadas += 1
+                print(f"[MercadoPhone] OS ignorada ({external_id}): {exc}")
+            except Exception as exc:
+                ignoradas += 1
+                print(f"[MercadoPhone] Erro ao processar OS {external_id}: {type(exc).__name__}: {exc}")
 
         definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
         definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))

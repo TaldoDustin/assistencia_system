@@ -299,6 +299,38 @@ def _extrair_reparos_mercado_phone(texto, nome_reparo_importavel, normalizar_bus
     return reparos
 
 
+def _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
+    if not isinstance(payload, dict):
+        return False
+
+    cliente = texto_limpo(
+        valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente",))
+    )
+    status = texto_limpo(valor_payload(payload, ("situacaoDescricao",), ("status",)))
+    defeito = texto_limpo(valor_payload(payload, ("defeito",), ("observacao",), ("diagnostico",)))
+
+    aparelho_info = primeiro_item_lista(payload, "aparelhos")
+    descricao_aparelho = texto_limpo(
+        valor_payload(payload, ("descricaoAparelho",), ("aparelho", "descricao"), ("descricao",))
+        or valor_payload(aparelho_info, ("descricao",), ("modeloDescricao",), ("modeloDescricaoAparelho",))
+    )
+
+    servicos = []
+    for chave_lista in ("servicos", "servicosOs", "servicos_os", "itensServico", "itens_servico"):
+        servicos = lista_payload(payload, chave_lista)
+        if servicos:
+            break
+
+    valor_total = valor_payload(payload, ("valorTotal",), ("valorTotalServicos",), ("valorTotalPecas",))
+    tem_valor = False
+    try:
+        tem_valor = float(valor_total or 0) > 0
+    except (TypeError, ValueError):
+        tem_valor = False
+
+    return bool(cliente or descricao_aparelho or status or defeito or servicos or tem_valor)
+
+
 def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_external_id=""):
     if not isinstance(payload, dict):
         raise ValueError("Payload invalido.")
@@ -400,6 +432,9 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
             print(f"[MercadoPhone] Atualizado OS {os_id} (código {external_id}): {list(updates.keys())}")
 
         return {"os_id": os_id, "duplicada": False, "atualizada": True}
+
+    if not _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
+        raise ValueError("Payload da OS sem dados suficientes para criar registro.")
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
     if not aparelho_info and isinstance(payload.get("aparelho"), dict):

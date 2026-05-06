@@ -306,7 +306,6 @@ def _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
     cliente = texto_limpo(
         valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente",))
     )
-    status = texto_limpo(valor_payload(payload, ("situacaoDescricao",), ("status",)))
     defeito = texto_limpo(valor_payload(payload, ("defeito",), ("observacao",), ("diagnostico",)))
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
@@ -328,7 +327,9 @@ def _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
     except (TypeError, ValueError):
         tem_valor = False
 
-    return bool(cliente or descricao_aparelho or status or defeito or servicos or tem_valor)
+    # Regra rigorosa: status isolado NAO caracteriza payload suficiente.
+    # Só consideramos válido se vier pelo menos um dado de negócio relevante.
+    return bool(cliente or descricao_aparelho or defeito or servicos or tem_valor)
 
 
 def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_external_id=""):
@@ -434,6 +435,16 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
         return {"os_id": os_id, "duplicada": False, "atualizada": True}
 
     if not _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
+        resumo = {
+            "codigo": texto_limpo(valor_payload(payload, ("codigo",), ("id",))),
+            "clienteNome": texto_limpo(valor_payload(payload, ("clienteNome",))),
+            "descricaoAparelho": texto_limpo(valor_payload(payload, ("descricaoAparelho",), ("descricao",))),
+            "situacao": texto_limpo(valor_payload(payload, ("situacaoDescricao",), ("status",))),
+            "valorTotal": valor_payload(payload, ("valorTotal",), ("valorTotalServicos",)),
+            "servicos": len(lista_payload(payload, "servicos") or lista_payload(payload, "servicosOs")),
+            "aparelhos": len(lista_payload(payload, "aparelhos")),
+        }
+        print(f"[MercadoPhone] Payload insuficiente para criar OS (descartada): {resumo}")
         raise ValueError("Payload da OS sem dados suficientes para criar registro.")
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")

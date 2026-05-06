@@ -163,7 +163,8 @@ def carregar_os_com_relacoes(cursor, order_by="os.id DESC"):
             COALESCE(os.vendedor, ''),
             COALESCE(os.cor, ''),
             COALESCE(os.imei, ''),
-            COALESCE(os.origem_integracao, '')
+            COALESCE(os.origem_integracao, ''),
+            COALESCE(os.id_externo_integracao, '')
         FROM os
         ORDER BY {order_by}
         """

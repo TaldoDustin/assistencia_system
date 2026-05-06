@@ -33,7 +33,11 @@ export default function OrderTable({ orders = [], onDelete }) {
             {orders.map((os) => (
               <tr key={os.id} className="hover:bg-accent/30 transition-colors" data-testid={`order-row-${os.id}`}>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  #{String(os.id).slice(-5)}
+                  #{
+                    os.origem_integracao === "mercado_phone" && os.id_externo_integracao
+                      ? String(os.id_externo_integracao)
+                      : String(os.id).slice(-5)
+                  }
                 </td>
                 <td className="px-4 py-3 font-medium text-card-foreground max-w-[140px] truncate">
                   {os.cliente}

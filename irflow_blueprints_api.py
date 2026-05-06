@@ -661,6 +661,7 @@ def create_api_blueprint(deps):
             "data": row[10] or "",
             "observacoes": row[11] or "" if len(row) > 11 else "",
             "origem_integracao": row[16] or "" if len(row) > 16 else "",
+            "id_externo_integracao": row[17] or "" if len(row) > 17 else "",
         }
 
     @api.route("/ordens")
@@ -695,7 +696,7 @@ def create_api_blueprint(deps):
             reparo_nome = texto_reparos_os(reparos_info, tipo)
 
             if q:
-                haystack = f"{os_id} {row[2]} {row[3]} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {row[14] or ''} {row[15] or ''} {row[16] or ''}".lower()
+                haystack = f"{os_id} {row[2]} {row[3]} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {row[14] or ''} {row[15] or ''} {row[16] or ''} {row[17] or ''}".lower()
                 if q not in haystack:
                     continue
             if filtro_status and status != filtro_status:

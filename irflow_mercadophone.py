@@ -940,6 +940,8 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                     if reparo_id and reparo_id not in reparo_ids:
                         reparo_ids.append(reparo_id)
 
+                reparo_principal_id = reparo_ids[0] if reparo_ids else None
+
                 cursor2.execute(
                     """
                     UPDATE os SET
@@ -951,7 +953,7 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                     WHERE id=?
                     """,
                     (
-                        tipo, cliente, descricao_aparelho or modelo, tecnico, reparo_ids[0],
+                        tipo, cliente, descricao_aparelho or modelo, tecnico, reparo_principal_id,
                         status, valor_cobrado, custo_pecas,
                         observacoes, modelo, vendedor, cor, imei,
                         id_externo_novo,

@@ -2241,8 +2241,10 @@ def create_api_blueprint(deps):
         except Exception as exc:
             return err(str(exc))
 
-    @api.route("/integracoes/mercadophone/reprocessar", methods=["POST"])
+    @api.route("/integracoes/mercadophone/reprocessar", methods=["POST", "OPTIONS"])
     def reprocessar_mercadophone():
+        if request.method == "OPTIONS":
+            return ("", 204)
         if not usuario_logado():
             return err("Não autenticado.", 401)
         try:

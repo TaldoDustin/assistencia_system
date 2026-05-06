@@ -9,6 +9,7 @@ import json
 import re
 import secrets
 import math
+import threading
 
 from flask import Blueprint, jsonify, request, session, send_from_directory
 import os
@@ -144,6 +145,39 @@ def create_api_blueprint(deps):
             "sync_start_date": mercado_phone_runtime_config.get("sync_start_date") or "",
             "api_base": mercado_phone_runtime_config.get("api_base") or "",
         }
+
+    reprocessamento_mp_lock = threading.Lock()
+    reprocessamento_mp_estado = {
+        "rodando": False,
+        "iniciado_em": None,
+        "finalizado_em": None,
+        "atualizadas": 0,
+        "erros": 0,
+        "total": 0,
+        "erro": "",
+    }
+
+    def _snapshot_reprocessamento_mp():
+        with reprocessamento_mp_lock:
+            return dict(reprocessamento_mp_estado)
+
+    def _executar_reprocessamento_mp_async():
+        try:
+            resultado = reprocessar_todas_os_mercado_phone(
+                conectar, mercado_phone_runtime_config, mercado_phone_helpers
+            )
+            with reprocessamento_mp_lock:
+                reprocessamento_mp_estado["rodando"] = False
+                reprocessamento_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reprocessamento_mp_estado["total"] = int(resultado.get("total") or 0)
+                reprocessamento_mp_estado["atualizadas"] = int(resultado.get("atualizadas") or 0)
+                reprocessamento_mp_estado["erros"] = int(resultado.get("erros") or 0)
+                reprocessamento_mp_estado["erro"] = ""
+        except Exception as exc:
+            with reprocessamento_mp_lock:
+                reprocessamento_mp_estado["rodando"] = False
+                reprocessamento_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reprocessamento_mp_estado["erro"] = str(exc)
 
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
@@ -2253,12 +2287,30 @@ def create_api_blueprint(deps):
             if not status_cfg["configurado"]:
                 return err("Mercado Phone não configurado. Informe o token da API.", 400)
 
-            resultado = reprocessar_todas_os_mercado_phone(
-                conectar, mercado_phone_runtime_config, mercado_phone_helpers
-            )
-            return ok(resultado=resultado)
+            with reprocessamento_mp_lock:
+                if reprocessamento_mp_estado["rodando"]:
+                    estado = dict(reprocessamento_mp_estado)
+                    return ok(iniciado=False, reprocessamento=estado)
+
+                reprocessamento_mp_estado["rodando"] = True
+                reprocessamento_mp_estado["iniciado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                reprocessamento_mp_estado["finalizado_em"] = None
+                reprocessamento_mp_estado["atualizadas"] = 0
+                reprocessamento_mp_estado["erros"] = 0
+                reprocessamento_mp_estado["total"] = 0
+                reprocessamento_mp_estado["erro"] = ""
+                estado = dict(reprocessamento_mp_estado)
+
+            threading.Thread(target=_executar_reprocessamento_mp_async, daemon=True).start()
+            return ok(iniciado=True, reprocessamento=estado), 202
         except Exception as exc:
             return err(str(exc))
+
+    @api.route("/integracoes/mercadophone/reprocessar/status")
+    def status_reprocessar_mercadophone():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        return ok(reprocessamento=_snapshot_reprocessamento_mp())
 
     @api.route("/integracoes/mercadophone/status")
     def status_mercadophone():

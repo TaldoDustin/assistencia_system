@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, Loader2, RefreshCw } from "lucide-react";
@@ -41,6 +41,7 @@ export default function Orders() {
   const [filters, setFilters] = useState({});
   const [deleteId, setDeleteId] = useState(null);
   const [reprocessando, setReprocessando] = useState(false);
+  const pollReprocessRef = useRef(null);
 
   const fetchOrdens = async (opts = {}) => {
     const { silent = false } = opts;
@@ -61,6 +62,13 @@ export default function Orders() {
     // Auto-refresh a cada 30 segundos
     const interval = setInterval(() => fetchOrdens({ silent: true }), 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => () => {
+    if (pollReprocessRef.current) {
+      clearInterval(pollReprocessRef.current);
+      pollReprocessRef.current = null;
+    }
   }, []);
 
   const handleDelete = async () => {
@@ -85,15 +93,41 @@ export default function Orders() {
     try {
       const res = await integracoesApi.mercadophone.reprocessar();
       if (res?.ok) {
-        const r = res.resultado || {};
-        toast.success(`Reprocessamento concluído: ${r.atualizadas ?? 0} atualizadas, ${r.erros ?? 0} erros`);
-        fetchOrdens({ silent: true });
+        toast.success(res?.iniciado ? "Reprocessamento iniciado" : "Reprocessamento já está em execução");
+
+        if (pollReprocessRef.current) {
+          clearInterval(pollReprocessRef.current);
+          pollReprocessRef.current = null;
+        }
+
+        pollReprocessRef.current = setInterval(async () => {
+          try {
+            const st = await integracoesApi.mercadophone.reprocessarStatus();
+            const rp = st?.reprocessamento || {};
+            if (!st?.ok) {
+              return;
+            }
+            if (!rp.rodando) {
+              clearInterval(pollReprocessRef.current);
+              pollReprocessRef.current = null;
+              setReprocessando(false);
+              if (rp.erro) {
+                toast.error(`Reprocessamento falhou: ${rp.erro}`);
+              } else {
+                toast.success(`Reprocessamento concluído: ${rp.atualizadas ?? 0} atualizadas, ${rp.erros ?? 0} erros`);
+              }
+              fetchOrdens({ silent: true });
+            }
+          } catch {
+            // Mantém o polling; o auto-refresh já atualiza a tela.
+          }
+        }, 3000);
       } else {
         toast.error(res?.erro || "Erro ao reprocessar");
+        setReprocessando(false);
       }
     } catch {
       toast.error("Erro ao reprocessar ordens");
-    } finally {
       setReprocessando(false);
     }
   }, []);

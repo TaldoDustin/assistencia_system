@@ -78,6 +78,58 @@ IPHONE_COLORS = {
 }
 
 COLOR_ALIAS_MAP = {
+    # Titanio (iPhone 15 Pro+, 16 Pro+) — termos compostos primeiro
+    "black titanium": "Titanio preto",
+    "white titanium": "Titanio branco",
+    "blue titanium": "Titanio azul",
+    "natural titanium": "Titanio natural",
+    "desert titanium": "Titanio-deserto",
+    "titanio preto": "Titanio preto",
+    "titanio negro": "Titanio preto",
+    "titanium preto": "Titanio preto",
+    "titanio branco": "Titanio branco",
+    "titanium branco": "Titanio branco",
+    "titanio azul": "Titanio azul",
+    "titanium azul": "Titanio azul",
+    "titanio natural": "Titanio natural",
+    "titanium natural": "Titanio natural",
+    "titanio deserto": "Titanio-deserto",
+    "titanium deserto": "Titanio-deserto",
+    # Cores compostas específicas — mais longos primeiro para evitar match parcial
+    "verde meia noite": "Verde-meia-noite",
+    "midnight green": "Verde-meia-noite",   # iPhone 11 Pro
+    "verde alpino": "Verde-alpino",
+    "alpine green": "Verde-alpino",         # iPhone 13 Pro
+    "azul pacifico": "Azul-pacifico",
+    "pacific blue": "Azul-pacifico",        # iPhone 12 Pro
+    "azul sierra": "Azul-sierra",
+    "sierra blue": "Azul-sierra",           # iPhone 13 Pro
+    "azul ultramarino": "Azul-ultramarino",
+    "ultramarine": "Azul-ultramarino",      # iPhone 16
+    "ultramarino": "Azul-ultramarino",
+    "verde acinzentado": "Verde-acinzentado",
+    "teal": "Verde-acinzentado",            # iPhone 16
+    "preto espacial": "Preto-espacial",
+    "space black": "Preto-espacial",        # iPhone 14 Pro
+    "cinza espacial": "Cinza-espacial",
+    "space gray": "Cinza-espacial",
+    "space grey": "Cinza-espacial",
+    "spacegray": "Cinza-espacial",
+    "spacegrey": "Cinza-espacial",
+    "roxo profundo": "Roxo-profundo",
+    "deep purple": "Roxo-profundo",         # iPhone 14 Pro
+    "product red": "Vermelho",
+    # Compostos simples
+    "meia noite": "Meia-noite",
+    # Simples — depois dos compostos para não cortar match longo
+    "midnight": "Meia-noite",               # iPhone 13+
+    "starlight": "Estelar",
+    "estelar": "Estelar",
+    "graphite": "Grafite",
+    "grafite": "Grafite",
+    "deserto": "Titanio-deserto",
+    "natural": "Titanio natural",
+    "coral": "Coral",
     "preto": "Preto",
     "black": "Preto",
     "branco": "Branco",
@@ -94,23 +146,30 @@ COLOR_ALIAS_MAP = {
     "yellow": "Amarelo",
     "verde": "Verde",
     "green": "Verde",
-    "estelar": "Estelar",
-    "starlight": "Estelar",
-    "meia noite": "Meia-noite",
-    "midnight": "Meia-noite",
-    "grafite": "Grafite",
-    "graphite": "Grafite",
     "prata": "Prata",
     "silver": "Prata",
     "dourado": "Dourado",
     "gold": "Dourado",
-    "natural": "Titanio natural",
-    "deserto": "Titanio-deserto",
-    "titanio branco": "Titanio branco",
-    "titanio preto": "Titanio preto",
-    "titanio azul": "Titanio azul",
-    "titanio natural": "Titanio natural",
-    "titanio deserto": "Titanio-deserto",
+    "laranja": "Laranja",
+    "orange": "Laranja",
+    "lilas": "Lilas",
+    "lilac": "Lilas",
+    "bege": "Bege",
+    "beige": "Bege",
+    "creme": "Creme",
+    "cream": "Creme",
+    "cinza": "Cinza",
+    "gray": "Cinza",
+    "grey": "Cinza",
+    # Abreviações comuns em lojas/sistemas
+    "mg": "Verde-meia-noite",   # Midnight Green — iPhone 11 Pro
+    "sg": "Cinza-espacial",     # Space Gray
+    "sb": "Preto-espacial",     # Space Black — iPhone 14 Pro
+    "dp": "Roxo-profundo",      # Deep Purple — iPhone 14 Pro
+    "nt": "Titanio natural",    # Natural Titanium
+    "dt": "Titanio-deserto",    # Desert Titanium
+    "bt": "Titanio preto",      # Black Titanium (contexto iPhone 15/16 Pro)
+    "wt": "Titanio branco",     # White Titanium
 }
 
 VENDEDORES = [
@@ -210,7 +269,9 @@ def extrair_cor_da_descricao_aparelho(descricao, modelo=""):
         return ""
 
     cores_modelo = set(obter_cores_modelo_iphone(modelo))
-    for alias, cor in COLOR_ALIAS_MAP.items():
+    # Itera do alias mais longo ao mais curto para evitar match parcial
+    # (ex: "midnight green" antes de "midnight", "space gray" antes de "gray")
+    for alias, cor in sorted(COLOR_ALIAS_MAP.items(), key=lambda x: len(x[0]), reverse=True):
         if alias in texto and (not cores_modelo or cor in cores_modelo):
             return cor
     return ""

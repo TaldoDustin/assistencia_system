@@ -314,17 +314,56 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
                 ("status",),
             )
         )
-        
-        # Buscar status atual
-        cursor.execute("SELECT status FROM os WHERE id=?", (os_id,))
-        row_status = cursor.fetchone()
-        status_anterior = row_status[0] if row_status else None
-        
-        # Atualizar se status mudou
+
+        # Dados que podem ter chegado vazios na importação original
+        cliente_novo = texto_limpo(
+            valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente_nome",), ("cliente",))
+        )
+
+        valor_cobrado_novo = 0.0
+        try:
+            vt = valor_payload(payload, ("valorTotal",), ("valorTotalServicos",))
+            if vt not in (None, "", 0):
+                valor_cobrado_novo = float(vt)
+        except (ValueError, TypeError):
+            pass
+
+        servicos_existente = lista_payload(payload, "servicos") or lista_payload(payload, "servicosOs")
+        custo_pecas_novo = 0.0
+        for s in servicos_existente:
+            try:
+                custo = valor_payload(s, ("valorCusto",))
+                if custo not in (None, "", 0):
+                    custo_pecas_novo += float(custo)
+            except (ValueError, TypeError):
+                pass
+
+        # Buscar estado atual da OS
+        cursor.execute("SELECT status, cliente, valor_cobrado, custo_pecas FROM os WHERE id=?", (os_id,))
+        row_atual = cursor.fetchone()
+        status_anterior = row_atual[0] if row_atual else None
+        cliente_atual = row_atual[1] if row_atual else None
+        valor_cobrado_atual = row_atual[2] if row_atual else None
+        custo_pecas_atual = row_atual[3] if row_atual else None
+
+        updates = {}
         if status and status != status_anterior:
-            cursor.execute("UPDATE os SET status=? WHERE id=?", (status, os_id))
-            print(f"[MercadoPhone] Atualizado status da OS {os_id} (código {external_id}): {status_anterior} → {status}")
-        
+            updates["status"] = status
+        if cliente_novo and (not cliente_atual or cliente_atual in ("Cliente nao informado", "")):
+            updates["cliente"] = cliente_novo
+        if valor_cobrado_novo and (not valor_cobrado_atual or float(valor_cobrado_atual) == 0):
+            updates["valor_cobrado"] = valor_cobrado_novo
+        if custo_pecas_novo and (not custo_pecas_atual or float(custo_pecas_atual) == 0):
+            updates["custo_pecas"] = custo_pecas_novo
+
+        if updates:
+            set_clause = ", ".join(f"{col}=?" for col in updates)
+            cursor.execute(
+                f"UPDATE os SET {set_clause} WHERE id=?",
+                (*updates.values(), os_id),
+            )
+            print(f"[MercadoPhone] Atualizado OS {os_id} (código {external_id}): {list(updates.keys())}")
+
         return {"os_id": os_id, "duplicada": False, "atualizada": True}
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
@@ -524,6 +563,32 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
     ]
     observacoes = " | ".join(parte for parte in observacoes_partes if parte)
 
+    # Valores financeiros
+    valor_cobrado = 0.0
+    try:
+        vt = valor_payload(payload, ("valorTotal",), ("valorTotalServicos",))
+        if vt not in (None, "", 0):
+            valor_cobrado = float(vt)
+    except (ValueError, TypeError):
+        pass
+    if not valor_cobrado:
+        for servico in servicos:
+            try:
+                vc = valor_payload(servico, ("valorCobranca",))
+                if vc not in (None, "", 0):
+                    valor_cobrado += float(vc)
+            except (ValueError, TypeError):
+                pass
+
+    custo_pecas = 0.0
+    for servico in servicos:
+        try:
+            custo = valor_payload(servico, ("valorCusto",))
+            if custo not in (None, "", 0):
+                custo_pecas += float(custo)
+        except (ValueError, TypeError):
+            pass
+
     cursor.execute(
         """
         INSERT INTO os (
@@ -540,9 +605,9 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
             tecnico,
             reparo_ids[0],
             status,
+            valor_cobrado,
             0,
-            0,
-            0,
+            custo_pecas,
             data_os,
             observacoes,
             modelo,

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
-import { ordens as ordensApi } from "@/api/client";
+import { Plus, Loader2, RefreshCw } from "lucide-react";
+import { ordens as ordensApi, integracoes as integracoesApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import OrderFilters from "@/components/orders/OrderFilters";
 import OrderTable from "@/components/orders/OrderTable";
@@ -40,6 +40,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({});
   const [deleteId, setDeleteId] = useState(null);
+  const [reprocessando, setReprocessando] = useState(false);
 
   const fetchOrdens = async (opts = {}) => {
     const { silent = false } = opts;
@@ -79,6 +80,24 @@ export default function Orders() {
     }
   };
 
+  const handleReprocessar = useCallback(async () => {
+    setReprocessando(true);
+    try {
+      const res = await integracoesApi.mercadophone.reprocessar();
+      if (res?.ok) {
+        const r = res.resultado || {};
+        toast.success(`Reprocessamento concluído: ${r.atualizadas ?? 0} atualizadas, ${r.erros ?? 0} erros`);
+        fetchOrdens({ silent: true });
+      } else {
+        toast.error(res?.erro || "Erro ao reprocessar");
+      }
+    } catch {
+      toast.error("Erro ao reprocessar ordens");
+    } finally {
+      setReprocessando(false);
+    }
+  }, []);
+
   const filtered = applyFilters(ordens, filters);
   const { tecnicos, vendedores } = extractMeta(ordens);
   const abertas = ordens.filter((o) => o.status === "Em andamento" || o.status === "Aguardando peca").length;
@@ -94,6 +113,18 @@ export default function Orders() {
         <Link to="/ordens/nova">
           <Button><Plus className="h-4 w-4 mr-2" />Nova OS</Button>
         </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReprocessar}
+          disabled={reprocessando}
+          title="Busca dados atualizados do Mercado Phone para todas as OSs importadas"
+        >
+          {reprocessando
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <RefreshCw className="h-4 w-4 mr-2" />}
+          Sincronizar OSs
+        </Button>
       </div>
 
       {/* Stats bar */}

@@ -791,3 +791,187 @@ def loop_sincronizacao_mercado_phone(conectar, config, helpers):
         except Exception as exc:
             print(f"[MercadoPhone] Falha inesperada na sincronizacao: {type(exc).__name__}: {exc}")
         time.sleep(max(30, config["sync_interval_seconds"]))
+
+
+def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
+    """
+    Busca TODOS os IDs externos de OSs vindas do MercadoPhone,
+    obtém os dados atualizados da API e sobrescreve todos os campos locais.
+    Também corrige o id_externo_integracao para usar o campo 'codigo' (ID visível).
+    """
+    texto_limpo = helpers["texto_limpo"]
+    modelo_para_os = helpers["modelo_para_os"]
+    extrair_modelo_da_descricao_aparelho = helpers["extrair_modelo_da_descricao_aparelho"]
+    extrair_cor_da_descricao_aparelho = helpers["extrair_cor_da_descricao_aparelho"]
+    normalizar_imei = helpers["normalizar_imei"]
+    nome_reparo_importavel = helpers["nome_reparo_importavel"]
+    obter_ou_criar_reparo = helpers["obter_ou_criar_reparo"]
+    salvar_reparos_os = helpers["salvar_reparos_os"]
+    normalizar_busca_texto = helpers["normalizar_busca_texto"]
+    normalizar_status_os = helpers["normalizar_status_os"]
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            "SELECT id, id_externo_integracao FROM os WHERE origem_integracao='mercado_phone' ORDER BY id"
+        )
+        registros = cursor.fetchall()
+    finally:
+        conn.close()
+
+    atualizadas = 0
+    erros = 0
+    total = len(registros)
+
+    for os_id_local, id_externo_atual in registros:
+        if not id_externo_atual:
+            erros += 1
+            continue
+        try:
+            detalhes = detalhar_os_mercado_phone(id_externo_atual, config)
+            payload = detalhes if isinstance(detalhes, dict) else {}
+            if isinstance(payload.get("data"), dict):
+                payload = payload["data"]
+            if not isinstance(payload, dict) or not payload:
+                erros += 1
+                continue
+
+            # ID correto: preferir campo 'codigo' (ID visível no Mercado Phone)
+            id_externo_novo = texto_limpo(
+                valor_payload(payload, ("codigo",), ("id",))
+            ) or id_externo_atual
+
+            aparelho_info = primeiro_item_lista(payload, "aparelhos")
+            servicos = lista_payload(payload, "servicos") or lista_payload(payload, "servicosOs")
+
+            cliente = texto_limpo(
+                valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente_nome",), ("cliente",))
+            ) or "Cliente nao informado"
+
+            descricao_aparelho = texto_limpo(
+                valor_payload(aparelho_info, ("descricao",)) or ""
+            )
+
+            modelo = modelo_para_os(descricao_aparelho)
+            if not modelo:
+                modelo = extrair_modelo_da_descricao_aparelho(descricao_aparelho)
+            if not modelo:
+                modelo = "Nao informado"
+
+            cor = extrair_cor_da_descricao_aparelho(descricao_aparelho, modelo)
+
+            imei = normalizar_imei(valor_payload(aparelho_info, ("imei",), ("imei1",)))
+
+            # Valores financeiros
+            valor_cobrado = 0.0
+            try:
+                vt = valor_payload(payload, ("valorTotal",), ("valorTotalServicos",))
+                if vt not in (None, "", 0):
+                    valor_cobrado = float(vt)
+            except (ValueError, TypeError):
+                pass
+            if not valor_cobrado:
+                for s in servicos:
+                    try:
+                        vc = valor_payload(s, ("valorCobranca",))
+                        if vc not in (None, "", 0):
+                            valor_cobrado += float(vc)
+                    except (ValueError, TypeError):
+                        pass
+
+            custo_pecas = 0.0
+            for s in servicos:
+                try:
+                    custo = valor_payload(s, ("valorCusto",))
+                    if custo not in (None, "", 0):
+                        custo_pecas += float(custo)
+                except (ValueError, TypeError):
+                    pass
+
+            status = normalizar_status_os(
+                valor_payload(payload, ("situacaoDescricao",), ("status",))
+            )
+            tecnico = texto_limpo(
+                valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))
+            ) or config["default_tecnico"]
+            vendedor = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
+
+            data_os = texto_limpo(
+                valor_payload(payload, ("dataCriacao",), ("data",), ("created_at",), ("createdAt",))
+            )[:10]
+
+            tipo_origem = texto_limpo(valor_payload(payload, ("tipoDescricao",), ("tipo",)))
+            tipo = "Garantia" if "garantia" in normalizar_busca_texto(tipo_origem) else "Assistencia"
+
+            observacoes_partes = [
+                "Importada automaticamente do Mercado Phone.",
+                texto_limpo(valor_payload(payload, ("defeito",))),
+                texto_limpo(valor_payload(payload, ("diagnostico",))),
+                texto_limpo(valor_payload(payload, ("observacao",))),
+                texto_limpo(valor_payload(payload, ("observacaoInterna",))),
+                texto_limpo(valor_payload(payload, ("solucao",))),
+            ]
+            observacoes = " | ".join(p for p in observacoes_partes if p)
+
+            # Reparos
+            reparos_nomes = []
+            for servico in servicos:
+                if not isinstance(servico, dict):
+                    continue
+                nome_servico = texto_limpo(
+                    valor_payload(servico, ("servicoDescricao",), ("descricao",), ("nome",))
+                )
+                for reparo_nome in _extrair_reparos_mercado_phone(
+                    nome_servico, nome_reparo_importavel, normalizar_busca_texto, texto_limpo
+                ):
+                    if reparo_nome not in reparos_nomes:
+                        reparos_nomes.append(reparo_nome)
+            if not reparos_nomes:
+                reparos_nomes = ["Nao informado"]
+
+            conn2 = conectar()
+            cursor2 = conn2.cursor()
+            try:
+                reparo_ids = []
+                for nome_reparo in reparos_nomes:
+                    reparo_id = obter_ou_criar_reparo(cursor2, nome_reparo)
+                    if reparo_id and reparo_id not in reparo_ids:
+                        reparo_ids.append(reparo_id)
+
+                cursor2.execute(
+                    """
+                    UPDATE os SET
+                        tipo=?, cliente=?, aparelho=?, tecnico=?, reparo_id=?,
+                        status=?, valor_cobrado=?, custo_pecas=?,
+                        observacoes=?, modelo=?, vendedor=?, cor=?, imei=?,
+                        id_externo_integracao=?
+                    """ + (", data=?" if data_os else "") + """
+                    WHERE id=?
+                    """,
+                    (
+                        tipo, cliente, descricao_aparelho or modelo, tecnico, reparo_ids[0],
+                        status, valor_cobrado, custo_pecas,
+                        observacoes, modelo, vendedor, cor, imei,
+                        id_externo_novo,
+                        *(([data_os]) if data_os else []),
+                        os_id_local,
+                    ),
+                )
+                salvar_reparos_os(cursor2, os_id_local, reparo_ids)
+                conn2.commit()
+                atualizadas += 1
+                print(f"[MercadoPhone] Reprocessado OS local {os_id_local} (ext {id_externo_atual} → {id_externo_novo})")
+            except Exception as exc:
+                conn2.rollback()
+                erros += 1
+                print(f"[MercadoPhone] Erro ao salvar OS local {os_id_local}: {type(exc).__name__}: {exc}")
+            finally:
+                conn2.close()
+
+        except Exception as exc:
+            erros += 1
+            print(f"[MercadoPhone] Erro ao reprocessar OS local {os_id_local}: {type(exc).__name__}: {exc}")
+
+    return {"ok": True, "total": total, "atualizadas": atualizadas, "erros": erros}

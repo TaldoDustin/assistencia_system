@@ -73,6 +73,7 @@ def create_api_blueprint(deps):
     check_password_hash = deps["check_password_hash"]
     generate_password_hash = deps["generate_password_hash"]
     sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
+    reprocessar_todas_os_mercado_phone = deps["reprocessar_todas_os_mercado_phone"]
     mercado_phone_runtime_config = deps["mercado_phone_runtime_config"]
     mercado_phone_helpers = deps["mercado_phone_helpers"]
     public_base_url = deps.get("public_base_url", "")
@@ -2234,6 +2235,23 @@ def create_api_blueprint(deps):
                 return err("Mercado Phone não configurado. Informe o token da API.", 400)
 
             resultado = sincronizar_mercado_phone(
+                conectar, mercado_phone_runtime_config, mercado_phone_helpers
+            )
+            return ok(resultado=resultado)
+        except Exception as exc:
+            return err(str(exc))
+
+    @api.route("/integracoes/mercadophone/reprocessar", methods=["POST"])
+    def reprocessar_mercadophone():
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        try:
+            _, mp_cfg = _carregar_config_mercadophone()
+            status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
+            if not status_cfg["configurado"]:
+                return err("Mercado Phone não configurado. Informe o token da API.", 400)
+
+            resultado = reprocessar_todas_os_mercado_phone(
                 conectar, mercado_phone_runtime_config, mercado_phone_helpers
             )
             return ok(resultado=resultado)

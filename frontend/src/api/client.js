@@ -257,6 +257,15 @@ export const usuarios = {
   delete: (id)        => del(`/usuarios/${id}`),
 };
 
+// ── Integracoes ──────────────────────────────────────────────────────────────
+export const integracoes = {
+  mercadophone: {
+    sincronizar: ()    => post("/integracoes/mercadophone/sincronizar"),
+    reprocessar: ()    => post("/integracoes/mercadophone/reprocessar"),
+    status:      ()    => get("/integracoes/mercadophone/status"),
+  },
+};
+
 // ── Backup ───────────────────────────────────────────────────────────────────
 export const backup = {
   criar:    (data)   => post("/backup/criar", data),

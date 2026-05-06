@@ -106,6 +106,25 @@ def parse_json_response(conteudo):
         return json.loads(conteudo.decode("latin-1"))
 
 
+def _erro_rede_transitorio(exc):
+    if isinstance(exc, TimeoutError):
+        return True
+
+    texto = str(exc or "").lower()
+    if "timed out" in texto or "timeout" in texto or "handshake" in texto:
+        return True
+
+    if isinstance(exc, urllib_error.URLError):
+        reason = getattr(exc, "reason", None)
+        texto_reason = str(reason or "").lower()
+        if isinstance(reason, TimeoutError):
+            return True
+        if "timed out" in texto_reason or "timeout" in texto_reason or "handshake" in texto_reason:
+            return True
+
+    return False
+
+
 def chamar_api_mercado_phone(method_name, payload, config):
     api_token = config["api_token"]
     if not api_token:
@@ -122,8 +141,24 @@ def chamar_api_mercado_phone(method_name, payload, config):
             "Content-Type": "application/json",
         },
     )
-    with urllib_request.urlopen(req, timeout=config["sync_timeout_seconds"]) as response:
-        return parse_json_response(response.read())
+
+    retries = int(config.get("sync_request_retries") or 3)
+    retries = max(1, retries)
+    timeout_seconds = int(config.get("sync_timeout_seconds") or 20)
+
+    for tentativa in range(1, retries + 1):
+        try:
+            with urllib_request.urlopen(req, timeout=timeout_seconds) as response:
+                return parse_json_response(response.read())
+        except (urllib_error.URLError, TimeoutError) as exc:
+            if tentativa >= retries or not _erro_rede_transitorio(exc):
+                raise
+            espera = min(8, 2 * tentativa)
+            print(
+                f"[MercadoPhone] Tentativa {tentativa}/{retries} falhou em {method_name}: "
+                f"{type(exc).__name__}: {exc}. Repetindo em {espera}s..."
+            )
+            time.sleep(espera)
 
 
 def listar_os_mercado_phone(config, page=1, limit=300):
@@ -983,6 +1018,21 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
     """
     Remove todas as OSs importadas do MercadoPhone e importa novamente do zero.
     """
+    # Ajustes mais tolerantes para importações longas em rede instável.
+    config_forcada = dict(config)
+    config_forcada["sync_only_after_boot"] = False
+    config_forcada["sync_timeout_seconds"] = max(60, int(config.get("sync_timeout_seconds") or 20))
+    config_forcada["sync_request_retries"] = max(5, int(config.get("sync_request_retries") or 3))
+
+    # Só apaga se a API estiver acessível no momento.
+    try:
+        listar_os_mercado_phone(config_forcada, page=1, limit=1)
+    except Exception as exc:
+        raise RuntimeError(
+            f"API MercadoPhone indisponível agora ({type(exc).__name__}: {exc}). "
+            "Reimportação cancelada sem apagar dados locais."
+        )
+
     conn = conectar()
     cursor = conn.cursor()
     removidas = 0
@@ -1005,14 +1055,37 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
     finally:
         conn.close()
 
-    # Força sincronização manual sem pular por sync_only_after_boot
-    config_forcada = dict(config)
-    config_forcada["sync_only_after_boot"] = False
-    resultado_sync = sincronizar_mercado_phone(conectar, config_forcada, helpers)
+    tentativas = max(1, int(config.get("reimport_retry_attempts") or 3))
+    resultado_sync = {"importadas": 0, "ignoradas": 0}
+    ultima_falha = ""
+
+    for tentativa in range(1, tentativas + 1):
+        try:
+            resultado_sync = sincronizar_mercado_phone(conectar, config_forcada, helpers)
+            importadas = int(resultado_sync.get("importadas") or 0)
+            ignoradas = int(resultado_sync.get("ignoradas") or 0)
+
+            # Após limpar tudo, esperamos importações > 0. Se vier 0 com muitas ignoradas,
+            # normalmente houve instabilidade e vale tentar novamente.
+            if importadas > 0 or ignoradas == 0:
+                break
+
+            ultima_falha = (
+                f"tentativa {tentativa}: importadas=0 e ignoradas={ignoradas}"
+            )
+        except Exception as exc:
+            ultima_falha = f"tentativa {tentativa}: {type(exc).__name__}: {exc}"
+
+        if tentativa < tentativas:
+            espera = min(15, 3 * tentativa)
+            print(f"[MercadoPhone] Reimportação: {ultima_falha}. Nova tentativa em {espera}s...")
+            time.sleep(espera)
 
     return {
         "ok": True,
         "removidas": removidas,
         "importadas": int(resultado_sync.get("importadas") or 0),
         "atualizadas": int(resultado_sync.get("ignoradas") or 0),
+        "tentativas": tentativas,
+        "observacao": ultima_falha,
     }

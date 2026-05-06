@@ -851,16 +851,6 @@ def receber_os_mercado_phone():
         conn.close()
 
 
-@app.route("/api/integracoes/mercadophone/reprocessar", methods=["POST"])
-def reprocessar_os_mercado_phone():
-    """Busca dados atualizados do Mercado Phone para TODAS as OSs existentes e sobrescreve os campos locais."""
-    requer_autenticacao()
-    resultado = reprocessar_todas_os_mercado_phone(
-        conectar, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS
-    )
-    return jsonify(resultado)
-
-
 # ============================================================================
 # FUNÇÕES DE NEGÓCIO
 # ============================================================================

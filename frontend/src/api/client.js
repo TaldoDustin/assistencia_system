@@ -5,7 +5,21 @@
  * In Vite dev mode, the proxy in vite.config.js forwards /api → http://localhost:5080.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "/api";
+const ENV_BASE = String(import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
+const IS_BROWSER = typeof window !== "undefined";
+const HOSTNAME = IS_BROWSER ? window.location.hostname : "";
+const IS_VERCEL = /\.vercel\.app$/i.test(HOSTNAME);
+const PROJECT_SLUG = IS_VERCEL ? HOSTNAME.split(".")[0] : "";
+const GUESSED_RENDER_BASE = PROJECT_SLUG ? `https://${PROJECT_SLUG}.onrender.com/api` : "";
+const BASE = ENV_BASE || (IS_VERCEL ? GUESSED_RENDER_BASE : "/api");
+
+if (IS_BROWSER && IS_VERCEL && !ENV_BASE) {
+  console.warn(
+    "[IR Flow] VITE_API_URL não configurado no Vercel. Usando fallback automático:",
+    BASE,
+    "| Recomendado: configurar VITE_API_URL com a URL real do backend (/api).",
+  );
+}
 
 function expandPieceMap(pecas = {}) {
   return Object.entries(pecas).flatMap(([id, quantidade]) => {
@@ -78,8 +92,31 @@ async function request(method, path, body) {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
   }
-  const res = await fetch(`${BASE}${path}`, opts);
-  const data = await res.json().catch(() => ({}));
+  const url = `${BASE}${path}`;
+  const res = await fetch(url, opts);
+  const text = await res.text();
+
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    console.error("[IR Flow] Resposta não-JSON da API", {
+      method,
+      url,
+      status: res.status,
+      bodyStart: (text || "").slice(0, 180),
+    });
+  }
+
+  if (!res.ok) {
+    console.error("[IR Flow] Erro HTTP na API", {
+      method,
+      url,
+      status: res.status,
+      response: data,
+    });
+  }
+
   return data;
 }
 

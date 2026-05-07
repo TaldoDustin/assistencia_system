@@ -240,7 +240,10 @@ def modelo_para_os(valor):
     texto = texto_limpo(valor)
     if not texto:
         return ""
-    return normalizar_modelo_iphone(texto) or texto
+    # 1º: busca exata no mapa canônico (ex: "iPhone 13" → "iPhone 13")
+    # 2º: extrai de descrição livre (ex: "IPHONE 13 64GB" → "iPhone 13")
+    # 3º: mantém o texto original como último recurso
+    return normalizar_modelo_iphone(texto) or extrair_modelo_da_descricao_aparelho(texto) or texto
 
 
 def extrair_modelo_da_descricao_aparelho(descricao):
@@ -269,11 +272,65 @@ def extrair_cor_da_descricao_aparelho(descricao, modelo=""):
         return ""
 
     cores_modelo = set(obter_cores_modelo_iphone(modelo))
-    # Itera do alias mais longo ao mais curto para evitar match parcial
+    # Aliases ordenados do mais longo ao mais curto para evitar match parcial
     # (ex: "midnight green" antes de "midnight", "space gray" antes de "gray")
-    for alias, cor in sorted(COLOR_ALIAS_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+    sorted_aliases = sorted(COLOR_ALIAS_MAP.items(), key=lambda x: len(x[0]), reverse=True)
+
+    # 1ª passagem: cor preferida quando bate com a lista de cores do modelo
+    for alias, cor in sorted_aliases:
         if alias in texto and (not cores_modelo or cor in cores_modelo):
             return cor
+
+    # 2ª passagem: canonicaliza para o nome padrão mesmo fora da lista do modelo
+    # (garante que "space gray" → "Cinza-espacial", "midnight" → "Meia-noite", etc.)
+    for alias, cor in sorted_aliases:
+        if alias in texto:
+            return cor
+
+    return ""
+
+
+def canonicalizar_para_lista(valor, lista):
+    """
+    Tenta encontrar o valor canônico de `valor` dentro de `lista`.
+
+    Estratégia (em ordem de prioridade):
+    1. Match exato normalizado (sem acentos, minúsculo)
+    2. Match parcial: o texto normalizado contém o nome canônico ou vice-versa
+    3. Match por palavra: ao menos uma palavra em comum
+
+    Retorna o item canônico da lista, ou "" se não há match.
+
+    Exemplos:
+        canonicalizar_para_lista("Isaque", ["ISAQUE SOUZA", "RUAM SOARES"])
+            → "ISAQUE SOUZA"
+        canonicalizar_para_lista("space gray", ["Cinza-espacial", "Prata"])
+            → "" (use extrair_cor_da_descricao_aparelho para cores)
+        canonicalizar_para_lista("camila santos", ["Camila", "Kauany"])
+            → "Camila"
+    """
+    texto = normalizar_busca_texto(valor)
+    if not texto:
+        return ""
+
+    # 1ª: match exato normalizado
+    for opcao in lista:
+        if normalizar_busca_texto(opcao) == texto:
+            return opcao
+
+    # 2ª: match parcial (contém ou está contido) — preferir opções mais longas
+    for opcao in sorted(lista, key=lambda x: len(x), reverse=True):
+        opcao_norm = normalizar_busca_texto(opcao)
+        if opcao_norm and (opcao_norm in texto or texto in opcao_norm):
+            return opcao
+
+    # 3ª: ao menos uma palavra em comum (ex: "Isaque" → "ISAQUE SOUZA")
+    palavras_entrada = set(texto.split())
+    for opcao in lista:
+        palavras_opcao = set(normalizar_busca_texto(opcao).split())
+        if palavras_entrada & palavras_opcao:
+            return opcao
+
     return ""
 
 

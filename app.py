@@ -104,6 +104,7 @@ from irflow_reference_data import (
     REPAROS_PADRAO,
     TECNICOS,
     VENDEDORES,
+    canonicalizar_para_lista,
     extrair_cor_da_descricao_aparelho,
     extrair_modelo_da_descricao_aparelho,
     modelo_para_os,
@@ -754,6 +755,9 @@ MERCADO_PHONE_HELPERS = {
     "salvar_reparos_os": salvar_reparos_os,
     "normalizar_busca_texto": normalizar_busca_texto,
     "normalizar_status_os": normalizar_status_os,
+    "canonicalizar_para_lista": canonicalizar_para_lista,
+    "tecnicos": TECNICOS,
+    "vendedores": VENDEDORES,
 }
 
 # ============================================================================

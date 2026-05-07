@@ -367,6 +367,9 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
     salvar_reparos_os = helpers["salvar_reparos_os"]
     normalizar_busca_texto = helpers["normalizar_busca_texto"]
     normalizar_status_os = helpers["normalizar_status_os"]
+    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, l: "")
+    lista_tecnicos = helpers.get("tecnicos", [])
+    lista_vendedores = helpers.get("vendedores", [])
 
     external_id = texto_limpo(
         valor_payload(
@@ -653,8 +656,10 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
     )
     tipo_origem = texto_limpo(valor_payload(payload, ("tipoDescricao",), ("tipo",)))
     tipo = "Garantia" if "garantia" in normalizar_busca_texto(tipo_origem) else "Assistencia"
-    tecnico = texto_limpo(valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))) or config["default_tecnico"]
-    vendedor = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
+    _tecnico_raw = texto_limpo(valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))) or config["default_tecnico"]
+    tecnico = canonicalizar_para_lista(_tecnico_raw, lista_tecnicos) or _tecnico_raw
+    _vendedor_raw = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
+    vendedor = canonicalizar_para_lista(_vendedor_raw, lista_vendedores) or _vendedor_raw
     observacoes_partes = [
         "Importada automaticamente do Mercado Phone.",
         texto_limpo(valor_payload(payload, ("defeito",))),
@@ -911,6 +916,9 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
     salvar_reparos_os = helpers["salvar_reparos_os"]
     normalizar_busca_texto = helpers["normalizar_busca_texto"]
     normalizar_status_os = helpers["normalizar_status_os"]
+    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, l: "")
+    lista_tecnicos = helpers.get("tecnicos", [])
+    lista_vendedores = helpers.get("vendedores", [])
 
     conn = conectar()
     cursor = conn.cursor()
@@ -995,10 +1003,12 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
             status = normalizar_status_os(
                 valor_payload(payload, ("situacaoDescricao",), ("status",))
             )
-            tecnico = texto_limpo(
+            _tecnico_raw = texto_limpo(
                 valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))
             ) or config["default_tecnico"]
-            vendedor = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
+            tecnico = canonicalizar_para_lista(_tecnico_raw, lista_tecnicos) or _tecnico_raw
+            _vendedor_raw = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
+            vendedor = canonicalizar_para_lista(_vendedor_raw, lista_vendedores) or _vendedor_raw
 
             data_os = texto_limpo(
                 valor_payload(payload, ("dataCriacao",), ("data",), ("created_at",), ("createdAt",))

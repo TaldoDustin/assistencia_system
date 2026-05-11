@@ -15,6 +15,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { getOrderDisplayNumber } from "@/lib/constants";
 
 export default function EditOrder() {
   const { id } = useParams();
@@ -33,6 +34,7 @@ export default function EditOrder() {
   const [checklistMeta, setChecklistMeta] = useState(null);
   const [checklistDialog, setChecklistDialog] = useState(false);
   const [checklistLoading, setChecklistLoading] = useState(false);
+  const [orderDisplayNumber, setOrderDisplayNumber] = useState("");
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function EditOrder() {
     ]).then(([osRes, constRes, rRes, eRes]) => {
       if (osRes?.ok && osRes.ordem) {
         const os = osRes.ordem;
+        setOrderDisplayNumber(getOrderDisplayNumber(os));
         setForm({
           tipo: os.tipo || "Assistencia",
           cliente: os.cliente || "",
@@ -60,15 +63,42 @@ export default function EditOrder() {
         });
         setSelectedReparos(os.reparo_ids || []);
         const pecasMap = {};
-        (os.pecas_usadas || []).forEach((p) => { pecasMap[p.estoque_id] = p.quantidade; });
+        (os.pecas_usadas || []).forEach((p) => {
+          const estoqueId = String(p.estoque_id);
+          const quantidade = Number(p.quantidade) || 0;
+          pecasMap[estoqueId] = (pecasMap[estoqueId] || 0) + quantidade;
+        });
         setPecas(pecasMap);
+
+        const estoqueAtivo = eRes?.ok ? (eRes.items || []) : [];
+        const idsAtivos = new Set(estoqueAtivo.map((item) => String(item.id)));
+        const consumidosForaDoEstoque = [];
+        const idsConsumidosIncluidos = new Set();
+
+        (os.pecas_usadas || []).forEach((p) => {
+          const estoqueId = String(p.estoque_id || "");
+          if (!estoqueId || idsAtivos.has(estoqueId) || idsConsumidosIncluidos.has(estoqueId)) {
+            return;
+          }
+
+          consumidosForaDoEstoque.push({
+            id: p.estoque_id,
+            descricao: p.descricao || "Peca consumida",
+            valor: Number(p.valor) || 0,
+            fornecedor: p.fornecedor || "Nao informado",
+            quantidade: 0,
+            modelo: p.modelo || os.modelo || "",
+          });
+          idsConsumidosIncluidos.add(estoqueId);
+        });
+
+        setEstoqueList([...estoqueAtivo, ...consumidosForaDoEstoque]);
       } else {
         toast.error("Ordem não encontrada");
         navigate("/ordens");
       }
       if (constRes?.ok) setConstants(constRes);
       if (rRes?.ok) setReparosList(rRes.reparos || []);
-      if (eRes?.ok) setEstoqueList(eRes.items || []);
       setLoading(false);
       initialized.current = true;
     });
@@ -238,7 +268,7 @@ export default function EditOrder() {
     <div className="max-w-4xl space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Editar Ordem #{String(id).slice(-5)}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Editar Ordem #{orderDisplayNumber || String(id).slice(-5)}</h1>
           <p className="text-muted-foreground text-sm">Atualize os dados da OS</p>
         </div>
         <div className="flex gap-2">
@@ -461,6 +491,7 @@ export default function EditOrder() {
                   <p className="text-sm font-medium text-card-foreground truncate">{item.descricao}</p>
                   <p className="text-xs text-muted-foreground">
                     {item.modelo} • Estoque: {item.quantidade} • {formatCurrency(item.valor || 0)}
+                    {item.quantidade <= 0 && (pecas[item.id] || 0) > 0 ? " • Consumido nesta OS" : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

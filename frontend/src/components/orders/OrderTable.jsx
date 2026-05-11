@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import OrderStatusBadge from "./OrderStatusBadge";
-import { formatCurrency } from "@/lib/constants";
+import { formatCurrency, getOrderDisplayNumber } from "@/lib/constants";
 
 export default function OrderTable({ orders = [], onDelete }) {
   if (orders.length === 0) {
@@ -33,11 +33,7 @@ export default function OrderTable({ orders = [], onDelete }) {
             {orders.map((os) => (
               <tr key={os.id} className="hover:bg-accent/30 transition-colors" data-testid={`order-row-${os.id}`}>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  #{
-                    os.origem_integracao === "mercado_phone" && os.id_externo_integracao
-                      ? String(os.id_externo_integracao)
-                      : String(os.id).slice(-5)
-                  }
+                  #{getOrderDisplayNumber(os)}
                 </td>
                 <td className="px-4 py-3 font-medium text-card-foreground max-w-[140px] truncate">
                   {os.cliente}
@@ -63,7 +59,7 @@ export default function OrderTable({ orders = [], onDelete }) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        aria-label={`Editar ordem ${os.id}`}
+                        aria-label={`Editar ordem ${getOrderDisplayNumber(os)}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -72,7 +68,7 @@ export default function OrderTable({ orders = [], onDelete }) {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      aria-label={`Excluir ordem ${os.id}`}
+                      aria-label={`Excluir ordem ${getOrderDisplayNumber(os)}`}
                       onClick={() => onDelete?.(os.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

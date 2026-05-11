@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getOrderDisplayNumber } from "@/lib/constants";
 
 const TOUCH_CELL_COUNT = 20;
 
@@ -332,7 +333,7 @@ export default function ChecklistDevice() {
             </div>
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">Checklist de entrada</p>
-              <h1 className="text-2xl font-semibold">OS #{ordem.id}</h1>
+              <h1 className="text-2xl font-semibold">OS #{getOrderDisplayNumber(ordem)}</h1>
               <p className="text-sm text-slate-300">{ordem.cliente} • {ordem.modelo || "Modelo nao informado"}</p>
             </div>
           </div>

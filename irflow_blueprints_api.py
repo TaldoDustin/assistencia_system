@@ -739,6 +739,7 @@ def create_api_blueprint(deps):
                 COALESCE(observacoes, ''), COALESCE(modelo, ''),
                 COALESCE(vendedor, ''), COALESCE(cor, ''),
                 COALESCE(imei, ''), COALESCE(origem_integracao, ''),
+                COALESCE(id_externo_integracao, ''),
                 COALESCE(data_finalizado, '')
             FROM os
             WHERE id=?
@@ -782,7 +783,9 @@ def create_api_blueprint(deps):
             "faturamento": round(calcular_faturamento_os(row[7], row[8]), 2),
             "lucro": round(calcular_lucro_os(tipo, row[7], row[8], custo), 2),
             "data": row[10] or "", "observacoes": row[11] or "",
-            "origem_integracao": row[16] or "", "data_finalizado": row[17] or "",
+            "origem_integracao": row[16] or "",
+            "id_externo_integracao": row[17] or "",
+            "data_finalizado": row[18] or "",
             "pecas_usadas": pecas_usadas,
         })
 
@@ -794,7 +797,7 @@ def create_api_blueprint(deps):
         conn = conectar()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '') FROM os WHERE id=?",
+            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''), COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '') FROM os WHERE id=?",
             (os_id,),
         )
         ordem = cursor.fetchone()
@@ -815,6 +818,8 @@ def create_api_blueprint(deps):
                 "cor": ordem[3] or "",
                 "imei": ordem[4] or "",
                 "status": normalizar_status_os(ordem[5]),
+                "origem_integracao": ordem[6] or "",
+                "id_externo_integracao": ordem[7] or "",
             },
         )
 
@@ -876,7 +881,8 @@ def create_api_blueprint(deps):
 
         cursor.execute(
             """
-            SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '')
+            SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''),
+                   COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '')
             FROM os
             WHERE id=?
             """,
@@ -896,6 +902,8 @@ def create_api_blueprint(deps):
                 "cor": ordem[3] or "",
                 "imei": ordem[4] or "",
                 "status": normalizar_status_os(ordem[5]),
+                "origem_integracao": ordem[6] or "",
+                "id_externo_integracao": ordem[7] or "",
             },
         )
 
@@ -1314,25 +1322,25 @@ def create_api_blueprint(deps):
         itens = []
         for r in cursor.fetchall():
             status_item = _status_item_estoque(r[4] or 0, r[9] or "", r[11] or 0)
-            if int(r[4] or 0) > 0:  # Só adiciona se quantidade > 0
-                item = {
-                    "id": r[0],
-                    "descricao": r[1] or "",
-                    "valor": round(r[2] or 0, 2),
-                    "fornecedor": r[3] or "",
-                    "quantidade": r[4] or 0,
-                    "data_compra": r[5] or "",
-                    "modelo": r[6] or "",
-                    "tipo": r[7] or "Outros",
-                    "qualidade": r[8] or "Padrao",
-                    "ultima_movimentacao": r[9] or "",
-                    "consumo_30d": int(r[10] or 0),
-                    "consumo_90d": int(r[11] or 0),
-                    "status_estoque": status_item,
-                }
-                itens.append(item)
-
-        # Nunca inclui zerados, mesmo se include_zerados for True
+            quantidade_item = int(r[4] or 0)
+            if quantidade_item <= 0 and not include_zerados:
+                continue
+            item = {
+                "id": r[0],
+                "descricao": r[1] or "",
+                "valor": round(r[2] or 0, 2),
+                "fornecedor": r[3] or "",
+                "quantidade": quantidade_item,
+                "data_compra": r[5] or "",
+                "modelo": r[6] or "",
+                "tipo": r[7] or "Outros",
+                "qualidade": r[8] or "Padrao",
+                "ultima_movimentacao": r[9] or "",
+                "consumo_30d": int(r[10] or 0),
+                "consumo_90d": int(r[11] or 0),
+                "status_estoque": status_item,
+            }
+            itens.append(item)
 
         if filtro_status:
             itens = [i for i in itens if (i.get("status_estoque") or "") == filtro_status]

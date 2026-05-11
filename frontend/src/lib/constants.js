@@ -6,6 +6,19 @@ export function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
 }
 
+export function getOrderDisplayNumber(order) {
+  if (!order) {
+    return "";
+  }
+
+  const hasExternalNumber =
+    order.origem_integracao === "mercado_phone" && order.id_externo_integracao;
+
+  return hasExternalNumber
+    ? String(order.id_externo_integracao)
+    : String(order.id ?? "").slice(-5);
+}
+
 export function getStatusColor(status) {
   switch (status) {
     case "Em andamento":   return "bg-blue-500/20 text-blue-400 border-blue-500/30";

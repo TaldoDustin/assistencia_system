@@ -64,6 +64,10 @@ def marcar_os_integracao_vista(cursor, origem, external_id):
     )
 
 
+def os_integracao_bloqueada(cursor, origem, external_id):
+    return os_integracao_ja_vista(cursor, f"{origem}_bloqueada", external_id)
+
+
 def extrair_ids_os_listagem_mercado_phone(payload, texto_limpo):
     if isinstance(payload, list):
         itens = payload
@@ -778,6 +782,22 @@ def sincronizar_mercado_phone(conectar, config, helpers):
 
         for external_id in ids_encontrados:
             try:
+                # Se a OS foi apagada manualmente e ainda nao existe localmente,
+                # a sincronizacao automatica nao deve recria-la.
+                if os_integracao_bloqueada(cursor, origem, external_id):
+                    cursor.execute(
+                        """
+                        SELECT 1
+                        FROM os
+                        WHERE origem_integracao=? AND id_externo_integracao=?
+                        LIMIT 1
+                        """,
+                        (origem, str(external_id)),
+                    )
+                    if not cursor.fetchone():
+                        ignoradas += 1
+                        continue
+
                 detalhes = detalhar_os_mercado_phone(external_id, config)
                 payload_importacao = detalhes if isinstance(detalhes, dict) else {}
                 if isinstance(payload_importacao.get("data"), dict):

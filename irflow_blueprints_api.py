@@ -1170,12 +1170,30 @@ def create_api_blueprint(deps):
         conn = conectar()
         cursor = conn.cursor()
         try:
-            cursor.execute("SELECT status FROM os WHERE id=?", (os_id,))
+            cursor.execute(
+                """
+                SELECT status, COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '')
+                FROM os
+                WHERE id=?
+                """,
+                (os_id,),
+            )
             row = cursor.fetchone()
             if row:
                 s = normalizar_status_os(row[0])
                 if not status_finalizado(s) and not status_cancelado(s):
                     devolver_pecas_da_os(cursor, os_id, "devolucao")
+
+                origem_integracao = (row[1] or "").strip().lower()
+                id_externo_integracao = (row[2] or "").strip()
+                if origem_integracao == "mercado_phone" and id_externo_integracao:
+                    cursor.execute(
+                        """
+                        INSERT OR IGNORE INTO integracao_os_vistas (origem, id_externo, primeira_visualizacao)
+                        VALUES (?, ?, ?)
+                        """,
+                        ("mercado_phone_bloqueada", id_externo_integracao, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    )
             cursor.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os_checklists WHERE os_id=?", (os_id,))

@@ -664,6 +664,15 @@ def create_api_blueprint(deps):
             "id_externo_integracao": row[17] or "" if len(row) > 17 else "",
         }
 
+    def _ordem_lista_por_id_desc(item):
+        origem = (item.get("origem_integracao") or "").strip().lower()
+        externo = (item.get("id_externo_integracao") or "").strip()
+        interno = int(item.get("id") or 0)
+
+        if origem == "mercado_phone" and externo.isdigit():
+            return int(externo)
+        return interno
+
     @api.route("/ordens")
     def listar_ordens():
         if not usuario_logado():
@@ -677,6 +686,10 @@ def create_api_blueprint(deps):
         filtro_modelo = (request.args.get("modelo") or "").strip()
         data_ini = (request.args.get("data_ini") or "").strip()
         data_fim = (request.args.get("data_fim") or "").strip()
+
+        _, mp_cfg = _carregar_config_mercadophone()
+        _atualizar_runtime_mercadophone(mp_cfg)
+        mp_sync_start_date = _texto_limpo_local(mercado_phone_runtime_config.get("sync_start_date") or "")
 
         conn = conectar()
         cursor = conn.cursor()
@@ -692,8 +705,14 @@ def create_api_blueprint(deps):
             vendedor = row[13] or ""
             modelo = row[12] or ""
             data = row[10] or ""
+            origem_integracao = (row[16] or "") if len(row) > 16 else ""
             reparos_info = reparos_por_os.get(os_id, {"ids": [], "nomes": []})
             reparo_nome = texto_reparos_os(reparos_info, tipo)
+
+            # Mantém OS antigas da integração no banco, mas oculta da listagem.
+            if origem_integracao == "mercado_phone" and mp_sync_start_date:
+                if (not data) or (data < mp_sync_start_date):
+                    continue
 
             if q:
                 haystack = f"{os_id} {row[2]} {row[3]} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {row[14] or ''} {row[15] or ''} {row[16] or ''} {row[17] or ''}".lower()
@@ -715,6 +734,8 @@ def create_api_blueprint(deps):
                 continue
 
             result.append(_os_row_to_dict(row, reparos_por_os, custos))
+
+        result.sort(key=_ordem_lista_por_id_desc, reverse=True)
 
         return ok(
             ordens=result,

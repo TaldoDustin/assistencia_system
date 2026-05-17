@@ -67,6 +67,7 @@ from irflow_os import (
 
 from irflow_mercadophone import (
     corrigir_dados_importados_mercado_phone,
+    detalhar_os_mercado_phone,
     importar_os_mercado_phone,
     loop_sincronizacao_mercado_phone,
     reimportar_todas_os_mercado_phone,
@@ -832,8 +833,29 @@ def receber_os_mercado_phone():
     autenticar_integracao_mercado_phone()
 
     payload = request.get_json(silent=True) or {}
-    if isinstance(payload, dict) and isinstance(payload.get("ordem_servico"), dict):
-        payload = payload["ordem_servico"]
+    payload_evento = payload if isinstance(payload, dict) else {}
+    if isinstance(payload_evento, dict) and isinstance(payload_evento.get("ordem_servico"), dict):
+        payload = payload_evento["ordem_servico"]
+
+    external_id = ""
+    if isinstance(payload, dict):
+        external_id = texto_limpo(
+            payload.get("codigo")
+            or payload.get("id")
+            or payload.get("id_externo")
+            or payload.get("os_id")
+            or payload.get("ordem_servico_id")
+        )
+    if not external_id and isinstance(payload_evento, dict):
+        external_id = texto_limpo(
+            payload_evento.get("codigo")
+            or payload_evento.get("id")
+            or payload_evento.get("id_externo")
+            or payload_evento.get("os_id")
+            or payload_evento.get("ordem_servico_id")
+            or payload_evento.get("ordem_servico", {}).get("id")
+            or payload_evento.get("ordem_servico", {}).get("codigo")
+        )
 
     conn = conectar()
     cursor = conn.cursor()
@@ -850,6 +872,37 @@ def receber_os_mercado_phone():
             }
         ), status_code
     except ValueError as exc:
+        # Alguns webhooks de edição vêm com payload parcial (apenas id/status).
+        # Nesses casos, busca o detalhe por ID para salvar corretamente no IR Flow.
+        if (
+            external_id
+            and "dados suficientes" in str(exc).lower()
+            and texto_limpo(MERCADO_PHONE_RUNTIME_CONFIG.get("api_token"))
+        ):
+            try:
+                detalhes = detalhar_os_mercado_phone(external_id, MERCADO_PHONE_RUNTIME_CONFIG)
+                payload_detalhado = detalhes.get("data") if isinstance(detalhes, dict) else None
+                if isinstance(payload_detalhado, dict):
+                    resultado = importar_os_mercado_phone(
+                        cursor,
+                        payload_detalhado,
+                        MERCADO_PHONE_RUNTIME_CONFIG,
+                        MERCADO_PHONE_HELPERS,
+                        fallback_external_id=external_id,
+                    )
+                    conn.commit()
+                    status_code = 200 if resultado["duplicada"] else 201
+                    return jsonify(
+                        {
+                            "ok": True,
+                            "duplicada": resultado["duplicada"],
+                            "os_id": resultado["os_id"],
+                            "fallback_por_id": True,
+                        }
+                    ), status_code
+            except Exception:
+                pass
+
         conn.rollback()
         return jsonify({"ok": False, "erro": str(exc)}), 400
     finally:

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Pencil } from "lucide-react";
 import { ordens as ordensApi } from "@/api/client";
+import { getOrderDisplayNumber } from "@/lib/constants";
 import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
 
 const COLUMNS = [
@@ -109,7 +110,7 @@ export default function Kanban() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground font-mono">#{String(os.id).slice(-5)}</p>
+                          <p className="text-xs text-muted-foreground font-mono">#{getOrderDisplayNumber(os)}</p>
                           <p className="text-sm font-semibold text-card-foreground truncate">{os.cliente}</p>
                           <p className="text-xs text-muted-foreground">{os.modelo}</p>
                         </div>
@@ -142,4 +143,4 @@ export default function Kanban() {
       </div>
     </div>
   );
-}
+}

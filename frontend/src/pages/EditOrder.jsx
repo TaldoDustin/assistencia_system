@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency } from "@/lib/constants";
+import { formatCurrency, getOrderDisplayNumber } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,7 +15,6 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { getOrderDisplayNumber } from "@/lib/constants";
 
 export default function EditOrder() {
   const { id } = useParams();
@@ -268,7 +267,7 @@ export default function EditOrder() {
     <div className="max-w-4xl space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Editar Ordem #{orderDisplayNumber || String(id).slice(-5)}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Editar Ordem #{orderDisplayNumber || getOrderDisplayNumber({ id })}</h1>
           <p className="text-muted-foreground text-sm">Atualize os dados da OS</p>
         </div>
         <div className="flex gap-2">

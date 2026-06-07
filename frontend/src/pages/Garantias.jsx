@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { garantias as garantiasApi } from "@/api/client";
+import { getOrderDisplayNumber } from "@/lib/constants";
 
 function GarantiaBadge({ status, dias }) {
   const map = {
@@ -61,7 +62,7 @@ export default function Garantias() {
                   <tr key={g.id} className="hover:bg-accent/30 transition-colors">
                     <td className="px-4 py-3">
                       <Link to={`/ordens/editar/${g.id}`} className="font-mono text-xs text-primary hover:underline">
-                        #{String(g.id).slice(-5)}
+                        #{getOrderDisplayNumber(g)}
                       </Link>
                     </td>
                     <td className="px-4 py-3 font-medium text-card-foreground">{g.cliente}</td>

@@ -1979,7 +1979,8 @@ def create_api_blueprint(deps):
         cursor.execute(
             """
             SELECT id, cliente, modelo, tecnico,
-                   COALESCE(data_finalizado,''), COALESCE(data,''), COALESCE(imei,'')
+                   COALESCE(data_finalizado,''), COALESCE(data,''), COALESCE(imei,''),
+                   COALESCE(origem_integracao,''), COALESCE(id_externo_integracao,'')
             FROM os
             WHERE status='Finalizado'
             ORDER BY id DESC
@@ -1991,7 +1992,7 @@ def create_api_blueprint(deps):
 
         result = []
         for r in rows:
-            os_id, cliente, modelo, tecnico, data_fin, data_os, imei = r
+            os_id, cliente, modelo, tecnico, data_fin, data_os, imei, origem_integracao, id_externo_integracao = r
             if (cliente or "").strip().lower() == "ir phones":
                 continue
             if q and q not in f"{cliente} {modelo} {imei}".lower():
@@ -2020,6 +2021,8 @@ def create_api_blueprint(deps):
                 "tecnico": tecnico or "", "imei": imei or "",
                 "data_finalizado": data_fin or data_os,
                 "reparos": rinfo.get("nomes", []),
+                "origem_integracao": origem_integracao or "",
+                "id_externo_integracao": id_externo_integracao or "",
                 "garantia": {"dias_restantes": dias_restantes, "label": label, "color": color},
             })
 

@@ -48,6 +48,15 @@ export default function Backup() {
     }
   }, [isAdmin]);
 
+  const handleDownloadBackup = async (fileName) => {
+    try {
+      await backupApi.download(fileName);
+      toast.success(`${fileName} baixado com sucesso`);
+    } catch (error) {
+      toast.error("Erro ao baixar backup: " + (error.message || "Tente novamente"));
+    }
+  };
+
   const handleCreateBackup = async () => {    setCreating(true);
     try {
       const payload = versao.trim() ? { versao: versao.trim() } : undefined;
@@ -174,12 +183,10 @@ export default function Backup() {
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{item.data || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatFileSize(item.tamanho)}</td>
                     <td className="px-4 py-3 text-right">
-                      <a href={backupApi.download(item.nome)}>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Baixar
-                        </Button>
-                      </a>
+                      <Button variant="ghost" size="sm" onClick={() => handleDownloadBackup(item.nome)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Baixar
+                      </Button>
                     </td>
                   </tr>
                 ))}

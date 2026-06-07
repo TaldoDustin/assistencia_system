@@ -77,12 +77,25 @@ export default function Reports() {
     }
   };
 
-  const handleExportPdf = () => {
-    const params = {};
-    if (startDate) params.start_date = startDate;
-    if (endDate) params.end_date = endDate;
-    const url = relatoriosApi.pdfUrl(activeTab, params);
-    window.open(url, "_blank");
+  const handleExportPdf = async () => {
+    try {
+      const params = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      
+      const tipoMap = {
+        irphones: "irphones",
+        tecnicos: "tecnicos",
+        custos: "custos",
+      };
+      
+      const fileName = `relatorio-${activeTab}-${startDate || "inicio"}-${endDate || "fim"}.pdf`;
+      
+      await relatoriosApi.downloadPdf(tipoMap[activeTab], params, fileName);
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar PDF: " + (error.message || "Tente novamente"));
+    }
   };
 
   return (

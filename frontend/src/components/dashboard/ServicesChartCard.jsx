@@ -1,31 +1,49 @@
 import {
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
 
+// Paleta de cores moderna e vibrante
 const COLORS = [
-  "hsl(221 83% 53%)",
-  "hsl(160 60% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(280 65% 60%)",
-  "hsl(0 84% 60%)",
-  "hsl(200 70% 50%)",
+  "#3B82F6", // Azul
+  "#10B981", // Verde
+  "#F59E0B", // Âmbar
+  "#EF4444", // Vermelho
+  "#8B5CF6", // Roxo
+  "#EC4899", // Rosa
+  "#14B8A6", // Teal
+  "#F97316", // Laranja
+  "#06B6D4", // Cyan
+  "#6366F1", // Indigo
 ];
 
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
+  const data = payload[0];
+  
+  // Calcula total dinamicamente (será passado via context no futuro)
+  const value = data.value || 0;
+  
   return (
-    <div className="bg-popover border border-border rounded-lg p-3 shadow-xl text-sm">
-      {label && <p className="text-muted-foreground mb-1">{label}</p>}
-      {payload.map((entry, i) => (
-        <p key={i} style={{ color: entry.color || entry.fill }}>
-          {entry.name}: {entry.value}
-        </p>
-      ))}
+    <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-xl text-sm animate-in fade-in-50 zoom-in-95 duration-200">
+      <p className="font-semibold text-foreground">{data.name}</p>
+      <p className="text-xs text-muted-foreground mt-1">Total: <span className="font-medium text-foreground">{value} serviço{value !== 1 ? 's' : ''}</span></p>
+    </div>
+  );
+}
+
+function LegendItem({ name, color, value, percentage }) {
+  return (
+    <div className="flex items-center gap-2 py-2">
+      <div
+        className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+        style={{ backgroundColor: color }}
+      />
+      <span className="text-xs text-muted-foreground truncate">{name}</span>
+      <span className="text-xs font-medium text-foreground ml-auto">{percentage}%</span>
     </div>
   );
 }
@@ -39,33 +57,70 @@ export default function ServicesChartCard({ data }) {
     );
   }
 
+  // Calcula total e percentuais
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const dataWithPercentage = data.map((item) => ({
+    ...item,
+    percentage: total > 0 ? Math.round((item.value / total) * 100) : 0,
+  }));
+
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
-      <h3 className="text-sm font-medium text-card-foreground mb-4">Serviços Mais Realizados</h3>
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={55}
-            outerRadius={80}
-            paddingAngle={3}
-            dataKey="value"
-            nameKey="name"
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
+    <div className="bg-card rounded-xl border border-border p-5 flex flex-col h-full">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-card-foreground">Serviços Mais Realizados</h3>
+        <p className="text-xs text-muted-foreground mt-1">Total: {total} serviços</p>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 flex-1">
+        {/* Gráfico */}
+        <div className="col-span-2 lg:col-span-1 flex items-center justify-center">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={dataWithPercentage}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={2}
+                dataKey="value"
+                nameKey="name"
+                animationDuration={800}
+                animationEasing="ease-out"
+              >
+                {dataWithPercentage.map((_, i) => (
+                  <Cell
+                    key={`cell-${i}`}
+                    fill={COLORS[i % COLORS.length]}
+                    style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} cursor={false} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Legenda em grid */}
+        <div className="col-span-2 lg:col-span-1 overflow-y-auto pr-2">
+          <div className="space-y-1">
+            {dataWithPercentage.slice(0, 10).map((item, i) => (
+              <LegendItem
+                key={item.name}
+                name={item.name}
+                color={COLORS[i % COLORS.length]}
+                value={item.value}
+                percentage={item.percentage}
+              />
             ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            iconType="circle"
-            iconSize={8}
-            formatter={(v) => <span style={{ color: "hsl(215 20% 55%)", fontSize: 11 }}>{v}</span>}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            {dataWithPercentage.length > 10 && (
+              <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                + {dataWithPercentage.length - 10} serviços
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

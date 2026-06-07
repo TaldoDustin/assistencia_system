@@ -267,6 +267,32 @@ export const relatorios = {
     const endpoint = tipo === "irphones" ? "ir-phones" : tipo === "custos" ? "custos-operacionais" : tipo;
     return `${BASE}/relatorios/pdf/${endpoint}${qs ? "?" + qs : ""}`;
   },
+  downloadPdf: async (tipo, params = {}, fileName = "") => {
+    // Faz download do PDF com autenticação (credentials inclusos)
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
+    const endpoint = tipo === "irphones" ? "ir-phones" : tipo === "custos" ? "custos-operacionais" : tipo;
+    const url = `${BASE}/relatorios/pdf/${endpoint}${qs ? "?" + qs : ""}`;
+    
+    try {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        throw new Error(`Erro ao baixar PDF: ${res.status}`);
+      }
+      
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName || `relatorio-${tipo}-${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error("[IR Flow] Erro ao baixar PDF:", error);
+      throw error;
+    }
+  },
 };
 
 // ── Usuários ─────────────────────────────────────────────────────────────────
@@ -293,7 +319,28 @@ export const integracoes = {
 export const backup = {
   criar:    (data)   => post("/backup/criar", data),
   list:     ()       => get("/backup/listar"),
-  download: (file)   => `${BASE}/backup/download/${encodeURIComponent(file)}`,
+  download: async (fileName) => {
+    // Faz download do backup com autenticação (credentials inclusos)
+    const url = `${BASE}/backup/download/${encodeURIComponent(fileName)}`;
+    try {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        throw new Error(`Erro ao baixar backup: ${res.status}`);
+      }
+      
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error("[IR Flow] Erro ao baixar backup:", error);
+      throw error;
+    }
+  },
   restaurar: (formData) => fetch(`${BASE}/backup/restaurar`, {
     method: "POST",
     credentials: "include",

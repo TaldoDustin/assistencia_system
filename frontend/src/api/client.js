@@ -32,6 +32,21 @@ function expandPieceMap(pecas = {}) {
   });
 }
 
+/**
+ * Normaliza parâmetros de camelCase para snake_case para compatibilidade com backend
+ * @param {Object} params - Parâmetros a normalizar
+ * @returns {Object} Parâmetros normalizados
+ */
+function normalizeQueryParams(params = {}) {
+  const normalized = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "startDate") normalized["start_date"] = value;
+    else if (key === "endDate") normalized["end_date"] = value;
+    else normalized[key] = value;
+  }
+  return normalized;
+}
+
 function normalizeStockResponse(data) {
   if (data?.ok && data.itens && !data.items) {
     return { ...data, items: data.itens };
@@ -145,7 +160,8 @@ export const alertas = {
 // ── Dashboard ───────────────────────────────────────────────────────────────
 export const dashboard = {
   get: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
     return get(`/dashboard${qs ? "?" + qs : ""}`);
   },
 };
@@ -231,19 +247,23 @@ export const garantias = {
 // ── Relatórios ───────────────────────────────────────────────────────────────
 export const relatorios = {
   irphones:  (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
     return get(`/relatorios/ir-phones${qs ? "?" + qs : ""}`);
   },
   tecnicos:  (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
     return get(`/relatorios/tecnicos${qs ? "?" + qs : ""}`);
   },
   custosOperacionais: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
     return get(`/relatorios/custos-operacionais${qs ? "?" + qs : ""}`);
   },
   pdfUrl:    (tipo, params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const normalized = normalizeQueryParams(params);
+    const qs = new URLSearchParams(normalized).toString();
     const endpoint = tipo === "irphones" ? "ir-phones" : tipo === "custos" ? "custos-operacionais" : tipo;
     return `${BASE}/relatorios/pdf/${endpoint}${qs ? "?" + qs : ""}`;
   },

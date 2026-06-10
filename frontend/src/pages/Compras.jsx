@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import EditShoppingItemModal from "@/components/ui/EditShoppingItemModal";
+import { shoppingList } from "@/api/client";
 
 export default function Compras() {
   const [items, setItems] = useState([]);
@@ -8,11 +9,10 @@ export default function Compras() {
 
   async function load() {
     try {
-      const res = await fetch("/api/shopping-list", { credentials: "include" });
-      const data = await res.json();
+      const data = await shoppingList.list();
       if (data?.ok) setItems(data.compras || []);
     } catch (err) {
-      console.error(err);
+      console.error("Erro carregando lista de compras:", err);
     }
   }
 

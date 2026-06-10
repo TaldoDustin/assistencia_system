@@ -209,8 +209,8 @@ export const estoque = {
   delete: (id)         => del(`/estoque/${id}`),
 };
 
-// ── Compras / Shopping List ─────────────────────────────────────────────────
-export const shopping = {
+// ── Shopping List (Compras) ───────────────────────────────────────────────
+export const shoppingList = {
   list: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return get(`/shopping-list${qs ? `?${qs}` : ""}`);

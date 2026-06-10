@@ -209,11 +209,16 @@ export const estoque = {
   delete: (id)         => del(`/estoque/${id}`),
 };
 
-// ── Compras ─────────────────────────────────────────────────────────────────
+// ── Compras / Shopping List ─────────────────────────────────────────────────
 export const shopping = {
-  list: () => get("/shopping-list"),
-  create: (data) => post("/shopping-list", data),
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/shopping-list${qs ? `?${qs}` : ""}`);
+  },
+  get: (id) => get(`/shopping-list/${id}`),
+  create: (data) => post(`/shopping-list`, data),
   update: (id, data) => put(`/shopping-list/${id}`, data),
+  patchStatus: (id, statusBody) => request("PATCH", `/shopping-list/${id}/status`, statusBody),
   delete: (id) => del(`/shopping-list/${id}`),
 };
 

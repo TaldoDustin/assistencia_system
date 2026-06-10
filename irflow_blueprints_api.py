@@ -496,21 +496,49 @@ def create_api_blueprint(deps):
 
     # ── CONSTANTS ──────────────────────────────────────────────────────────
 
+    def _sanitize_list(arr):
+        if not isinstance(arr, (list, tuple)):
+            return arr
+        out = []
+        for v in arr:
+            if v is None:
+                continue
+            if isinstance(v, str):
+                s = v.strip()
+                if s == "":
+                    continue
+                out.append(s)
+            else:
+                out.append(v)
+        return out
+
+    def _sanitize_nested_obj(obj):
+        if not isinstance(obj, dict):
+            return obj
+        out = {}
+        for k, v in obj.items():
+            if isinstance(v, (list, tuple)):
+                out[k] = _sanitize_list(v)
+            else:
+                out[k] = v
+        return out
+
     @api.route("/constantes")
     def constantes():
-        return ok(
-            iphone_models=iphone_models,
-            iphone_colors=iphone_colors,
-            vendedores=vendedores,
-            tecnicos=tecnicos,
-            status_opcoes=status_os_opcoes,
-            os_tipos=["Assistencia", "Garantia", "Upgrade"],
-            categorias_custos=categorias_custos,
-            estoque_tipos=ESTOQUE_TIPOS,
-            estoque_qualidades=ESTOQUE_QUALIDADES,
-            reparos_padrao=reparos_padrao,
-            garantia_dias=90,
-        )
+        payload = {
+            "iphone_models": _sanitize_list(iphone_models),
+            "iphone_colors": _sanitize_nested_obj(iphone_colors),
+            "vendedores": _sanitize_list(vendedores),
+            "tecnicos": _sanitize_list(tecnicos),
+            "status_opcoes": _sanitize_list(status_os_opcoes),
+            "os_tipos": _sanitize_list(["Assistencia", "Garantia", "Upgrade"]),
+            "categorias_custos": _sanitize_list(categorias_custos),
+            "estoque_tipos": _sanitize_list(ESTOQUE_TIPOS),
+            "estoque_qualidades": _sanitize_list(ESTOQUE_QUALIDADES),
+            "reparos_padrao": _sanitize_list(reparos_padrao),
+            "garantia_dias": 90,
+        }
+        return ok(**payload)
 
     # ── ALERTS ─────────────────────────────────────────────────────────────
 

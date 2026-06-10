@@ -34,3 +34,5 @@ integrations.json
 .openclaude-profile.json.openclaude-profile.json
 .openclaude-profile.json
 .openclaude-profile.json
+
+.env

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, BarChart2, Wallet } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, BarChart2, Wallet, Package, Tag } from "lucide-react";
 import { dashboard as dashboardApi, constantes } from "@/api/client";
 import KpiCard from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -107,6 +107,8 @@ export default function Dashboard() {
             <KpiCard title="Lucro Bruto" value={data?.lucro_total} icon={TrendingUp} color="green" />
             <KpiCard title="Finalizadas" value={data?.ordens_finalizadas} icon={CheckCircle} isCurrency={false} color="green" />
             <KpiCard title="Em Aberto" value={data?.ordens_abertas} icon={Clock} isCurrency={false} color="amber" />
+            <KpiCard title="Peças Pendentes" value={data?.shopping_pendentes} icon={Package} isCurrency={false} color="amber" />
+            <KpiCard title="Urgentes" value={data?.shopping_urgentes} icon={Tag} isCurrency={false} color="red" />
             <KpiCard title="Ticket Médio" value={data?.ticket_medio} icon={BarChart2} color="blue" />
             <KpiCard title="Resultado Líq." value={data?.resultado_liquido} icon={Wallet} color={data?.resultado_liquido >= 0 ? "green" : "red"} />
           </div>

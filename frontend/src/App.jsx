@@ -14,6 +14,7 @@ const EditOrder = lazy(() => import("@/pages/EditOrder"));
 const Kanban = lazy(() => import("@/pages/Kanban"));
 const Garantias = lazy(() => import("@/pages/Garantias"));
 const Stock = lazy(() => import("@/pages/Stock"));
+const Compras = lazy(() => import("@/pages/Compras"));
 const RepairTypes = lazy(() => import("@/pages/RepairTypes"));
 const PriceTables = lazy(() => import("@/pages/PriceTables"));
 const OperationalCosts = lazy(() => import("@/pages/OperationalCosts"));
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/garantias" element={<Garantias />} />
           <Route path="/estoque" element={<Stock />} />
+          <Route path="/compras" element={<Compras />} />
           <Route path="/reparos" element={<RepairTypes />} />
           <Route path="/precos" element={<PriceTables />} />
           <Route path="/custos" element={<OperationalCosts />} />

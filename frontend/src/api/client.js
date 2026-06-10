@@ -209,6 +209,14 @@ export const estoque = {
   delete: (id)         => del(`/estoque/${id}`),
 };
 
+// ── Compras ─────────────────────────────────────────────────────────────────
+export const shopping = {
+  list: () => get("/shopping-list"),
+  create: (data) => post("/shopping-list", data),
+  update: (id, data) => put(`/shopping-list/${id}`, data),
+  delete: (id) => del(`/shopping-list/${id}`),
+};
+
 // ── Reparos ─────────────────────────────────────────────────────────────────
 export const reparos = {
   list:   ()          => get("/reparos"),

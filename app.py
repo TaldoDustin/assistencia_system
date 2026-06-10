@@ -490,6 +490,18 @@ def criar_tabelas():
             """)
 
             cursor.execute("""
+            CREATE TABLE IF NOT EXISTS compras (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                produto TEXT NOT NULL,
+                os_id INTEGER,
+                quantidade INTEGER NOT NULL DEFAULT 1,
+                status TEXT DEFAULT 'PENDENTE',
+                criado_em TEXT DEFAULT '',
+                atualizado_em TEXT DEFAULT ''
+            )
+            """)
+
+            cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,

@@ -48,6 +48,14 @@ export function SelectContent({ className, children, position = "popper", ...pro
 }
 
 export function SelectItem({ className, children, ...props }) {
+  // Defensive: Radix Select throws if an Item has value === "". Skip rendering such items.
+  if (props && props.value === "") {
+    if (typeof console !== "undefined" && console.warn) {
+      console.warn("SelectItem: skipping item with empty value", children);
+    }
+    return null;
+  }
+
   return (
     <SelectPrimitive.Item
       className={cn(

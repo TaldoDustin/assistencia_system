@@ -48,6 +48,17 @@ export function SelectContent({ className, children, position = "popper", ...pro
 }
 
 export function SelectItem({ className, children, ...props }) {
+  // Radix Select disallows an empty-string value on Item because "" is
+  // used to clear the selection and show the placeholder. Avoid rendering
+  // any item with an empty-string value (likely due to upstream data). This
+  // prevents the runtime exception and silently skips invalid options.
+  const value = props.value;
+  if (value === "") {
+    // eslint-disable-next-line no-console
+    console.warn("Skipped rendering <SelectItem> with empty string value:", children);
+    return null;
+  }
+
   return (
     <SelectPrimitive.Item
       className={cn(

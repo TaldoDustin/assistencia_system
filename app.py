@@ -671,6 +671,47 @@ def criar_tabelas():
                 """
             )
 
+            # Shopping list tables
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shopping_list (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                os_id INTEGER,
+                produto_id INTEGER,
+                produto_nome TEXT,
+                quantidade_solicitada INTEGER NOT NULL DEFAULT 1,
+                quantidade_comprada INTEGER NOT NULL DEFAULT 0,
+                quantidade_recebida INTEGER NOT NULL DEFAULT 0,
+                prioridade TEXT DEFAULT 'NORMAL',
+                status TEXT DEFAULT 'PENDENTE',
+                responsavel_id INTEGER,
+                observacao TEXT DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                purchased_at TEXT,
+                received_at TEXT,
+                cancelled_at TEXT
+            )
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shopping_list_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shopping_list_id INTEGER NOT NULL,
+                usuario_id INTEGER,
+                acao TEXT NOT NULL,
+                valor_anterior TEXT,
+                valor_novo TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_shopping_list_os_produto
+                ON shopping_list (os_id, produto_id, produto_nome)
+                """
+            )
+
             conn.commit()
             SCHEMA_READY = True
         except sqlite3.OperationalError as exc:

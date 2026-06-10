@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
+import ShoppingModal from "@/components/shopping/ShoppingModal";
 import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi, precos as precosApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export default function EditOrder() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
+  const [shoppingModalOpen, setShoppingModalOpen] = useState(false);
   const [suggestedPrice, setSuggestedPrice] = useState(null);
   const [checklistMeta, setChecklistMeta] = useState(null);
   const [checklistDialog, setChecklistDialog] = useState(false);
@@ -271,6 +273,7 @@ export default function EditOrder() {
           <p className="text-muted-foreground text-sm">Atualize os dados da OS</p>
         </div>
         <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => setShoppingModalOpen(true)}>Adicionar à Lista de Compras</Button>
           <Button type="button" variant="outline" onClick={handleChecklistQr} disabled={checklistLoading}>
             {checklistLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
             Checklist QR
@@ -521,6 +524,8 @@ export default function EditOrder() {
           <Button type="button" variant="outline" onClick={() => navigate("/ordens")}>Voltar</Button>
         </div>
       </form>
+
+      <ShoppingModal open={shoppingModalOpen} onOpenChange={setShoppingModalOpen} osId={id} onCreated={() => {/* opcional: atualizar lista local */}} />
 
       <AlertDialog open={cancelDialog} onOpenChange={setCancelDialog}>
         <AlertDialogContent>

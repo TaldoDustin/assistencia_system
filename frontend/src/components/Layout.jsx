@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/compras", label: "Compras", icon: ClipboardList },
   { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardList },
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },

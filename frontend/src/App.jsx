@@ -12,6 +12,7 @@ const Orders = lazy(() => import("@/pages/Orders"));
 const NewOrder = lazy(() => import("@/pages/NewOrder"));
 const EditOrder = lazy(() => import("@/pages/EditOrder"));
 const Kanban = lazy(() => import("@/pages/Kanban"));
+const ShoppingList = lazy(() => import("@/pages/ShoppingList"));
 const Garantias = lazy(() => import("@/pages/Garantias"));
 const Stock = lazy(() => import("@/pages/Stock"));
 const RepairTypes = lazy(() => import("@/pages/RepairTypes"));
@@ -57,6 +58,7 @@ function AppRoutes() {
           <Route path="/ordens" element={<Orders />} />
           <Route path="/ordens/nova" element={<NewOrder />} />
           <Route path="/ordens/editar/:id" element={<EditOrder />} />
+          <Route path="/compras" element={<ShoppingList />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/garantias" element={<Garantias />} />
           <Route path="/estoque" element={<Stock />} />

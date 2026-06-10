@@ -1,6 +1,6 @@
 import * as SelectPrimitive from "@radix-ui/react-select"; import { ChevronDown, ChevronUp, Check } from "lucide-react";
 
-/*  Emergency minimal Select wrapper to unblock build.  Reintroduce full implementation after deploy succeeds. */ export const Select =
+export const Select =
 SelectPrimitive.Root; export const SelectGroup = SelectPrimitive.Group; export const SelectValue = SelectPrimitive.Value;
 
 export function SelectTrigger(props) {  return (  <SelectPrimitive.Trigger {...props}>  {props.children}  <SelectPrimitive.Icon asChild>  
@@ -16,4 +16,5 @@ export function SelectItem({ children, ...props }) {  // keep minimal and safe  
 <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>  </SelectPrimitive.Item>  ); }
 
 export function SelectLabel(props) {  return <SelectPrimitive.Label {...props} />; } export function SelectSeparator(props) {  return
-<SelectPrimitive.Separator {...props} />; }
+<SelectPrimitive.Separator {...props} />; 
+                                                                                                                            }

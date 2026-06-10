@@ -148,8 +148,35 @@ export const auth = {
 };
 
 // ── Constants ───────────────────────────────────────────────────────────────
+function sanitizeConstants(data = {}) {
+  if (!data || typeof data !== 'object') return data;
+  const copy = { ...data };
+  const sanitizeArray = (arr) => Array.isArray(arr)
+    ? arr
+        .map((s) => (typeof s === 'string' ? s.trim() : s))
+        .filter((s) => s !== null && s !== undefined && !(typeof s === 'string' && s === ''))
+    : arr;
+
+  for (const k of Object.keys(copy)) {
+    if (Array.isArray(copy[k])) {
+      copy[k] = sanitizeArray(copy[k]);
+    } else if (copy[k] && typeof copy[k] === 'object') {
+      // sanitize nested objects where values may be arrays (e.g. iphone_colors)
+      const obj = { ...copy[k] };
+      for (const sk of Object.keys(obj)) {
+        if (Array.isArray(obj[sk])) obj[sk] = sanitizeArray(obj[sk]);
+      }
+      copy[k] = obj;
+    }
+  }
+
+  return copy;
+}
+
 export const constantes = {
-  get: () => get("/constantes"),
+  // Fetch and sanitize backend constants to avoid empty-string options being
+  // rendered as SelectItem value="" which causes a runtime error in Radix.
+  get: () => get("/constantes").then((d) => sanitizeConstants(d)),
 };
 
 // ── Alerts ──────────────────────────────────────────────────────────────────

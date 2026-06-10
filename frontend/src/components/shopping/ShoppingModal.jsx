@@ -9,7 +9,7 @@ import { toast } from "sonner";
 export default function ShoppingModal({ open, onOpenChange, osId, onCreated }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [produtoId, setProdutoId] = useState("");
+  const [produtoId, setProdutoId] = useState("NONE");
   const [produtoNome, setProdutoNome] = useState("");
   const [quantidade, setQuantidade] = useState(1);
   const [prioridade, setPrioridade] = useState("NORMAL");
@@ -26,10 +26,11 @@ export default function ShoppingModal({ open, onOpenChange, osId, onCreated }) {
     e?.preventDefault();
     setLoading(true);
     try {
+      const produtoIdValue = produtoId === "NONE" ? undefined : produtoId;
       const payload = {
         os_id: osId,
-        produto_id: produtoId || undefined,
-        produto_nome: produtoNome || (produtoId ? undefined : ""),
+        produto_id: produtoIdValue,
+        produto_nome: produtoNome || undefined,
         quantidade_solicitada: Number(quantidade) || 1,
         prioridade,
         observacao,
@@ -59,12 +60,21 @@ export default function ShoppingModal({ open, onOpenChange, osId, onCreated }) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div>
             <label className="block text-sm font-medium mb-1">Peça</label>
-            <Select value={produtoId || ""} onValueChange={(v) => { setProdutoId(v); const p = products.find(x => String(x.id) === String(v)); if (p) setProdutoNome(p.descricao); }}>
+            <Select value={produtoId} onValueChange={(v) => {
+                if (v === "NONE") {
+                  setProdutoId("NONE");
+                  setProdutoNome("");
+                } else {
+                  setProdutoId(v);
+                  const p = products.find(x => String(x.id) === String(v));
+                  if (p) setProdutoNome(p.descricao);
+                }
+              }}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma peça" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma (informar nome)</SelectItem>
+                <SelectItem value="NONE">Nenhuma (informar nome)</SelectItem>
                 {products.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>{p.descricao}</SelectItem>
                 ))}

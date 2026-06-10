@@ -8,7 +8,7 @@ import { toast } from "sonner";
 export default function ShoppingList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: "", prioridade: "" });
+  const [filters, setFilters] = useState({ status: "ALL", prioridade: "ALL", produto: "" });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [total, setTotal] = useState(0);
@@ -17,6 +17,8 @@ export default function ShoppingList() {
     setLoading(true);
     try {
       const params = { ...filters, page, per_page: perPage };
+      if (params.status === "ALL") delete params.status;
+      if (params.prioridade === "ALL") delete params.prioridade;
       const res = await shoppingApi.list(params);
       if (res?.ok) {
         setItems(res.items || []);
@@ -43,7 +45,7 @@ export default function ShoppingList() {
           <Select value={filters.status} onValueChange={(v) => setFilters((p) => ({ ...p, status: v }))}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="ALL">Todos</SelectItem>
               <SelectItem value="PENDENTE">Pendente</SelectItem>
               <SelectItem value="EM_COTACAO">Em Cotação</SelectItem>
               <SelectItem value="EM_COMPRA">Em Compra</SelectItem>
@@ -55,7 +57,7 @@ export default function ShoppingList() {
           <Select value={filters.prioridade} onValueChange={(v) => setFilters((p) => ({ ...p, prioridade: v }))}>
             <SelectTrigger className="w-32"><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="ALL">Todas</SelectItem>
               <SelectItem value="URGENTE">URGENTE</SelectItem>
               <SelectItem value="ALTA">ALTA</SelectItem>
               <SelectItem value="NORMAL">NORMAL</SelectItem>

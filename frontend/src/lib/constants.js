@@ -11,12 +11,13 @@ export function getOrderDisplayNumber(order) {
     return "";
   }
 
-  const hasExternalNumber =
-    order.origem_integracao === "mercado_phone" && order.id_externo_integracao;
+  // Prefer internal OS id for display to avoid confusion with external integration ids.
+  if (order.id !== undefined && order.id !== null) {
+    return String(order.id);
+  }
 
-  return hasExternalNumber
-    ? String(order.id_externo_integracao)
-    : String(order.id ?? "").slice(-5);
+  // Fallback to external id if internal id is missing.
+  return String(order.id_externo_integracao || "");
 }
 
 export function getStatusColor(status) {

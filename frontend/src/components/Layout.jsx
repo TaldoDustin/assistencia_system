@@ -15,6 +15,7 @@ const navItems = [
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },
   { path: "/estoque", label: "Estoque", icon: Package },
+  { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
   { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
   { path: "/custos", label: "Custos Operacionais", icon: DollarSign, adminOnly: true },

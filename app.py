@@ -184,7 +184,19 @@ IS_SERVER_RUNTIME = bool(
 BACKGROUND_JOBS_ENABLED = (os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower() not in {"0", "false", "nao", "off"})
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
-PUBLIC_BASE_URL = (os.environ.get("IR_FLOW_PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
+VERCEL_URL = (os.environ.get("VERCEL_URL") or "").strip()  # Ex: https://assistencia-system.vercel.app
+
+
+def _normalizar_url_publica(valor):
+    texto = (valor or "").strip().rstrip("/")
+    if not texto:
+        return ""
+    if texto.startswith("http://") or texto.startswith("https://"):
+        return texto
+    return f"https://{texto}"
+
+
+PUBLIC_BASE_URL = _normalizar_url_publica(os.environ.get("IR_FLOW_PUBLIC_BASE_URL")) or _normalizar_url_publica(VERCEL_URL)
 GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
 
 # Configuração de e-mail para envio automático de backup
@@ -240,7 +252,6 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 # Configuração de CORS para aceitar requisições do frontend.
 # Pode ser definido como lista separada por vírgula em IR_FLOW_CORS_ORIGINS.
-VERCEL_URL = os.environ.get("VERCEL_URL")  # Ex: https://assistencia-system.vercel.app
 cors_origins_env = (os.environ.get("IR_FLOW_CORS_ORIGINS") or "").strip()
 
 

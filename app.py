@@ -8,6 +8,7 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # ============================================================================
 import functools
 import os
+import secrets
 import shutil
 import sqlite3
 import sys
@@ -224,7 +225,15 @@ try:
 except Exception:
     CORS = None
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
+_flask_secret_key = os.environ.get("FLASK_SECRET_KEY")
+if not _flask_secret_key:
+    _flask_secret_key = secrets.token_hex(32)
+    print(
+        "[WARN] FLASK_SECRET_KEY não definida - usando chave temporária gerada em "
+        "runtime (sessões serão invalidadas a cada reinício). Defina FLASK_SECRET_KEY "
+        "em produção."
+    )
+app.secret_key = _flask_secret_key
 
 # Cookies de sessão: em produção cross-site (Vercel -> Render), o navegador
 # exige SameSite=None + Secure para enviar cookie com credentials: include.
@@ -762,11 +771,21 @@ def criar_admin_padrao():
         # Verifica se já existe um usuário com o nome 'admin'
         cursor.execute("SELECT 1 FROM usuarios WHERE usuario = ?", ("admin",))
         if cursor.fetchone() is None:
+            senha_admin = os.environ.get("IR_FLOW_ADMIN_DEFAULT_PASSWORD")
+            senha_gerada_automaticamente = not senha_admin
+            if not senha_admin:
+                senha_admin = secrets.token_urlsafe(12)
             cursor.execute(
                 "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
-                ("Administrador", "admin", generate_password_hash("irflow@2024"), "admin"),
+                ("Administrador", "admin", generate_password_hash(senha_admin), "admin"),
             )
             conn.commit()
+            if senha_gerada_automaticamente:
+                print(
+                    "[SETUP] Usuário admin padrão criado. Senha temporária gerada: "
+                    f"{senha_admin} - troque-a assim que possível ou defina "
+                    "IR_FLOW_ADMIN_DEFAULT_PASSWORD antes do primeiro boot."
+                )
     except Exception as exc:
         # Loga o erro mas não interrompe o boot
         print(f"[WARN] Erro ao criar admin padrão: {exc}")
@@ -822,7 +841,11 @@ MERCADO_PHONE_HELPERS = {
 def autenticar_integracao_mercado_phone():
     """Valida token de autenticação do webhook Mercado Phone."""
     if not MERCADO_PHONE_WEBHOOK_TOKEN:
-        return
+        print(
+            "[MercadoPhone] Webhook recusado: MERCADO_PHONE_WEBHOOK_TOKEN não está "
+            "configurado no ambiente."
+        )
+        abort(401)
 
     def _mascarar_token(valor):
         texto = texto_limpo(valor)

@@ -20,3 +20,9 @@ backups/
 temp_output.txt
 smoke_test_full.py
 test_routes.py
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+backup-*.db
+database-*.db

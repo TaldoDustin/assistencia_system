@@ -18,6 +18,10 @@ release/
 
 # Dados locais (não versionar banco nem backups)
 database.db
+database-*.db
+*.db-shm
+*.db-wal
+*.db-journal
 backups/
 data/price_tables.json
 

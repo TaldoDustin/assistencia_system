@@ -1,0 +1,227 @@
+# CLAUDE.md — Manual Operacional
+
+Este arquivo é o ponto de entrada obrigatório para qualquer sessão de trabalho neste repositório.
+Leia-o inteiramente antes de qualquer ação — sem exceções.
+
+---
+
+## O Projeto
+
+**Assistência System** é um sistema de gestão para assistência técnica de smartphones.
+Cobre o ciclo completo: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Está em produção no Fly.io.
+
+Stack: **Flask 3 + SQLite** (backend) · **React 19 + Vite** (frontend) · **Fly.io** (produção).
+
+---
+
+## Leitura Obrigatória
+
+Antes de qualquer tarefa, leia os documentos abaixo nesta ordem. De cada um, extraia o que está indicado:
+
+| # | Documento | O que extrair |
+|---|-----------|---------------|
+| 1 | `CLAUDE.md` | Protocolo, regras, filosofia |
+| 2 | `docs/ENGINEERING_GUIDE.md` | Padrões técnicos, convenções, arquitetura |
+| 3 | `docs/PROJECT_STATUS.md` | Sprint atual, score, bugs abertos, arquivos críticos |
+| 4 | `docs/ROADMAP.md` | Fase e sprint em andamento, objetivos de médio prazo |
+| 5 | `docs/KNOWN_ISSUES.md` | Issues abertos — não repita trabalho, não ignore contexto |
+| 6 | `docs/ARCHITECTURE.md` | Camadas, módulos, fluxos de dados |
+| 7 | `docs/DATABASE.md` | Schema, índices, regras de migração |
+
+Após a leitura, descreva o estado do projeto em **exatamente 5 linhas** antes de qualquer ação.
+Use o formato:
+
+```
+Sistema: <descrição em uma linha>
+Sprint atual: <sprint> — <status>
+Bugs abertos: <N> (críticos: <N>)
+Próximo objetivo: <objetivo>
+Risco principal: <risco>
+```
+
+---
+
+## Documentos Ausentes
+
+Se qualquer documento da lista acima não existir:
+
+1. **Pare.**
+2. Informe exatamente quais documentos estão faltando.
+3. Pergunte se deve criá-los antes de continuar.
+4. **Não prossiga com a tarefa original até que estejam presentes.**
+
+A ausência de documentação não é um detalhe — é um sinal de que o estado do projeto é desconhecido.
+
+---
+
+## Protocolo de Trabalho
+
+Todo trabalho segue este ciclo obrigatório. Nunca pule etapas.
+
+### 1 — ANALISAR
+- Leia os arquivos relevantes. Entenda o impacto.
+- Consulte `KNOWN_ISSUES.md`: o problema já foi mapeado?
+- Consulte `ARCHITECTURE_DECISIONS.md`: existe uma decisão que afeta isso?
+- Nunca implemente sem entender o que pode quebrar.
+
+### 2 — PLANEJAR
+- Liste os arquivos que serão modificados.
+- Identifique riscos, efeitos colaterais e dependências.
+- Para tarefas não-triviais: apresente o plano e aguarde aprovação antes de implementar.
+- Se a tarefa altera mais de 3 arquivos: plano obrigatório.
+
+### 3 — IMPLEMENTAR
+- Uma mudança por vez. Commits atômicos e descritivos.
+- Nunca misture refatoração com feature no mesmo commit.
+- Nunca misture correção de bug com feature nova.
+
+### 4 — VALIDAR
+- Releia o que foi escrito. Confira coerência com `ENGINEERING_GUIDE.md`.
+- Confirme que nenhuma regra de negócio foi violada.
+- Confirme que nenhuma dívida técnica foi criada silenciosamente.
+
+### 5 — TESTAR
+- Execute os testes relevantes para a mudança.
+- Confirme que os testes existentes continuam passando.
+- Não marque uma tarefa como concluída com testes falhando.
+
+### 6 — DOCUMENTAR
+- Atualize todos os documentos afetados (ver tabela na seção Documentação).
+
+### 7 — ATUALIZAR `PROJECT_STATUS.md`
+- Score, cobertura, bugs, arquivos críticos se necessário.
+
+### 8 — ATUALIZAR `CHANGELOG.md`
+- Registre a mudança com data e versão.
+
+### 9 — ATUALIZAR `ROADMAP.md` (se necessário)
+- Apenas se a mudança altera o planejamento ou as fases.
+
+---
+
+## Regras Absolutas — NUNCA
+
+| Regra | Razão |
+|-------|-------|
+| Nunca modificar o banco sem plano aprovado | Migrations mal feitas corrompem dados reais de clientes |
+| Nunca remover código sem confirmar | Pode ser código em uso não rastreado — quebra contrato silenciosamente |
+| Nunca quebrar regra de negócio existente | O sistema está em produção — regressões têm custo real imediato |
+| Nunca fazer refatoração junto com feature | Mistura dificulta revisão e multiplica risco de regressão |
+| Nunca criar duplicação de código | Viola DRY, gera inconsistências que acumulam dívida |
+| Nunca ignorar testes falhando | Testes falhos são bugs — não entregar com CI vermelho |
+| Nunca commitar segredos ou credenciais | Chaves, senhas, tokens jamais no repositório |
+| Nunca usar `--no-verify` ou `--force` sem aprovação explícita | Bypassa gates de qualidade que existem por razão |
+| Nunca assumir o estado do banco em produção | O schema real pode divergir — sempre verificar |
+| Nunca implementar sem ler os documentos obrigatórios | Decisões sem contexto geram retrabalho e regressões |
+| Nunca adicionar feature não solicitada | Escopo deve ser exatamente o que foi pedido |
+| Nunca apagar entradas do `KNOWN_ISSUES.md` | Apenas mover para "Resolvidos" com data e commit |
+
+---
+
+## Regras Absolutas — SEMPRE
+
+- Sempre seguir Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`
+- Sempre criar branch de feature antes de implementar: `feat/nome`, `fix/nome`, `refactor/nome`
+- Sempre manter testes isolados — nenhum teste pode tocar `database.db`
+- Sempre atualizar `KNOWN_ISSUES.md` ao identificar novo bug, mesmo que não corrigirá agora
+- Sempre verificar `KNOWN_ISSUES.md` antes de começar uma correção
+- Sempre preferir editar arquivos existentes a criar novos
+- Sempre confirmar antes de qualquer ação destrutiva (delete, drop, force push, truncate)
+- Sempre documentar decisões arquiteturais em `ARCHITECTURE_DECISIONS.md`
+- Sempre manter o escopo exato do que foi pedido
+- Sempre criar `SPRINTS/SPRINT_NN.md` ao iniciar uma nova sprint, usando o template
+
+---
+
+## Critérios para Aprovar Alterações
+
+Avalie antes de implementar qual nível de aprovação é necessário:
+
+### Pode prosseguir sem aprovação explícita
+- Correção de bug com escopo claro e isolado (um arquivo, sem mudança de schema)
+- Adição de teste sem mudança de lógica
+- Atualização de documentação
+- Refatoração dentro de um único arquivo com testes cobrindo
+
+### Requer apresentar plano e aguardar aprovação
+- Qualquer mudança em `app.py` ou `irflow_blueprints_api.py`
+- Qualquer alteração no schema do banco de dados
+- Adição ou remoção de dependências (`requirements.txt`, `package.json`)
+- Mudança em qualquer fluxo de autenticação ou autorização
+- Qualquer mudança que afete mais de 3 arquivos simultaneamente
+- Feature nova, mesmo que pequena
+
+### Requer aprovação explícita + ADR documentado
+- Mudança de banco de dados (ex: SQLite → PostgreSQL)
+- Mudança de framework ou biblioteca principal
+- Mudança de estratégia de deploy
+- Alteração na estrutura de pastas do projeto
+- Qualquer decisão irreversível ou de alto custo para desfazer
+
+---
+
+## Responsabilidade de Documentação
+
+Ao concluir qualquer tarefa, verifique esta tabela:
+
+| Tipo de mudança | Documentos a atualizar |
+|-----------------|------------------------|
+| Nova feature | `CHANGELOG.md`, `PROJECT_STATUS.md`, sprint atual em `SPRINTS/` |
+| Bug corrigido | `KNOWN_ISSUES.md` (mover para Resolvidos), `CHANGELOG.md` |
+| Nova vulnerabilidade identificada | `KNOWN_ISSUES.md`, `SECURITY.md` |
+| Decisão arquitetural tomada | `ARCHITECTURE_DECISIONS.md`, `ARCHITECTURE.md` se estrutural |
+| Mudança no schema do banco | `DATABASE.md` |
+| Mudança em processo de desenvolvimento | `CONTRIBUTING.md`, `ENGINEERING_GUIDE.md` |
+| Conclusão de sprint | `PROJECT_STATUS.md`, `ROADMAP.md`, sprint file em `SPRINTS/` |
+| Início de nova sprint | Criar `SPRINTS/SPRINT_NN.md` a partir de `templates/SPRINT_TEMPLATE.md` |
+| Novo ADR | Adicionar em `ARCHITECTURE_DECISIONS.md` com numeração sequencial |
+
+---
+
+## Estrutura de Documentos
+
+```
+CLAUDE.md                          ← este arquivo (manual operacional — lido primeiro)
+docs/
+├── ENGINEERING_GUIDE.md           ← constituição técnica (padrões que raramente mudam)
+├── ARCHITECTURE.md                ← visão arquitetural completa (camadas, módulos, fluxos)
+├── ARCHITECTURE_DECISIONS.md      ← ADRs (histórico de decisões com contexto)
+├── DATABASE.md                    ← schema, tabelas, índices, regras de migração
+├── SECURITY.md                    ← política de segurança e checklist OWASP
+├── TESTING.md                     ← estratégia oficial de testes
+├── CONTRIBUTING.md                ← processo de desenvolvimento e PR
+├── PROJECT_STATUS.md              ← estado atual (atualizado a cada sprint)
+├── ROADMAP.md                     ← evolução planejada (fases e sprints)
+├── KNOWN_ISSUES.md                ← bugs e issues conhecidos (nunca apagar)
+├── CHANGELOG.md                   ← histórico de versões
+├── SPRINTS/
+│   ├── SPRINT_00.md               ← retrospectiva
+│   ├── SPRINT_01.md               ← retrospectiva
+│   └── SPRINT_02.md               ← plano ativo
+└── templates/
+    ├── SPRINT_TEMPLATE.md
+    ├── ADR_TEMPLATE.md
+    └── ISSUE_TEMPLATE.md
+```
+
+---
+
+## Filosofia do Projeto
+
+**Qualidade acima de velocidade.**
+Uma feature entregue com testes e documentação vale mais do que três features entregues sem cobertura. Velocidade sem qualidade é dívida disfarçada de progresso.
+
+**Contexto antes de código.**
+Os documentos existem para eliminar suposições. Suposições geram bugs. Bugs em produção têm custo real — clientes, dados, confiança.
+
+**Escopo cirúrgico.**
+Cada PR faz uma coisa. Cada commit conta uma história. Cada mudança tem razão documentada. Código que ninguém pediu não entra.
+
+**Dívida técnica é visível.**
+Nada é varrido para debaixo do tapete. Se algo não está certo, vai para `KNOWN_ISSUES.md` imediatamente. Problemas ocultos são piores do que problemas conhecidos.
+
+**O banco é sagrado.**
+Dados de clientes e ordens de serviço têm valor real para o negócio. Qualquer operação no banco de dados é tratada com cautela máxima — plano, revisão, backup verificado.
+
+**Documentação é entrega.**
+Uma feature não está concluída até que seus efeitos estejam refletidos nos documentos relevantes. Código sem documentação é conhecimento privado — e conhecimento privado se perde.

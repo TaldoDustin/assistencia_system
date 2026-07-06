@@ -18,6 +18,14 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5080',
+        changeOrigin: true,
+      },
+    },
+  },
   base: '/',
   build: {
     outDir: 'dist',

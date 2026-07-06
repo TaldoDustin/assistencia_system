@@ -40,7 +40,7 @@ test("gerencia item de estoque pela interface", async ({ page }) => {
   await page.getByRole("link", { name: "Estoque" }).click();
   await page.getByRole("button", { name: /Nova Peça/i }).click();
   await page.getByLabel("Descrição *").fill(descricao);
-  await page.getByLabel("Modelo").fill("iPhone 11");
+  await selectOption(page, "Modelo compatível", "iPhone 11");
   await page.getByLabel("Fornecedor").fill("Fornecedor E2E");
   await page.getByLabel("Valor (R$)").fill("12.34");
   await page.getByLabel("Quantidade").fill("2");

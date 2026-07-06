@@ -8,8 +8,8 @@ __pycache__/
 
 # Build / dist desktop
 *.spec
-build/
-dist/
+/build/
+/dist/
 build_irflow/
 build_irflow2/
 build_irflow_setup/

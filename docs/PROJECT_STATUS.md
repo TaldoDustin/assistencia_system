@@ -93,6 +93,7 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 | ~~B-07~~ | ~~PDF IR Phones com URL errada~~ | ~~Alta~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-08~~ | ~~`historico-cliente` apontando para rota inexistente~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-09~~ | ~~Campo `cor` não limpo ao trocar modelo~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
+| ~~B-10~~ | ~~Endpoint `/api/shopping-list` duplicado (código legado) travava a inicialização do Flask (KI-012)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-07)~~ |
 
 ---
 
@@ -150,11 +151,11 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 | Camada            | Tipo                     | Ferramenta   | Cobertura estimada |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas    |
-| Backend — Módulos | Sem testes unitários     | —            | 0%                 |
+| Backend — Módulos | pytest (auth/sessão — Sprint 2.2, 18 testes) | pytest | Baixa — apenas `irflow_blueprints_auth.py` e rotas `/api/auth/*` cobertas |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global**        |                          |              | **~15%**           |
+| **Global**        |                          |              | **~15%** (ainda não recalculado formalmente com `pytest-cov`) |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend.
 

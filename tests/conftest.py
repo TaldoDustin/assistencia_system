@@ -185,8 +185,8 @@ def criar_os(reparo_padrao_id):
             cursor.execute(
                 """
                 INSERT INTO os (tipo, cliente, aparelho, tecnico, reparo_id, status,
-                    valor_cobrado, valor_descontado, custo_pecas, data, vendedor)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    valor_cobrado, valor_descontado, custo_pecas, data, vendedor, modelo)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     tipo,
@@ -200,6 +200,7 @@ def criar_os(reparo_padrao_id):
                     0,
                     data or datetime.now().strftime("%Y-%m-%d"),
                     vendedor,
+                    modelo,
                 ),
             )
             os_id = cursor.lastrowid

@@ -1628,7 +1628,7 @@ def create_api_blueprint(deps):
         valor_cobrado = float(body.get("valor_cobrado") or 0)
         valor_descontado = float(body.get("valor_descontado") or 0)
         data_os = (body.get("data_os") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-        status = normalizar_status_os(body.get("status") or "")
+        status = normalizar_status_os(body.get("status") or "", status_padrao="")
         aparelho = modelo
 
         if not tipo or not cliente or not modelo or not tecnico or not status:

@@ -2127,7 +2127,7 @@ def create_api_blueprint(deps):
                 """,
                 (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, sku, tipo, qualidade, item_id),
             )
-            diff = quantidade_nova - qtd_antiga
+            diff = max(0, quantidade_nova) - qtd_antiga
             if diff != 0:
                 tipo_mov = "entrada" if diff > 0 else "saida"
                 registrar_movimentacao(cursor, item_id, tipo_mov, abs(diff))

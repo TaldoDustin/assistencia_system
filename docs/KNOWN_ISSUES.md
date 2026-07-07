@@ -206,3 +206,32 @@ Sprint 1 — concluída.
 
 Responsável:
 —
+
+---
+
+## ~~KI-012~~ — RESOLVIDO
+
+Descrição:
+`irflow_blueprints_api.py` continha duas funções `shopping_list()` (e as respectivas `shopping_create`,
+`shopping_update`, `shopping_delete`) registradas na mesma rota `/shopping-list` — a versão atual
+(tabela `shopping_list`, com paginação/prioridade/responsável) e um bloco legado de uma implementação
+anterior baseada na tabela `compras`, aparentemente deixado para trás na `Merge branch
+'feature/shopping-edit-os-pr'` (commit `7811846`). Como Flask não permite dois endpoints com o mesmo
+nome de função no mesmo blueprint, `app.py` lançava `AssertionError` na inicialização — a aplicação
+não conseguia nem ser importada.
+
+Impacto:
+Crítico. Bloqueava toda execução da aplicação e da suíte de testes (inclusive os testes de
+autenticação da Sprint 2.2). Identificado ao tentar rodar `pytest` pela primeira vez nesta sprint.
+
+Status:
+Resolvido em 2026-07-07. Removido o bloco legado duplicado (baseado em `compras`) em
+`irflow_blueprints_api.py`. Confirmado via `frontend/src/pages/ShoppingList.jsx` e
+`frontend/src/api/client.js` que o frontend consome apenas a implementação baseada em `shopping_list`
+(campo `items`, não `compras`) — nenhuma funcionalidade em uso foi removida.
+
+Sprint prevista:
+Identificado e corrigido fora de sprint — bloqueava a Sprint 2.2.
+
+Responsável:
+—

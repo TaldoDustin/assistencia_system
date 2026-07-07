@@ -1,6 +1,6 @@
 # SPRINT 02 — Infraestrutura de Qualidade
 
-**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07 · Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07 · Sprint 2.4 (T-17 a T-20) em revisão (branch própria) · Sprint 2.5 (T-21 a T-25) em revisão (branch própria, 2026-07-07)  
+**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07 · Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07 · Sprint 2.4 (T-17 a T-20) em revisão (branch própria) · Sprint 2.5 (T-21 a T-25) concluída e mergeada em `main` em 2026-07-07  
 **Data de criação:** 2026-07-06  
 **Tipo:** Infraestrutura / Qualidade  
 **Baseado em:** Auditoria de infraestrutura de 2026-07-06
@@ -152,35 +152,35 @@ Move `client`, `usuario_admin`, `usuario_tecnico`, `usuario_inativo` de `test_au
 
 ### T-21 — Fixtures compartilhados de estoque em `tests/conftest.py` ✅ CONCLUÍDA
 `reparo_padrao_id` e `criar_item_estoque` (factory com limpeza de lotes/movimentações/os_pecas). Recriados nesta branch — os equivalentes da Sprint 2.4 não estão em `main`.
-**Depende de:** T-12 · **Status:** Concluída na branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge.
+**Depende de:** T-12 · **Status:** Mergeada em `main` em 2026-07-07.
 
 ### T-22 — `tests/test_stock_creation_query.py` ✅ CONCLUÍDA
 **25 casos:** criação válida, lote inicial + movimentação de entrada, quantidade zero sem lote, campos obrigatórios, peça duplicada (caracterização: permitida, sem constraint de unicidade), fornecedor livre, tipo/qualidade desconhecidos normalizam para "Outros"/"Padrao", modelo desconhecido aceito como texto livre (diferente da rota legada, que rejeita), quantidade decimal trunca, quantidade extremamente alta aceita com precisão, listagem com filtros, itens zerados ocultos por padrão, totais agregados.
 **Decisão de escopo (ajuste do usuário):** limitações de contrato que não são regra de negócio (ausência de `GET /api/estoque/<id>` individual, paginação, ordenação customizável) não geraram teste dedicado — só registro no relatório final.
 **Achado durante a implementação:** os testes de filtro revelaram um bug real de produção — ordem de parâmetros SQL trocada em `listar_estoque()`, fazendo todo filtro (modelo/tipo/qualidade) retornar lista vazia. Corrigido via `hotfix/estoque-ordem-parametros-filtro` (commit `44be10c`) antes de continuar — ver B-12 em `PROJECT_STATUS.md`.
-**Depende de:** T-21 · **Status:** Concluída na branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge.
+**Depende de:** T-21 · **Status:** Mergeada em `main` em 2026-07-07.
 
 ### T-23 — `tests/test_stock_movement.py` ✅ CONCLUÍDA
 **10 casos:** ajuste positivo via PUT (entrada, novo lote), ajuste negativo via PUT (saida correta, consumo FIFO de lotes, nunca deixa saldo negativo — teste de regressão para o hotfix do saldo negativo), saldo final após sequência de ajustes, ajuste para o mesmo valor não gera movimentação, forma da resposta de `GET /api/estoque/movimentacoes`.
 **Critério de isolamento (pedido do usuário):** nenhum teste depende da ordem cronológica das movimentações globais — saldo/histórico por item são verificados via consulta direta ao banco filtrada por `estoque_id`; o endpoint global (últimas 30 movimentações do sistema inteiro) só é testado quanto à forma da resposta.
-**Depende de:** T-21 · **Status:** Concluída na branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge.
+**Depende de:** T-21 · **Status:** Mergeada em `main` em 2026-07-07.
 
 ### T-24 — `tests/test_stock_os_integration.py` ✅ CONCLUÍDA (escopo ampliado)
 **15 casos:** consumo automático (peça única, múltiplas peças, sem peças), mesma peça em mais de uma OS (duas OS consomem enquanto há estoque, terceira falha ao esgotar), devolução ao estoque (cancelamento via status, exclusão de OS em andamento, exclusão de OS finalizada não devolve), alteração de quantidade da peça numa OS, remoção de peça, substituição de peça por outra, compatibilidade (universal, específica, incompatível bloqueia, atualização via PUT muda consumos futuros).
 **Escopo ampliado a pedido do usuário** além do plano original: alteração/remoção/substituição de peças e concorrência entre OS pela mesma peça — cenários que "costumam revelar muitos bugs" segundo a revisão do plano.
-**Depende de:** T-21 · **Status:** Concluída na branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge.
+**Depende de:** T-21 · **Status:** Mergeada em `main` em 2026-07-07.
 
 ### T-25 — `tests/test_stock_security.py` ✅ CONCLUÍDA
 **19 casos:** sem sessão, `DELETE /api/estoque/<id>` (exclusão válida, bloqueada quando peça em uso em OS aberta — regra real —, permitida quando OS finalizada, inexistente sem erro, sem restrição de perfil — caracterização, mesmo padrão de `DELETE /api/ordens/<id>` na Sprint 2.4), payload vazio, JSON malformado, item inexistente em PUT (404), Content-Type incorreto, SQL injection.
-**Depende de:** T-21 · **Status:** Concluída na branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge.
+**Depende de:** T-21 · **Status:** Mergeada em `main` em 2026-07-07.
 
 **Hotfixes aplicados durante a Sprint 2.5 (ADR-004):**
 1. `hotfix/estoque-diff-quantidade-negativa` (commit `584c501`) — diff de movimentação em `PUT /api/estoque/<id>` usava quantidade não limitada a zero, inflando o histórico de saída. Critérios C-01 (mutação silenciosa) + C-04 (caminho real de produção) confirmados.
 2. `hotfix/estoque-ordem-parametros-filtro` (commit `44be10c`) — ordem de parâmetros SQL errada quebrava todo filtro de `GET /api/estoque`. **Não se encaixa perfeitamente** nos critérios C-01–C-04 do `ENGINEERING_GUIDE.md` §11 (é leitura incorreta, não mutação de dado) — aplicado o mesmo tratamento pela severidade. **Backlog registrado:** critério novo C-05 — "Consulta incorreta em fluxo oficial" — ver `PROJECT_STATUS.md` § Próximos Objetivos (curto prazo, item 6) para o rascunho.
 
-**Status desta sprint:** testes concluídos e estáveis na branch `test/sprint-2-5-regras-negocio-estoque`, **aguardando aprovação de merge** — não contabilizados no total de `main` até lá. Os 2 hotfixes acima já estão mergeados em `main` independentemente.
+**Status desta sprint:** aprovada e **mergeada em `main` em 2026-07-07** (merge fast-forward, sem conflitos). Os 2 hotfixes já estavam em `main` desde a investigação; o restante (fixtures + 4 módulos de teste) entrou junto neste merge.
 
-**Cobertura medida na branch (`pytest-cov`, pendente de merge):** 142 testes (73 de `main` + 69 novos), todos passando, estáveis em 3 execuções consecutivas. A partir de `main` (sem a Sprint 2.4, também pendente): `irflow_blueprints_auth.py` 83%, `irflow_core.py` 78%, `app.py` 52%, `irflow_os.py` 55%, `irflow_blueprints_api.py` 34%. Cobertura global do repositório 26%. A meta de 40% do Definition of Done da Sprint 2 segue dependendo de `test_pricing.py`/`test_shopping.py` (não iniciadas) e do merge das Sprints 2.4 e 2.5.
+**Cobertura medida em `main` pós-merge (`pytest-cov`):** 142 testes (73 pré-existentes + 69 novos), todos passando. Números idênticos aos medidos na branch antes do merge, confirmando que o fast-forward não alterou nada: `irflow_blueprints_auth.py` 83%, `irflow_core.py` 78%, `app.py` 52%, `irflow_os.py` 55%, `irflow_blueprints_api.py` 34%. Cobertura global do repositório 26%. A meta de 40% do Definition of Done da Sprint 2 segue dependendo de `test_pricing.py`/`test_shopping.py` (não iniciadas) e do merge da Sprint 2.4.
 
 ---
 

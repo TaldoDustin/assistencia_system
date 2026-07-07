@@ -16,9 +16,14 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `tests/test_permissions.py` — matriz de acesso por perfil (admin/tecnico/vendedor) em rotas admin-only legadas e API, cobrindo 200/401/403/404 (Sprint 2.3)
 - `tests/test_session.py` — cobertura de sessão: expiração (cookie forjado), cookie adulterado/não assinado, logout múltiplo, acesso após logout (Sprint 2.3)
 - `tests/test_security.py` — cobertura de resiliência de entrada em `/api/auth/login`: SQL injection, campos obrigatórios, payload vazio, JSON malformado, Content-Type incorreto (Sprint 2.3)
+- `tests/test_os_creation_query.py` — cobertura de criação e consulta de Ordens de Serviço via `/api/ordens` (Sprint 2.4): criação válida, campos obrigatórios, dependências (reparo, vendedor, peça), status/valores/data padrão, listagem com filtros, obter por id, histórico de cliente
+- `tests/test_os_update_status.py` — cobertura de atualização (`PUT /api/ordens/<id>`) e transição de status (`PATCH /api/ordens/<id>/status`) de OS (Sprint 2.4): matriz completa de transições entre os 4 status válidos, troca de peças
+- `tests/test_os_deletion_security.py` — cobertura de exclusão (`DELETE /api/ordens/<id>`) e resiliência de entrada em rotas de OS (Sprint 2.4): SQL injection, payload vazio, JSON malformado
 
 ### Corrigido
 - Removido endpoint duplicado `GET/POST/PUT/DELETE /api/shopping-list` legado (baseado na tabela `compras`) em `irflow_blueprints_api.py` — colidia com a implementação atual (tabela `shopping_list`) e causava `AssertionError` do Flask na inicialização, impedindo a aplicação e a suíte de testes de rodar (KI-012)
+- `PATCH /api/ordens/<id>/status` agora rejeita valores de status desconhecidos com 400, em vez de normalizá-los silenciosamente para "Em andamento" (Sprint 2.4, achado durante investigação de testes)
+- `PUT /api/ordens/<id>` agora exige `status` explícito e válido — antes, editar uma OS Finalizada sem reenviar `status` reabria a OS silenciosamente para "Em andamento" e apagava `data_finalizado` (Sprint 2.4, achado durante investigação de testes)
 
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions

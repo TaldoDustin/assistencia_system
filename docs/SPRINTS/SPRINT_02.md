@@ -1,6 +1,6 @@
 # SPRINT 02 — Infraestrutura de Qualidade
 
-**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07 · Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07  
+**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07 · Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07 · Sprint 2.4 (T-17 a T-20) concluída em 2026-07-07  
 **Data de criação:** 2026-07-06  
 **Tipo:** Infraestrutura / Qualidade  
 **Baseado em:** Auditoria de infraestrutura de 2026-07-06
@@ -140,9 +140,39 @@ Move `client`, `usuario_admin`, `usuario_tecnico`, `usuario_inativo` de `test_au
 
 ---
 
-### T-05 — `tests/test_os.py`
-**10 casos:** listar, criar válida, criar sem campos obrigatórios, buscar por ID, 404, PATCH status, PATCH inválido, DELETE, DELETE 404, histórico cliente  
-**Depende de:** T-03
+## Sprint 2.4 — Cobertura das Regras de Negócio de Ordens de Serviço
+
+**Objetivo:** expandir a cobertura automatizada das regras de negócio de OS (criação, consulta, atualização, status, exclusão, segurança), sem alterar comportamento da aplicação — exceto correções mínimas de bugs encontrados durante a investigação, com aprovação explícita do usuário antes de cada uma.
+
+### T-17 — Fixtures compartilhados de OS em `tests/conftest.py` ✅ CONCLUÍDA
+`reparo_padrao_id`/`dois_reparos_ids` (lêem reparos já semeados por `sincronizar_reparos_padrao()`), `payload_os_valido` (factory de payload mínimo válido), `criar_os` (factory que insere OS direto no banco, com limpeza automática), `criar_item_estoque` (factory de item de estoque).
+**Depende de:** T-12 (fixtures da Sprint 2.3) · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-18 — `tests/test_os_creation_query.py` ✅ CONCLUÍDA
+**41 casos:** criação válida, status/valores/data padrão, tipo upgrade→assistência, `interna_ir_phones`, múltiplos reparos, campos obrigatórios, reparo/vendedor/peça inválidos, técnico fora da whitelist (aceito — caracterização), consumo de peça do estoque, listagem com filtros (status/tipo/técnico/vendedor/modelo/texto/data), ausência de paginação (caracterização), obter por id, 404, histórico de cliente.
+**Achado durante a implementação:** bug no próprio fixture `criar_os()` — preenchia a coluna `aparelho` mas esquecia `modelo` (colunas distintas no schema). Corrigido no teste, não em produção.
+**Depende de:** T-17 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-19 — `tests/test_os_update_status.py` ✅ CONCLUÍDA (com 2 correções de produção aprovadas)
+**26 casos:** atualização de dados básicos/técnico/observações/modelo, 404, campos obrigatórios, reparo/vendedor inválido, sem sessão, `data_finalizado` ao finalizar/reabrir, troca de peça, matriz completa das 16 transições entre os 4 status válidos (todas permitidas — não há máquina de estados), status desconhecido/vazio rejeitado, idempotência, cancelar devolve peças ao estoque.
+**Achados durante a investigação (antes de qualquer teste escrito), corrigidos com aprovação explícita do usuário:**
+- `PATCH /api/ordens/<id>/status` aceitava status desconhecido/lixo e o normalizava silenciosamente para "Em andamento" em vez de rejeitar com 400 — commit `c85a321`.
+- `PUT /api/ordens/<id>` sem o campo `status` reabria silenciosamente uma OS Finalizada para "Em andamento" e apagava `data_finalizado` — commit `e755f25`. Confirmado com reprodução manual antes e depois do fix.
+
+Ambos os fixes seguem o mesmo padrão: `normalizar_status_os(valor, status_padrao="")` — mesma abordagem já usada pela rota legada `POST /atualizar_status`.
+**Achado caracterizado, não corrigido:** reativar uma OS Cancelada via `PATCH /api/ordens/<id>/status` (API) não re-consome peças do estoque, diferente da rota legada `POST /atualizar_status`, que re-consome e valida estoque suficiente. Reportado para decisão.
+**Depende de:** T-17 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-20 — `tests/test_os_deletion_security.py` ✅ CONCLUÍDA
+**21 casos:** exclusão válida com devolução de peças ao estoque, exclusão de OS finalizada permitida (caracterização — não há essa proteção), exclusão inexistente sem erro (caracterização — não há 404), sem sessão, sem restrição de perfil (caracterização — tecnico e vendedor podem excluir qualquer OS), parâmetros inválidos no roteamento, SQL injection (tautologia, `DROP TABLE`, em campos de texto e query params), payload vazio e JSON malformado em POST/PUT/PATCH.
+**Depende de:** T-17 · **Status:** Mergeado em `main` em 2026-07-07.
+
+**Cobertura ao final da Sprint 2.4:** 161 testes (73 da Sprint 2.2+2.3 + 88 novos), todos passando, estáveis em 3 execuções consecutivas. `pytest --cov`: `irflow_blueprints_auth.py` 83%, `irflow_core.py` 88%, `app.py` 52%, `irflow_os.py` 60% (subiu de 15%), `irflow_blueprints_api.py` 32% (subiu de 19%). Cobertura global do repositório 26% (subiu de 19%). A meta de 40% do Definition of Done da Sprint 2 segue dependendo de `test_pricing.py`/`test_shopping.py` (T-06/T-07), ainda não iniciadas. `test_os.py` (T-05, abaixo) foi substituído pelos 3 módulos desta sprint — mais granulares que o originalmente escopado.
+
+---
+
+### ~~T-05~~ — `tests/test_os.py` — SUBSTITUÍDA pela Sprint 2.4
+**Escopo original (10 casos)** foi absorvido e ampliado pelos 3 módulos da Sprint 2.4 (T-18/T-19/T-20 acima, 88 casos no total) — granularidade maior (criação/consulta, atualização/status, exclusão/segurança em arquivos separados) do que o único `test_os.py` originalmente previsto.
 
 ---
 

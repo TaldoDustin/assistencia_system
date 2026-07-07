@@ -56,7 +56,9 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07:** fecha os gaps de cobertura deixados pela 2.2 e expande para autorização — 55 novos casos em 4 módulos (`test_users.py`, `test_permissions.py`, `test_session.py`, `test_security.py`), todos consumindo fixtures compartilhados extraídos para `conftest.py`. Cobre CRUD de usuários via API, matriz de permissões por perfil (admin/tecnico/vendedor), sessão (expiração simulada, cookie adulterado, logout múltiplo) e resiliência de entrada (SQLi, payload inválido, content-type). Suíte completa: 73 testes, 100% passando. Um caso do escopo original (JSON de tipo errado no login) expôs uma exceção não tratada em produção e foi retirado da suíte em vez de commitado como teste falho — reportado separadamente para decisão, sem registro em `KNOWN_ISSUES.md` nesta sprint (orientação explícita do usuário). Ver `docs/SPRINTS/SPRINT_02.md`.
 
-Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopping.py`, configuração de cobertura, GitHub Actions CI, `.env.example`.
+**Sprint 2.4 (T-17 a T-20) concluída em 2026-07-07:** cobertura das regras de negócio de Ordens de Serviço — 88 novos casos em 3 módulos (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`) mais fixtures compartilhados em `conftest.py`. Suíte completa: 161 testes, 100% passando. Durante a investigação (antes de qualquer teste), dois bugs reais foram encontrados e corrigidos com aprovação explícita do usuário (ver B-11 e B-12 abaixo) — ambos na validação de `status` ao editar OS, onde um valor desconhecido era silenciosamente normalizado para "Em andamento" em vez de rejeitado. Uma divergência de comportamento entre a rota legada e a API (reativação de OS Cancelada não re-consome estoque via API) foi caracterizada via teste, não corrigida — reportada separadamente. Ver `docs/SPRINTS/SPRINT_02.md`.
+
+Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de cobertura no CI, GitHub Actions, `.env.example`.
 
 ### Escopo previsto
 
@@ -74,15 +76,15 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | Critério                      | Peso | Nota | Score |
 |-------------------------------|------|------|-------|
 | Funcionalidade core           | 25%  | 8/10 | 2,0   |
-| Cobertura de testes           | 20%  | 3/10 | 0,6   |
+| Cobertura de testes           | 20%  | 4/10 | 0,8   |
 | Arquitetura e organização     | 15%  | 5/10 | 0,75  |
 | Segurança                     | 15%  | 5/10 | 0,75  |
 | Observabilidade / logs        | 10%  | 3/10 | 0,3   |
 | DevEx (CI/CD, docs, DX)       | 10%  | 2/10 | 0,2   |
 | Desempenho                    | 5%   | 6/10 | 0,3   |
-| **Total**                     |      |      | **4,9 / 10** |
+| **Total**                     |      |      | **5,1 / 10** |
 
-> Score recalculado em 2026-07-07 após Sprint 2.3 (cobertura de testes: 2/10 → 3/10 — camada de autenticação/autorização agora robusta, mas cobertura global de backend ainda longe da meta; regras de negócio de domínio — OS, preços, estoque — seguem sem cobertura). Meta para fim de Sprint 2: >= 6,0.
+> Score recalculado em 2026-07-07 após Sprint 2.4 (cobertura de testes: 3/10 → 4/10 — medido via `pytest-cov`: cobertura global do repositório subiu de 19% para 26%, `irflow_os.py` de 15% para 60%, `irflow_blueprints_api.py` de 19% para 32%. Regras de negócio de OS agora têm cobertura substancial; preços e estoque seguem sem cobertura). Meta para fim de Sprint 2: >= 6,0.
 
 ---
 
@@ -100,6 +102,8 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | ~~B-08~~ | ~~`historico-cliente` apontando para rota inexistente~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-09~~ | ~~Campo `cor` não limpo ao trocar modelo~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-10~~ | ~~Endpoint `/api/shopping-list` duplicado (código legado) travava a inicialização do Flask (KI-012)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-07)~~ |
+| ~~B-11~~ | ~~`PATCH /api/ordens/<id>/status` aceitava status desconhecido/lixo e normalizava silenciosamente para "Em andamento" em vez de rejeitar com 400~~ | ~~Média~~ | ~~Resolvido (2026-07-07, commit `c85a321`)~~ |
+| ~~B-12~~ | ~~`PUT /api/ordens/<id>` sem o campo `status` reabria silenciosamente uma OS Finalizada para "Em andamento" e apagava `data_finalizado`~~ | ~~Alta~~ | ~~Resolvido (2026-07-07, commit `e755f25`)~~ |
 
 ---
 
@@ -157,13 +161,13 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | Camada            | Tipo                     | Ferramenta   | Cobertura medida (`pytest-cov`, 2026-07-07) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança — Sprint 2.2+2.3, 73 testes) | pytest | `irflow_blueprints_auth.py` 83% · `app.py` 52% · `irflow_core.py` 68% · `irflow_blueprints_api.py` 19% (só a fatia de `/api/usuarios`, `/api/auth/*` e `/api/ordens/<id>`) |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, OS — Sprint 2.2+2.3+2.4, 161 testes) | pytest | `irflow_blueprints_auth.py` 83% · `irflow_core.py` 88% · `app.py` 52% · `irflow_os.py` 60% · `irflow_blueprints_api.py` 32% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo)** |                          |              | **19%** (`pytest --cov=.` — inclui scripts ad-hoc fora de escopo da Sprint 2, ex. `smoke_test_full.py`; ver P-03 em `SPRINT_02.md`) |
+| **Global (repo)** |                          |              | **26%** (`pytest --cov=.` — inclui scripts ad-hoc fora de escopo da Sprint 2, ex. `smoke_test_full.py`; ver P-03 em `SPRINT_02.md`) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_os.py`, `test_pricing.py`, `test_shopping.py` (T-05 a T-07, não iniciadas).
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_pricing.py`, `test_shopping.py` (não iniciadas). `test_os.py` foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 
 ---
 

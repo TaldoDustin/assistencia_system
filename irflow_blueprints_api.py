@@ -1758,7 +1758,7 @@ def create_api_blueprint(deps):
             return err("Não autenticado.", 401)
 
         body = safe_json(request)
-        status = normalizar_status_os(body.get("status") or "")
+        status = normalizar_status_os(body.get("status") or "", status_padrao="")
         if not status:
             return err("Status inválido.")
 

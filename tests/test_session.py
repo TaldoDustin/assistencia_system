@@ -128,7 +128,12 @@ class TestCookieInvalido:
         nome_cookie = _nome_cookie_sessao(app)
         cookie_valido = client.get_cookie(nome_cookie, domain="localhost").value
 
-        cookie_adulterado = cookie_valido[:-1] + ("a" if cookie_valido[-1] != "a" else "b")
+        # Adultera um caractere dentro do payload (nao no ultimo caractere da
+        # assinatura base64url, onde bits de padding podem manter o byte
+        # decodificado igual e tornar o teste instavel).
+        posicao = len(cookie_valido) // 3
+        substituto = "a" if cookie_valido[posicao] != "a" else "b"
+        cookie_adulterado = cookie_valido[:posicao] + substituto + cookie_valido[posicao + 1 :]
 
         client2 = _app.app.test_client()
         client2.set_cookie(key=nome_cookie, value=cookie_adulterado, domain="localhost")

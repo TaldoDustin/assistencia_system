@@ -393,6 +393,7 @@ frontend/src/
 |---------|-------------|
 | `feat/` | Nova funcionalidade |
 | `fix/` | Correção de bug |
+| `hotfix/` | Correção mínima para um bug que interrompeu uma sprint de teste/QA/validação (critérios em `ENGINEERING_GUIDE.md` §11) — sempre a partir de `main` |
 | `refactor/` | Mudança de código sem mudança de comportamento |
 | `test/` | Adição ou ajuste de testes |
 | `docs/` | Documentação apenas |

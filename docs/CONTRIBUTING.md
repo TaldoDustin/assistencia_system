@@ -83,6 +83,7 @@ git pull origin main
 # Crie a branch com o prefixo correto
 git checkout -b feat/nome-da-feature      # nova feature
 git checkout -b fix/nome-do-bug           # correção de bug
+git checkout -b hotfix/nome-do-bug        # bug que interrompeu uma sprint de teste/QA/validação
 git checkout -b refactor/nome             # refatoração
 git checkout -b test/nome                 # adição de testes
 git checkout -b docs/nome                 # documentação
@@ -95,6 +96,7 @@ git checkout -b chore/nome                # manutenção (deps, config)
 |---------|-------------|
 | `feat/` | Nova funcionalidade de negócio |
 | `fix/` | Correção de bug |
+| `hotfix/` | Correção mínima para um bug encontrado durante sprint de teste/QA/validação que atende aos critérios de interrupção (`ENGINEERING_GUIDE.md` §11) — sempre a partir de `main`, nunca direto na branch da sprint |
 | `refactor/` | Mudança de código sem mudança de comportamento |
 | `test/` | Adição ou ajuste de testes |
 | `docs/` | Documentação apenas |
@@ -302,3 +304,6 @@ Leia `docs/PROJECT_STATUS.md` — seção "Próxima Sprint" ou "Sprint Atual".
 
 **Encontrei um bug mas não tenho tempo de corrigir agora. O que faço?**
 Documente em `KNOWN_ISSUES.md` usando `docs/templates/ISSUE_TEMPLATE.md`. Não ignore.
+
+**Encontrei um bug real enquanto escrevia testes numa sprint de teste/QA/validação. Corrijo na hora?**
+Depende. Confira os critérios objetivos em `docs/ENGINEERING_GUIDE.md` §11 (mutação silenciosa de dado, perda irreversível, bypass de autenticação/autorização, ou caminho real de produção). Se **algum** for verdadeiro: pare a sprint, abra `hotfix/nome-do-bug` a partir de `main`, corrija o mínimo, teste, faça merge em `main`, sincronize a branch da sprint (`git merge main` ou `git rebase main`) e só então continue. Se **nenhum** critério for verdadeiro: não pare — escreva o teste que caracteriza o comportamento atual (nunca um teste deliberadamente falho) e reporte o achado no relatório final da sprint. Ver `CLAUDE.md` para o fluxograma completo e `docs/adr/ADR-004.md` para o contexto da decisão.

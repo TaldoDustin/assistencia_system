@@ -54,6 +54,8 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07:** primeira suíte pytest do projeto (`tests/test_auth.py`, 18 casos — login, logout, sessão, controle de acesso por perfil), isolada via `IR_FLOW_DATA_DIR`. Corrigido no processo um bug crítico pré-existente (KI-012) que impedia `app.py` de inicializar. Revisão independente de código concluída — aprovada para merge. Mergeado em `main`.
 
+**Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07:** fecha os gaps de cobertura deixados pela 2.2 e expande para autorização — 55 novos casos em 4 módulos (`test_users.py`, `test_permissions.py`, `test_session.py`, `test_security.py`), todos consumindo fixtures compartilhados extraídos para `conftest.py`. Cobre CRUD de usuários via API, matriz de permissões por perfil (admin/tecnico/vendedor), sessão (expiração simulada, cookie adulterado, logout múltiplo) e resiliência de entrada (SQLi, payload inválido, content-type). Suíte completa: 73 testes, 100% passando. Um caso do escopo original (JSON de tipo errado no login) expôs uma exceção não tratada em produção e foi retirado da suíte em vez de commitado como teste falho — reportado separadamente para decisão, sem registro em `KNOWN_ISSUES.md` nesta sprint (orientação explícita do usuário). Ver `docs/SPRINTS/SPRINT_02.md`.
+
 Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopping.py`, configuração de cobertura, GitHub Actions CI, `.env.example`.
 
 ### Escopo previsto
@@ -72,15 +74,15 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | Critério                      | Peso | Nota | Score |
 |-------------------------------|------|------|-------|
 | Funcionalidade core           | 25%  | 8/10 | 2,0   |
-| Cobertura de testes           | 20%  | 2/10 | 0,4   |
+| Cobertura de testes           | 20%  | 3/10 | 0,6   |
 | Arquitetura e organização     | 15%  | 5/10 | 0,75  |
 | Segurança                     | 15%  | 5/10 | 0,75  |
 | Observabilidade / logs        | 10%  | 3/10 | 0,3   |
 | DevEx (CI/CD, docs, DX)       | 10%  | 2/10 | 0,2   |
 | Desempenho                    | 5%   | 6/10 | 0,3   |
-| **Total**                     |      |      | **4,7 / 10** |
+| **Total**                     |      |      | **4,9 / 10** |
 
-> Score calculado em 2026-07-06. Meta para fim de Sprint 2: >= 6,0.
+> Score recalculado em 2026-07-07 após Sprint 2.3 (cobertura de testes: 2/10 → 3/10 — camada de autenticação/autorização agora robusta, mas cobertura global de backend ainda longe da meta; regras de negócio de domínio — OS, preços, estoque — seguem sem cobertura). Meta para fim de Sprint 2: >= 6,0.
 
 ---
 
@@ -152,16 +154,16 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura estimada |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida (`pytest-cov`, 2026-07-07) |
 |-------------------|--------------------------|--------------|--------------------|
-| Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas    |
-| Backend — Módulos | pytest (auth/sessão — Sprint 2.2, 18 testes) | pytest | Baixa — apenas `irflow_blueprints_auth.py` e rotas `/api/auth/*` cobertas |
+| Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança — Sprint 2.2+2.3, 73 testes) | pytest | `irflow_blueprints_auth.py` 83% · `app.py` 52% · `irflow_core.py` 68% · `irflow_blueprints_api.py` 19% (só a fatia de `/api/usuarios`, `/api/auth/*` e `/api/ordens/<id>`) |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global**        |                          |              | **~15%** (ainda não recalculado formalmente com `pytest-cov`) |
+| **Global (repo)** |                          |              | **19%** (`pytest --cov=.` — inclui scripts ad-hoc fora de escopo da Sprint 2, ex. `smoke_test_full.py`; ver P-03 em `SPRINT_02.md`) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend.
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_os.py`, `test_pricing.py`, `test_shopping.py` (T-05 a T-07, não iniciadas).
 
 ---
 

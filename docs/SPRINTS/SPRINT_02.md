@@ -1,6 +1,6 @@
 # SPRINT 02 — Infraestrutura de Qualidade
 
-**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07  
+**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07 · Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07  
 **Data de criação:** 2026-07-06  
 **Tipo:** Infraestrutura / Qualidade  
 **Baseado em:** Auditoria de infraestrutura de 2026-07-06
@@ -107,6 +107,36 @@ ruff>=0.5,<1
 **Achado durante a execução:** `irflow_blueprints_api.py` tinha um endpoint `/shopping-list` duplicado (código legado da tabela `compras`) que impedia `app.py` de sequer importar (`AssertionError` do Flask). Corrigido e documentado em KI-012 antes de rodar os testes pela primeira vez — sem essa correção, T-03/T-04 não eram executáveis.
 **Revisão:** code review independente (8 ângulos, ver commit `da21d02` e `859d695`) — aprovado para merge sem bloqueios. Gaps de cobertura identificados para follow-up: `/usuarios/editar`, `/usuarios/deletar`, perfil `vendedor`, usuário duplicado em `/usuarios/novo`.
 **Status:** Mergeado em `main` em 2026-07-07.
+
+---
+
+## Sprint 2.3 — Cobertura da API de Usuários e Autorização
+
+**Objetivo:** fechar os gaps de cobertura deixados pela Sprint 2.2 (`/usuarios/editar`, `/usuarios/deletar`, perfil `vendedor`, usuário duplicado) e expandir para CRUD de usuários via API, matriz de permissões por perfil, sessão (expiração/cookie/logout) e resiliência de entrada (SQLi, payloads inválidos, content-type) — antes de testar qualquer regra de negócio de domínio (OS, preços, estoque).
+
+### T-12 — Fixtures compartilhados em `tests/conftest.py` ✅ CONCLUÍDA
+Move `client`, `usuario_admin`, `usuario_tecnico`, `usuario_inativo` de `test_auth.py` para `conftest.py` (DRY — 4 novos módulos precisam deles). Adiciona `usuario_vendedor` e o fixture-factory `login_como` (login via `/api/auth/login`).
+**Depende de:** T-03 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-13 — `tests/test_users.py` ✅ CONCLUÍDA
+**18 casos:** listar/criar/atualizar/excluir em `/api/usuarios` — caso feliz, usuário duplicado, campos obrigatórios ausentes, perfil desconhecido (fallback `tecnico`), auto-desativação/auto-exclusão bloqueadas, acesso por perfil não-admin, uid inexistente em PUT/DELETE.
+**Depende de:** T-12 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-14 — `tests/test_permissions.py` ✅ CONCLUÍDA
+**13 casos:** matriz de acesso por perfil (admin/tecnico/vendedor) em `/usuarios`, `/usuarios/editar`, `/usuarios/deletar` (rotas legadas) e `/api/usuarios`, `/api/ordens/<id>` (API) — cobre 200/401/403/404. Inclui caso de perfil desconhecido gravado direto no banco tentando rota admin-only.
+**Achado durante a execução:** a suposição inicial de que `GET /usuarios` aplicava `ROUTE_PERMISSIONS` estava errada — esse path é interceptado por `LEGACY_REACT_REDIRECTS` antes do `before_request` de autenticação (mesmo padrão já documentado para `/login`). Testes ajustados para caracterizar o comportamento real.
+**Depende de:** T-12 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-15 — `tests/test_session.py` ✅ CONCLUÍDA
+**10 casos:** acesso sem sessão, acesso após logout, logout chamado duas vezes seguidas, cookie com assinatura adulterada, cookie não assinado, sessão expirada. Sessão expirada é simulada forjando um cookie assinado (mesmo segredo/serializer da aplicação) com timestamp no passado, já que não há `PERMANENT_SESSION_LIFETIME` configurado explicitamente (default do Flask, 31 dias) — não seria viável esperar tempo real decorrer.
+**Depende de:** T-12 · **Status:** Mergeado em `main` em 2026-07-07.
+
+### T-16 — `tests/test_security.py` ✅ CONCLUÍDA (com desvio de escopo documentado)
+**14 casos:** SQL injection no login (tautologia, `DROP TABLE`, comentário SQL, `UNION SELECT`), campos obrigatórios ausentes, payload vazio, corpo ausente, JSON malformado, Content-Type incorreto (form-urlencoded, `text/plain`, ausente).
+**Desvio:** um caso do escopo original (JSON sintaticamente válido mas de tipo errado — array no lugar de objeto) foi removido da suíte por expor uma exceção não tratada em `auth_login()` (`AttributeError: 'list' object has no attribute 'get'`). Por orientação do usuário, a Sprint 2.3 não registra achados em `KNOWN_ISSUES.md` nem mantém testes deliberadamente falhos — o achado foi reportado separadamente para decisão.
+**Depende de:** T-12 · **Status:** Mergeado em `main` em 2026-07-07.
+
+**Cobertura ao final da Sprint 2.3:** 73 testes (18 da Sprint 2.2 + 55 novos), todos passando. `pytest --cov`: `irflow_blueprints_auth.py` 83%, `app.py` 52%, `irflow_core.py` 68%, `irflow_blueprints_api.py` 19% (arquivo de ~3100 linhas — só a fatia de `/api/usuarios`, `/api/auth/*` e `/api/ordens/<id>` usada pelos testes está coberta). Cobertura global do repositório 19% (inclui scripts ad-hoc fora de escopo — `smoke_test_full.py`, `test_routes.py`, etc. — que a Sprint 2 nunca pretendeu cobrir; ver P-03). A meta de 40% do Definition of Done desta sprint segue dependendo de T-05/T-06/T-07 (`test_os.py`, `test_pricing.py`, `test_shopping.py`), ainda não iniciadas.
 
 ---
 

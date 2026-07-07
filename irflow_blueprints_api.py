@@ -1895,7 +1895,7 @@ def create_api_blueprint(deps):
             FROM estoque {clause}
             ORDER BY id DESC
             """,
-            [*params, corte_30, corte_90],
+            [corte_30, corte_90, *params],
         )
         itens = []
         for r in cursor.fetchall():

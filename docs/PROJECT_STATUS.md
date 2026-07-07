@@ -58,7 +58,7 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.4 (T-17 a T-20)** — cobertura de regras de negócio de Ordens de Serviço (88 testes, 2 hotfixes) — concluída em branch própria (`test/sprint-2-4-regras-negocio-os`), **ainda não mergeada em `main`**, aguardando revisão técnica.
 
-**Sprint 2.5 (T-21 a T-25) concluída em 2026-07-07:** cobertura de regras de negócio de Estoque — 69 novos casos em 4 módulos (`test_stock_creation_query.py`, `test_stock_movement.py`, `test_stock_os_integration.py`, `test_stock_security.py`) mais fixtures compartilhados em `conftest.py` (recriados nesta branch, que parte de `main` sem os fixtures ainda não mergeados da 2.4). Suíte completa: 142 testes, 100% passando. Durante a investigação, dois bugs reais foram encontrados e corrigidos via `hotfix/` conforme ADR-004, com aprovação explícita do usuário antes de cada um (ver B-11 e B-12 abaixo) — já mergeados em `main` e em produção, independente do restante da sprint. Um deles (ordem de parâmetros SQL) não se encaixava perfeitamente nos critérios objetivos do `ENGINEERING_GUIDE.md` §11 (é leitura incorreta, não mutação de dado), mas a severidade justificou o mesmo tratamento — critérios candidatos a revisão futura. Ver `docs/SPRINTS/SPRINT_02.md`.
+**Sprint 2.5 (T-21 a T-25) — Em revisão (branch `test/sprint-2-5-regras-negocio-estoque`, aguardando aprovação de merge):** cobertura de regras de negócio de Estoque — 69 novos casos em 4 módulos (`test_stock_creation_query.py`, `test_stock_movement.py`, `test_stock_os_integration.py`, `test_stock_security.py`) mais fixtures compartilhados em `conftest.py` (recriados nesta branch, que parte de `main` sem os fixtures ainda não mergeados da 2.4). Suíte completa na branch: 142 testes, 100% passando. Durante a investigação, dois bugs reais foram encontrados e corrigidos via `hotfix/` conforme ADR-004, com aprovação explícita do usuário antes de cada um (ver B-11 e B-12 abaixo) — **esses dois fixes já estão mergeados em `main` e em produção**, independente da aprovação do restante da sprint (só os testes novos aguardam revisão). Um dos hotfixes (ordem de parâmetros SQL) não se encaixava perfeitamente nos critérios objetivos do `ENGINEERING_GUIDE.md` §11 — candidato a critério novo C-05, adicionado ao backlog (ver Próximos Objetivos). Ver `docs/SPRINTS/SPRINT_02.md`.
 
 Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de cobertura no CI, GitHub Actions, `.env.example`.
 
@@ -78,15 +78,15 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de c
 | Critério                      | Peso | Nota | Score |
 |-------------------------------|------|------|-------|
 | Funcionalidade core           | 25%  | 8/10 | 2,0   |
-| Cobertura de testes           | 20%  | 4/10 | 0,8   |
+| Cobertura de testes           | 20%  | 3/10 | 0,6   |
 | Arquitetura e organização     | 15%  | 5/10 | 0,75  |
 | Segurança                     | 15%  | 5/10 | 0,75  |
 | Observabilidade / logs        | 10%  | 3/10 | 0,3   |
 | DevEx (CI/CD, docs, DX)       | 10%  | 2/10 | 0,2   |
 | Desempenho                    | 5%   | 6/10 | 0,3   |
-| **Total**                     |      |      | **5,1 / 10** |
+| **Total**                     |      |      | **4,9 / 10** |
 
-> Score recalculado em 2026-07-07 após Sprint 2.5 (cobertura de testes mantida em 4/10 — medido via `pytest-cov` a partir de `main`, sem os testes de OS da Sprint 2.4 ainda não mergeada: cobertura global do repositório 26%, `irflow_blueprints_api.py` 34% (era 19% antes da 2.4/2.5), `irflow_os.py` 55% (era 15%), `irflow_core.py` 78% (era 68%). Estoque e OS agora têm cobertura real; preços e shopping list seguem sem cobertura). Meta para fim de Sprint 2: >= 6,0.
+> Score calculado em 2026-07-07, reflete o estado real de `main` (Sprint 2.3 + os 2 hotfixes de estoque já mergeados — mudanças de 1 linha cada, sem impacto relevante em cobertura). **Não inclui** os 69 testes da Sprint 2.5 nem os 88 da Sprint 2.4, ambas em branches aguardando revisão. Projeção medida na branch da Sprint 2.5 (`pytest-cov`, pendente de merge): cobertura global do repositório iria a 26% (de 19%), `irflow_blueprints_api.py` a 34% (de 19%), `irflow_os.py` a 55% (de 15%), `irflow_core.py` a 78% (de 68%) — o que levaria a nota de cobertura de testes a 4/10 e o total a 5,1/10 uma vez mergeada. Meta para fim de Sprint 2: >= 6,0.
 
 ---
 
@@ -160,17 +160,23 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de c
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida (`pytest-cov`, 2026-07-07) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura em `main` hoje (`pytest-cov`, medida na Sprint 2.3 — os 2 hotfixes de estoque não alteram estas linhas) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque — Sprint 2.2+2.3+2.5, 142 testes em `main`) | pytest | `irflow_blueprints_auth.py` 83% · `irflow_core.py` 78% · `app.py` 52% · `irflow_os.py` 55% · `irflow_blueprints_api.py` 34% |
-| Backend — Módulos (branch não mergeada) | pytest (OS — Sprint 2.4, 88 testes em `test/sprint-2-4-regras-negocio-os`, aguardando revisão) | pytest | Não somado ao total de `main` até o merge |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança — Sprint 2.2+2.3, 73 testes em `main`) | pytest | `irflow_blueprints_auth.py` 83% · `app.py` 52% · `irflow_core.py` 68% · `irflow_blueprints_api.py` 19% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **26%** (`pytest --cov=.` — inclui scripts ad-hoc fora de escopo da Sprint 2, ex. `smoke_test_full.py`; ver P-03 em `SPRINT_02.md`) |
+| **Global (repo, `main`)** |                  |              | **19%** (`pytest --cov=.`) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_pricing.py`, `test_shopping.py` (não iniciadas) e do merge da Sprint 2.4.
+**Pendente de merge (branches em revisão, não somadas ao `main` acima):**
+
+| Branch | Testes | `irflow_os.py` | `irflow_blueprints_api.py` | Global projetado |
+|--------|--------|-----------------|------------------------------|-------------------|
+| `test/sprint-2-4-regras-negocio-os` | +88 | — | — | não medido nesta revisão |
+| `test/sprint-2-5-regras-negocio-estoque` | +69 | 15% → 55% | 19% → 34% | 19% → 26% |
+
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_pricing.py`, `test_shopping.py` (não iniciadas) e do merge das Sprints 2.4 e 2.5.
 
 ---
 
@@ -182,6 +188,7 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de c
 3. Atingir 40% de cobertura nas rotas críticas
 4. Documentar `.env.example`
 5. Padronizar commits com Conventional Commits
+6. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)
 1. Quebrar `irflow_blueprints_api.py` em módulos menores

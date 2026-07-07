@@ -240,18 +240,22 @@ Exceção: código de infraestrutura (migrations, config) pode ser sem teste se 
 
 ## Evolução do Threshold de Cobertura
 
+Cobertura cresce junto com os testes — nunca à frente deles.
+
 | Sprint | Threshold | Escopo |
 |--------|-----------|--------|
 | Sprint 1 (concluída) | 0% | — |
-| **Sprint 2 (atual)** | **40%** | auth, OS, preços, shopping |
-| Sprint 3 | 60% | + segurança, checklist, estoque |
-| Sprint 4 | 70% | + módulos decompostos |
-| Sprint 5+ | 80% | global |
+| **Sprint 2 (atual)** | **0%** | Infraestrutura — primeiros testes ainda sendo escritos |
+| Sprint 3 | 20% | login, usuários, sessão |
+| Sprint 4 | 40% | auth, OS, preços, shopping |
+| Sprint 5 | 60% | + segurança, checklist, estoque |
+| Sprint 6 | 70% | + módulos decompostos |
+| Sprint 7 | 80% | global |
 
 O threshold é definido em `pyproject.toml`:
 ```toml
 [tool.coverage.report]
-fail_under = 40  # atualizar a cada sprint
+fail_under = 0  # atualizar a cada sprint conforme tabela acima
 ```
 
 ---

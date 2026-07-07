@@ -83,6 +83,19 @@ def usuario_inativo():
     _remover_usuario(dados["id"])
 
 
+@pytest.fixture
+def login_como():
+    """Factory: autentica um cliente via /api/auth/login com os dados de um fixture de usuario."""
+
+    def _login(client, usuario):
+        return client.post(
+            "/api/auth/login",
+            json={"usuario": usuario["usuario"], "senha": usuario["senha"]},
+        )
+
+    return _login
+
+
 @pytest.fixture(scope="session")
 def auth_client(app):
     client = app.test_client()

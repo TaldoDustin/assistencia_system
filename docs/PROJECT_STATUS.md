@@ -5,7 +5,7 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
-**Última revisão:** 2026-07-06  
+**Última revisão:** 2026-07-07  
 **Próxima revisão:** 2026-07-13
 
 ---
@@ -47,10 +47,14 @@ Período estimado: 01/06/2026 – 21/06/2026
 
 ---
 
-## Próxima Sprint
+## Sprint em Andamento
 
-**Sprint 2 — Infraestrutura de Qualidade**  
+**Sprint 2 — Infraestrutura de Qualidade** (EM ANDAMENTO — ver `docs/SPRINTS/SPRINT_02.md`)
 Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura mínima de 40% antes de qualquer nova feature.
+
+**Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07:** primeira suíte pytest do projeto (`tests/test_auth.py`, 18 casos — login, logout, sessão, controle de acesso por perfil), isolada via `IR_FLOW_DATA_DIR`. Corrigido no processo um bug crítico pré-existente (KI-012) que impedia `app.py` de inicializar. Revisão independente de código concluída — aprovada para merge. Mergeado em `main`.
+
+Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopping.py`, configuração de cobertura, GitHub Actions CI, `.env.example`.
 
 ### Escopo previsto
 

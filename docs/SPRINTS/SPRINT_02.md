@@ -1,6 +1,6 @@
 # SPRINT 02 — Infraestrutura de Qualidade
 
-**Status:** EM PLANEJAMENTO  
+**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07  
 **Data de criação:** 2026-07-06  
 **Tipo:** Infraestrutura / Qualidade  
 **Baseado em:** Auditoria de infraestrutura de 2026-07-06
@@ -67,7 +67,7 @@ MercadoPhone e backup ficam fora do escopo desta sprint.
 
 ## Tarefas
 
-### T-01 — `requirements-dev.txt`
+### T-01 — `requirements-dev.txt` ✅ CONCLUÍDA
 **Arquivo:** `requirements-dev.txt` (novo)  
 **Conteúdo:**
 ```
@@ -79,28 +79,34 @@ ruff>=0.5,<1
 ```
 **Depende de:** nada — primeira tarefa  
 **Critério:** `pip install -r requirements-dev.txt` sem erros
+**Status:** Entregue na infraestrutura de CI da Sprint 2 (commit `563765f`).
 
 ---
 
-### T-02 — Ruff config (`pyproject.toml`)
+### T-02 — Ruff config (`pyproject.toml`) ✅ CONCLUÍDA
 **Arquivo:** `pyproject.toml` (novo)  
 **Regras:** `E`, `F`, `W`, `I` · `line-length = 120` · `target-version = "py311"`  
 **Depende de:** T-01  
 **Critério:** `ruff check .` executa (com lista de exceções baseline documentada)
+**Status:** Entregue na infraestrutura de CI da Sprint 2 (commit `563765f`). Regras efetivas incluem também `UP`, `B`, `SIM`, `C4`.
 
 ---
 
-### T-03 — `conftest.py` com banco in-memory
+### T-03 — `conftest.py` com banco isolado ✅ CONCLUÍDA (com desvio de P-01 documentado)
 **Arquivos:** `tests/__init__.py`, `tests/conftest.py`  
-**Fixtures:** `app`, `client`, `admin_session`  
+**Fixtures:** `app`, `client`, `auth_client`  
 **Depende de:** T-01 + validação de P-01  
 **Critério:** `pytest tests/` importa sem erro, nenhum `database.db` modificado
+**Status:** Entregue. **Desvio de P-01:** `DB_PATH` é lido em nível de módulo em `app.py` (confirmado — a validação prevista em P-01 se aplicou), então o plano original de `IR_FLOW_TEST_DB=:memory:` não é usado. O fallback já previsto em P-01 foi adotado: `IR_FLOW_DATA_DIR` aponta para um diretório temporário (`tempfile.mkdtemp()`) definido **antes** do `import app`, redirecionando `DB_PATH` para um arquivo SQLite isolado (não `:memory:`, mas igualmente nunca toca `database.db`).
 
 ---
 
-### T-04 — `tests/test_auth.py`
-**8 casos:** login válido, senha errada, usuário inexistente, sem body, `/me` sem sessão, `/me` com sessão, logout, rota protegida sem sessão  
+### T-04 — `tests/test_auth.py` ✅ CONCLUÍDA (Sprint 2.2, 2026-07-07)
+**18 casos** (mais que os 8 originalmente escopados): login via API JSON (válido, senha errada, usuário inexistente, sem body, usuário inativo, resposta não expõe hash), `/api/auth/me` (sem sessão, com sessão), `/api/auth/logout` (com e sem sessão ativa), rotas legadas `/login`/`/logout` (formulário, redirecionamentos, sessão), e controle de acesso por perfil em `/usuarios/novo` (sem sessão, não-admin, admin).
 **Depende de:** T-03
+**Achado durante a execução:** `irflow_blueprints_api.py` tinha um endpoint `/shopping-list` duplicado (código legado da tabela `compras`) que impedia `app.py` de sequer importar (`AssertionError` do Flask). Corrigido e documentado em KI-012 antes de rodar os testes pela primeira vez — sem essa correção, T-03/T-04 não eram executáveis.
+**Revisão:** code review independente (8 ângulos, ver commit `da21d02` e `859d695`) — aprovado para merge sem bloqueios. Gaps de cobertura identificados para follow-up: `/usuarios/editar`, `/usuarios/deletar`, perfil `vendedor`, usuário duplicado em `/usuarios/novo`.
+**Status:** Mergeado em `main` em 2026-07-07.
 
 ---
 
@@ -167,11 +173,12 @@ T-11 (concluída antecipadamente)
 
 | ID | Risco | Prob. | Impacto | Mitigação |
 |----|-------|-------|---------|-----------|
-| RS-01 | `app.py` lê DB path em nível de módulo | Média | Alto | Validar com grep antes de T-03. Fallback: arquivo temporário |
+| RS-01 | `app.py` lê DB path em nível de módulo | Média | Alto | **Materializado** — confirmado via grep. Mitigado com fallback de arquivo temporário (`IR_FLOW_DATA_DIR`), conforme previsto |
 | RS-02 | Ruff encontra centenas de erros legados | Alta | Médio | Rodar baseline primeiro. `--select` restritivo inicialmente |
 | RS-03 | Playwright flaky no CI | Alta | Médio | `continue-on-error: true` até Sprint 3 |
 | RS-04 | 40% de cobertura inatingível sem tocar módulos acoplados | Média | Médio | Restringir alvo às 4 áreas. Ajustar threshold se necessário |
-| RS-05 | Background jobs não desativados — threads abertas nos testes | Média | Baixo | `IR_FLOW_ENABLE_BACKGROUND_JOBS=0` no conftest |
+| RS-05 | Background jobs não desativados — threads abertas nos testes | Média | Baixo | Mitigado — `IR_FLOW_ENABLE_BACKGROUND_JOBS=0` e `MERCADO_PHONE_SYNC_ENABLED=0` em `conftest.py` |
+| RS-06 (novo) | Endpoint duplicado em arquivo de 3000+ linhas pode travar o boot do Flask sem aviso até alguém rodar a suíte | Média | Crítico | Materializado uma vez (KI-012). Sem guarda dedicada ainda — candidato a `test_smoke_app_boots` explícito na Sprint 2.3 |
 
 ---
 

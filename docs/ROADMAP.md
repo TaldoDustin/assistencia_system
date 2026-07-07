@@ -11,7 +11,7 @@
 
 ```
 Fase 1 — Estabilização         [Sprint 0–1]   ████████████ CONCLUÍDA
-Fase 2 — Qualidade             [Sprint 2–3]   ░░░░░░░░░░░░ EM PLANEJAMENTO
+Fase 2 — Qualidade             [Sprint 2–3]   ███░░░░░░░░░ EM ANDAMENTO
 Fase 3 — Refatoração           [Sprint 4–5]   ░░░░░░░░░░░░ FUTURA
 Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░░░░ FUTURA
 ```
@@ -111,8 +111,9 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 
 ## Fase 2 — Infraestrutura de Qualidade
 
-> **Status: EM PLANEJAMENTO**  
+> **Status: EM ANDAMENTO**  
 > Antes de qualquer nova feature, o projeto precisa de uma base confiável: CI, testes e observabilidade mínima.
+> Sprint 2.2 (primeiros testes — login/logout/sessão) concluída em 2026-07-07. Ver `docs/SPRINTS/SPRINT_02.md`.
 
 ---
 

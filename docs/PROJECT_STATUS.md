@@ -18,7 +18,7 @@
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Ausente                         |
-| Cobertura de testes| Baixa (~15%)                    |
+| Cobertura de testes| Em crescimento (26% global — ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Média (sem auditoria formal)    |
 
@@ -54,9 +54,15 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07:** primeira suíte pytest do projeto (`tests/test_auth.py`, 18 casos — login, logout, sessão, controle de acesso por perfil), isolada via `IR_FLOW_DATA_DIR`. Corrigido no processo um bug crítico pré-existente (KI-012) que impedia `app.py` de inicializar. Revisão independente de código concluída — aprovada para merge. Mergeado em `main`.
 
-**Sprint 2.6 — Padronização de Validação e Parsing (T-12, T-13) concluída em 2026-07-07 (branch `refactor/camada-validacao-parsing`, aguardando revisão — não mergeada):** criada camada compartilhada de parsing (`irflow_validation.py`: `parse_int`, `parse_float`, `safe_json`, `validate_positive_number`) e aplicada em `irflow_blueprints_api.py`, eliminando ~50 pontos de duplicação (22x `request.get_json(silent=True) or {}`, checagens de valor positivo, parsing de quantidade). No processo, corrigidos 9 pontos onde um valor não numérico em `request.args`/corpo JSON derrubava a rota com 500 não tratado (KI-013, commit `fix:` isolado do `refactor:`). Registrado KI-014 (bloco `criar_estoque` duplicado e morto, sem efeito em runtime, fora de escopo). 34 testes novos (`tests/test_validation.py`, `tests/test_api_parsing.py`, `tests/test_api_parsing_refactor.py`). Suíte completa: 56 testes, 100% passando, `irflow_validation.py` com 100% de cobertura.
+**Sprint 2.3 (T-12 a T-16) concluída em 2026-07-07:** fecha os gaps de cobertura deixados pela 2.2 e expande para autorização — 55 novos casos em 4 módulos (`test_users.py`, `test_permissions.py`, `test_session.py`, `test_security.py`), todos consumindo fixtures compartilhados extraídos para `conftest.py`. Cobre CRUD de usuários via API, matriz de permissões por perfil (admin/tecnico/vendedor), sessão (expiração simulada, cookie adulterado, logout múltiplo) e resiliência de entrada (SQLi, payload inválido, content-type). Suíte completa: 73 testes, 100% passando. Um caso do escopo original (JSON de tipo errado no login) expôs uma exceção não tratada em produção e foi retirado da suíte em vez de commitado como teste falho — reportado separadamente para decisão, sem registro em `KNOWN_ISSUES.md` nesta sprint (orientação explícita do usuário). Ver `docs/SPRINTS/SPRINT_02.md`.
 
-Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopping.py`, configuração de cobertura, GitHub Actions CI, `.env.example`.
+**Sprint 2.4 (T-17 a T-20)** — cobertura de regras de negócio de Ordens de Serviço (88 testes, 2 hotfixes) — concluída em branch própria (`test/sprint-2-4-regras-negocio-os`), **ainda não mergeada em `main`**, aguardando revisão técnica.
+
+**Sprint 2.5 (T-21 a T-25) concluída em 2026-07-07:** cobertura de regras de negócio de Estoque — 69 novos casos em 4 módulos (`test_stock_creation_query.py`, `test_stock_movement.py`, `test_stock_os_integration.py`, `test_stock_security.py`) mais fixtures compartilhados em `conftest.py`. Suíte completa: 142 testes, 100% passando. Durante a investigação, dois bugs reais foram encontrados e corrigidos via `hotfix/` conforme ADR-004, com aprovação explícita do usuário antes de cada um (ver B-11 e B-12 abaixo). Um deles (ordem de parâmetros SQL) não se encaixava perfeitamente nos critérios objetivos do `ENGINEERING_GUIDE.md` §11 — critério novo C-05 registrado no backlog (ver Próximos Objetivos). **Mergeada em `main` em 2026-07-07** (merge fast-forward, sem conflitos). Ver `docs/SPRINTS/SPRINT_02.md`.
+
+**Sprint 2.6 — Padronização de Validação e Parsing (T-26, T-27) concluída em 2026-07-07, mergeada em `main`:** criada camada compartilhada de parsing (`irflow_validation.py`: `parse_int`, `parse_float`, `safe_json`, `validate_positive_number`) e aplicada em `irflow_blueprints_api.py`, eliminando ~50 pontos de duplicação (22x `request.get_json(silent=True) or {}`, checagens de valor positivo, parsing de quantidade). No processo, corrigidos 9 pontos onde um valor não numérico em `request.args`/corpo JSON derrubava a rota com 500 não tratado (KI-013, commit `fix:` isolado do `refactor:`). Registrado KI-014 (bloco `criar_estoque` duplicado e morto, sem efeito em runtime, fora de escopo). 38 testes novos (`tests/test_validation.py`, `tests/test_api_parsing.py`, `tests/test_api_parsing_refactor.py`). Auto-merge com os hotfixes de estoque da Sprint 2.5 (`584c501`, `44be10c`) verificado linha a linha — sem sobreposição, ambos preservados corretamente. Ver `docs/SPRINTS/SPRINT_02.md`.
+
+Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de cobertura no CI, GitHub Actions, `.env.example`.
 
 ### Escopo previsto
 
@@ -74,15 +80,19 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | Critério                      | Peso | Nota | Score |
 |-------------------------------|------|------|-------|
 | Funcionalidade core           | 25%  | 8/10 | 2,0   |
-| Cobertura de testes           | 20%  | 2/10 | 0,4   |
+| Cobertura de testes           | 20%  | 4/10 | 0,8   |
 | Arquitetura e organização     | 15%  | 5/10 | 0,75  |
 | Segurança                     | 15%  | 5/10 | 0,75  |
 | Observabilidade / logs        | 10%  | 3/10 | 0,3   |
 | DevEx (CI/CD, docs, DX)       | 10%  | 2/10 | 0,2   |
 | Desempenho                    | 5%   | 6/10 | 0,3   |
-| **Total**                     |      |      | **4,7 / 10** |
+| **Total**                     |      |      | **5,1 / 10** |
 
-> Score calculado em 2026-07-06. Meta para fim de Sprint 2: >= 6,0.
+> Score recalculado em 2026-07-07 após o merge da Sprint 2.5 em `main` (cobertura de testes: 3/10 → 4/10 — medido via `pytest-cov` diretamente em `main` pós-merge, valores idênticos aos medidos na branch antes do merge: cobertura global do repositório 26% (era 19%), `irflow_blueprints_api.py` 34% (era 19%), `irflow_os.py` 55% (era 15%), `irflow_core.py` 78% (era 68%)). **Ainda não inclui** os 88 testes da Sprint 2.4, em branch própria aguardando revisão.
+>
+> **Nota (2026-07-07, pós-merge Sprint 2.6):** a tabela acima ainda não foi recalculada após o merge da Sprint 2.6 — cobertura global do repositório subiu para 34% (`irflow_blueprints_api.py` 43%, `irflow_validation.py` 100%, novo). O critério "Cobertura de testes" desta tabela provavelmente já justifica nota mais alta; recálculo formal do score fica para a próxima revisão de `PROJECT_STATUS.md`, não decidido unilateralmente aqui.
+>
+> Meta para fim de Sprint 2: >= 6,0.
 
 ---
 
@@ -100,7 +110,9 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | ~~B-08~~ | ~~`historico-cliente` apontando para rota inexistente~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-09~~ | ~~Campo `cor` não limpo ao trocar modelo~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-10~~ | ~~Endpoint `/api/shopping-list` duplicado (código legado) travava a inicialização do Flask (KI-012)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-07)~~ |
-| ~~B-11~~ | ~~9 rotas de `irflow_blueprints_api.py` retornavam 500 não tratado com entrada não numérica em `int()`/`float()` (KI-013)~~ | ~~Média~~ | ~~Resolvido (2026-07-07)~~ |
+| ~~B-11~~ | ~~`PUT /api/estoque/<id>` calculava o diff de movimentação com a quantidade não limitada a zero — quantidade negativa gerava saída maior que o saldo real no histórico~~ | ~~Média~~ | ~~Resolvido (2026-07-07, hotfix, commit `584c501`)~~ |
+| ~~B-12~~ | ~~`GET /api/estoque` com qualquer filtro (modelo/tipo/qualidade) retornava sempre lista vazia — ordem errada de parâmetros SQL~~ | ~~Alta~~ | ~~Resolvido (2026-07-07, hotfix, commit `44be10c`)~~ |
+| ~~B-13~~ | ~~9 rotas de `irflow_blueprints_api.py` retornavam 500 não tratado com entrada não numérica em `int()`/`float()` (KI-013)~~ | ~~Média~~ | ~~Resolvido (2026-07-07)~~ |
 
 ---
 
@@ -156,16 +168,22 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura estimada |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-07, pós-merge Sprint 2.5) |
 |-------------------|--------------------------|--------------|--------------------|
-| Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas    |
-| Backend — Módulos | pytest (auth/sessão — Sprint 2.2, 18 testes; parsing/validação — Sprint 2.6, 38 testes) | pytest | `irflow_validation.py` 100%; auth e parsing de `irflow_blueprints_api.py` cobertos; demais módulos ainda baixos |
+| Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, parsing/validação — Sprint 2.2+2.3+2.5+2.6) | pytest | `irflow_validation.py` 100% · `irflow_blueprints_auth.py` 83% · `irflow_core.py` 78% · `app.py` 53% · `irflow_os.py` 55% · `irflow_blueprints_api.py` 43% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global**        |                          |              | **26%** (`pytest --cov`, 56 testes, Sprint 2.6 — 2026-07-07) |
+| **Global (repo, `main`)** |                  |              | **34%** (`pytest --cov`, 180 testes, pós-merge Sprint 2.6 — 2026-07-07) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend.
+**Pendente de merge:**
+
+| Branch | Testes | Status |
+|--------|--------|--------|
+| `test/sprint-2-4-regras-negocio-os` | +88 | Aguardando revisão técnica |
+
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_pricing.py`, `test_shopping.py` (não iniciadas) e do merge da Sprint 2.4.
 
 ---
 
@@ -177,6 +195,7 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 3. Atingir 40% de cobertura nas rotas críticas
 4. Documentar `.env.example`
 5. Padronizar commits com Conventional Commits
+6. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)
 1. Quebrar `irflow_blueprints_api.py` em módulos menores

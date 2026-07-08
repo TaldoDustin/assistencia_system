@@ -99,6 +99,61 @@ Todo trabalho segue este ciclo obrigatório. Nunca pule etapas.
 
 ---
 
+## Bugs Encontrados Durante Sprints de Teste, QA ou Validação
+
+*Vigente a partir de 2026-07-07 (ADR-004) — não se aplica retroativamente a sprints já concluídas.*
+
+Qualquer bug real encontrado durante uma sprint de testes, QA ou validação — não apenas "sprint de testes" no sentido estrito — deve ser avaliado contra os **critérios objetivos de interrupção** em `docs/ENGINEERING_GUIDE.md` (seção 11).
+
+- Se **algum critério for verdadeiro**: a sprint **para**. Siga o fluxo abaixo antes de continuar.
+- Se **nenhum critério for verdadeiro**: não pare. Caracterize o comportamento com um teste (nunca um teste deliberadamente falho) e registre o achado no relatório final da sprint.
+
+```
+Bug encontrado durante sprint de teste/QA/validação
+                    │
+                    ▼
+   Atende a algum critério objetivo de interrupção?
+        (docs/ENGINEERING_GUIDE.md, seção 11)
+                    │
+        ┌───────────┴───────────┐
+       NÃO                     SIM
+        │                       │
+        ▼                       ▼
+  Caracterizar com        PARAR a sprint
+  teste (não falho)              │
+        │                        ▼
+        ▼              git checkout main
+  Reportar no          git checkout -b hotfix/<nome>
+  relatório final                │
+  da sprint                      ▼
+        │              Implementar a correção mínima
+        │                        │
+        │                        ▼
+        │              Rodar os testes relacionados
+        │                        │
+        │                        ▼
+        │              Merge do hotfix em main
+        │                        │
+        │                        ▼
+        │              Atualizar a branch da sprint
+        │              (git merge main / git rebase main)
+        │                        │
+        └───────────┬────────────┘
+                     ▼
+         Continuar a sprint original
+```
+
+**Regras do fluxo `hotfix/`:**
+- Branch nova a partir de `main` — nunca commitada direto na branch da sprint em andamento.
+- Correção mínima apenas — sem refatoração, sem feature adicional (mesma regra de sempre: uma mudança por vez).
+- Testes relacionados rodam e passam antes do merge em `main`.
+- A branch da sprint é atualizada a partir de `main` (merge ou rebase) antes de continuar — nunca diverge silenciosamente.
+- Ver `docs/CODE_STYLE.md` para a convenção de nome (`hotfix/<descrição-em-kebab-case>`) e `docs/QUALITY_GATES.md` (G-18) para o gate correspondente.
+
+**Por que isso importa:** mistura de correção emergencial com trabalho planejado no mesmo histórico dificulta revisão, torna o fix indisponível em produção até a sprint inteira terminar, e impede reverter a correção isoladamente se algo der errado. Ver `docs/adr/ADR-004.md` para o contexto completo da decisão.
+
+---
+
 ## Regras Absolutas — NUNCA
 
 | Regra | Razão |
@@ -130,6 +185,7 @@ Todo trabalho segue este ciclo obrigatório. Nunca pule etapas.
 - Sempre documentar decisões arquiteturais em `ARCHITECTURE_DECISIONS.md`
 - Sempre manter o escopo exato do que foi pedido
 - Sempre criar `SPRINTS/SPRINT_NN.md` ao iniciar uma nova sprint, usando o template
+- Sempre interromper uma sprint de testes/QA/validação e abrir `hotfix/...` quando um achado atender a algum critério objetivo de interrupção (ver seção "Bugs Encontrados Durante Sprints de Teste, QA ou Validação" e `docs/ENGINEERING_GUIDE.md` seção 11)
 
 ---
 

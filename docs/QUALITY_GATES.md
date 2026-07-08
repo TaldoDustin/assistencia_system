@@ -238,6 +238,23 @@ Exceção: código de infraestrutura (migrations, config) pode ser sem teste se 
 
 ---
 
+## Gates de Processo (Manual)
+
+Aplicável a qualquer sprint de teste, QA ou validação — ver `CLAUDE.md` e `docs/ENGINEERING_GUIDE.md` §11 (ADR-004).
+
+### G-18 — Achados que atendem critérios de interrupção seguem fluxo `hotfix/`
+
+| Estado | Critério |
+|--------|---------|
+| ✅ PASSOU | Todo achado que atendeu a algum critério objetivo de interrupção (`ENGINEERING_GUIDE.md` §11) foi corrigido via branch `hotfix/*` própria, a partir de `main`, mergeada em `main` antes da sprint continuar |
+| ❌ FALHOU | Achado que atendeu a algum critério foi corrigido direto na branch da sprint, ou não foi corrigido nem reportado |
+| N/A | Nenhum achado da sprint atendeu a critério de interrupção — achados, se houver, foram caracterizados por teste e reportados |
+
+**Status:** Ativo a partir de 2026-07-07 (ADR-004) — **não retroativo**, não se aplica a sprints concluídas antes dessa data.
+**Responsável:** quem executa a sprint (self-review em projeto solo, revisão por par quando houver mais de um colaborador).
+
+---
+
 ## Evolução do Threshold de Cobertura
 
 Cobertura cresce junto com os testes — nunca à frente deles.
@@ -287,6 +304,9 @@ fail_under = 0  # atualizar a cada sprint conforme tabela acima
 - [ ] G-15 Sem lógica duplicada
 - [ ] G-16 Complexidade dentro dos limites
 - [ ] G-17 Testes para lógica nova
+
+### Processo (sprints de teste/QA/validação)
+- [ ] G-18 Achados que atendem critérios de interrupção viraram `hotfix/*` mergeado em `main` (N/A se nenhum achado atendeu)
 ```
 
 ---
@@ -312,3 +332,4 @@ fail_under = 0  # atualizar a cada sprint conforme tabela acima
 | G-15 DRY | ⚠️ Manual | Ativo |
 | G-16 Complexidade | ⚠️ Manual | Ativo |
 | G-17 Testes para novo código | ❌ Não enforçado | Sprint 2 |
+| G-18 Hotfix para achados críticos | ⚠️ Manual | Ativo (2026-07-07, ADR-004) |

@@ -417,3 +417,31 @@ Use `docs/templates/PR_TEMPLATE.md` como base. Inclua obrigatoriamente:
 - Revisão aprovada (quando houver mais de um colaborador)
 - Nenhum comentário de revisão aberto
 - Documentação atualizada
+
+---
+
+## 11. Bugs Encontrados Durante Sprints de Teste, QA ou Validação
+
+Escrever testes, validar comportamento ou rodar QA frequentemente revela bugs reais no código de produção — não só lacunas de cobertura. Esta seção define quando um achado desses **interrompe a sprint** e exige um `hotfix/` imediato (ver `CLAUDE.md` para o fluxo completo e `docs/QUALITY_GATES.md` — G-18), e quando ele deve apenas ser **caracterizado por teste e reportado** para decisão posterior, sem parar o trabalho planejado.
+
+Não há espaço para julgamento subjetivo aqui — mesmo espírito de `QUALITY_GATES.md`: cada critério é verdadeiro ou falso.
+
+### Critérios objetivos de interrupção
+
+Pare a sprint e abra um `hotfix/` se **qualquer um** dos critérios abaixo for verdadeiro:
+
+| # | Critério | Pergunta objetiva |
+|---|----------|---------------------|
+| C-01 | Mutação silenciosa de dado persistido | O comportamento grava, apaga ou altera uma linha no banco **sem retornar erro** e sem que o chamador tenha pedido essa mudança? |
+| C-02 | Perda de dado irreversível | Uma operação normal (não destrutiva por design) causa perda de dado que não pode ser recuperada a partir do próprio sistema? |
+| C-03 | Bypass de autenticação/autorização | O achado permite acessar, alterar ou excluir dado de outro usuário, ou executar uma ação sem a permissão exigida pela regra de negócio? |
+| C-04 | Caminho real de produção | O comportamento está na rota/função que o frontend em produção efetivamente usa (não uma rota legada morta ou código não referenciado)? |
+
+Se **nenhum** critério for verdadeiro — por exemplo, uma exceção não tratada que resulta em `500` mas não escreve nenhum dado incorreto, ou um comportamento equivalente numa rota legada sem uso real — **não interrompa**: escreva o teste que caracteriza o comportamento atual, não o commite como falha, e reporte o achado ao final da sprint para decisão (registrar em `KNOWN_ISSUES.md`, corrigir depois, ou aceitar como está).
+
+### Exemplos já observados no projeto
+
+- **Interrompeu (C-01 + C-04):** `PATCH /api/ordens/<id>/status` aceitava um status desconhecido e o normalizava silenciosamente para "Em andamento" em vez de rejeitar — grava estado errado sem erro, na rota que o frontend usa. Corrigido via commit direto na sprint (antes desta política existir — ver ADR-004 sobre não-retroatividade).
+- **Interrompeu (C-01 + C-02 + C-04):** `PUT /api/ordens/<id>` sem `status` reabria uma OS Finalizada e apagava `data_finalizado` silenciosamente — perda do dado de finalização sem qualquer erro.
+- **Não interrompeu (nenhum critério):** `POST /api/auth/login` com um array JSON no lugar de um objeto derrubava a rota com `AttributeError` (500). Falha alto e visível, não persiste nenhum dado incorreto — caracterizado como comportamento a evitar no teste (removido da suíte, não commitado como falha) e reportado separadamente.
+- **Não interrompeu (C-04 falso):** divergência entre `POST /atualizar_status` (rota legada) e `PATCH /api/ordens/<id>/status` (API) na reativação de OS Cancelada — a rota legada não é a que o frontend em produção usa; caracterizado por teste e reportado, sem hotfix.

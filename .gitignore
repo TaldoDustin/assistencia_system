@@ -28,6 +28,10 @@ temp_output.txt
 *.old
 *.log
 
+# Cobertura de testes (gerado por pytest-cov)
+.coverage
+htmlcov/
+
 # Fly.io não precisa desses
 integrations.json
 

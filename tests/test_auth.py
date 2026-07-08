@@ -7,65 +7,10 @@ Nao cobre estoque, ordens de servico ou lista de compras.
 
 import uuid
 
-import pytest
-from werkzeug.security import generate_password_hash
-
 import app as _app
 
-SENHA_PADRAO = "senha_teste_123"
-
-
-@pytest.fixture
-def client(app):
-    """Cliente HTTP isolado por teste — nao reutiliza sessao de outros testes."""
-    return app.test_client()
-
-
-def _criar_usuario(nome, perfil="tecnico", ativo=1):
-    login = f"user_{uuid.uuid4().hex[:10]}"
-    conn = _app.conectar()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo) VALUES (?, ?, ?, ?, ?)",
-            (nome, login, generate_password_hash(SENHA_PADRAO), perfil, ativo),
-        )
-        conn.commit()
-        user_id = cursor.lastrowid
-    finally:
-        conn.close()
-    return {"id": user_id, "nome": nome, "usuario": login, "senha": SENHA_PADRAO}
-
-
-def _remover_usuario(user_id):
-    conn = _app.conectar()
-    try:
-        conn.execute("DELETE FROM usuarios WHERE id = ?", (user_id,))
-        conn.commit()
-    finally:
-        conn.close()
-
-
-@pytest.fixture
-def usuario_tecnico():
-    dados = _criar_usuario("Tecnico Teste", perfil="tecnico", ativo=1)
-    yield dados
-    _remover_usuario(dados["id"])
-
-
-@pytest.fixture
-def usuario_admin():
-    dados = _criar_usuario("Admin Teste", perfil="admin", ativo=1)
-    yield dados
-    _remover_usuario(dados["id"])
-
-
-@pytest.fixture
-def usuario_inativo():
-    dados = _criar_usuario("Usuario Inativo", perfil="tecnico", ativo=0)
-    yield dados
-    _remover_usuario(dados["id"])
-
+# Fixtures de usuario (client, usuario_admin, usuario_tecnico, usuario_inativo, ...)
+# vivem em tests/conftest.py — compartilhadas por toda a suite (Sprint 2.3).
 
 # ============================================================================
 # API JSON — /api/auth/login, /api/auth/logout, /api/auth/me

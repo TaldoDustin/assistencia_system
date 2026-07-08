@@ -15,7 +15,7 @@ from flask import Blueprint, jsonify, request, session, send_from_directory, Res
 import os
 
 from irflow_price_tables import sugerir_preco_tabela
-from irflow_validation import parse_float, parse_int
+from irflow_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
 def create_api_blueprint(deps):
@@ -455,7 +455,7 @@ def create_api_blueprint(deps):
 
     @api.route("/auth/login", methods=["POST"])
     def auth_login():
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         usuario_txt = (body.get("usuario") or "").strip()
         senha_txt = body.get("senha") or ""
 
@@ -839,19 +839,21 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
         try:
-            body = request.get_json(silent=True) or {}
-            os_id = int(body.get("os_id") or 0)
+            body = safe_json(request)
+            os_id = parse_int(body.get("os_id"), default=0)
             produto_id = body.get("produto_id")
             try:
                 produto_id = int(produto_id) if produto_id else None
             except Exception:
                 produto_id = None
             produto_nome = (body.get("produto_nome") or "").strip()
-            quantidade = int(body.get("quantidade_solicitada") or body.get("quantidade") or 1)
+            quantidade = parse_int(body.get("quantidade_solicitada") or body.get("quantidade"), default=1)
             prioridade = (body.get("prioridade") or "NORMAL").strip().upper()
             observacao = (body.get("observacao") or "").strip()
 
-            if quantidade <= 0:
+            if os_id is None:
+                return err("os_id inválido.")
+            if quantidade is None or quantidade <= 0:
                 return err("Quantidade invalida")
             if prioridade not in SHOPPING_PRIORITIES:
                 prioridade = "NORMAL"
@@ -892,7 +894,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
         try:
-            body = request.get_json(silent=True) or {}
+            body = safe_json(request)
             quantidade = body.get("quantidade_solicitada")
             prioridade = (body.get("prioridade") or "").strip().upper()
             observacao = body.get("observacao")
@@ -909,10 +911,7 @@ def create_api_blueprint(deps):
             updates = []
             params = []
             if quantidade is not None:
-                try:
-                    q = int(quantidade)
-                except Exception:
-                    q = None
+                q = parse_int(quantidade, default=None)
                 if q is None or q < 0:
                     conn.close()
                     return err("Quantidade invalida")
@@ -946,7 +945,7 @@ def create_api_blueprint(deps):
     def shopping_patch_status(item_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         novo = (body.get("status") or "").strip().upper()
         quantidade_recebida = body.get("quantidade_recebida")
 
@@ -1014,11 +1013,7 @@ def create_api_blueprint(deps):
                 params.extend([novo, now, now])
             elif novo == 'RECEBIDO':
                 # pode informar quantidade_recebida
-                qrecv = None
-                try:
-                    qrecv = int(quantidade_recebida) if quantidade_recebida is not None else None
-                except Exception:
-                    qrecv = None
+                qrecv = parse_int(quantidade_recebida, default=None)
                 if qrecv is not None:
                     updates.append('quantidade_recebida = ?')
                     params.append(qrecv)
@@ -1476,7 +1471,7 @@ def create_api_blueprint(deps):
         if not token:
             return err("Token inválido.", 404)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         testes = body.get("testes") or {}
         if not isinstance(testes, dict):
             return err("Formato do checklist inválido.")
@@ -1530,7 +1525,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
 
         tipo = (body.get("tipo") or "").strip()
         cliente = (body.get("cliente") or "").strip()
@@ -1615,7 +1610,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
 
         tipo = (body.get("tipo") or "").strip()
         cliente = (body.get("cliente") or "").strip()
@@ -1762,7 +1757,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         status = normalizar_status_os(body.get("status") or "")
         if not status:
             return err("Status inválido.")
@@ -2044,7 +2039,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
         modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
         tipo = _normalizar_tipo_estoque(body.get("tipo"))
@@ -2055,7 +2050,7 @@ def create_api_blueprint(deps):
         quantidade = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-        if not descricao or valor is None or valor <= 0 or quantidade is None or quantidade < 0:
+        if not descricao or not validate_positive_number(valor) or quantidade is None or quantidade < 0:
             return err("Preencha descrição, valor e quantidade.")
 
         conn = conectar()
@@ -2104,7 +2099,7 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
         modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
         tipo = _normalizar_tipo_estoque(body.get("tipo"))
@@ -2115,7 +2110,7 @@ def create_api_blueprint(deps):
         quantidade_nova = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-        if not descricao or valor is None or valor <= 0 or quantidade_nova is None:
+        if not descricao or not validate_positive_number(valor) or quantidade_nova is None:
             return err("Preencha descrição, valor e quantidade válidos.")
 
         conn = conectar()
@@ -2263,7 +2258,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         nome = (body.get("nome") or "").strip()
         if not nome:
             return err("Informe o nome do reparo.")
@@ -2290,7 +2285,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         nome = (body.get("nome") or "").strip()
         if not nome:
             return err("Informe um nome válido.")
@@ -2349,14 +2344,14 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
         categoria = (body.get("categoria") or "Outros").strip()
         valor = parse_float(body.get("valor"), default=0.0)
         data = (body.get("data") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         observacoes = (body.get("observacoes") or "").strip()
 
-        if not descricao or valor is None or valor <= 0:
+        if not descricao or not validate_positive_number(valor):
             return err("Informe descrição e valor maior que zero.")
 
         conn = conectar()
@@ -2381,14 +2376,14 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
         categoria = (body.get("categoria") or "Outros").strip()
         valor = parse_float(body.get("valor"), default=0.0)
         data = (body.get("data") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         observacoes = (body.get("observacoes") or "").strip()
 
-        if not descricao or valor is None or valor <= 0:
+        if not descricao or not validate_positive_number(valor):
             return err("Informe descrição e valor maior que zero.")
 
         conn = conectar()
@@ -2446,7 +2441,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         tabela = (body.get("tabela") or "").strip()
         servico = (body.get("servico") or "").strip().upper()
         modelo = (body.get("modelo") or "").strip()
@@ -2467,7 +2462,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         tabela = (body.get("tabela") or "").strip()
         servico = (body.get("servico") or "").strip()
         modelo = (body.get("modelo") or "").strip()
@@ -2703,7 +2698,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         nome = (body.get("nome") or "").strip()
         usuario_txt = (body.get("usuario") or "").strip()
         senha_txt = (body.get("senha") or "").strip()
@@ -2736,7 +2731,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         nome = (body.get("nome") or "").strip()
         perfil = body.get("perfil") or "tecnico"
         senha_nova = (body.get("senha_nova") or "").strip()
@@ -2798,7 +2793,7 @@ def create_api_blueprint(deps):
 
         try:
             os.makedirs(backup_dir, exist_ok=True)
-            body = request.get_json(silent=True) or {}
+            body = safe_json(request)
             versao_bruta = _texto_limpo_local(body.get("versao"))
             versao = re.sub(r"[^A-Za-z0-9._-]", "", versao_bruta)[:40]
             nome_arquivo = None
@@ -3006,7 +3001,7 @@ def create_api_blueprint(deps):
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
 
-        body = request.get_json(silent=True) or {}
+        body = safe_json(request)
         dados, mp_cfg = _carregar_config_mercadophone()
 
         if "api_token" in body:
@@ -3016,16 +3011,16 @@ def create_api_blueprint(deps):
             mp_cfg["sync_enabled"] = _to_bool(body.get("sync_enabled"), padrao=True)
 
         if "sync_interval_seconds" in body:
-            try:
-                mp_cfg["sync_interval_seconds"] = max(30, int(body.get("sync_interval_seconds") or 180))
-            except (TypeError, ValueError):
+            parsed_interval = parse_int(body.get("sync_interval_seconds"), default=180)
+            if parsed_interval is None:
                 return err("sync_interval_seconds inválido.", 400)
+            mp_cfg["sync_interval_seconds"] = max(30, parsed_interval)
 
         if "sync_timeout_seconds" in body:
-            try:
-                mp_cfg["sync_timeout_seconds"] = max(5, int(body.get("sync_timeout_seconds") or 20))
-            except (TypeError, ValueError):
+            parsed_timeout = parse_int(body.get("sync_timeout_seconds"), default=20)
+            if parsed_timeout is None:
                 return err("sync_timeout_seconds inválido.", 400)
+            mp_cfg["sync_timeout_seconds"] = max(5, parsed_timeout)
 
         if "sync_start_date" in body:
             mp_cfg["sync_start_date"] = _texto_limpo_local(body.get("sync_start_date")) or "2026-04-01"

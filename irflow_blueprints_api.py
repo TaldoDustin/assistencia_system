@@ -15,6 +15,7 @@ from flask import Blueprint, jsonify, request, session, send_from_directory, Res
 import os
 
 from irflow_price_tables import sugerir_preco_tabela
+from irflow_validation import parse_float, parse_int
 
 
 def create_api_blueprint(deps):
@@ -741,8 +742,10 @@ def create_api_blueprint(deps):
         prioridade = (request.args.get("prioridade") or "").strip()
         produto = (request.args.get("produto") or "").strip().lower()
         os_id = (request.args.get("os_id") or "").strip()
-        page = int(request.args.get("page") or 1)
-        per_page = int(request.args.get("per_page") or 20)
+        page = parse_int(request.args.get("page"), default=1)
+        per_page = parse_int(request.args.get("per_page"), default=20)
+        if page is None or per_page is None:
+            return err("Parâmetros page/per_page inválidos.")
 
         try:
             conn = conectar()
@@ -1541,8 +1544,8 @@ def create_api_blueprint(deps):
         observacoes = (body.get("observacoes") or "").strip()
         reparo_ids = [int(x) for x in (body.get("reparo_ids") or []) if str(x).isdigit()]
         pecas_ids = [int(x) for x in (body.get("pecas_ids") or []) if str(x).isdigit()]
-        valor_cobrado = float(body.get("valor_cobrado") or 0)
-        valor_descontado = float(body.get("valor_descontado") or 0)
+        valor_cobrado = parse_float(body.get("valor_cobrado"), default=0.0)
+        valor_descontado = parse_float(body.get("valor_descontado"), default=0.0)
         data = (body.get("data_os") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         status_raw = (body.get("status") or "Em andamento").strip()
 
@@ -1557,8 +1560,8 @@ def create_api_blueprint(deps):
 
         status = normalizar_status_os(status_raw)
 
-        if not tipo or not cliente or not modelo or not tecnico:
-            return err("Preencha tipo, cliente, modelo e técnico.")
+        if not tipo or not cliente or not modelo or not tecnico or valor_cobrado is None or valor_descontado is None:
+            return err("Preencha tipo, cliente, modelo, técnico e valores válidos.")
         if not reparo_ids:
             return err("Selecione ao menos um reparo.")
         if not vendedor_valido(vendedor, vendedores) and cliente != "IR Phones":
@@ -1625,13 +1628,21 @@ def create_api_blueprint(deps):
         observacoes = (body.get("observacoes") or "").strip()
         reparo_ids = [int(x) for x in (body.get("reparo_ids") or []) if str(x).isdigit()]
         pecas_ids = [int(x) for x in (body.get("pecas_ids") or []) if str(x).isdigit()]
-        valor_cobrado = float(body.get("valor_cobrado") or 0)
-        valor_descontado = float(body.get("valor_descontado") or 0)
+        valor_cobrado = parse_float(body.get("valor_cobrado"), default=0.0)
+        valor_descontado = parse_float(body.get("valor_descontado"), default=0.0)
         data_os = (body.get("data_os") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         status = normalizar_status_os(body.get("status") or "")
         aparelho = modelo
 
-        if not tipo or not cliente or not modelo or not tecnico or not status:
+        if (
+            not tipo
+            or not cliente
+            or not modelo
+            or not tecnico
+            or not status
+            or valor_cobrado is None
+            or valor_descontado is None
+        ):
             return err("Preencha todos os campos obrigatórios.")
         if not reparo_ids:
             return err("Selecione ao menos um reparo.")
@@ -1952,7 +1963,9 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        dias_base = int(request.args.get("dias") or 30)
+        dias_base = parse_int(request.args.get("dias"), default=30)
+        if dias_base is None:
+            return err("Parâmetro dias inválido.")
         if dias_base < 7:
             dias_base = 7
         if dias_base > 120:
@@ -2037,12 +2050,12 @@ def create_api_blueprint(deps):
         tipo = _normalizar_tipo_estoque(body.get("tipo"))
         qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
         sku = (body.get("sku") or "").strip().upper()
-        valor = float(body.get("valor") or 0)
+        valor = parse_float(body.get("valor"), default=0.0)
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
-        quantidade = int(body.get("quantidade") or 0)
+        quantidade = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-        if not descricao or valor <= 0 or quantidade < 0:
+        if not descricao or valor is None or valor <= 0 or quantidade is None or quantidade < 0:
             return err("Preencha descrição, valor e quantidade.")
 
         conn = conectar()
@@ -2097,13 +2110,13 @@ def create_api_blueprint(deps):
         tipo = _normalizar_tipo_estoque(body.get("tipo"))
         qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
         sku = (body.get("sku") or "").strip().upper()
-        valor = float(body.get("valor") or 0)
+        valor = parse_float(body.get("valor"), default=0.0)
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
-        quantidade_nova = int(body.get("quantidade") or 0)
+        quantidade_nova = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
 
-        if not descricao or valor <= 0:
-            return err("Preencha descrição e valor.")
+        if not descricao or valor is None or valor <= 0 or quantidade_nova is None:
+            return err("Preencha descrição, valor e quantidade válidos.")
 
         conn = conectar()
         cursor = conn.cursor()
@@ -2339,11 +2352,11 @@ def create_api_blueprint(deps):
         body = request.get_json(silent=True) or {}
         descricao = (body.get("descricao") or "").strip()
         categoria = (body.get("categoria") or "Outros").strip()
-        valor = float(body.get("valor") or 0)
+        valor = parse_float(body.get("valor"), default=0.0)
         data = (body.get("data") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         observacoes = (body.get("observacoes") or "").strip()
 
-        if not descricao or valor <= 0:
+        if not descricao or valor is None or valor <= 0:
             return err("Informe descrição e valor maior que zero.")
 
         conn = conectar()
@@ -2371,11 +2384,11 @@ def create_api_blueprint(deps):
         body = request.get_json(silent=True) or {}
         descricao = (body.get("descricao") or "").strip()
         categoria = (body.get("categoria") or "Outros").strip()
-        valor = float(body.get("valor") or 0)
+        valor = parse_float(body.get("valor"), default=0.0)
         data = (body.get("data") or "").strip() or datetime.now().strftime("%Y-%m-%d")
         observacoes = (body.get("observacoes") or "").strip()
 
-        if not descricao or valor <= 0:
+        if not descricao or valor is None or valor <= 0:
             return err("Informe descrição e valor maior que zero.")
 
         conn = conectar()
@@ -2437,11 +2450,11 @@ def create_api_blueprint(deps):
         tabela = (body.get("tabela") or "").strip()
         servico = (body.get("servico") or "").strip().upper()
         modelo = (body.get("modelo") or "").strip()
-        valor = float(body.get("valor") or -1)
+        valor = parse_float(body.get("valor"), default=-1.0)
 
         if tabela not in ("ir_phones", "clientes"):
             return err("Tabela inválida.")
-        if not servico or not modelo or valor < 0:
+        if not servico or not modelo or valor is None or valor < 0:
             return err("Preencha serviço, modelo e valor.")
 
         tabelas = carregar_tabelas_preco()

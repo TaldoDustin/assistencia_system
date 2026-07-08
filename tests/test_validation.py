@@ -4,13 +4,7 @@ Testes unitarios da camada compartilhada de parsing (irflow_validation.py).
 Sem banco de dados, sem app Flask, sem chamadas HTTP — puramente funcional.
 """
 
-from irflow_validation import (
-    parse_float,
-    parse_int,
-    require_fields,
-    safe_json,
-    validate_positive_number,
-)
+from irflow_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
 class _FakeRequest:
@@ -90,24 +84,6 @@ def test_safe_json_retorna_dict_vazio_quando_corpo_ausente():
 def test_safe_json_retorna_dict_vazio_quando_corpo_invalido():
     req = _FakeRequest(None, raises=True)
     assert safe_json(req) == {}
-
-
-# ── require_fields ───────────────────────────────────────────────────────
-
-
-def test_require_fields_retorna_vazio_quando_todos_presentes():
-    data = {"descricao": "Tela", "valor": 100}
-    assert require_fields(data, "descricao", "valor") == []
-
-
-def test_require_fields_retorna_nomes_ausentes():
-    data = {"descricao": "Tela"}
-    assert require_fields(data, "descricao", "valor") == ["valor"]
-
-
-def test_require_fields_trata_string_vazia_como_ausente():
-    data = {"descricao": "", "valor": 100}
-    assert require_fields(data, "descricao", "valor") == ["descricao"]
 
 
 # ── validate_positive_number ────────────────────────────────────────────

@@ -39,11 +39,6 @@ def safe_json(request_obj):
     return request_obj.get_json(silent=True) or {}
 
 
-def require_fields(data, *field_names):
-    """Retorna a lista dos nomes em `field_names` ausentes ou vazios em `data`."""
-    return [name for name in field_names if not data.get(name)]
-
-
 def validate_positive_number(value):
     """True se `value` é conversível para float e estritamente positivo."""
     try:

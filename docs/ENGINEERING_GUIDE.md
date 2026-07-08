@@ -4,7 +4,7 @@ Este documento define os padrões, princípios e convenções que governam o des
 Ele muda raramente — apenas quando uma decisão arquitetural fundamental é revisada.
 Quando houver conflito entre este documento e qualquer outro, este prevalece.
 
-**Última revisão:** 2026-07-06
+**Última revisão:** 2026-07-08
 
 ---
 
@@ -90,6 +90,55 @@ irflow_reference_data.py     — dados de referência (modelos, cores, técnicos
 ```
 
 **Regra:** não crie um novo arquivo `irflow_*.py` sem decisão explícita. Se a lógica é pequena, adicione ao módulo de domínio existente.
+
+### 3.1 Convenção para domínios novos
+
+Esta seção define a estrutura obrigatória para **qualquer domínio de negócio novo** adicionado ao sistema
+a partir desta revisão (ex.: Vendas, Caixa, Financeiro). Não se aplica retroativamente aos domínios
+existentes listados em `docs/DOMAIN_MODEL.md` — esses seguem seu próprio plano de decomposição (ADR-002,
+Sprint 4).
+
+**Motivação:** sem uma convenção fixada antes da primeira linha de código, cada domínio novo inventa sua
+própria organização de pastas durante a sprint em que nasce — o que gera divergência silenciosa entre
+módulos e o mesmo tipo de dívida técnica já registrada em TD-01/KI-003 (mas dessa vez em código novo,
+sem justificativa de "legado").
+
+**Camadas obrigatórias, nesta ordem de dependência:**
+
+```
+controller   — camada HTTP (blueprint Flask). Recebe request, valida entrada, chama service, formata resposta.
+                Nunca contém regra de negócio nem acessa o banco diretamente.
+
+service      — regra de negócio pura do domínio. Não conhece Flask, request ou jsonify.
+                É o que se testa com testes unitários rápidos, sem subir um servidor.
+
+repository   — único ponto de acesso ao banco para o domínio (queries SQL parametrizadas,
+                seguindo o padrão da seção "Acesso ao banco" abaixo). Service nunca executa SQL direto.
+
+tests        — um arquivo de teste por camada relevante (ex.: test_vendas_service.py,
+                test_vendas_api.py), seguindo `docs/TESTING.md`.
+
+README        — um README.md curto (10-20 linhas) na pasta do domínio: o que o domínio faz,
+                quais tabelas usa, quais domínios ele depende/é dependido por.
+```
+
+**Onde isso vive fisicamente:** enquanto o projeto não migrar para uma pasta por domínio (`domains/vendas/`,
+`domains/estoque/`, etc. — fora de escopo desta revisão), a convenção de nomes de arquivo é:
+
+```
+irflow_<dominio>_controller.py    (ou blueprint dentro de irflow_blueprints_<dominio>.py, já existente)
+irflow_<dominio>_service.py
+irflow_<dominio>_repository.py
+```
+
+**Regra de reuso entre domínios:** se um domínio novo precisa de uma regra que já existe em outro
+domínio (ex.: Vendas precisa dar baixa em estoque), ele **importa o service do domínio dono**, nunca
+duplica a lógica nem acessa a tabela do outro domínio diretamente. Exemplo concreto já identificado:
+a lógica de movimentação de estoque (`registrar_movimentacao`, `consumir_peca_da_os`, `_consumir_lotes_fifo`
+em `irflow_os.py`) é a candidata natural a virar `irflow_estoque_service.py` — OS, Vendas e Compras
+devem consumir esse mesmo service, nunca reimplementar a baixa de estoque cada um à sua maneira.
+
+Ver `docs/DOMAIN_MODEL.md` para o inventário de domínios existentes e seu estado atual de camadas.
 
 ### Padrão de endpoint REST
 

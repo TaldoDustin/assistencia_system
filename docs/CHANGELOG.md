@@ -10,6 +10,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ## [Não lançado]
 
 ### Adicionado
+- `docs/DOMAIN_MODEL.md` — mapa dos domínios de negócio existentes, extraído do código (schema `app.py` + `ARCHITECTURE.md`); registra que "Clientes" não é uma entidade própria hoje (campo texto solto em `os`)
+- `docs/adr/ADR-005.md` — estratégia de multiempresa: alternativas técnicas avaliadas (banco por empresa / `empresa_id` / schema por empresa), decisão pendente do Product Owner
+- `docs/ENGINEERING_GUIDE.md` seção 3.1 — convenção obrigatória de camadas (`controller → service → repository → tests → README`) para domínios de negócio novos, com regra de reuso entre domínios (ex.: `irflow_estoque_service.py` como candidato a serviço compartilhado)
+- `docs/PRODUCT_REQUIREMENTS.md` — formulário de requisitos de produto (persona, dores, diferenciais, escopo negativo, monetização, mercado-alvo), seções marcadas `TODO` até decisão do Product Owner
+- `docs/VISION.md` — formulário de missão, visão, valores e critérios de sucesso do produto, seções marcadas `TODO`
+- `docs/FEATURE_MATRIX_TEMPLATE.md` — template vazio de comparação com concorrentes, a preencher após pesquisa de mercado real
 - `docs/ARCHITECTURE.md` e `docs/DATABASE.md` — documentação obrigatória ausente, extraída do estado real do código
 - `tests/test_auth.py` — primeira suíte pytest do projeto (Sprint 2.2): login, logout, sessão e controle de acesso por perfil, isolada via `IR_FLOW_DATA_DIR`
 - `irflow_validation.py` (Sprint 2.6): camada compartilhada de parsing de entrada — `parse_int`, `parse_float`, `safe_json`, `validate_positive_number` — usada pelos endpoints JSON de `irflow_blueprints_api.py`

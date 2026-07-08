@@ -15,6 +15,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-002](adr/ADR-002.md) | Separar API em módulos por domínio | Aceita (Sprint 4) | 2026-07-06 |
 | [ADR-003](adr/ADR-003.md) | SQLite até a versão 2 | Aceita | 2026-07-06 |
 | [ADR-004](adr/ADR-004.md) | Bugs em sprints de teste/QA/validação seguem fluxo `hotfix/` obrigatório | Aceita — não retroativa | 2026-07-07 |
+| [ADR-005](adr/ADR-005.md) | Estratégia de multiempresa | Proposta — alternativas técnicas prontas, decisão pendente do Product Owner | 2026-07-08 |
 
 ---
 

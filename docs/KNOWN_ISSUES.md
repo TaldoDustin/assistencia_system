@@ -235,3 +235,61 @@ Identificado e corrigido fora de sprint — bloqueava a Sprint 2.2.
 
 Responsável:
 —
+
+---
+
+## ~~KI-013~~ — RESOLVIDO
+
+Descrição:
+Em `irflow_blueprints_api.py`, nove pontos de parsing de entrada (`int()`/`float()` sobre
+`request.args`/corpo JSON) em `shopping_list`, `reposicao_sugerida_estoque`, `criar_ordem`,
+`atualizar_ordem`, `criar_estoque`, `atualizar_estoque`, `criar_custo`, `atualizar_custo` e
+`salvar_preco` não tinham tratamento de exceção — ocorriam antes de qualquer `try/except` da
+rota. Um valor não numérico (ex.: `?page=abc`, `{"valor": "abc"}`) derrubava a rota com 500 não
+tratado, fora do contrato JSON `{"ok": false, "erro": ...}` usado pelo resto da API.
+
+Impacto:
+Médio. Não expõe dados nem quebra integridade do banco, mas qualquer cliente (inclusive o
+frontend, em caso de bug de digitação/formulário) que envie um valor não numérico nesses campos
+recebe um erro de servidor genérico em vez de uma mensagem de validação utilizável.
+
+Status:
+Resolvido em 2026-07-07 (Sprint 2.6). Substituído por `parse_int`/`parse_float`
+(`irflow_validation.py`), que retornam `None` para entrada presente porém inválida — o call site
+rejeita explicitamente com `err(...)` e 400, em vez de mascarar como o valor default ou deixar a
+exceção propagar. Coberto por `tests/test_api_parsing.py`.
+
+Sprint prevista:
+Identificado e corrigido na Sprint 2.6 — Padronização de Validação e Parsing.
+
+Responsável:
+—
+
+---
+
+## KI-014
+
+Descrição:
+Em `irflow_blueprints_api.py`, existe uma definição de `def criar_estoque():` sem decorador
+`@api.route` nas linhas 220-267 (função interna solta, incluindo uma linha órfã
+`return bool(session.get("usuario_id"))` que pertence a `usuario_logado()`). Ela é
+imediatamente sobrescrita pela definição real e roteada de `criar_estoque()` mais abaixo
+(`@api.route("/estoque", methods=["POST"])`), tornando o primeiro bloco código morto — nunca é
+chamado, `ruff check .` já acusa `F811 Redefinition of unused 'criar_estoque'`. Mesmo padrão de
+origem do KI-012 (bloco deixado para trás em um merge), mas sem o efeito colateral de derrubar
+`app.py` na inicialização, pois não há decorador duplicado.
+
+Impacto:
+Baixo. Sem efeito em runtime — apenas ruído de manutenção (48 linhas mortas, pode confundir
+leitura futura do arquivo).
+
+Status:
+Aberto — identificado durante a Sprint 2.6, fora do escopo desta sprint (que é
+parsing/validação, não limpeza de código morto). Candidato a remoção pontual e isolada em sprint
+futura ou junto da decomposição do módulo (Sprint 4).
+
+Sprint prevista:
+Não definida — candidato a Sprint 4 (Decomposição do Módulo API) ou remoção avulsa antes disso.
+
+Responsável:
+—

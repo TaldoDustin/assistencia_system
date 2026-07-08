@@ -1,6 +1,6 @@
 # SPRINT 02 — Infraestrutura de Qualidade
 
-**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07  
+**Status:** EM ANDAMENTO — Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07; Sprint 2.6 (T-12, T-13) concluída em 2026-07-07  
 **Data de criação:** 2026-07-06  
 **Tipo:** Infraestrutura / Qualidade  
 **Baseado em:** Auditoria de infraestrutura de 2026-07-06
@@ -151,6 +151,52 @@ ruff>=0.5,<1
 ### T-11 — `ENGINEERING_GUIDE.md`
 Criado na sessão de 2026-07-06 como parte da reestruturação de documentação.  
 **Status:** Entregue antecipadamente.
+
+---
+
+## Sprint 2.6 — Padronização de Validação e Parsing ✅ CONCLUÍDA (2026-07-07)
+
+Inserida fora da sequência original T-05→T-09 (não bloqueia nem é bloqueada por elas) para
+resolver duplicação de parsing/validação encontrada em `irflow_blueprints_api.py` antes de
+escrever as suítes de teste T-05/T-06/T-07 sobre um contrato de erro inconsistente.
+
+### T-12 — `irflow_validation.py`
+**Arquivo:** `irflow_validation.py` (novo)
+**Funções:** `parse_int`, `parse_float`, `safe_json`, `validate_positive_number` — sentinel
+`None` para entrada presente-mas-inválida, distinto do `default` usado para ausente/vazia.
+`require_fields` foi desenhada, implementada e removida na mesma sprint: nenhum call site do
+arquivo validava dict bruto sem antes derivar/stripar a variável, tornando a substituição
+insegura (edge case de string só-com-espaços).
+**Depende de:** nada — independente
+**Status:** Concluída. 21 testes unitários em `tests/test_validation.py`, 100% de cobertura do módulo.
+
+---
+
+### T-13 — Aplicar a camada em `irflow_blueprints_api.py`
+**Auditoria:** 22 ocorrências idênticas de `request.get_json(silent=True) or {}`, ~65
+conversões `int()` e ~35 `float()` sobre `request.args`/corpo JSON, ~13 checagens
+`if not X or Y <= 0`. `Decimal` não é usado no projeto — nenhum utilitário criado para ele.
+**Achado durante a auditoria:** 9 desses pontos de parsing (em `shopping_list`,
+`reposicao_sugerida_estoque`, `criar_ordem`, `atualizar_ordem`, `criar_estoque`,
+`atualizar_estoque`, `criar_custo`, `atualizar_custo`, `salvar_preco`) ocorriam **antes** de
+qualquer `try/except` da rota — um valor não numérico derrubava a rota com 500 não tratado.
+Corrigido em commit `fix:` isolado (KI-013), com checagem explícita do sentinel `None` dobrada
+sobre a validação de negócio já existente em cada rota (não silenciava o erro como valor
+default). Os ~30 pontos restantes, já protegidos por `try/except` genérico, foram substituídos
+em commit `refactor:` separado, sem mudança de comportamento observável — exceto o parsing de
+`os_id` em `shopping_create`, que trocou uma mensagem de erro genérica com exceção Python vazada
+(`Erro ao criar item: invalid literal for int()...`, violava `CODE_STYLE.md`) por uma mensagem
+de validação explícita; ambas retornam 400.
+**Achado colateral:** bloco `def criar_estoque():` duplicado e morto (nunca roteado, linhas
+220-267) — mesma origem do KI-012, mas sem efeito em runtime. Registrado como KI-014, não
+corrigido nesta sprint (fora de escopo — parsing/validação, não limpeza de código morto).
+**Escopo:** apenas `irflow_blueprints_api.py`. Blueprints HTML (`admin`, `inventory`, `orders`,
+`auth`) usam `flash()`/`redirect()`, contrato de resposta diferente — não tocados.
+**Depende de:** T-12
+**Status:** Concluída. 21 testes de regressão novos (`tests/test_api_parsing.py`,
+`tests/test_api_parsing_refactor.py`) cobrindo as 9 rotas corrigidas e as rotas de
+shopping-list/MercadoPhone refatoradas. Suíte completa: 56 testes, 100% passando.
+`irflow_validation.py` adicionado à medição de cobertura (`pyproject.toml`).
 
 ---
 

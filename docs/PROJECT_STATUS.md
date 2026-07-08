@@ -54,6 +54,8 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.2 (T-01 a T-04) concluída em 2026-07-07:** primeira suíte pytest do projeto (`tests/test_auth.py`, 18 casos — login, logout, sessão, controle de acesso por perfil), isolada via `IR_FLOW_DATA_DIR`. Corrigido no processo um bug crítico pré-existente (KI-012) que impedia `app.py` de inicializar. Revisão independente de código concluída — aprovada para merge. Mergeado em `main`.
 
+**Sprint 2.6 — Padronização de Validação e Parsing (T-12, T-13) concluída em 2026-07-07 (branch `refactor/camada-validacao-parsing`, aguardando revisão — não mergeada):** criada camada compartilhada de parsing (`irflow_validation.py`: `parse_int`, `parse_float`, `safe_json`, `validate_positive_number`) e aplicada em `irflow_blueprints_api.py`, eliminando ~50 pontos de duplicação (22x `request.get_json(silent=True) or {}`, checagens de valor positivo, parsing de quantidade). No processo, corrigidos 9 pontos onde um valor não numérico em `request.args`/corpo JSON derrubava a rota com 500 não tratado (KI-013, commit `fix:` isolado do `refactor:`). Registrado KI-014 (bloco `criar_estoque` duplicado e morto, sem efeito em runtime, fora de escopo). 34 testes novos (`tests/test_validation.py`, `tests/test_api_parsing.py`, `tests/test_api_parsing_refactor.py`). Suíte completa: 56 testes, 100% passando, `irflow_validation.py` com 100% de cobertura.
+
 Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopping.py`, configuração de cobertura, GitHub Actions CI, `.env.example`.
 
 ### Escopo previsto
@@ -98,6 +100,7 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | ~~B-08~~ | ~~`historico-cliente` apontando para rota inexistente~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-09~~ | ~~Campo `cor` não limpo ao trocar modelo~~ | ~~Média~~ | ~~Resolvido (Sprint 1)~~ |
 | ~~B-10~~ | ~~Endpoint `/api/shopping-list` duplicado (código legado) travava a inicialização do Flask (KI-012)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-07)~~ |
+| ~~B-11~~ | ~~9 rotas de `irflow_blueprints_api.py` retornavam 500 não tratado com entrada não numérica em `int()`/`float()` (KI-013)~~ | ~~Média~~ | ~~Resolvido (2026-07-07)~~ |
 
 ---
 
@@ -115,6 +118,7 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | TD-08 | Commits com mensagens vagas ("att", "S", "att 09/06 5")               | Baixo   | Alta       |
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
+| TD-11 | Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (linhas 220-267, nunca roteado — KI-014) | Baixo | Baixa |
 
 ---
 
@@ -155,11 +159,11 @@ Restante da Sprint 2 (T-05 a T-11): `test_os.py`, `test_pricing.py`, `test_shopp
 | Camada            | Tipo                     | Ferramenta   | Cobertura estimada |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas    |
-| Backend — Módulos | pytest (auth/sessão — Sprint 2.2, 18 testes) | pytest | Baixa — apenas `irflow_blueprints_auth.py` e rotas `/api/auth/*` cobertas |
+| Backend — Módulos | pytest (auth/sessão — Sprint 2.2, 18 testes; parsing/validação — Sprint 2.6, 38 testes) | pytest | `irflow_validation.py` 100%; auth e parsing de `irflow_blueprints_api.py` cobertos; demais módulos ainda baixos |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global**        |                          |              | **~15%** (ainda não recalculado formalmente com `pytest-cov`) |
+| **Global**        |                          |              | **26%** (`pytest --cov`, 56 testes, Sprint 2.6 — 2026-07-07) |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend.
 

@@ -46,6 +46,7 @@ known_first_party = [
     "irflow_reference_data",
     "irflow_reports",
     "irflow_storage",
+    "irflow_validation",
     "irflow_web",
 ]
 skip_glob = ["frontend/*", "scripts/*"]
@@ -79,6 +80,7 @@ source = [
     "irflow_reference_data",
     "irflow_reports",
     "irflow_storage",
+    "irflow_validation",
     "irflow_web",
 ]
 omit = [

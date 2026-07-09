@@ -31,7 +31,10 @@ TODO
 
 TODO
 
-*(Exemplo do tipo de resposta esperada, não uma resposta real: quais dores hoje resolvidas com Excel/WhatsApp/papel o sistema substitui, e para qual perfil de assistência técnica.)*
+Perguntas-guia (responder objetivamente, não em abstrato):
+- Qual problema principal o produto resolve?
+- Quanto o cliente economiza (tempo, dinheiro, retrabalho) ao usar o sistema em vez do que usa hoje?
+- Como o cliente trabalha hoje, sem o sistema? (Excel, WhatsApp, papel, outro ERP)
 
 ---
 
@@ -39,7 +42,19 @@ TODO
 
 TODO
 
-*(O que faz uma assistência escolher o Assistência System em vez de um concorrente. Ver `docs/FEATURE_MATRIX_TEMPLATE.md` para comparação estruturada, a preencher após pesquisa de mercado real.)*
+Perguntas-guia:
+- Por que escolher o Assistência System em vez de um concorrente?
+- Qual é a principal objeção que um cliente em potencial levanta antes de comprar?
+
+Ver `docs/FEATURE_MATRIX_TEMPLATE.md` para comparação estruturada, a preencher após pesquisa de mercado real.
+
+---
+
+## Quem Decide a Compra
+
+TODO
+
+*(Dono da assistência, gerente, técnico influenciador — quem efetivamente assina o cartão/PIX da assinatura, e se é a mesma pessoa que vai usar o sistema no dia a dia.)*
 
 ---
 

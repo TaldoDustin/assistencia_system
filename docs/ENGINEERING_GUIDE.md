@@ -138,6 +138,24 @@ a lógica de movimentação de estoque (`registrar_movimentacao`, `consumir_peca
 em `irflow_os.py`) é a candidata natural a virar `irflow_estoque_service.py` — OS, Vendas e Compras
 devem consumir esse mesmo service, nunca reimplementar a baixa de estoque cada um à sua maneira.
 
+**Regra de dependência entre camadas de domínios diferentes (inegociável):** um domínio nunca importa
+ou chama o `repository` de outro domínio, mesmo que pareça mais rápido no momento. A única porta de
+entrada para o dado de outro domínio é o `service` dele.
+
+```
+❌ ERRADO
+VendaRepository  ──▶  EstoqueRepository     (acesso direto a dado de outro domínio, sem passar pela regra de negócio dona)
+
+✔ CORRETO
+VendaService  ──▶  EstoqueService  ──▶  EstoqueRepository
+```
+
+**Por que isso importa:** se `repository` de um domínio pode ser chamado por qualquer outro, a regra
+de negócio de quem é dono do dado (ex.: validação de saldo antes de dar baixa, atualização de custo
+médio) passa a poder ser contornada por quem chamou direto o banco — o mesmo tipo de acoplamento oculto
+que hoje já existe entre `irflow_os.py` e `irflow_blueprints_api.py` (TD-01) e que a convenção de
+domínios existe justamente para não repetir em código novo.
+
 Ver `docs/DOMAIN_MODEL.md` para o inventário de domínios existentes e seu estado atual de camadas.
 
 ### Padrão de endpoint REST

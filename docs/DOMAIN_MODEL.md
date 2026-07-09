@@ -5,15 +5,16 @@ Não descreve estado desejado nem features futuras em detalhe — para isso, ver
 e os ADRs relevantes. Divergências entre este documento e o código devem ser corrigidas aqui (o código é a fonte
 da verdade — mesma regra de `ARCHITECTURE.md`).
 
-**Última revisão:** 2026-07-08
-**Fonte:** `app.py` (schema), `docs/ARCHITECTURE.md` (camadas), leitura direta dos módulos `irflow_*.py`.
+**Última revisão:** 2026-07-09
+**Fonte:** `app.py` (schema), `docs/ARCHITECTURE.md` (camadas), `tests/` (arquivos reais em `main`), leitura direta dos módulos `irflow_*.py`.
 
 ---
 
 ## 1. Domínios existentes
 
-Cada domínio abaixo é descrito por: responsabilidade, tabela(s) de banco, módulo(s) de lógica, blueprint(s) HTTP
-e página(s) de frontend. Um domínio sem serviço/repositório separado hoje está registrado como está — ver seção 3.
+Cada domínio abaixo é descrito por: responsabilidade, tabela(s) de banco, módulo(s) de lógica, blueprint(s) HTTP,
+página(s) de frontend, testes existentes e dependências com outros domínios. Um domínio sem serviço/repositório
+separado hoje está registrado como está — ver seção 3.
 
 ### 1.1 Autenticação
 
@@ -24,6 +25,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | Embutida em `irflow_blueprints_auth.py` (rotas legadas) e em `irflow_blueprints_api.py` (`/api/auth/*`) — duas implementações paralelas, ver `ARCHITECTURE.md` seção 3 |
 | HTTP | `irflow_blueprints_auth.py` (form `/login`, `/logout`); `/api/auth/*` dentro de `irflow_blueprints_api.py` |
 | Frontend | `AuthContext.jsx`, `pages/Login.jsx` |
+| Testes | `tests/test_auth.py`, `tests/test_session.py`, `tests/test_security.py` |
+| Depende de | Nenhum outro domínio |
+| Dependido por | Todos — toda rota protegida verifica `session.get("usuario_id")` antes de qualquer operação |
 | Observação | Nenhuma camada de serviço isolada — lógica de autenticação vive direto no blueprint em ambas as superfícies (legada e API) |
 
 ### 1.2 Usuários
@@ -35,6 +39,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | Embutida em `irflow_blueprints_auth.py` (views legadas) e `irflow_blueprints_api.py` (`/api/usuarios`) |
 | HTTP | Ambas as superfícies, sem serviço compartilhado |
 | Frontend | Tela de administração de usuários (dentro do fluxo admin) |
+| Testes | `tests/test_users.py`, `tests/test_permissions.py` |
+| Depende de | Autenticação (sessão para validar quem pode administrar usuários) |
+| Dependido por | Nenhum outro domínio diretamente |
 | Observação | Perfis são checados por lista explícita em `ROUTE_PERMISSIONS` (`app.py`) — não há hierarquia nem permissão por tela (ver `PRODUCT_REQUIREMENTS.md` para a ambição de permissão granular) |
 
 ### 1.3 Ordens de Serviço (OS)
@@ -46,6 +53,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | `irflow_os.py` — consumo/devolução de peças, FIFO de lotes, validação de reparos |
 | HTTP | `irflow_blueprints_orders.py` (views legadas `/ordens*`); `/api/ordens/*` em `irflow_blueprints_api.py` |
 | Frontend | `pages/NewOrder.jsx`, `pages/EditOrder.jsx`, `pages/Orders.jsx` |
+| Testes | Nenhum arquivo dedicado ainda em `main` — a suíte da Sprint 2.4 (`test/sprint-2-4-regras-negocio-os`, 88 testes) está em branch própria aguardando merge. Cobertura indireta hoje via `tests/test_stock_os_integration.py` (consumo/devolução de peças na OS) |
+| Depende de | Estoque (consumo/devolução de peças via `irflow_os.py`), Tabela de Preços (auto-preenchimento de `valor_cobrado`), Dados de Referência (modelos, técnicos) |
+| Dependido por | Relatórios, Integrações MercadoPhone |
 | Observação | **`cliente` não é uma entidade própria** — é uma coluna `TEXT` solta na tabela `os` (`app.py`, `CREATE TABLE os`). Não há tabela `clientes`, não há histórico relacional além dos registros de OS com o mesmo texto em `cliente`. Isso é o ponto de partida real para qualquer futuro domínio de CRM |
 
 ### 1.4 Estoque
@@ -57,7 +67,10 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | CRUD e consulta em `irflow_blueprints_api.py` (`criar_estoque`, `atualizar_estoque`, `listar_estoque`); **movimentação/consumo já vive separada em `irflow_os.py`** (`registrar_movimentacao`, `consumir_peca_da_os`, `_consumir_lotes_fifo`, `devolver_pecas_da_os`) |
 | HTTP | `irflow_blueprints_inventory.py` (views legadas `/estoque*`); `/api/estoque/*` em `irflow_blueprints_api.py` |
 | Frontend | Páginas de estoque (dentro do fluxo principal) |
-| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5 — `test_stock_movement.py`, `test_stock_os_integration.py`). É o candidato natural a virar `estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica |
+| Testes | `tests/test_stock_creation_query.py`, `tests/test_stock_movement.py`, `tests/test_stock_os_integration.py`, `tests/test_stock_security.py` (69 casos, Sprint 2.5) |
+| Depende de | Nenhum outro domínio |
+| Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios |
+| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica |
 
 ### 1.5 Compras / Lista de Compras (Shopping List)
 
@@ -69,6 +82,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | Embutida em `irflow_blueprints_api.py` |
 | HTTP | `/api/shopping-list/*` |
 | Frontend | `pages/Compras.jsx`, `EditShoppingItemModal.jsx`, `ShoppingModal.jsx` |
+| Testes | Nenhum arquivo dedicado ainda (`test_shopping.py` não iniciado — ver `PROJECT_STATUS.md`, "Restante da Sprint 2") |
+| Depende de | Estoque (`reposicao_sugerida_estoque`) |
+| Dependido por | Nenhum outro domínio |
 
 ### 1.6 Tabela de Preços
 
@@ -79,6 +95,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | `irflow_price_tables.py` |
 | HTTP | `GET /api/precos/sugerir` em `irflow_blueprints_api.py` |
 | Frontend | Consumido via `useEffect` em `NewOrder.jsx`/`EditOrder.jsx` para auto-preencher `valor_cobrado` |
+| Testes | Nenhum arquivo dedicado ainda (`test_pricing.py` não iniciado — ver `PROJECT_STATUS.md`, "Restante da Sprint 2") |
+| Depende de | Nenhum outro domínio |
+| Dependido por | OS (auto-preenchimento de `valor_cobrado`) |
 
 ### 1.7 Dados de Referência
 
@@ -87,6 +106,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Responsabilidade | Listas de apoio: modelos, cores, técnicos, vendedores |
 | Lógica | `irflow_reference_data.py` |
 | HTTP | Endpoints de listagem simples em `irflow_blueprints_api.py` |
+| Testes | Nenhum arquivo dedicado conhecido |
+| Depende de | Nenhum outro domínio |
+| Dependido por | OS (seleção de modelo/técnico) |
 
 ### 1.8 Relatórios
 
@@ -96,6 +118,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Lógica | `irflow_reports.py` |
 | HTTP | `irflow_blueprints_main.py` (views legadas `/relatorios`); rotas de PDF em `irflow_blueprints_api.py` |
 | Frontend | Tela de relatórios |
+| Testes | Nenhum arquivo dedicado conhecido |
+| Depende de | OS, Estoque (dados agregados de origem) |
+| Dependido por | Nenhum outro domínio |
 
 ### 1.9 Backup / Persistência
 
@@ -103,6 +128,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 |---|---|
 | Responsabilidade | Backup local, e-mail, Google Drive |
 | Lógica | `irflow_storage.py` |
+| Testes | Nenhum arquivo dedicado conhecido |
+| Depende de | Nenhum domínio específico — opera sobre o banco inteiro |
+| Dependido por | Nenhum outro domínio |
 | Observação | Falhas de envio apenas logadas, sem alerta visível (KI-006) |
 
 ### 1.10 Integrações — MercadoPhone
@@ -113,6 +141,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 | Tabela(s) | `integracao_sync_estado`, `integracao_os_vistas` |
 | Lógica | `irflow_mercadophone.py` (~1200 linhas) |
 | HTTP | Rotas de webhook com autenticação própria por token, fora de `ROUTE_PERMISSIONS` (ver R-07) |
+| Testes | Nenhum teste automatizado conhecido — mitigação atual é o script manual `diagnose_mercadophone.py` (ver R-07 em `PROJECT_STATUS.md`) |
+| Depende de | OS (cria/sincroniza registros de OS) |
+| Dependido por | Nenhum outro domínio |
 
 ### 1.11 Núcleo Compartilhado
 
@@ -120,6 +151,9 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 |---|---|
 | Responsabilidade | Constantes de status de OS, normalização de texto, cálculo de faturamento/lucro |
 | Lógica | `irflow_core.py` |
+| Testes | Sem arquivo próprio dedicado, mas coberto indiretamente por praticamente toda a suíte (78%+ de cobertura) |
+| Depende de | Nenhum outro domínio |
+| Dependido por | Todos os domínios que lidam com status de OS ou valores monetários |
 | Observação | Único módulo com 78%+ de cobertura de testes hoje — ponto de referência de qualidade para os demais |
 
 ---
@@ -138,7 +172,8 @@ e página(s) de frontend. Um domínio sem serviço/repositório separado hoje es
 
 A partir de agora, todo domínio novo (ex.: Vendas) segue a convenção formalizada em
 `docs/ENGINEERING_GUIDE.md` seção 3.1 — camadas `controller → service → repository → tests → README`,
-mesmo que o domínio inicialmente viva no mesmo diretório dos módulos existentes.
+incluindo a regra de que **nenhum domínio acessa o repository de outro domínio diretamente** (só o service
+do domínio dono) — mesmo que o domínio inicialmente viva no mesmo diretório dos módulos existentes.
 
 Este mapa deve ser atualizado a cada novo domínio adicionado ou reestruturado — é o inventário vivo,
 não um documento estático.
@@ -152,3 +187,4 @@ não um documento estático.
 - ADR-002 — decomposição da API por domínio (camada HTTP)
 - ADR-005 — estratégia de multiempresa (afeta todos os domínios listados acima)
 - `docs/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas para domínio novo
+- `docs/BUSINESS_RULES.md` (backlog, ainda não criado) — regras de negócio implícitas hoje em código/testes (ex.: cancelar/excluir OS devolve estoque, garantia não gera comissão) que este documento não cobre — este mapeia estrutura, não regra de negócio

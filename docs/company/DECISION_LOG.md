@@ -122,6 +122,18 @@ especializadas por função, não ERP genérico).
 **Impacto:** Frontend, UX, permissões, roadmap de qualquer domínio novo com perfil próprio (Financeiro, Estoque).
 **Fonte:** `docs/company/VISION.md` (Valores); `docs/engineering/ENGINEERING_GUIDE.md` seção 4.0.
 
+## 2026-07-10 — Retomar o Sprint 2 técnico antes de continuar a frente de produto
+
+**Decisão:** Pausar a criação de novos documentos de produto/marca e fechar o Sprint 2 (CI/CD com GitHub
+Actions, cobertura de testes para 40%, merge da branch `test/sprint-2-4-regras-negocio-os`) antes de
+continuar.
+**Motivo:** O Sprint 2 técnico ficou parado por toda a extensão da frente de documentação de
+produto/marca — CI/CD ausente e cobertura abaixo da meta são dívida que cresce silenciosamente se não for
+tratada conscientemente. Decisão explícita, não inercial.
+**Impacto:** Próximo trabalho é engenharia (CI, testes), não documentação; `docs/operations/PROJECT_STATUS.md`
+e `docs/operations/ROADMAP.md` voltam a ser a referência ativa.
+**Fonte:** Decisão do Product Owner nesta conversa, 2026-07-10.
+
 ---
 
 ## Documentos relacionados

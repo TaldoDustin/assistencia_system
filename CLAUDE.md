@@ -251,7 +251,9 @@ docs/
 │   ├── BRAND_IDENTITY.md                    ← nome, pilares, escopo negativo, promessa (Fluxoly)
 │   ├── VISION.md                            ← missão, visão, valores, critérios de sucesso
 │   ├── PRODUCT_REQUIREMENTS.md              ← persona, mercado-alvo, monetização (parcialmente TODO)
-│   └── OPERATION_SYSTEM.md                  ← como a loja funciona (ciclo completo, maioria TODO)
+│   ├── OPERATION_SYSTEM.md                  ← como a loja funciona (ciclo completo, maioria TODO)
+│   ├── DECISION_LOG.md                      ← histórico executivo de decisões (distinto de ADR)
+│   └── NON_FUNCTIONAL_REQUIREMENTS.md        ← capacidade, desempenho, disponibilidade (formulário, maioria TODO)
 ├── product/                                 ← pesquisa e planejamento de produto
 │   ├── FEATURE_MATRIX_TEMPLATE.md           ← funcionalidades atuais e comparação com concorrentes
 │   ├── BUSINESS_RULES.md                    ← livro de regras de negócio (BR-001+)

@@ -7,6 +7,19 @@ Se você não sabe por onde começar, siga a ordem abaixo.
 `docs/` é organizado por audiência, não por ordem alfabética — ver `engineering/adr/ADR-006.md` para o
 critério de cada pasta.
 
+**Regra de governança (2026-07-10, Product Owner):** nenhum documento novo é criado sem responder
+primeiro "que decisão ele ajuda a tomar?". Documentação existe para decidir o que fazer, não para
+registrar volume — se a resposta a essa pergunta não é clara, o documento provavelmente não deveria
+existir ainda.
+
+**Backlog de documentação identificada, ainda não criada:**
+- `company/UX_GUIDELINES.md` — consolidar princípios de interface (ex.: interface por perfil, hoje
+  duplicado entre `company/VISION.md` e `engineering/ENGINEERING_GUIDE.md` §4.0) em um único lugar.
+- `product/features/FEATURE_SPEC_FINANCEIRO.md`, `product/features/FEATURE_SPEC_ESTOQUE.md` — specs no
+  formato de `product/features/VENDAS.md`, quando esses módulos começarem a ser especificados.
+- Personas Operacionais completas (Técnico, Financeiro, Estoque, Administrador) — ver TODOs dentro de
+  `company/PRODUCT_REQUIREMENTS.md` seção "Personas Operacionais".
+
 ---
 
 ## Começando
@@ -28,6 +41,8 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/VISION.md`](company/VISION.md) — Missão, visão, valores, critérios de sucesso.
 - [`company/PRODUCT_REQUIREMENTS.md`](company/PRODUCT_REQUIREMENTS.md) — Persona (Cliente) e Personas Operacionais (Usuários), mercado-alvo, monetização (parcialmente `TODO`).
 - [`company/OPERATION_SYSTEM.md`](company/OPERATION_SYSTEM.md) — Como a loja funciona, ciclo completo (Fornecedor ao Pós-venda); a maioria dos blocos ainda `TODO`.
+- [`company/DECISION_LOG.md`](company/DECISION_LOG.md) — Histórico executivo de decisões de produto (distinto de ADR).
+- [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
 
 ---
 

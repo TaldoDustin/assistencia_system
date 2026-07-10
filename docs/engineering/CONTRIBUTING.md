@@ -1,6 +1,6 @@
 # CONTRIBUTING.md — Como Contribuir
 
-Este documento descreve o processo completo para contribuir com o Assistência System.
+Este documento descreve o processo completo para contribuir com o Fluxoly Platform.
 Leia antes de criar qualquer branch ou abrir qualquer PR.
 
 ---
@@ -9,7 +9,7 @@ Leia antes de criar qualquer branch ou abrir qualquer PR.
 
 Leia os documentos fundacionais:
 
-1. [`CLAUDE.md`](../CLAUDE.md) — protocolo de trabalho e regras
+1. [`CLAUDE.md`](../../CLAUDE.md) — protocolo de trabalho e regras
 2. [`docs/engineering/ENGINEERING_GUIDE.md`](ENGINEERING_GUIDE.md) — padrões técnicos
 3. [`docs/operations/PROJECT_STATUS.md`](../operations/PROJECT_STATUS.md) — estado atual e sprint ativa
 4. [`docs/operations/KNOWN_ISSUES.md`](../operations/KNOWN_ISSUES.md) — bugs conhecidos (não repita trabalho)

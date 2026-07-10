@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-**Projeto:** Assistência System  
+**Projeto:** Fluxoly Platform  
 **Responsável:** Principal Software Engineer  
 **Branch principal:** `main`  
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`

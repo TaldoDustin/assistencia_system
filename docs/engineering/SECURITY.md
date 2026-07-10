@@ -1,6 +1,6 @@
 # SECURITY.md — Política de Segurança
 
-Este documento define a política de segurança do Assistência System, com um checklist baseado no OWASP Top 10 adaptado à stack do projeto (Flask + SQLite + React).
+Este documento define a política de segurança do Fluxoly Platform, com um checklist baseado no OWASP Top 10 adaptado à stack do projeto (Flask + SQLite + React).
 
 **Última revisão:** 2026-07-06  
 **Próxima auditoria:** Início da Sprint 3

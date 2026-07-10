@@ -1,6 +1,6 @@
 # ROADMAP
 
-**Projeto:** Assistência System  
+**Projeto:** Fluxoly Platform  
 **Data de atualização:** 2026-07-06  
 **Versão atual:** 1.x (pós-deploy Fly.io)  
 **Horizonte:** 4 fases / ~8 sprints

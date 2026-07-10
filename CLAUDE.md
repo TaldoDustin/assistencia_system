@@ -7,7 +7,8 @@ Leia-o inteiramente antes de qualquer ação — sem exceções.
 
 ## O Projeto
 
-**Assistência System** é um sistema de gestão para assistência técnica de smartphones.
+**Fluxoly** é uma plataforma de gestão para lojas especializadas em dispositivos móveis premium (nome
+legado no código e infraestrutura: Assistência System — ver `docs/company/BRAND_IDENTITY.md`).
 Cobre o ciclo completo: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Está em produção no Fly.io.
 
 Stack: **Flask 3 + SQLite** (backend) · **React 19 + Vite** (frontend) · **Fly.io** (produção).

@@ -1,7 +1,9 @@
-# Assistência System
+# Fluxoly
 
-Sistema de gestão para assistência técnica de smartphones.
-Cobre o ciclo completo: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup.
+Plataforma de gestão para lojas especializadas em dispositivos móveis premium — vendas, estoque, tabela
+de preços, lista de compras, assistência técnica, garantias, relatórios e backup em um único fluxo.
+Nome legado no repositório e infraestrutura: Assistência System (ver `docs/company/BRAND_IDENTITY.md`
+seção 9 para o cronograma de transição de marca).
 
 **Produção:** [assistencia-system.fly.dev](https://assistencia-system.fly.dev)
 
@@ -88,6 +90,7 @@ A documentação completa está em [`docs/`](docs/README.md).
 |-----------|-----------|
 | [`docs/README.md`](docs/README.md) | Índice de toda a documentação |
 | [`CLAUDE.md`](CLAUDE.md) | Manual operacional para IA |
+| [`docs/company/BRAND_IDENTITY.md`](docs/company/BRAND_IDENTITY.md) | Identidade de marca Fluxoly |
 | [`docs/engineering/ENGINEERING_GUIDE.md`](docs/engineering/ENGINEERING_GUIDE.md) | Padrões técnicos e convenções |
 | [`docs/engineering/ARCHITECTURE.md`](docs/engineering/ARCHITECTURE.md) | Arquitetura do sistema |
 | [`docs/operations/ROADMAP.md`](docs/operations/ROADMAP.md) | Evolução planejada |

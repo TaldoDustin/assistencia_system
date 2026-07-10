@@ -1,6 +1,6 @@
 # ENGINEERING_GUIDE.md — Constituição Técnica
 
-Este documento define os padrões, princípios e convenções que governam o desenvolvimento do Assistência System.
+Este documento define os padrões, princípios e convenções que governam o desenvolvimento do Fluxoly Platform.
 Ele muda raramente — apenas quando uma decisão arquitetural fundamental é revisada.
 Quando houver conflito entre este documento e qualquer outro, este prevalece.
 

@@ -8,7 +8,7 @@
 Este documento tem duas seções com propósitos diferentes:
 
 - **Seção 1 — Funcionalidades Atuais:** já nasce útil, sem depender de pesquisa nenhuma. Reflete o que o
-  Assistência System faz hoje, extraído de `docs/engineering/DOMAIN_MODEL.md` — não é suposição, é o estado real do código.
+  Fluxoly faz hoje, extraído de `docs/engineering/DOMAIN_MODEL.md` — não é suposição, é o estado real do código.
 - **Seção 2 — Comparação com Concorrentes:** intencionalmente vazia. Comparar com concorrentes exige
   pesquisa de mercado real (testar o produto do concorrente, ler documentação pública, ou levantamento
   direto), não suposição. Quando a pesquisa for feita, copie este arquivo para `docs/FEATURE_MATRIX.md`
@@ -18,7 +18,7 @@ Este documento tem duas seções com propósitos diferentes:
 
 ---
 
-## 1. Funcionalidades Atuais do Assistência System
+## 1. Funcionalidades Atuais da Fluxoly
 
 | Funcionalidade | Status | Domínio (ver `DOMAIN_MODEL.md`) |
 |---|---|---|
@@ -45,7 +45,7 @@ Este documento tem duas seções com propósitos diferentes:
 
 ## 2. Comparação com Concorrentes
 
-| Funcionalidade | Assistência System | Concorrente | Fonte | Observações |
+| Funcionalidade | Fluxoly | Concorrente | Fonte | Observações |
 |---|---|---|---|---|
 | Ordens de Serviço | ✅ | ❓ | | |
 | Controle de Estoque | ✅ | ❓ | | |

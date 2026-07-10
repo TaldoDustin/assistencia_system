@@ -1,6 +1,6 @@
 # CODE_STYLE.md — Guia de Estilo
 
-Este documento define as convenções de código do Assistência System.
+Este documento define as convenções de código do Fluxoly Platform.
 Seu objetivo é eliminar decisões subjetivas e garantir que qualquer colaborador — humano ou IA — produza código consistente com o que já existe.
 
 Quando houver dúvida sobre estilo, este documento é a resposta. Não a opinião de ninguém.

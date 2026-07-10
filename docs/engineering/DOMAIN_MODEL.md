@@ -1,6 +1,6 @@
 # DOMAIN_MODEL.md — Mapa de Domínios
 
-Este documento mapeia os domínios de negócio do Assistência System **como eles existem hoje no código**.
+Este documento mapeia os domínios de negócio do Fluxoly Platform **como eles existem hoje no código**.
 Não descreve estado desejado nem features futuras em detalhe — para isso, ver `PRODUCT_ROADMAP.md` (quando existir)
 e os ADRs relevantes. Divergências entre este documento e o código devem ser corrigidas aqui (o código é a fonte
 da verdade — mesma regra de `ARCHITECTURE.md`).

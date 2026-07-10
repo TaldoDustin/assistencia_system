@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Visão Arquitetural
 
-Este documento descreve a arquitetura real do Assistência System conforme implementada no código.
+Este documento descreve a arquitetura real do Fluxoly Platform conforme implementada no código.
 Não descreve o estado desejado — para isso, veja `ROADMAP.md`. Divergências entre este documento e o
 código devem ser corrigidas neste documento (o código é a fonte da verdade).
 

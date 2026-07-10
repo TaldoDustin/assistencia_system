@@ -1,6 +1,6 @@
 # TESTING.md — Estratégia de Testes
 
-Este documento define a estratégia oficial de testes do Assistência System: o que testar, como testar, com qual ferramenta e quando.
+Este documento define a estratégia oficial de testes do Fluxoly Platform: o que testar, como testar, com qual ferramenta e quando.
 
 **Última revisão:** 2026-07-06
 

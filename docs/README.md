@@ -43,6 +43,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/OPERATION_SYSTEM.md`](company/OPERATION_SYSTEM.md) — Como a loja funciona, ciclo completo (Fornecedor ao Pós-venda); a maioria dos blocos ainda `TODO`.
 - [`company/DECISION_LOG.md`](company/DECISION_LOG.md) — Histórico executivo de decisões de produto (distinto de ADR).
 - [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
+- [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Proposta de versionamento (1.0 a 2.0), decisão final pendente do Product Owner.
 
 ---
 
@@ -51,6 +52,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`product/FEATURE_MATRIX_TEMPLATE.md`](product/FEATURE_MATRIX_TEMPLATE.md) — Funcionalidades atuais e comparação com concorrentes.
 - [`product/features/VENDAS.md`](product/features/VENDAS.md) — Spec de feature do módulo de Vendas (rascunho).
 - [`product/BUSINESS_RULES.md`](product/BUSINESS_RULES.md) — Livro de regras de negócio (BR-001+), implementadas e especificadas.
+- [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) — Fila priorizada de épicos (o quê construir a seguir).
 
 ---
 

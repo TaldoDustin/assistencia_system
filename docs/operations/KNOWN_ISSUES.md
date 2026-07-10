@@ -293,3 +293,38 @@ Não definida — candidato a Sprint 4 (Decomposição do Módulo API) ou remoç
 
 Responsável:
 —
+
+---
+
+## ~~KI-015~~ — RESOLVIDO
+
+Descrição:
+Em `irflow_blueprints_api.py`, `PATCH /api/ordens/<id>/status` e `PUT /api/ordens/<id>` chamavam
+`normalizar_status_os(body.get("status") or "")` sem o parâmetro `status_padrao=""`. Como a função
+tem `status_padrao=STATUS_EM_ANDAMENTO` por default, um `status` ausente ou inválido nunca retornava
+vazio — a checagem `if not status: return err(...)` nunca disparava. Consequência em
+`PATCH .../status`: um status desconhecido era silenciosamente normalizado para "Em andamento" em
+vez de rejeitado com 400. Consequência mais grave em `PUT /api/ordens/<id>`: editar qualquer campo
+de uma OS **Finalizada** sem reenviar `status` reabria a OS silenciosamente para "Em andamento" e
+zerava `data_finalizado` — sem erro, sem aviso.
+
+Impacto:
+Crítico em `PUT /api/ordens/<id>` — perda silenciosa do dado de finalização de uma OS em rota
+usada pelo frontend em produção (C-01 + C-04, `docs/engineering/ENGINEERING_GUIDE.md` §11). Médio em
+`PATCH .../status` — grava estado incorreto sem erro, mesma rota real.
+
+Status:
+Resolvido em 2026-07-10 via `hotfix/status-os-padrao-vazio`. Ambos os call sites passam a usar
+`normalizar_status_os(body.get("status") or "", status_padrao="")`. As correções já existiam prontas
+(commits `c85a321`, `e755f25`, achados durante a Sprint 2.4 em 2026-07-07, com aprovação explícita do
+usuário) mas nunca chegaram a `main` porque a branch `test/sprint-2-4-regras-negocio-os` que as
+continha não havia sido mergeada — extraídas via `cherry-pick` para hotfix isolado ao retomar o
+Sprint 2, conforme ADR-004. Suíte completa (180 testes) e `ruff check` confirmados sem regressão
+antes do merge.
+
+Sprint prevista:
+Identificado durante a Sprint 2.4 (2026-07-07); hotfix efetivamente mergeado em 2026-07-10, ao
+retomar o Sprint 2 após a frente de documentação de produto/marca.
+
+Responsável:
+—

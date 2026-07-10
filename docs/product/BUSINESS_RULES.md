@@ -84,14 +84,19 @@ Peça incompatível com o modelo da OS bloqueia a atualização inteira (rollbac
 silenciosamente como incompatível.
 *Fonte: `irflow_os.py::modelo_compativel`, usado em `atualizar_ordem`.*
 
-**BR-013 — 🟡 Observado, não confirmado como decisão**
-`data_finalizado` só recebe valor quando o **novo** status da OS é `Finalizado` (preservando a data
-original se já existia); ao mudar para qualquer outro status, `data_finalizado` é limpo (`NULL`).
-*Fonte: `atualizar_ordem` e `atualizar_status_os`, mesma lógica nas duas rotas.* Nota: é uma leitura
-razoável ("se a OS não está mais finalizada, não faz sentido manter a data de finalização"), mas não
-encontrei registro de que isso foi uma decisão de negócio deliberada — está aqui como comportamento
-observado, não como regra confirmada. Se não for a intenção, é uma correção de escopo pequeno, não uma
-regra a remover.
+**BR-013 — ✅ Implementado (era bug, corrigido em 2026-07-10)**
+Editar uma OS (`PUT`) ou mudar seu status (`PATCH .../status`) exige um `status` explícito e válido no
+payload — requisição sem `status` ou com valor desconhecido é rejeitada com erro, nunca silenciosamente
+aceita. `data_finalizado` só recebe valor quando o **novo** status explicitamente enviado é `Finalizado`
+(preservando a data original se já existia); ao mudar deliberadamente para qualquer outro status,
+`data_finalizado` é limpo (`NULL`) — mas só quando o chamador de fato pediu essa mudança.
+*Fonte: `atualizar_ordem` e `atualizar_status_os`, `irflow_blueprints_api.py`.* **Histórico:** até
+2026-07-10 esta regra não existia — `normalizar_status_os()` sem `status_padrao=""` fazia `status`
+ausente/inválido ser silenciosamente normalizado para `"Em andamento"`, então editar uma OS Finalizada
+sem reenviar `status` a reabria e apagava `data_finalizado` sem erro. Corrigido via
+`hotfix/status-os-padrao-vazio` (KI-015, `docs/operations/KNOWN_ISSUES.md`) — as duas correções já
+existiam prontas na branch `test/sprint-2-4-regras-negocio-os` desde 2026-07-07 mas nunca haviam chegado
+a `main`.
 
 **BR-014 — ✅ Implementado**
 O vendedor informado em uma OS deve ser um vendedor cadastrado válido, **exceto** quando o cliente é

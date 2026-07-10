@@ -113,6 +113,7 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, configuração de c
 | ~~B-11~~ | ~~`PUT /api/estoque/<id>` calculava o diff de movimentação com a quantidade não limitada a zero — quantidade negativa gerava saída maior que o saldo real no histórico~~ | ~~Média~~ | ~~Resolvido (2026-07-07, hotfix, commit `584c501`)~~ |
 | ~~B-12~~ | ~~`GET /api/estoque` com qualquer filtro (modelo/tipo/qualidade) retornava sempre lista vazia — ordem errada de parâmetros SQL~~ | ~~Alta~~ | ~~Resolvido (2026-07-07, hotfix, commit `44be10c`)~~ |
 | ~~B-13~~ | ~~9 rotas de `irflow_blueprints_api.py` retornavam 500 não tratado com entrada não numérica em `int()`/`float()` (KI-013)~~ | ~~Média~~ | ~~Resolvido (2026-07-07)~~ |
+| ~~B-14~~ | ~~`PATCH /api/ordens/<id>/status` e `PUT /api/ordens/<id>` sem `status_padrao=""` explícito — status ausente/inválido normalizado silenciosamente para "Em andamento"; em `PUT`, reabria OS Finalizada e zerava `data_finalizado` sem erro (KI-015)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-10, hotfix, commit `2defd17`)~~ |
 
 ---
 

@@ -154,3 +154,5 @@ tempo médio de venda, número de vendas com troca, taxa de aprovação de desco
 - `docs/engineering/DOMAIN_MODEL.md` — domínios existentes hoje (1.3 OS, 1.4 Estoque) e lacunas estruturais (Cliente, Financeiro) citadas nas decisões acima
 - `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas obrigatória para o novo domínio Vendas quando for implementado
 - `docs/operations/ROADMAP.md` — roadmap de engenharia (eixo separado deste documento)
+- `docs/product/BUSINESS_RULES.md` — BR-017 a BR-022, regras extraídas das decisões deste documento
+- `docs/company/OPERATION_SYSTEM.md` — blocos Venda/Troca/Reserva/Garantia posicionam este spec no ciclo completo da loja

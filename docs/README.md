@@ -26,7 +26,8 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 
 - [`company/BRAND_IDENTITY.md`](company/BRAND_IDENTITY.md) — Nome, pilares, escopo negativo, promessa, visão 2030.
 - [`company/VISION.md`](company/VISION.md) — Missão, visão, valores, critérios de sucesso.
-- [`company/PRODUCT_REQUIREMENTS.md`](company/PRODUCT_REQUIREMENTS.md) — Persona, mercado-alvo, monetização (parcialmente `TODO`).
+- [`company/PRODUCT_REQUIREMENTS.md`](company/PRODUCT_REQUIREMENTS.md) — Persona (Cliente) e Personas Operacionais (Usuários), mercado-alvo, monetização (parcialmente `TODO`).
+- [`company/OPERATION_SYSTEM.md`](company/OPERATION_SYSTEM.md) — Como a loja funciona, ciclo completo (Fornecedor ao Pós-venda); a maioria dos blocos ainda `TODO`.
 
 ---
 
@@ -34,6 +35,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 
 - [`product/FEATURE_MATRIX_TEMPLATE.md`](product/FEATURE_MATRIX_TEMPLATE.md) — Funcionalidades atuais e comparação com concorrentes.
 - [`product/features/VENDAS.md`](product/features/VENDAS.md) — Spec de feature do módulo de Vendas (rascunho).
+- [`product/BUSINESS_RULES.md`](product/BUSINESS_RULES.md) — Livro de regras de negócio (BR-001+), implementadas e especificadas.
 
 ---
 
@@ -43,6 +45,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`engineering/ARCHITECTURE.md`](engineering/ARCHITECTURE.md) — Visão arquitetural completa: camadas, módulos, fluxos de dados.
 - [`engineering/DOMAIN_MODEL.md`](engineering/DOMAIN_MODEL.md) — Mapa dos domínios de negócio existentes no código, com testes e dependências.
 - [`engineering/DATABASE.md`](engineering/DATABASE.md) — Schema do banco, tabelas, índices, regras de migração.
+- [`engineering/DATA_DICTIONARY.md`](engineering/DATA_DICTIONARY.md) — Governança de dados: quem cria/altera/exclui/vê cada campo.
 - [`engineering/SECURITY.md`](engineering/SECURITY.md) — Política de segurança e checklist OWASP adaptado ao projeto.
 - [`engineering/TESTING.md`](engineering/TESTING.md) — Estratégia oficial de testes: pirâmide, ferramentas, quando usar cada tipo.
 - [`engineering/CODE_STYLE.md`](engineering/CODE_STYLE.md) — Guia de estilo: Python, React, Git. Elimina discussões subjetivas.

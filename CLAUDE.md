@@ -250,9 +250,11 @@ docs/
 ├── company/                                 ← identidade e negócio (decisão do Product Owner)
 │   ├── BRAND_IDENTITY.md                    ← nome, pilares, escopo negativo, promessa (Fluxoly)
 │   ├── VISION.md                            ← missão, visão, valores, critérios de sucesso
-│   └── PRODUCT_REQUIREMENTS.md              ← persona, mercado-alvo, monetização (parcialmente TODO)
+│   ├── PRODUCT_REQUIREMENTS.md              ← persona, mercado-alvo, monetização (parcialmente TODO)
+│   └── OPERATION_SYSTEM.md                  ← como a loja funciona (ciclo completo, maioria TODO)
 ├── product/                                 ← pesquisa e planejamento de produto
 │   ├── FEATURE_MATRIX_TEMPLATE.md           ← funcionalidades atuais e comparação com concorrentes
+│   ├── BUSINESS_RULES.md                    ← livro de regras de negócio (BR-001+)
 │   └── features/                            ← specs de feature em rascunho (ex.: VENDAS.md)
 ├── engineering/                             ← constituição técnica (padrões que raramente mudam)
 │   ├── ENGINEERING_GUIDE.md                 ← constituição técnica central
@@ -261,6 +263,7 @@ docs/
 │   ├── adr/                                 ← decisões arquiteturais individuais (ADR-001 a ADR-006+)
 │   ├── DOMAIN_MODEL.md                      ← mapa dos domínios de negócio existentes no código
 │   ├── DATABASE.md                          ← schema, tabelas, índices, regras de migração
+│   ├── DATA_DICTIONARY.md                   ← governança de dados: quem cria/altera/exclui/vê cada campo
 │   ├── SECURITY.md                          ← política de segurança e checklist OWASP
 │   ├── TESTING.md                           ← estratégia oficial de testes
 │   ├── CODE_STYLE.md                        ← guia de estilo

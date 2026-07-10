@@ -1,9 +1,10 @@
 # PRODUCT_REQUIREMENTS.md — Requisitos de Produto
 
-**Status:** Persona Primária, Quem Decide a Compra e parte de Problemas Resolvidos/Diferenciais
-preenchidos com input direto do Product Owner (2026-07-10). Persona Secundária (Vendedor — usuário
-diário) identificada como necessária mas ainda não escrita; Modelo de Monetização parcialmente respondido
-(assinatura mensal confirmada, estrutura de precificação exata segue `TODO`).
+**Status:** Persona Primária (Cliente), Quem Decide a Compra e parte de Problemas Resolvidos/Diferenciais
+preenchidos com input direto do Product Owner (2026-07-10). Personas Operacionais (Usuários — quem opera
+a plataforma no dia a dia) reestruturadas como grupo próprio: Vendedor preenchido, Técnico/
+Financeiro/Estoque/Administrador ainda `TODO`. Modelo de Monetização parcialmente respondido (assinatura
+mensal confirmada, estrutura de precificação exata segue `TODO`).
 **Última revisão:** 2026-07-10
 
 ---
@@ -20,7 +21,12 @@ decisão técnica bloqueada por informação que só existe aqui.
 
 ## Público-alvo
 
-### Persona Primária — Dono de Loja de Dispositivos Móveis Premium
+Distinção conceitual (2026-07-10, Product Owner): **Cliente** (quem compra o sistema) é o Dono da Loja —
+Persona Primária abaixo. **Usuários** (quem opera a plataforma no dia a dia) são um grupo de perfis
+distintos — Vendedor, Técnico, Financeiro, Estoque, Administrador — ver seção "Personas Operacionais"
+mais abaixo, não uma única "persona secundária".
+
+### Persona Primária (Cliente) — Dono de Loja de Dispositivos Móveis Premium
 
 *(Fonte: input direto do Product Owner, 2026-07-10 — descreve o cliente real, não um cliente idealizado.)*
 
@@ -95,14 +101,79 @@ Atendimento próximo ao cliente; evolução contínua baseada nas necessidades r
 de adaptações específicas; interface simples; módulos especializados para o mercado Apple; foco em gestão
 inteligente, e não apenas registro de informações.
 
-### Persona Secundária — Vendedor (Usuário Diário)
+---
 
-`TODO` — identificada como necessária pelo Product Owner (2026-07-10), ainda não escrita. Distinção
-proposta: Persona Primária acima é quem **compra** (Owner Persona); esta é quem **usa a plataforma 8h/dia**
-(Operational Persona) — comum em produtos SaaS B2B, onde a experiência do usuário diário determina se o
-comprador culpa o sistema por atrito operacional mesmo quando a decisão de compra foi dele. Merece
-documento próprio (candidato: `docs/company/PERSONA_VENDEDOR.md`) quando o Product Owner fornecer o
-conteúdo — não escrito aqui por inferência.
+## Personas Operacionais (Usuários)
+
+*(Fonte: input direto do Product Owner, 2026-07-10.)* Distintas do Cliente (Persona Primária, quem
+**compra**): a Fluxoly é usada diariamente por diferentes profissionais dentro da loja, cada um com
+objetivos, responsabilidades e dores distintas — comum em produtos SaaS B2B, onde a experiência do
+usuário diário determina se o comprador culpa o sistema por atrito operacional, mesmo quando a decisão de
+compra foi dele.
+
+Isso conecta diretamente com um diferencial de produto: **interfaces diferentes por perfil**, não uma
+tela única para todos. Ver princípio de UX correspondente em `docs/company/VISION.md` (Valores).
+
+### Vendedor
+
+**Objetivo:** Vender rapidamente e atender mais clientes.
+
+**Responsabilidades:**
+- Consultar estoque
+- Reservar IMEI
+- Gerar orçamento
+- Finalizar venda
+- Receber pagamento
+- Emitir garantia
+
+**Dores:**
+- Perder tempo procurando aparelhos
+- Não saber disponibilidade real
+- Ter descontos bloqueados
+- Cliente esperando resposta
+- Digitar informações repetidas
+
+**O que espera da Fluxoly:**
+- Encontrar qualquer aparelho em segundos
+- Saber exatamente onde está cada IMEI
+- Fazer uma venda em menos de um minuto
+- Interface extremamente simples
+- Não depender de outro funcionário
+
+### Técnico
+
+`TODO` — perfil já existe no código hoje (`tecnico`, ver `docs/engineering/DOMAIN_MODEL.md` 1.2 Usuários),
+mas a persona operacional (objetivos, responsabilidades, dores, expectativas) ainda não foi escrita pelo
+Product Owner.
+
+### Financeiro
+
+`TODO` — perfil **não existe** no código hoje (perfis atuais: `admin`, `tecnico`, `vendedor` — ver
+`docs/engineering/DOMAIN_MODEL.md` 1.2); persona operacional ainda não escrita.
+
+### Estoque
+
+`TODO` — mesma situação de Financeiro: não existe como perfil de usuário distinto no código hoje (Estoque
+é um domínio de dados, `docs/engineering/DOMAIN_MODEL.md` 1.4, não um perfil de login); persona
+operacional ainda não escrita.
+
+### Administrador
+
+`TODO` — perfil já existe no código hoje (`admin`), mas a persona operacional ainda não foi escrita.
+
+### Resumo — Perfil → Interface (visão de produto, não implementada)
+
+| Perfil | Interface (foco) | Persona escrita? |
+|---|---|---|
+| Vendedor | Vendas, IMEI, orçamento e checkout | Sim |
+| Técnico | OS, bancada e peças | `TODO` |
+| Financeiro | Caixa, contas, fluxo de caixa | `TODO` |
+| Estoque | Entradas, fornecedores, inventário | `TODO` |
+| Administrador | Indicadores, usuários, permissões e configurações | `TODO` |
+
+Esta tabela é visão de produto, não uma feature já implementada — hoje o sistema tem uma interface única
+por perfil de sessão (`admin`/`tecnico`/`vendedor`), sem telas dedicadas por função (ver
+`docs/engineering/DOMAIN_MODEL.md` 1.2 e 1.3).
 
 ---
 

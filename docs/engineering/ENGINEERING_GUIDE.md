@@ -225,6 +225,27 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 
 ## 4. Padrões Frontend (React / Vite)
 
+### 4.0 Princípio de UX: interface por perfil
+
+**Cada profissional deve enxergar apenas o que precisa para executar seu trabalho com máxima eficiência.**
+*(Fonte: Product Owner, 2026-07-10 — ver `docs/company/VISION.md` Valores e
+`docs/company/PRODUCT_REQUIREMENTS.md` seção "Personas Operacionais".)*
+
+Este é um critério de decisão, não só uma aspiração: ao desenhar uma tela nova ou decidir o que uma tela
+existente exibe, prefira sempre a opção que restringe a visão ao necessário para o perfil de sessão ativo
+(`admin`/`tecnico`/`vendedor` hoje — ver `docs/engineering/DOMAIN_MODEL.md` 1.2), em vez de uma tela única
+com tudo visível para todos os perfis e apenas alguns campos desabilitados por permissão. Concretamente:
+
+- Um Vendedor não precisa ver configuração de custos operacionais ou administração de usuários.
+- Um Técnico não precisa do fluxo de checkout de venda.
+- Quando um domínio novo nascer com perfil próprio (ex.: Financeiro, Estoque — hoje sem perfil de login
+  distinto, ver `docs/company/PRODUCT_REQUIREMENTS.md` "Personas Operacionais"), sua tela deve ser
+  desenhada para esse perfil desde o início, não como uma aba a mais dentro de uma tela genérica.
+
+Isso não substitui a checagem de permissão no backend (`ROUTE_PERMISSIONS`, `usuario_logado()` — seção 3
+acima) — é um critério de design de interface, complementar à autorização real, que continua sendo sempre
+no servidor.
+
 ### Estrutura de arquivos
 
 ```

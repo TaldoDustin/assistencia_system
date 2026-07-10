@@ -41,6 +41,10 @@ inteligência deste setor de ponta a ponta.
 - O produto se adapta ao cliente, nunca o contrário.
 - Ritmo vivo de evolução — atualizações e melhorias semanais, não trimestrais.
 - Excelência verticalizada é preferível a mediocridade generalista — foco implacável no cliente ideal.
+- Cada profissional deve enxergar apenas o que precisa para executar seu trabalho com máxima eficiência —
+  interface por perfil (Vendedor, Técnico, Financeiro, Estoque, Administrador), nunca uma tela única para
+  todos. *(Fonte: Product Owner, 2026-07-10 — ver `docs/company/PRODUCT_REQUIREMENTS.md` seção "Personas
+  Operacionais".)*
 
 *(Fonte: `BRAND_IDENTITY.md` seção 4 — Princípios Inegociáveis; e seção 6 — Governança de Decisões de
 Engenharia de Produto, que opera esses valores no dia a dia técnico.)*

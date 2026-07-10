@@ -1,8 +1,9 @@
 # PRODUCT_REQUIREMENTS.md — Requisitos de Produto
 
-**Status:** Parcialmente preenchido a partir de `docs/company/BRAND_IDENTITY.md` V1.0 (Mercado-alvo,
-O que NÃO faz, Diferenciais, parte de Problemas Resolvidos). Persona, Quem Decide a Compra e Modelo de
-Monetização permanecem `TODO` — o documento de marca não os responde.
+**Status:** Persona Primária, Quem Decide a Compra e parte de Problemas Resolvidos/Diferenciais
+preenchidos com input direto do Product Owner (2026-07-10). Persona Secundária (Vendedor — usuário
+diário) identificada como necessária mas ainda não escrita; Modelo de Monetização parcialmente respondido
+(assinatura mensal confirmada, estrutura de precificação exata segue `TODO`).
 **Última revisão:** 2026-07-10
 
 ---
@@ -19,13 +20,89 @@ decisão técnica bloqueada por informação que só existe aqui.
 
 ## Público-alvo
 
-### Persona Primária
+### Persona Primária — Dono de Loja de Dispositivos Móveis Premium
 
-TODO
+*(Fonte: input direto do Product Owner, 2026-07-10 — descreve o cliente real, não um cliente idealizado.)*
 
-### Persona Secundária
+**Perfil**
 
-TODO
+Empresário proprietário de uma loja especializada na venda de iPhones, Apple Watch, AirPods e acessórios
+premium, podendo ou não possuir assistência técnica própria. Normalmente é responsável por diversas áreas
+da empresa ao mesmo tempo: vendas, compras, estoque, financeiro, atendimento ao cliente e negociação com
+fornecedores. Mesmo quando possui funcionários, continua sendo quem acompanha os indicadores do negócio e
+toma as decisões estratégicas.
+
+**Como trabalha hoje**
+
+A operação está distribuída entre diversas ferramentas — cenário comum:
+
+- WhatsApp para atendimento
+- Instagram para geração de clientes
+- Mercado Phone como ERP principal
+- Excel para controles paralelos
+- Anotações em papel
+- Conversas com fornecedores via WhatsApp
+
+As informações ficam espalhadas — o dono precisa consultar vários lugares para entender o que realmente
+aconteceu na empresa.
+
+**Principais dores**
+
+- Responder WhatsApp durante o dia inteiro
+- Perder vendas por demora no atendimento
+- Não saber exatamente o lucro de cada venda
+- Estoque incorreto
+- IMEIs perdidos ou difíceis de localizar
+- Funcionário vender abaixo do preço permitido
+- Dificuldade para acompanhar indicadores
+- Retrabalho causado por controles paralelos
+- Falta de integração entre vendas, estoque e financeiro
+
+> **Reforça um gap já registrado:** "IMEIs perdidos ou difíceis de localizar" é uma dor real da persona
+> primária que confirma o gap técnico já apontado em `BRAND_IDENTITY.md` seção 2 e
+> `docs/engineering/DOMAIN_MODEL.md` 1.4 — a tabela `estoque` hoje não rastreia por IMEI individual.
+
+**Objetivos**
+
+Vender mais; responder clientes mais rapidamente; controlar o estoque com precisão; acompanhar lucro em
+tempo real; reduzir retrabalho; crescer sem aumentar a complexidade operacional.
+
+**O que ele compra**
+
+Produtos: iPhone novo, iPhone seminovo, Apple Watch, AirPods, acessórios Apple, carregadores, cabos,
+películas, capinhas.
+
+Serviços: assistência técnica, troca de tela, troca de bateria, manutenção geral, venda com aparelho
+usado na troca.
+
+**Critérios de compra**
+
+Facilidade de uso; velocidade do atendimento; suporte rápido; possibilidade de personalização; preço
+mensal; confiança no fornecedor; evolução constante do produto.
+
+**Objeções mais comuns**
+
+- "Já uso Mercado Phone."
+- "Migrar vai dar trabalho."
+- "Minha equipe vai conseguir aprender?"
+- "Vou perder meus dados?"
+- "Vale a pena pagar mensalidade?"
+- "O suporte realmente responde?"
+
+**Como a Fluxoly vence essa decisão**
+
+Atendimento próximo ao cliente; evolução contínua baseada nas necessidades reais das lojas; possibilidade
+de adaptações específicas; interface simples; módulos especializados para o mercado Apple; foco em gestão
+inteligente, e não apenas registro de informações.
+
+### Persona Secundária — Vendedor (Usuário Diário)
+
+`TODO` — identificada como necessária pelo Product Owner (2026-07-10), ainda não escrita. Distinção
+proposta: Persona Primária acima é quem **compra** (Owner Persona); esta é quem **usa a plataforma 8h/dia**
+(Operational Persona) — comum em produtos SaaS B2B, onde a experiência do usuário diário determina se o
+comprador culpa o sistema por atrito operacional mesmo quando a decisão de compra foi dele. Merece
+documento próprio (candidato: `docs/company/PERSONA_VENDEDOR.md`) quando o Product Owner fornecer o
+conteúdo — não escrito aqui por inferência.
 
 ---
 
@@ -35,10 +112,14 @@ Elimina a dependência de controles paralelos (planilhas, anotações manuais, b
 dispersas) que hoje obrigam o lojista a consultar múltiplos sistemas para entender o próprio negócio.
 *(Fonte: `BRAND_IDENTITY.md` seção 1.)*
 
-Ainda `TODO` — não respondido pelo documento de marca, requer input direto do Product Owner:
-- Quanto o cliente economiza (tempo, dinheiro, retrabalho), em termos concretos e mensuráveis?
-- Como o cliente trabalha hoje sem o sistema, especificamente? (Excel, WhatsApp, papel, outro ERP —
-  qual combinação é mais comum na persona real, ainda não definida abaixo)
+Como o cliente trabalha hoje, sem o sistema: WhatsApp para atendimento, Instagram para geração de
+clientes, Mercado Phone como ERP principal, Excel para controles paralelos, anotações em papel — ver
+Persona Primária acima ("Como trabalha hoje"). *(Fonte: Product Owner, 2026-07-10.)*
+
+Ainda `TODO`:
+- Quanto o cliente economiza (tempo, dinheiro, retrabalho), em termos concretos e mensuráveis? — a
+  persona lista as dores (perda de vendas por demora, lucro desconhecido, retrabalho) mas não quantifica
+  o ganho esperado.
 
 ---
 
@@ -49,9 +130,12 @@ Os seis pilares macrossistêmicos (Vendas, Operação, Financeiro, Relacionament
 avulsos — e o escopo negativo explícito da seção 4 (nunca genérico, nunca inflado, nunca difícil de
 aprender) como critério de diferenciação frente a ERPs horizontais.
 
-Ainda `TODO`:
-- Qual é a principal objeção que um cliente em potencial levanta antes de comprar? (não coberto pelo
-  documento de marca — é uma pergunta de venda real, não de posicionamento)
+Objeções mais comuns antes de comprar (ver Persona Primária): "já uso Mercado Phone", "migrar vai dar
+trabalho", "minha equipe vai conseguir aprender?", "vou perder meus dados?", "vale a pena pagar
+mensalidade?", "o suporte realmente responde?". A Fluxoly responde com atendimento próximo, evolução
+contínua guiada por necessidade real das lojas, adaptação específica, interface simples, módulos
+especializados para o mercado Apple e foco em gestão inteligente (não apenas registro de dados).
+*(Fonte: Product Owner, 2026-07-10.)*
 
 Ver `docs/product/FEATURE_MATRIX_TEMPLATE.md` para comparação estruturada com concorrentes nomeados
 (Mercado Phone, Nextsi, SisAssist), a preencher após pesquisa de mercado real.
@@ -60,9 +144,12 @@ Ver `docs/product/FEATURE_MATRIX_TEMPLATE.md` para comparação estruturada com 
 
 ## Quem Decide a Compra
 
-TODO
-
-*(Dono da assistência, gerente, técnico influenciador — quem efetivamente assina o cartão/PIX da assinatura, e se é a mesma pessoa que vai usar o sistema no dia a dia.)*
+O dono da loja (Persona Primária) — é quem acompanha os indicadores do negócio, avalia os critérios de
+compra (facilidade de uso, suporte, preço mensal, confiança no fornecedor) e assina a assinatura, mesmo
+quando tem funcionários. **Não é necessariamente quem vai operar o sistema no dia a dia** — ver Persona
+Secundária (Vendedor) acima: é o usuário diário quem determina, na prática, se o dono continua satisfeito
+com a decisão de compra ou passa a culpar o sistema por atrito operacional.
+*(Fonte: Product Owner, 2026-07-10.)*
 
 ---
 
@@ -79,9 +166,12 @@ TODO
 
 ## Modelo de Monetização
 
-TODO
+Assinatura mensal confirmada como modelo (a persona trata "preço mensal" como critério de compra e "vale
+a pena pagar mensalidade?" como objeção comum — ambos pressupõem um modelo de assinatura recorrente).
 
-*(Assinatura mensal, por usuário, por empresa, por volume de OS, etc. Afeta diretamente decisões técnicas como a de multiempresa — ver ADR-005.)*
+Ainda `TODO` — estrutura exata de precificação:
+- Por usuário, por loja/empresa, por volume de OS/vendas, ou plano fixo com faixas? Afeta diretamente
+  decisões técnicas como a de multiempresa — ver `docs/engineering/adr/ADR-005.md`.
 
 ---
 
@@ -102,5 +192,5 @@ Ainda `TODO` — o documento de marca define o segmento, mas não o tamanho/volu
 - `docs/company/BRAND_IDENTITY.md` — fonte de Mercado-alvo, O que NÃO faz e Diferenciais acima
 - `docs/company/VISION.md` — missão e visão de longo prazo do produto
 - `docs/product/FEATURE_MATRIX_TEMPLATE.md` — comparação estruturada com concorrentes (a preencher)
-- `docs/engineering/adr/ADR-005.md` — decisão bloqueada por "Quem Decide a Compra" e "Modelo de Monetização" acima
-- `docs/engineering/DOMAIN_MODEL.md` — domínios existentes no código, para contraste com o que este documento descrever como necessário
+- `docs/engineering/adr/ADR-005.md` — decisão ainda bloqueada por "Mercado-alvo" (volume) e "Modelo de Monetização" (estrutura) acima; "Quem Decide a Compra" já respondido
+- `docs/engineering/DOMAIN_MODEL.md` — domínios existentes no código; seção 1.4 (Estoque) confirma o gap de rastreamento por IMEI citado na Persona Primária

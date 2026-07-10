@@ -15,6 +15,10 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Preenchidos a partir de `BRAND_IDENTITY.md`: `docs/company/VISION.md` (Missão, Visão, Valores, Objetivo de Longo Prazo, Critérios de Sucesso) e `docs/company/PRODUCT_REQUIREMENTS.md` (Mercado-alvo, O que NÃO faz, Diferenciais, parte de Problemas Resolvidos) — Persona, Quem Decide a Compra e Modelo de Monetização seguem `TODO`, não respondidos pelo documento de marca
 - `docs/product/FEATURE_MATRIX_TEMPLATE.md` seção 1 atualizada com os seis pilares e o gap de rastreamento por IMEI
 
+### Adicionado (cont.)
+- `docs/company/PRODUCT_REQUIREMENTS.md` — Persona Primária (Dono de Loja de Dispositivos Móveis Premium) preenchida com input direto do Product Owner: perfil, como trabalha hoje, dores, objetivos, o que compra, critérios de compra, objeções, e por que escolhe a Fluxoly. Confirma na prática o gap de rastreamento por IMEI já registrado (dor "IMEIs perdidos ou difíceis de localizar"). Persona Secundária (Vendedor/usuário diário) identificada como necessária mas não escrita — aguarda conteúdo do Product Owner
+- `docs/company/PRODUCT_REQUIREMENTS.md` — "Quem Decide a Compra" respondido (dono da loja); "Modelo de Monetização" parcialmente respondido (assinatura mensal confirmada, estrutura de precificação segue `TODO`); "Problemas Resolvidos" e "Diferenciais" complementados com dados reais de objeção de venda
+
 ### Modificado
 - Toda a árvore `docs/` reorganizada por audiência (ver `docs/engineering/adr/ADR-006.md` para o mapeamento completo e critério de cada pasta); todos os links relativos entre documentos corrigidos
 - `CLAUDE.md`: árvore de "Estrutura de Documentos" e tabela "Leitura Obrigatória" atualizadas para os novos caminhos; `BRAND_IDENTITY.md` adicionado como leitura fundacional

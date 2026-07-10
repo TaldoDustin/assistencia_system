@@ -1,7 +1,7 @@
 # VENDAS.md — Feature Spec: Módulo de Vendas
 
 **Status:** Rascunho — desenhado em conversa entre Product Owner e engenharia em 2026-07-09, antes de qualquer implementação.
-**Épico:** Comercial (ver `docs/ROADMAP.md` para o eixo de engenharia — este documento pertence ao eixo de produto, numeração própria a definir em `PRODUCT_BACKLOG.md`).
+**Épico:** Comercial (ver `docs/operations/ROADMAP.md` para o eixo de engenharia — este documento pertence ao eixo de produto, numeração própria a definir em `PRODUCT_BACKLOG.md`).
 
 ---
 
@@ -19,8 +19,8 @@ Este documento nasce de um desenho de fluxo real (não de uma lista de tabelas) 
 
 ## Quem usa
 
-**Provisório** — `docs/PRODUCT_REQUIREMENTS.md` (Persona Primária/Secundária) ainda está `TODO`. Até ser
-preenchido, este spec assume os perfis já existentes no sistema (`docs/DOMAIN_MODEL.md` 1.2):
+**Provisório** — `docs/company/PRODUCT_REQUIREMENTS.md` (Persona Primária/Secundária) ainda está `TODO`. Até ser
+preenchido, este spec assume os perfis já existentes no sistema (`docs/engineering/DOMAIN_MODEL.md` 1.2):
 
 | Perfil | Papel em Vendas |
 |---|---|
@@ -143,14 +143,14 @@ Não decidido nesta conversa — não assumir resposta implícita para nenhum de
 
 ## Métricas de sucesso
 
-TODO — decisão de Product Owner. Candidatas levantadas em `docs/VISION.md` (quando preenchido):
+TODO — decisão de Product Owner. Candidatas levantadas em `docs/company/VISION.md` (quando preenchido):
 tempo médio de venda, número de vendas com troca, taxa de aprovação de desconto por admin.
 
 ---
 
 ## Documentos relacionados
 
-- `docs/VISION.md`, `docs/PRODUCT_REQUIREMENTS.md` — missão, persona e dores (parcialmente `TODO`, referenciados aqui como provisórios)
-- `docs/DOMAIN_MODEL.md` — domínios existentes hoje (1.3 OS, 1.4 Estoque) e lacunas estruturais (Cliente, Financeiro) citadas nas decisões acima
-- `docs/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas obrigatória para o novo domínio Vendas quando for implementado
-- `docs/ROADMAP.md` — roadmap de engenharia (eixo separado deste documento)
+- `docs/company/VISION.md`, `docs/company/PRODUCT_REQUIREMENTS.md` — missão, persona e dores (parcialmente `TODO`, referenciados aqui como provisórios)
+- `docs/engineering/DOMAIN_MODEL.md` — domínios existentes hoje (1.3 OS, 1.4 Estoque) e lacunas estruturais (Cliente, Financeiro) citadas nas decisões acima
+- `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas obrigatória para o novo domínio Vendas quando for implementado
+- `docs/operations/ROADMAP.md` — roadmap de engenharia (eixo separado deste documento)

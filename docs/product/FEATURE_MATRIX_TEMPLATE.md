@@ -8,7 +8,7 @@
 Este documento tem duas seções com propósitos diferentes:
 
 - **Seção 1 — Funcionalidades Atuais:** já nasce útil, sem depender de pesquisa nenhuma. Reflete o que o
-  Assistência System faz hoje, extraído de `docs/DOMAIN_MODEL.md` — não é suposição, é o estado real do código.
+  Assistência System faz hoje, extraído de `docs/engineering/DOMAIN_MODEL.md` — não é suposição, é o estado real do código.
 - **Seção 2 — Comparação com Concorrentes:** intencionalmente vazia. Comparar com concorrentes exige
   pesquisa de mercado real (testar o produto do concorrente, ler documentação pública, ou levantamento
   direto), não suposição. Quando a pesquisa for feita, copie este arquivo para `docs/FEATURE_MATRIX.md`
@@ -74,5 +74,5 @@ TODO — lista a definir pelo Product Owner. Mencionados em discussão de roadma
 
 ## Documentos relacionados
 
-- `docs/PRODUCT_REQUIREMENTS.md` — seção "Diferenciais" depende da Seção 2 deste documento
-- `docs/DOMAIN_MODEL.md` — fonte de verdade para a Seção 1 (refletem o código, não suposição)
+- `docs/company/PRODUCT_REQUIREMENTS.md` — seção "Diferenciais" depende da Seção 2 deste documento
+- `docs/engineering/DOMAIN_MODEL.md` — fonte de verdade para a Seção 1 (refletem o código, não suposição)

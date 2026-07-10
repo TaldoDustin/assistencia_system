@@ -1,9 +1,9 @@
 # Architectural Decision Records — Índice
 
-Cada decisão arquitetural vive em arquivo próprio na pasta [`docs/adr/`](adr/).
+Cada decisão arquitetural vive em arquivo próprio na pasta [`docs/engineering/adr/`](adr/).
 Este arquivo é o índice de navegação.
 
-Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) → salve em `docs/adr/ADR-NNN.md` → adicione uma linha abaixo.
+Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) → salve em `docs/engineering/adr/ADR-NNN.md` → adicione uma linha abaixo.
 
 ---
 
@@ -16,6 +16,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-003](adr/ADR-003.md) | SQLite até a versão 2 | Aceita | 2026-07-06 |
 | [ADR-004](adr/ADR-004.md) | Bugs em sprints de teste/QA/validação seguem fluxo `hotfix/` obrigatório | Aceita — não retroativa | 2026-07-07 |
 | [ADR-005](adr/ADR-005.md) | Estratégia de multiempresa | Proposta — alternativas técnicas prontas, decisão pendente do Product Owner | 2026-07-08 |
+| [ADR-006](adr/ADR-006.md) | Reorganização de `docs/` por audiência e adoção da marca Fluxoly | Aceita | 2026-07-10 |
 
 ---
 

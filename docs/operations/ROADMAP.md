@@ -113,7 +113,7 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 
 > **Status: EM ANDAMENTO**  
 > Antes de qualquer nova feature, o projeto precisa de uma base confiável: CI, testes e observabilidade mínima.
-> Sprint 2.2 (primeiros testes — login/logout/sessão) concluída em 2026-07-07. Ver `docs/SPRINTS/SPRINT_02.md`.
+> Sprint 2.2 (primeiros testes — login/logout/sessão) concluída em 2026-07-07. Ver `docs/operations/SPRINTS/SPRINT_02.md`.
 
 ---
 

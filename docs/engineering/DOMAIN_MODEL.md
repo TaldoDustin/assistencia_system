@@ -6,7 +6,7 @@ e os ADRs relevantes. Divergências entre este documento e o código devem ser c
 da verdade — mesma regra de `ARCHITECTURE.md`).
 
 **Última revisão:** 2026-07-09
-**Fonte:** `app.py` (schema), `docs/ARCHITECTURE.md` (camadas), `tests/` (arquivos reais em `main`), leitura direta dos módulos `irflow_*.py`.
+**Fonte:** `app.py` (schema), `docs/engineering/ARCHITECTURE.md` (camadas), `tests/` (arquivos reais em `main`), leitura direta dos módulos `irflow_*.py`.
 
 ---
 
@@ -70,7 +70,7 @@ separado hoje está registrado como está — ver seção 3.
 | Testes | `tests/test_stock_creation_query.py`, `tests/test_stock_movement.py`, `tests/test_stock_os_integration.py`, `tests/test_stock_security.py` (69 casos, Sprint 2.5) |
 | Depende de | Nenhum outro domínio |
 | Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios |
-| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica |
+| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica. **Gap de marca:** `docs/company/BRAND_IDENTITY.md` promete rastreamento individual por IMEI — a tabela `estoque` hoje não tem essa coluna, controle é por item agregado |
 
 ### 1.5 Compras / Lista de Compras (Shopping List)
 
@@ -171,7 +171,7 @@ separado hoje está registrado como está — ver seção 3.
 ## 3. Convenção para novos domínios
 
 A partir de agora, todo domínio novo (ex.: Vendas) segue a convenção formalizada em
-`docs/ENGINEERING_GUIDE.md` seção 3.1 — camadas `controller → service → repository → tests → README`,
+`docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — camadas `controller → service → repository → tests → README`,
 incluindo a regra de que **nenhum domínio acessa o repository de outro domínio diretamente** (só o service
 do domínio dono) — mesmo que o domínio inicialmente viva no mesmo diretório dos módulos existentes.
 
@@ -182,9 +182,9 @@ não um documento estático.
 
 ## Documentos relacionados
 
-- `docs/ARCHITECTURE.md` — visão arquitetural completa (camadas, fluxos)
-- `docs/DATABASE.md` — schema completo
+- `docs/engineering/ARCHITECTURE.md` — visão arquitetural completa (camadas, fluxos)
+- `docs/engineering/DATABASE.md` — schema completo
 - ADR-002 — decomposição da API por domínio (camada HTTP)
 - ADR-005 — estratégia de multiempresa (afeta todos os domínios listados acima)
-- `docs/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas para domínio novo
+- `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas para domínio novo
 - `docs/BUSINESS_RULES.md` (backlog, ainda não criado) — regras de negócio implícitas hoje em código/testes (ex.: cancelar/excluir OS devolve estoque, garantia não gera comissão) que este documento não cobre — este mapeia estrutura, não regra de negócio

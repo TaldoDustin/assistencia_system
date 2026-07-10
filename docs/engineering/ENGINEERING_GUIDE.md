@@ -95,7 +95,7 @@ irflow_reference_data.py     — dados de referência (modelos, cores, técnicos
 
 Esta seção define a estrutura obrigatória para **qualquer domínio de negócio novo** adicionado ao sistema
 a partir desta revisão (ex.: Vendas, Caixa, Financeiro). Não se aplica retroativamente aos domínios
-existentes listados em `docs/DOMAIN_MODEL.md` — esses seguem seu próprio plano de decomposição (ADR-002,
+existentes listados em `docs/engineering/DOMAIN_MODEL.md` — esses seguem seu próprio plano de decomposição (ADR-002,
 Sprint 4).
 
 **Motivação:** sem uma convenção fixada antes da primeira linha de código, cada domínio novo inventa sua
@@ -116,7 +116,7 @@ repository   — único ponto de acesso ao banco para o domínio (queries SQL pa
                 seguindo o padrão da seção "Acesso ao banco" abaixo). Service nunca executa SQL direto.
 
 tests        — um arquivo de teste por camada relevante (ex.: test_vendas_service.py,
-                test_vendas_api.py), seguindo `docs/TESTING.md`.
+                test_vendas_api.py), seguindo `docs/engineering/TESTING.md`.
 
 README        — um README.md curto (10-20 linhas) na pasta do domínio: o que o domínio faz,
                 quais tabelas usa, quais domínios ele depende/é dependido por.
@@ -156,7 +156,7 @@ médio) passa a poder ser contornada por quem chamou direto o banco — o mesmo 
 que hoje já existe entre `irflow_os.py` e `irflow_blueprints_api.py` (TD-01) e que a convenção de
 domínios existe justamente para não repetir em código novo.
 
-Ver `docs/DOMAIN_MODEL.md` para o inventário de domínios existentes e seu estado atual de camadas.
+Ver `docs/engineering/DOMAIN_MODEL.md` para o inventário de domínios existentes e seu estado atual de camadas.
 
 ### Padrão de endpoint REST
 
@@ -297,7 +297,7 @@ async function carregarOrdens() {
 
 ## 5. Banco de Dados
 
-Detalhes completos em `docs/DATABASE.md`. Regras essenciais:
+Detalhes completos em `docs/engineering/DATABASE.md`. Regras essenciais:
 
 ### Migrations
 
@@ -324,7 +324,7 @@ Detalhes completos em `docs/DATABASE.md`. Regras essenciais:
 
 ## 6. Testes
 
-Detalhes completos em `docs/TESTING.md`. Regras essenciais:
+Detalhes completos em `docs/engineering/TESTING.md`. Regras essenciais:
 
 ### Hierarquia de testes
 
@@ -352,7 +352,7 @@ Detalhes completos em `docs/TESTING.md`. Regras essenciais:
 
 ## 7. Segurança
 
-Detalhes completos em `docs/SECURITY.md`. Regras essenciais:
+Detalhes completos em `docs/engineering/SECURITY.md`. Regras essenciais:
 
 ### SQL Injection
 - **Proibido:** `f"SELECT * FROM os WHERE id = {id}"` ou qualquer interpolação em SQL.
@@ -472,7 +472,7 @@ git checkout -b docs/nome-da-documentacao
 
 ### Template de PR
 
-Use `docs/templates/PR_TEMPLATE.md` como base. Inclua obrigatoriamente:
+Use `docs/engineering/templates/PR_TEMPLATE.md` como base. Inclua obrigatoriamente:
 - **O que muda:** descrição clara do que foi implementado
 - **Por que muda:** motivação, contexto ou issue relacionado
 - **Como testar:** passos para validar a mudança
@@ -489,7 +489,7 @@ Use `docs/templates/PR_TEMPLATE.md` como base. Inclua obrigatoriamente:
 
 ## 11. Bugs Encontrados Durante Sprints de Teste, QA ou Validação
 
-Escrever testes, validar comportamento ou rodar QA frequentemente revela bugs reais no código de produção — não só lacunas de cobertura. Esta seção define quando um achado desses **interrompe a sprint** e exige um `hotfix/` imediato (ver `CLAUDE.md` para o fluxo completo e `docs/QUALITY_GATES.md` — G-18), e quando ele deve apenas ser **caracterizado por teste e reportado** para decisão posterior, sem parar o trabalho planejado.
+Escrever testes, validar comportamento ou rodar QA frequentemente revela bugs reais no código de produção — não só lacunas de cobertura. Esta seção define quando um achado desses **interrompe a sprint** e exige um `hotfix/` imediato (ver `CLAUDE.md` para o fluxo completo e `docs/engineering/QUALITY_GATES.md` — G-18), e quando ele deve apenas ser **caracterizado por teste e reportado** para decisão posterior, sem parar o trabalho planejado.
 
 Não há espaço para julgamento subjetivo aqui — mesmo espírito de `QUALITY_GATES.md`: cada critério é verdadeiro ou falso.
 

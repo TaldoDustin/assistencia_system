@@ -75,5 +75,5 @@ Exemplo: "Revisitar quando o volume de OS ultrapassar 50.000 registros."
 
 ## Documentos relacionados
 
-- `docs/ARCHITECTURE.md` — seção X
+- `docs/engineering/ARCHITECTURE.md` — seção X
 - ADR-NNN — decisão anterior que este complementa ou substitui

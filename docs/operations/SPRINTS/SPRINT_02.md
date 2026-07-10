@@ -270,7 +270,7 @@ corrigido nesta sprint (fora de escopo — parsing/validação, não limpeza de 
 `tests/test_api_parsing_refactor.py`) cobrindo as 9 rotas corrigidas e as rotas de
 shopping-list/MercadoPhone refatoradas. `irflow_validation.py` adicionado à medição de
 cobertura (`pyproject.toml`). Suíte completa pós-merge com Sprint 2.3/2.5: ver
-`docs/PROJECT_STATUS.md`.
+`docs/operations/PROJECT_STATUS.md`.
 
 ---
 

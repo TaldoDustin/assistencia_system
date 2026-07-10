@@ -10,9 +10,9 @@ Leia antes de criar qualquer branch ou abrir qualquer PR.
 Leia os documentos fundacionais:
 
 1. [`CLAUDE.md`](../CLAUDE.md) — protocolo de trabalho e regras
-2. [`docs/ENGINEERING_GUIDE.md`](ENGINEERING_GUIDE.md) — padrões técnicos
-3. [`docs/PROJECT_STATUS.md`](PROJECT_STATUS.md) — estado atual e sprint ativa
-4. [`docs/KNOWN_ISSUES.md`](KNOWN_ISSUES.md) — bugs conhecidos (não repita trabalho)
+2. [`docs/engineering/ENGINEERING_GUIDE.md`](ENGINEERING_GUIDE.md) — padrões técnicos
+3. [`docs/operations/PROJECT_STATUS.md`](../operations/PROJECT_STATUS.md) — estado atual e sprint ativa
+4. [`docs/operations/KNOWN_ISSUES.md`](../operations/KNOWN_ISSUES.md) — bugs conhecidos (não repita trabalho)
 
 ---
 
@@ -114,7 +114,7 @@ Antes de escrever código:
 - [ ] Li o código que será modificado
 - [ ] Entendi o impacto da mudança
 - [ ] Verifiquei se há issue relacionado em `KNOWN_ISSUES.md`
-- [ ] Verifiquei se há ADR que governa esta área em `docs/adr/`
+- [ ] Verifiquei se há ADR que governa esta área em `docs/engineering/adr/`
 
 ### 3.2 Implementar
 
@@ -141,7 +141,7 @@ Atualize os documentos que sua mudança afeta:
 |------------|-------------|
 | Corrigiu um bug | `KNOWN_ISSUES.md` (mover para Resolvidos) + `CHANGELOG.md` |
 | Adicionou feature | `CHANGELOG.md` + sprint ativa em `SPRINTS/` |
-| Tomou decisão arquitetural | Novo arquivo em `docs/adr/` + `ARCHITECTURE_DECISIONS.md` |
+| Tomou decisão arquitetural | Novo arquivo em `docs/engineering/adr/` + `ARCHITECTURE_DECISIONS.md` |
 | Mudou o schema do banco | `DATABASE.md` |
 | Identificou vulnerabilidade | `KNOWN_ISSUES.md` + `SECURITY.md` |
 
@@ -256,14 +256,14 @@ Ao iniciar uma nova sprint:
 
 ```bash
 # 1. Crie o arquivo da sprint a partir do template
-cp docs/templates/SPRINT_TEMPLATE.md docs/SPRINTS/SPRINT_NN.md
+cp docs/operations/templates/SPRINT_TEMPLATE.md docs/operations/SPRINTS/SPRINT_NN.md
 
 # 2. Preencha objetivo, motivação, arquivos envolvidos, critérios de aceitação
 
 # 3. Atualize PROJECT_STATUS.md: seção "Próxima Sprint"
 
 # 4. Commit
-git add docs/SPRINTS/SPRINT_NN.md docs/PROJECT_STATUS.md
+git add docs/operations/SPRINTS/SPRINT_NN.md docs/operations/PROJECT_STATUS.md
 git commit -m "docs(sprints): iniciar planejamento da sprint NN"
 ```
 
@@ -275,12 +275,12 @@ Quando uma decisão arquitetural importante for tomada:
 
 ```bash
 # 1. Copie o template
-cp docs/templates/ADR_TEMPLATE.md docs/adr/ADR-NNN.md
+cp docs/engineering/templates/ADR_TEMPLATE.md docs/engineering/adr/ADR-NNN.md
 
 # 2. Preencha contexto, alternativas, decisão, consequências
 
 # 3. Adicione a entrada no índice
-# Edite docs/ARCHITECTURE_DECISIONS.md
+# Edite docs/engineering/ARCHITECTURE_DECISIONS.md
 
 # 4. Commit
 git commit -m "docs(adr): ADR-NNN decisão sobre X"
@@ -300,10 +300,10 @@ Para mudanças apenas em `.md`, sim. Para qualquer `.py` ou `.jsx`, não.
 Investigue a falha, corrija, faça push. Não peça merge com CI vermelho.
 
 **Como descubro qual sprint está ativa?**
-Leia `docs/PROJECT_STATUS.md` — seção "Próxima Sprint" ou "Sprint Atual".
+Leia `docs/operations/PROJECT_STATUS.md` — seção "Próxima Sprint" ou "Sprint Atual".
 
 **Encontrei um bug mas não tenho tempo de corrigir agora. O que faço?**
-Documente em `KNOWN_ISSUES.md` usando `docs/templates/ISSUE_TEMPLATE.md`. Não ignore.
+Documente em `KNOWN_ISSUES.md` usando `docs/operations/templates/ISSUE_TEMPLATE.md`. Não ignore.
 
 **Encontrei um bug real enquanto escrevia testes numa sprint de teste/QA/validação. Corrijo na hora?**
-Depende. Confira os critérios objetivos em `docs/ENGINEERING_GUIDE.md` §11 (mutação silenciosa de dado, perda irreversível, bypass de autenticação/autorização, ou caminho real de produção). Se **algum** for verdadeiro: pare a sprint, abra `hotfix/nome-do-bug` a partir de `main`, corrija o mínimo, teste, faça merge em `main`, sincronize a branch da sprint (`git merge main` ou `git rebase main`) e só então continue. Se **nenhum** critério for verdadeiro: não pare — escreva o teste que caracteriza o comportamento atual (nunca um teste deliberadamente falho) e reporte o achado no relatório final da sprint. Ver `CLAUDE.md` para o fluxograma completo e `docs/adr/ADR-004.md` para o contexto da decisão.
+Depende. Confira os critérios objetivos em `docs/engineering/ENGINEERING_GUIDE.md` §11 (mutação silenciosa de dado, perda irreversível, bypass de autenticação/autorização, ou caminho real de produção). Se **algum** for verdadeiro: pare a sprint, abra `hotfix/nome-do-bug` a partir de `main`, corrija o mínimo, teste, faça merge em `main`, sincronize a branch da sprint (`git merge main` ou `git rebase main`) e só então continue. Se **nenhum** critério for verdadeiro: não pare — escreva o teste que caracteriza o comportamento atual (nunca um teste deliberadamente falho) e reporte o achado no relatório final da sprint. Ver `CLAUDE.md` para o fluxograma completo e `docs/engineering/adr/ADR-004.md` para o contexto da decisão.

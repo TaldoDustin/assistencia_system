@@ -88,16 +88,16 @@ A documentação completa está em [`docs/`](docs/README.md).
 |-----------|-----------|
 | [`docs/README.md`](docs/README.md) | Índice de toda a documentação |
 | [`CLAUDE.md`](CLAUDE.md) | Manual operacional para IA |
-| [`docs/ENGINEERING_GUIDE.md`](docs/ENGINEERING_GUIDE.md) | Padrões técnicos e convenções |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitetura do sistema |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Evolução planejada |
-| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Como contribuir |
+| [`docs/engineering/ENGINEERING_GUIDE.md`](docs/engineering/ENGINEERING_GUIDE.md) | Padrões técnicos e convenções |
+| [`docs/engineering/ARCHITECTURE.md`](docs/engineering/ARCHITECTURE.md) | Arquitetura do sistema |
+| [`docs/operations/ROADMAP.md`](docs/operations/ROADMAP.md) | Evolução planejada |
+| [`docs/engineering/CONTRIBUTING.md`](docs/engineering/CONTRIBUTING.md) | Como contribuir |
 
 ---
 
 ## Contribuindo
 
-Leia [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) antes de abrir um PR.
+Leia [`docs/engineering/CONTRIBUTING.md`](docs/engineering/CONTRIBUTING.md) antes de abrir um PR.
 
 Resumo rápido:
 1. Crie uma branch: `git checkout -b feat/nome-da-feature`

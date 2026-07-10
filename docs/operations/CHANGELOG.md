@@ -10,13 +10,21 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ## [Não lançado]
 
 ### Adicionado
-- `docs/DOMAIN_MODEL.md` — mapa dos domínios de negócio existentes, extraído do código (schema `app.py` + `ARCHITECTURE.md` + `tests/` reais em `main`); cada domínio inclui testes existentes e dependências com outros domínios; registra que "Clientes" não é uma entidade própria hoje (campo texto solto em `os`)
-- `docs/adr/ADR-005.md` — estratégia de multiempresa: alternativas técnicas avaliadas (banco por empresa / `empresa_id` / schema por empresa), decisão pendente do Product Owner
-- `docs/ENGINEERING_GUIDE.md` seção 3.1 — convenção obrigatória de camadas (`controller → service → repository → tests → README`) para domínios de negócio novos, com regra de reuso entre domínios (ex.: `irflow_estoque_service.py` como candidato a serviço compartilhado) e regra inegociável de que um domínio nunca acessa o repository de outro diretamente (só o service do dono)
-- `docs/PRODUCT_REQUIREMENTS.md` — formulário de requisitos de produto (persona, dores, diferenciais, quem decide a compra, escopo negativo, monetização, mercado-alvo) com perguntas-guia objetivas por seção, seções marcadas `TODO` até decisão do Product Owner
-- `docs/VISION.md` — formulário de missão, visão, valores e critérios de sucesso do produto, seções marcadas `TODO`
-- `docs/FEATURE_MATRIX_TEMPLATE.md` — seção 1 (funcionalidades atuais do sistema) completa e extraída do código; seção 2 (comparação com concorrentes) vazia, a preencher após pesquisa de mercado real
-- `docs/ARCHITECTURE.md` e `docs/DATABASE.md` — documentação obrigatória ausente, extraída do estado real do código
+- `docs/company/BRAND_IDENTITY.md` — Constituição da Marca Fluxoly V1.0 (Product Owner): nome, 6 pilares macrossistêmicos, escopo negativo, promessa de mercado, visão 2030, cronograma de transição técnica de marca. Registra gap conhecido: promessa de rastreamento por IMEI sem suporte na tabela `estoque` hoje
+- `docs/engineering/adr/ADR-006.md` — decisão de reorganizar `docs/` em `company/`, `engineering/`, `product/`, `operations/` por audiência, com mapeamento completo arquivo-a-arquivo e cronograma de rename
+- Preenchidos a partir de `BRAND_IDENTITY.md`: `docs/company/VISION.md` (Missão, Visão, Valores, Objetivo de Longo Prazo, Critérios de Sucesso) e `docs/company/PRODUCT_REQUIREMENTS.md` (Mercado-alvo, O que NÃO faz, Diferenciais, parte de Problemas Resolvidos) — Persona, Quem Decide a Compra e Modelo de Monetização seguem `TODO`, não respondidos pelo documento de marca
+- `docs/product/FEATURE_MATRIX_TEMPLATE.md` seção 1 atualizada com os seis pilares e o gap de rastreamento por IMEI
+
+### Modificado
+- Toda a árvore `docs/` reorganizada por audiência (ver `docs/engineering/adr/ADR-006.md` para o mapeamento completo e critério de cada pasta); todos os links relativos entre documentos corrigidos
+- `CLAUDE.md`: árvore de "Estrutura de Documentos" e tabela "Leitura Obrigatória" atualizadas para os novos caminhos; `BRAND_IDENTITY.md` adicionado como leitura fundacional
+- `docs/engineering/DOMAIN_MODEL.md` — mapa dos domínios de negócio existentes, extraído do código (schema `app.py` + `ARCHITECTURE.md` + `tests/` reais em `main`); cada domínio inclui testes existentes e dependências com outros domínios; registra que "Clientes" não é uma entidade própria hoje (campo texto solto em `os`)
+- `docs/engineering/adr/ADR-005.md` — estratégia de multiempresa: alternativas técnicas avaliadas (banco por empresa / `empresa_id` / schema por empresa), decisão pendente do Product Owner
+- `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção obrigatória de camadas (`controller → service → repository → tests → README`) para domínios de negócio novos, com regra de reuso entre domínios (ex.: `irflow_estoque_service.py` como candidato a serviço compartilhado) e regra inegociável de que um domínio nunca acessa o repository de outro diretamente (só o service do dono)
+- `docs/company/PRODUCT_REQUIREMENTS.md` — formulário de requisitos de produto (persona, dores, diferenciais, quem decide a compra, escopo negativo, monetização, mercado-alvo) com perguntas-guia objetivas por seção, seções marcadas `TODO` até decisão do Product Owner
+- `docs/company/VISION.md` — formulário de missão, visão, valores e critérios de sucesso do produto, seções marcadas `TODO`
+- `docs/product/FEATURE_MATRIX_TEMPLATE.md` — seção 1 (funcionalidades atuais do sistema) completa e extraída do código; seção 2 (comparação com concorrentes) vazia, a preencher após pesquisa de mercado real
+- `docs/engineering/ARCHITECTURE.md` e `docs/engineering/DATABASE.md` — documentação obrigatória ausente, extraída do estado real do código
 - `tests/test_auth.py` — primeira suíte pytest do projeto (Sprint 2.2): login, logout, sessão e controle de acesso por perfil, isolada via `IR_FLOW_DATA_DIR`
 - `irflow_validation.py` (Sprint 2.6): camada compartilhada de parsing de entrada — `parse_int`, `parse_float`, `safe_json`, `validate_positive_number` — usada pelos endpoints JSON de `irflow_blueprints_api.py`
 - `tests/test_users.py` — cobertura de CRUD de usuários via `/api/usuarios` (Sprint 2.3): listar, criar, editar, excluir; duplicado, campos obrigatórios, perfil desconhecido, auto-desativação/auto-exclusão bloqueadas
@@ -107,4 +115,4 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
-*Para mudanças em andamento, consulte [`docs/SPRINTS/`](SPRINTS/) e [`docs/PROJECT_STATUS.md`](PROJECT_STATUS.md).*
+*Para mudanças em andamento, consulte [`docs/operations/SPRINTS/`](SPRINTS/) e [`docs/operations/PROJECT_STATUS.md`](PROJECT_STATUS.md).*

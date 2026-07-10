@@ -27,13 +27,13 @@ Toda sessão começa com leitura obrigatória. Sem exceções.
 PASSO 1: Ler CLAUDE.md (ou este documento, se a IA não carregar CLAUDE.md)
          → Entender: protocolo, regras, filosofia
 
-PASSO 2: Ler docs/PROJECT_STATUS.md
+PASSO 2: Ler docs/operations/PROJECT_STATUS.md
          → Entender: sprint atual, score, bugs abertos, arquivos críticos
 
-PASSO 3: Ler docs/ROADMAP.md
+PASSO 3: Ler docs/operations/ROADMAP.md
          → Entender: fase atual, objetivo estratégico da sprint, o que vem depois
 
-PASSO 4: Ler docs/KNOWN_ISSUES.md
+PASSO 4: Ler docs/operations/KNOWN_ISSUES.md
          → Entender: o que está aberto, o que já foi resolvido, o que foi aceito como risco
 
 PASSO 5: Comunicar entendimento ao humano
@@ -60,7 +60,7 @@ Nunca implemente sem análise prévia aprovada pelo humano.
 PASSO 1: ANALISAR
          - Quais arquivos serão afetados?
          - Existe algum issue aberto em KNOWN_ISSUES.md relacionado?
-         - Existe algum ADR em docs/adr/ que governa esta área?
+         - Existe algum ADR em docs/engineering/adr/ que governa esta área?
          - Quais testes existem para o código que será modificado?
          - Qual é o risco de regressão?
 
@@ -148,8 +148,8 @@ PASSO 3: ATUALIZAR DOCUMENTAÇÃO
          |-------------|-----------|
          | Bug corrigido | KNOWN_ISSUES.md (mover para Resolvidos) + CHANGELOG.md |
          | Nova feature | CHANGELOG.md + PROJECT_STATUS.md + sprint file |
-         | Decisão arquitetural | docs/adr/ (novo ADR) + ARCHITECTURE.md |
-         | Mudança no banco | docs/DATABASE.md |
+         | Decisão arquitetural | docs/engineering/adr/ (novo ADR) + ARCHITECTURE.md |
+         | Mudança no banco | docs/engineering/DATABASE.md |
          | Vulnerabilidade encontrada | KNOWN_ISSUES.md + SECURITY.md |
          | Novo processo de dev | CONTRIBUTING.md + ENGINEERING_GUIDE.md |
          | Sprint concluída | PROJECT_STATUS.md + ROADMAP.md |

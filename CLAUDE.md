@@ -21,12 +21,13 @@ Antes de qualquer tarefa, leia os documentos abaixo nesta ordem. De cada um, ext
 | # | Documento | O que extrair |
 |---|-----------|---------------|
 | 1 | `CLAUDE.md` | Protocolo, regras, filosofia |
-| 2 | `docs/ENGINEERING_GUIDE.md` | Padrões técnicos, convenções, arquitetura |
-| 3 | `docs/PROJECT_STATUS.md` | Sprint atual, score, bugs abertos, arquivos críticos |
-| 4 | `docs/ROADMAP.md` | Fase e sprint em andamento, objetivos de médio prazo |
-| 5 | `docs/KNOWN_ISSUES.md` | Issues abertos — não repita trabalho, não ignore contexto |
-| 6 | `docs/ARCHITECTURE.md` | Camadas, módulos, fluxos de dados |
-| 7 | `docs/DATABASE.md` | Schema, índices, regras de migração |
+| 2 | `docs/company/BRAND_IDENTITY.md` | Identidade de marca (Fluxoly), pilares, escopo negativo, promessa |
+| 3 | `docs/engineering/ENGINEERING_GUIDE.md` | Padrões técnicos, convenções, arquitetura |
+| 4 | `docs/operations/PROJECT_STATUS.md` | Sprint atual, score, bugs abertos, arquivos críticos |
+| 5 | `docs/operations/ROADMAP.md` | Fase e sprint em andamento, objetivos de médio prazo |
+| 6 | `docs/operations/KNOWN_ISSUES.md` | Issues abertos — não repita trabalho, não ignore contexto |
+| 7 | `docs/engineering/ARCHITECTURE.md` | Camadas, módulos, fluxos de dados |
+| 8 | `docs/engineering/DATABASE.md` | Schema, índices, regras de migração |
 
 Após a leitura, descreva o estado do projeto em **exatamente 5 linhas** antes de qualquer ação.
 Use o formato:
@@ -103,7 +104,7 @@ Todo trabalho segue este ciclo obrigatório. Nunca pule etapas.
 
 *Vigente a partir de 2026-07-07 (ADR-004) — não se aplica retroativamente a sprints já concluídas.*
 
-Qualquer bug real encontrado durante uma sprint de testes, QA ou validação — não apenas "sprint de testes" no sentido estrito — deve ser avaliado contra os **critérios objetivos de interrupção** em `docs/ENGINEERING_GUIDE.md` (seção 11).
+Qualquer bug real encontrado durante uma sprint de testes, QA ou validação — não apenas "sprint de testes" no sentido estrito — deve ser avaliado contra os **critérios objetivos de interrupção** em `docs/engineering/ENGINEERING_GUIDE.md` (seção 11).
 
 - Se **algum critério for verdadeiro**: a sprint **para**. Siga o fluxo abaixo antes de continuar.
 - Se **nenhum critério for verdadeiro**: não pare. Caracterize o comportamento com um teste (nunca um teste deliberadamente falho) e registre o achado no relatório final da sprint.
@@ -113,7 +114,7 @@ Bug encontrado durante sprint de teste/QA/validação
                     │
                     ▼
    Atende a algum critério objetivo de interrupção?
-        (docs/ENGINEERING_GUIDE.md, seção 11)
+        (docs/engineering/ENGINEERING_GUIDE.md, seção 11)
                     │
         ┌───────────┴───────────┐
        NÃO                     SIM
@@ -148,9 +149,9 @@ Bug encontrado durante sprint de teste/QA/validação
 - Correção mínima apenas — sem refatoração, sem feature adicional (mesma regra de sempre: uma mudança por vez).
 - Testes relacionados rodam e passam antes do merge em `main`.
 - A branch da sprint é atualizada a partir de `main` (merge ou rebase) antes de continuar — nunca diverge silenciosamente.
-- Ver `docs/CODE_STYLE.md` para a convenção de nome (`hotfix/<descrição-em-kebab-case>`) e `docs/QUALITY_GATES.md` (G-18) para o gate correspondente.
+- Ver `docs/engineering/CODE_STYLE.md` para a convenção de nome (`hotfix/<descrição-em-kebab-case>`) e `docs/engineering/QUALITY_GATES.md` (G-18) para o gate correspondente.
 
-**Por que isso importa:** mistura de correção emergencial com trabalho planejado no mesmo histórico dificulta revisão, torna o fix indisponível em produção até a sprint inteira terminar, e impede reverter a correção isoladamente se algo der errado. Ver `docs/adr/ADR-004.md` para o contexto completo da decisão.
+**Por que isso importa:** mistura de correção emergencial com trabalho planejado no mesmo histórico dificulta revisão, torna o fix indisponível em produção até a sprint inteira terminar, e impede reverter a correção isoladamente se algo der errado. Ver `docs/engineering/adr/ADR-004.md` para o contexto completo da decisão.
 
 ---
 
@@ -185,7 +186,7 @@ Bug encontrado durante sprint de teste/QA/validação
 - Sempre documentar decisões arquiteturais em `ARCHITECTURE_DECISIONS.md`
 - Sempre manter o escopo exato do que foi pedido
 - Sempre criar `SPRINTS/SPRINT_NN.md` ao iniciar uma nova sprint, usando o template
-- Sempre interromper uma sprint de testes/QA/validação e abrir `hotfix/...` quando um achado atender a algum critério objetivo de interrupção (ver seção "Bugs Encontrados Durante Sprints de Teste, QA ou Validação" e `docs/ENGINEERING_GUIDE.md` seção 11)
+- Sempre interromper uma sprint de testes/QA/validação e abrir `hotfix/...` quando um achado atender a algum critério objetivo de interrupção (ver seção "Bugs Encontrados Durante Sprints de Teste, QA ou Validação" e `docs/engineering/ENGINEERING_GUIDE.md` seção 11)
 
 ---
 
@@ -236,28 +237,48 @@ Ao concluir qualquer tarefa, verifique esta tabela:
 
 ## Estrutura de Documentos
 
+`docs/` é organizado por audiência desde 2026-07-10 (ver ADR-006). Critério de cada pasta: `company/` só
+recebe decisão do Product Owner; `engineering/` descreve como o sistema é construído, independente da
+feature do momento; `product/` é pesquisa/planejamento do que construir a seguir; `operations/` é o
+estado vivo que muda a cada sprint.
+
 ```
-CLAUDE.md                          ← este arquivo (manual operacional — lido primeiro)
+CLAUDE.md                                    ← este arquivo (manual operacional — lido primeiro)
 docs/
-├── ENGINEERING_GUIDE.md           ← constituição técnica (padrões que raramente mudam)
-├── ARCHITECTURE.md                ← visão arquitetural completa (camadas, módulos, fluxos)
-├── ARCHITECTURE_DECISIONS.md      ← ADRs (histórico de decisões com contexto)
-├── DATABASE.md                    ← schema, tabelas, índices, regras de migração
-├── SECURITY.md                    ← política de segurança e checklist OWASP
-├── TESTING.md                     ← estratégia oficial de testes
-├── CONTRIBUTING.md                ← processo de desenvolvimento e PR
-├── PROJECT_STATUS.md              ← estado atual (atualizado a cada sprint)
-├── ROADMAP.md                     ← evolução planejada (fases e sprints)
-├── KNOWN_ISSUES.md                ← bugs e issues conhecidos (nunca apagar)
-├── CHANGELOG.md                   ← histórico de versões
-├── SPRINTS/
-│   ├── SPRINT_00.md               ← retrospectiva
-│   ├── SPRINT_01.md               ← retrospectiva
-│   └── SPRINT_02.md               ← plano ativo
-└── templates/
-    ├── SPRINT_TEMPLATE.md
-    ├── ADR_TEMPLATE.md
-    └── ISSUE_TEMPLATE.md
+├── README.md                                ← índice de navegação de toda a documentação
+├── company/                                 ← identidade e negócio (decisão do Product Owner)
+│   ├── BRAND_IDENTITY.md                    ← nome, pilares, escopo negativo, promessa (Fluxoly)
+│   ├── VISION.md                            ← missão, visão, valores, critérios de sucesso
+│   └── PRODUCT_REQUIREMENTS.md              ← persona, mercado-alvo, monetização (parcialmente TODO)
+├── product/                                 ← pesquisa e planejamento de produto
+│   ├── FEATURE_MATRIX_TEMPLATE.md           ← funcionalidades atuais e comparação com concorrentes
+│   └── features/                            ← specs de feature em rascunho (ex.: VENDAS.md)
+├── engineering/                             ← constituição técnica (padrões que raramente mudam)
+│   ├── ENGINEERING_GUIDE.md                 ← constituição técnica central
+│   ├── ARCHITECTURE.md                      ← visão arquitetural completa (camadas, módulos, fluxos)
+│   ├── ARCHITECTURE_DECISIONS.md            ← índice de ADRs
+│   ├── adr/                                 ← decisões arquiteturais individuais (ADR-001 a ADR-006+)
+│   ├── DOMAIN_MODEL.md                      ← mapa dos domínios de negócio existentes no código
+│   ├── DATABASE.md                          ← schema, tabelas, índices, regras de migração
+│   ├── SECURITY.md                          ← política de segurança e checklist OWASP
+│   ├── TESTING.md                           ← estratégia oficial de testes
+│   ├── CODE_STYLE.md                        ← guia de estilo
+│   ├── QUALITY_GATES.md                     ← contrato de qualidade
+│   ├── AI_WORKFLOW.md                       ← protocolo de trabalho para IA
+│   ├── CONTRIBUTING.md                      ← processo de desenvolvimento e PR
+│   └── templates/ADR_TEMPLATE.md
+└── operations/                              ← estado vivo (atualizado a cada sprint)
+    ├── PROJECT_STATUS.md                    ← estado atual
+    ├── ROADMAP.md                           ← evolução planejada (fases e sprints)
+    ├── KNOWN_ISSUES.md                      ← bugs e issues conhecidos (nunca apagar)
+    ├── CHANGELOG.md                         ← histórico de versões
+    ├── SPRINTS/
+    │   ├── SPRINT_00.md                     ← retrospectiva
+    │   ├── SPRINT_01.md                     ← retrospectiva
+    │   └── SPRINT_02.md                     ← plano ativo
+    └── templates/
+        ├── SPRINT_TEMPLATE.md
+        └── ISSUE_TEMPLATE.md
 ```
 
 ---

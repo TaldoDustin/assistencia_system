@@ -158,7 +158,7 @@ Verificados pelo revisor (ou pelo autor em projeto solo) antes de aprovar.
 
 | Estado | Critério |
 |--------|---------|
-| ✅ PASSOU | `docs/CHANGELOG.md` tem entrada na seção `[Não lançado]` para qualquer `feat:` ou `fix:` |
+| ✅ PASSOU | `docs/operations/CHANGELOG.md` tem entrada na seção `[Não lançado]` para qualquer `feat:` ou `fix:` |
 | ❌ FALHOU | PR contém `feat:` ou `fix:` sem entrada correspondente no CHANGELOG |
 | N/A | PR contém apenas `docs:`, `test:`, `chore:`, `refactor:`, `style:` |
 
@@ -168,7 +168,7 @@ Verificados pelo revisor (ou pelo autor em projeto solo) antes de aprovar.
 
 | Estado | Critério |
 |--------|---------|
-| ✅ PASSOU | `docs/PROJECT_STATUS.md` reflete o estado atual (bugs, cobertura, score) |
+| ✅ PASSOU | `docs/operations/PROJECT_STATUS.md` reflete o estado atual (bugs, cobertura, score) |
 | ❌ FALHOU | Bug corrigido não foi movido para "Resolvidos" **ou** nova dívida técnica não foi registrada |
 | N/A | PR não altera estado do projeto (docs puras, testes isolados) |
 
@@ -178,7 +178,7 @@ Verificados pelo revisor (ou pelo autor em projeto solo) antes de aprovar.
 
 | Estado | Critério |
 |--------|---------|
-| ✅ PASSOU | Nova ADR em `docs/adr/` e entrada no índice `ARCHITECTURE_DECISIONS.md` |
+| ✅ PASSOU | Nova ADR em `docs/engineering/adr/` e entrada no índice `ARCHITECTURE_DECISIONS.md` |
 | ❌ FALHOU | Mudança de framework, banco, estratégia de deploy ou estrutura de pastas sem ADR correspondente |
 | N/A | PR não contém decisão arquitetural |
 
@@ -213,7 +213,7 @@ Verificados pelo revisor (ou pelo autor em projeto solo) antes de aprovar.
 | ✅ PASSOU | 100% dos commits do PR no formato `<tipo>(<escopo>): <descrição>` |
 | ❌ FALHOU | Qualquer commit com mensagem no formato livre ("att", "fix", "wip", etc.) |
 
-**Referência:** `docs/CODE_STYLE.md` — seção Git.
+**Referência:** `docs/engineering/CODE_STYLE.md` — seção Git.
 
 ---
 
@@ -224,12 +224,12 @@ Aplicáveis quando houver revisão por par (dois ou mais colaboradores).
 ### G-15 — Sem lógica duplicada
 
 Novo código não replica lógica já existente em outro módulo.
-Consulte `docs/ENGINEERING_GUIDE.md` — seção DRY.
+Consulte `docs/engineering/ENGINEERING_GUIDE.md` — seção DRY.
 
 ### G-16 — Complexidade dentro dos limites
 
 Funções Python <= 40 linhas. Componentes React <= 200 linhas.
-Consulte `docs/CODE_STYLE.md` para os limites completos.
+Consulte `docs/engineering/CODE_STYLE.md` para os limites completos.
 
 ### G-17 — Testes novos para código novo
 
@@ -240,7 +240,7 @@ Exceção: código de infraestrutura (migrations, config) pode ser sem teste se 
 
 ## Gates de Processo (Manual)
 
-Aplicável a qualquer sprint de teste, QA ou validação — ver `CLAUDE.md` e `docs/ENGINEERING_GUIDE.md` §11 (ADR-004).
+Aplicável a qualquer sprint de teste, QA ou validação — ver `CLAUDE.md` e `docs/engineering/ENGINEERING_GUIDE.md` §11 (ADR-004).
 
 ### G-18 — Achados que atendem critérios de interrupção seguem fluxo `hotfix/`
 

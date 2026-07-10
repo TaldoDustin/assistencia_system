@@ -1,6 +1,7 @@
 import os
 import tempfile
 import uuid
+from datetime import datetime
 
 # Must be set before importing app — DB_PATH is resolved at module load time
 _tmp_dir = tempfile.mkdtemp()
@@ -117,18 +118,118 @@ def auth_client(app):
 
 
 # ============================================================================
-# Fixtures de Estoque (Sprint 2.5)
+# Fixtures de Ordens de Serviço (Sprint 2.4)
 # ============================================================================
+
+
+def _reparo_ids_existentes(n=1):
+    """Le reparos ja semeados por sincronizar_reparos_padrao() na inicializacao do app."""
+    conn = _app.conectar()
+    try:
+        rows = conn.execute("SELECT id FROM reparos ORDER BY id LIMIT ?", (n,)).fetchall()
+        return [r[0] for r in rows]
+    finally:
+        conn.close()
 
 
 @pytest.fixture
 def reparo_padrao_id():
     """Le um reparo ja semeado por sincronizar_reparos_padrao() na inicializacao do app."""
+    return _reparo_ids_existentes(1)[0]
+
+
+@pytest.fixture
+def dois_reparos_ids():
+    return _reparo_ids_existentes(2)
+
+
+@pytest.fixture
+def payload_os_valido(reparo_padrao_id):
+    """Factory: payload minimo valido para POST/PUT /api/ordens, com overrides pontuais."""
+
+    def _payload(**overrides):
+        base = {
+            "tipo": "Assistencia",
+            "cliente": f"Cliente {uuid.uuid4().hex[:6]}",
+            "modelo": "iPhone 13",
+            "tecnico": "ISAQUE SOUZA",
+            "vendedor": "Camila",
+            "reparo_ids": [reparo_padrao_id],
+        }
+        base.update(overrides)
+        return base
+
+    return _payload
+
+
+@pytest.fixture
+def criar_os(reparo_padrao_id):
+    """Factory: cria uma OS direto no banco (sem passar pela API), devolve o id. Limpa ao final do teste."""
+    ids_criados = []
+
+    def _criar(
+        tipo="Assistencia",
+        cliente=None,
+        modelo="iPhone 13",
+        tecnico="ISAQUE SOUZA",
+        vendedor="Camila",
+        status="Em andamento",
+        reparo_ids=None,
+        valor_cobrado=0.0,
+        valor_descontado=0.0,
+        data=None,
+    ):
+        reparos = reparo_ids or [reparo_padrao_id]
+        conn = _app.conectar()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO os (tipo, cliente, aparelho, tecnico, reparo_id, status,
+                    valor_cobrado, valor_descontado, custo_pecas, data, vendedor, modelo)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    tipo,
+                    cliente or f"Cliente {uuid.uuid4().hex[:6]}",
+                    modelo,
+                    tecnico,
+                    reparos[0],
+                    status,
+                    valor_cobrado,
+                    valor_descontado,
+                    0,
+                    data or datetime.now().strftime("%Y-%m-%d"),
+                    vendedor,
+                    modelo,
+                ),
+            )
+            os_id = cursor.lastrowid
+            for reparo_id in reparos:
+                cursor.execute("INSERT INTO os_reparos (os_id, reparo_id) VALUES (?, ?)", (os_id, reparo_id))
+            conn.commit()
+        finally:
+            conn.close()
+        ids_criados.append(os_id)
+        return os_id
+
+    yield _criar
+
     conn = _app.conectar()
     try:
-        return conn.execute("SELECT id FROM reparos LIMIT 1").fetchone()[0]
+        for os_id in ids_criados:
+            conn.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
+            conn.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
+            conn.execute("DELETE FROM os_checklists WHERE os_id=?", (os_id,))
+            conn.execute("DELETE FROM os WHERE id=?", (os_id,))
+        conn.commit()
     finally:
         conn.close()
+
+
+# ============================================================================
+# Fixtures de Estoque (Sprint 2.5)
+# ============================================================================
 
 
 @pytest.fixture

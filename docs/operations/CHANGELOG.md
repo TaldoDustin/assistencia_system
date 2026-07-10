@@ -44,6 +44,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `tests/test_auth.py` — primeira suíte pytest do projeto (Sprint 2.2): login, logout, sessão e controle de acesso por perfil, isolada via `IR_FLOW_DATA_DIR`
 - `irflow_validation.py` (Sprint 2.6): camada compartilhada de parsing de entrada — `parse_int`, `parse_float`, `safe_json`, `validate_positive_number` — usada pelos endpoints JSON de `irflow_blueprints_api.py`
 - `tests/test_users.py` — cobertura de CRUD de usuários via `/api/usuarios` (Sprint 2.3): listar, criar, editar, excluir; duplicado, campos obrigatórios, perfil desconhecido, auto-desativação/auto-exclusão bloqueadas
+- `tests/test_os_creation_query.py` — cobertura de criação e consulta de Ordens de Serviço via `/api/ordens` (Sprint 2.4): criação válida, campos obrigatórios, dependências (reparo, vendedor, peça), status/valores/data padrão, listagem com filtros, obter por id, histórico de cliente
+- `tests/test_os_update_status.py` — cobertura de atualização (`PUT /api/ordens/<id>`) e transição de status (`PATCH /api/ordens/<id>/status`) de OS (Sprint 2.4): matriz completa de transições entre os 4 status válidos, troca de peças
+- `tests/test_os_deletion_security.py` — cobertura de exclusão (`DELETE /api/ordens/<id>`) e resiliência de entrada em rotas de OS (Sprint 2.4): SQL injection, payload vazio, JSON malformado
 - `tests/test_permissions.py` — matriz de acesso por perfil (admin/tecnico/vendedor) em rotas admin-only legadas e API, cobrindo 200/401/403/404 (Sprint 2.3)
 - `tests/test_session.py` — cobertura de sessão: expiração (cookie forjado), cookie adulterado/não assinado, logout múltiplo, acesso após logout (Sprint 2.3)
 - `tests/test_security.py` — cobertura de resiliência de entrada em `/api/auth/login`: SQL injection, campos obrigatórios, payload vazio, JSON malformado, Content-Type incorreto (Sprint 2.3)

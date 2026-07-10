@@ -1626,7 +1626,7 @@ def create_api_blueprint(deps):
         valor_cobrado = parse_float(body.get("valor_cobrado"), default=0.0)
         valor_descontado = parse_float(body.get("valor_descontado"), default=0.0)
         data_os = (body.get("data_os") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-        status = normalizar_status_os(body.get("status") or "")
+        status = normalizar_status_os(body.get("status") or "", status_padrao="")
         aparelho = modelo
 
         if (
@@ -1758,7 +1758,7 @@ def create_api_blueprint(deps):
             return err("Não autenticado.", 401)
 
         body = safe_json(request)
-        status = normalizar_status_os(body.get("status") or "")
+        status = normalizar_status_os(body.get("status") or "", status_padrao="")
         if not status:
             return err("Status inválido.")
 

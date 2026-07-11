@@ -548,6 +548,26 @@ def criar_tabelas():
                 """
             )
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entidade TEXT NOT NULL,
+                entidade_id INTEGER,
+                usuario_id INTEGER,
+                acao TEXT NOT NULL,
+                valor_anterior TEXT,
+                valor_novo TEXT,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_audit_log_entidade
+                ON audit_log (entidade, entidade_id)
+                """
+            )
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")

@@ -157,12 +157,15 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Logs de operações críticas (criação/edição/deleção de OS) | ❌ | Não implementado |
-| Logs de tentativas de login falhas | ❌ | Não implementado |
-| Logs sem exposição de dados sensíveis | N/A | Sem logs hoje |
+| Logs de operações críticas (criação/edição/deleção de OS) | ❌ | Auditoria central (`audit_log`, ver abaixo) existe mas OS ainda não foi migrada para chamá-la — fora de escopo da Sprint 3 (mudaria domínio existente, não é feature nova) |
+| Logs de tentativas de login falhas | ✅ | Tabela `login_attempts` (KI-001) grava toda tentativa (sucesso e falha) — não é logging estruturado em JSON, mas cobre a auditabilidade |
+| Logs sem exposição de dados sensíveis | N/A | Sem logs de aplicação estruturados hoje |
 | Logs consultáveis em produção | ❌ | Fly.io tem logs básicos mas não estruturados |
+| Auditoria central reutilizável entre domínios | ✅ | `audit_log` (`irflow_audit.py::registrar_log_auditoria`) — tabela genérica (entidade/entidade_id/ação/antes/depois), consumida pela primeira vez pelos domínios Clientes e `estoque_unidades` (Sprint P0.1) |
 
-**Ação Sprint 3:** Implementar logging estruturado em JSON para operações críticas.
+**Ação Sprint 3:** Implementar logging estruturado em JSON para operações críticas — auditoria em banco
+(`audit_log`) resolvida; logging estruturado em arquivo/stdout para observabilidade (Sentry etc.) segue
+pendente.
 
 ---
 

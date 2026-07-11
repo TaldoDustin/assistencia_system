@@ -227,6 +227,37 @@ Auditoria de mudanças em itens da lista de compras.
 | `valor_novo` | TEXT | snapshot depois da mudança |
 | `created_at` | TEXT NOT NULL | `datetime('now')` |
 
+### `login_attempts`
+
+Contador de tentativas de login para rate limiting (Sprint 3, KI-001 — `irflow_rate_limit.py`).
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `identificador` | TEXT NOT NULL | IP resolvido via `Fly-Client-IP` &gt; `X-Forwarded-For` &gt; `remote_addr` |
+| `sucesso` | INTEGER NOT NULL | `0` ou `1` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índice:** `idx_login_attempts_identificador_criado_em` em `(identificador, criado_em)`.
+
+### `audit_log`
+
+Auditoria central reutilizável entre domínios (Sprint 3 — `irflow_audit.py::registrar_log_auditoria`).
+Distinta de `shopping_list_logs`, que continua própria desse domínio e não foi migrada para cá.
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `entidade` | TEXT NOT NULL | `'cliente'` \| `'estoque_unidade'` \| outros domínios futuros |
+| `entidade_id` | INTEGER | |
+| `usuario_id` | INTEGER | quem executou a ação |
+| `acao` | TEXT NOT NULL | `create` \| `update` \| `delete` \| `status_change` |
+| `valor_anterior` | TEXT | snapshot JSON antes da mudança |
+| `valor_novo` | TEXT | snapshot JSON depois da mudança |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índice:** `idx_audit_log_entidade` em `(entidade, entidade_id)`.
+
 ### `os_checklists`
 
 Checklist de diagnóstico do aparelho, acessível publicamente via token (rota

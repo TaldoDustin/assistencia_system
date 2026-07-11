@@ -54,9 +54,9 @@ separado hoje está registrado como está — ver seção 3.
 | HTTP | `irflow_blueprints_orders.py` (views legadas `/ordens*`); `/api/ordens/*` em `irflow_blueprints_api.py` |
 | Frontend | `pages/NewOrder.jsx`, `pages/EditOrder.jsx`, `pages/Orders.jsx` |
 | Testes | Nenhum arquivo dedicado ainda em `main` — a suíte da Sprint 2.4 (`test/sprint-2-4-regras-negocio-os`, 88 testes) está em branch própria aguardando merge. Cobertura indireta hoje via `tests/test_stock_os_integration.py` (consumo/devolução de peças na OS) |
-| Depende de | Estoque (consumo/devolução de peças via `irflow_os.py`), Tabela de Preços (auto-preenchimento de `valor_cobrado`), Dados de Referência (modelos, técnicos) |
+| Depende de | Estoque (consumo/devolução de peças via `irflow_os.py`), Tabela de Preços (auto-preenchimento de `valor_cobrado`), Dados de Referência (modelos, técnicos), opcionalmente Clientes (`cliente_id`, Sprint P0.1) |
 | Dependido por | Relatórios, Integrações MercadoPhone |
-| Observação | **`cliente` não é uma entidade própria** — é uma coluna `TEXT` solta na tabela `os` (`app.py`, `CREATE TABLE os`). Não há tabela `clientes`, não há histórico relacional além dos registros de OS com o mesmo texto em `cliente`. Isso é o ponto de partida real para qualquer futuro domínio de CRM |
+| Observação | **`cliente` (texto) continua sendo o campo principal** — coluna `TEXT` solta em `os`. Desde a Sprint P0.1 existe também `os.cliente_id` (aditivo, nullable, sem backfill — ver seção 1.12 Clientes), mas nenhuma rota de criação/edição de OS preenche ou exige esse campo ainda; é infraestrutura pronta para o futuro módulo de Vendas consumir, não uma migração do fluxo atual |
 
 ### 1.4 Estoque
 
@@ -156,15 +156,27 @@ separado hoje está registrado como está — ver seção 3.
 | Dependido por | Todos os domínios que lidam com status de OS ou valores monetários |
 | Observação | Único módulo com 78%+ de cobertura de testes hoje — ponto de referência de qualidade para os demais |
 
+### 1.12 Clientes
+
+| Aspecto | Hoje |
+|---|---|
+| Responsabilidade | Entidade Cliente — cadastro mínimo viável (nome + telefone ou e-mail), busca/paginação. Fundação reutilizável para Vendas, CRM, Garantia, Financeiro (`docs/product/features/CLIENTES.md`) |
+| Tabela(s) | `clientes` |
+| Lógica | `irflow_clientes_service.py` — **primeiro domínio a seguir de fato** a convenção `controller → service → repository` de `ENGINEERING_GUIDE.md` §3.1 (até aqui só documentada, nunca aplicada) |
+| HTTP | `irflow_clientes_controller.py` (`clientes_api`, prefixo `/api/clientes`) |
+| Frontend | Nenhum ainda — fundação de backend apenas (Sprint P0.1 é explicitamente "sem tela de vendas") |
+| Testes | `tests/test_clientes.py` (23 casos) |
+| Depende de | `irflow_audit.py` (auditoria de create/update/delete) |
+| Dependido por | OS (`os.cliente_id`, opcional, sem uso ainda), futuramente Vendas (`docs/product/features/VENDAS.md`) |
+| Observação | Deduplicação (por telefone, CPF, ou ambos) e o que fazer com clientes duplicados já existentes seguem `TODO` — decisão de negócio pendente do Product Owner, por isso não há `UNIQUE` em `telefone`/`cpf_cnpj`/`email` no schema |
+
 ---
 
 ## 2. O que ainda não é um domínio isolado
 
-- **Clientes** — não existe como entidade. É um campo texto solto em `os`. Qualquer domínio de CRM ou de Vendas
-  que precise de histórico de cliente por identidade (não por string) precisa resolver isso primeiro — é
-  pré-requisito estrutural, não detalhe de implementação.
 - **Financeiro / Caixa** — não existe hoje. Custos operacionais (`custos_operacionais`) e valores de OS existem,
   mas não há conceito de caixa, sangria, suprimento ou fluxo de caixa consolidado.
+- ~~Clientes~~ — resolvido na Sprint P0.1, ver seção 1.12 acima.
 
 ---
 
@@ -174,6 +186,12 @@ A partir de agora, todo domínio novo (ex.: Vendas) segue a convenção formaliz
 `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — camadas `controller → service → repository → tests → README`,
 incluindo a regra de que **nenhum domínio acessa o repository de outro domínio diretamente** (só o service
 do domínio dono) — mesmo que o domínio inicialmente viva no mesmo diretório dos módulos existentes.
+
+**Clientes (seção 1.12) é a primeira aplicação real dessa convenção** (Sprint P0.1, 2026-07-11) — sem
+pasta de domínio própria (`irflow_clientes_*.py` soltos na raiz, mesma convenção dos módulos existentes),
+o requisito de README curto virou um bloco de docstring no topo de `irflow_clientes_service.py` (adendo
+registrado em `ENGINEERING_GUIDE.md` §3.1). `estoque_unidades` (rastreamento por IMEI) segue o mesmo
+padrão logo em seguida.
 
 Este mapa deve ser atualizado a cada novo domínio adicionado ou reestruturado — é o inventário vivo,
 não um documento estático.

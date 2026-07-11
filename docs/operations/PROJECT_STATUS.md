@@ -17,12 +17,12 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura agora bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 20 erros de `ruff check .` pré-existentes (KI-017) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
-| Cobertura de testes| 43% global, 331 testes — meta de 40% da Sprint 2 atingida (ver Cobertura de Testes) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 61 erros de `ruff check .` pré-existentes (KI-017, ver nota de escopo corrigida) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
+| Cobertura de testes| 46% global, 387 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
-| Segurança          | Média (sem auditoria formal)    |
+| Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
 
-O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. A cobertura de testes atingiu a meta da Sprint 2 (40%) e o gate de CI já bloqueia regressão de cobertura. A fragilidade mais visível agora é operacional, não funcional: o job de lint do CI está vermelho em `main` por dívida técnica pré-existente (KI-017), bloqueando o restante do pipeline para qualquer push.
+O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. A fragilidade mais visível agora continua sendo operacional, não funcional: o job de lint do CI está vermelho em `main` por dívida técnica pré-existente (KI-017), bloqueando o restante do pipeline para qualquer push — ainda não corrigido, fora de escopo das sprints em andamento.
 
 ---
 
@@ -64,7 +64,36 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.7 — Fechamento (T-28, T-29) concluída em 2026-07-11:** `tests/test_pricing.py` (27 casos — lógica pura de `irflow_price_tables.py` e integração de `/api/precos*`) e `tests/test_shopping.py` (34 casos — CRUD, workflow de status, bloqueio de compra simultânea, auditoria de `/api/shopping-list`), mais fixtures locais de limpeza por teste. Cobertura global subiu de 36% para 43%, passando a meta de 40% da Sprint 2. Durante a escrita de `test_shopping.py`, um bug real foi encontrado em `POST /api/shopping-list` (quantidade `0` normalizada silenciosamente para `1` — C-01+C-04) e corrigido via `hotfix/quantidade-zero-shopping-list` antes de continuar (KI-016). Cobertura tornada bloqueante no CI (`fail_under = 40` em `pyproject.toml`, `continue-on-error` removido de `ci.yml`) com aprovação explícita do usuário. Achado adicional fora de escopo: `ruff check .` falha em `main` com 20 erros pré-existentes, não introduzidos nesta sprint — registrado como KI-017, não corrigido (seria refatoração multi-arquivo). `.env.example` permanece pendente. Ver `docs/operations/SPRINTS/SPRINT_02.md`.
 
-Restante da Sprint 2: `.env.example`.
+Restante da Sprint 2: `.env.example` (será fechado junto da Unidade 8 da Sprint 3, ver abaixo — mesma
+variável de ambiente documentada nas duas frentes).
+
+---
+
+**Sprint 3 — Segurança e Observabilidade** (CONCLUÍDA em 2026-07-11, 4 unidades) e **Sprint P0.1 —
+Fundações de Produto** (EM ANDAMENTO) rodando em paralelo, decisão do usuário (CTO) de não começar o
+módulo de Vendas ainda e investir primeiro nas fundações reutilizáveis (Clientes, IMEI, camada de
+serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRINT_03.md` na conclusão).
+
+- **Unidade 1 — Rate limiting em login (KI-001):** contador em tabela SQLite (`login_attempts`), não
+  Flask-Limiter — o Gunicorn de produção roda com `--workers 2`, então memória de processo daria um
+  limite mais fraco que o nominal. 5 tentativas/minuto por identificador (`Fly-Client-IP` →
+  `X-Forwarded-For` → `remote_addr`). 7 testes.
+- **Unidade 2 — Expiração de sessão por inatividade:** janela deslizante de 30 min
+  (`IR_FLOW_SESSION_INACTIVITY_MINUTES`), um único ponto de checagem em `verificar_autenticacao()`
+  cobrindo views legadas e `/api/*`. 11 testes.
+- **Unidade 3 — Auditoria central:** tabela genérica `audit_log` (`irflow_audit.py`), não replica
+  `shopping_list_logs` por domínio a cada feature nova. Sem consumidor até a Unidade 5. 5 testes.
+- **Unidade 4 — Recuperação de senha:** token de uso único gerado pelo admin (não self-service por
+  e-mail), expira em 24h, `secrets.token_urlsafe` como `gerar_token_checklist_os`. 10 testes.
+- **Unidade 5 — Domínio Clientes:** `irflow_clientes_controller/service/repository.py` — primeira
+  aplicação real da convenção de `ENGINEERING_GUIDE.md` §3.1. CRUD + busca/paginação, `os.cliente_id`
+  aditivo sem backfill, exclusão bloqueada com OS vinculada (BR-023, BR-024). Sem tela ainda. 23 testes.
+  Achado corrigido: `verificar_autenticacao()` só reconhecia bypass de `/api/*` pelo nome do blueprint
+  `api.*` — um segundo blueprint sob `/api/*` caía na checagem de sessão legada; trocado para checar
+  `request.path`, escala para qualquer domínio futuro sob `/api/*` sem precisar editar essa lista de novo.
+
+Pendente: Unidade 6 (`estoque_unidades`/IMEI), Unidade 7 (stub `irflow_vendas_service.py`), Unidade 8
+(`.env.example`), Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
 
 ### Escopo previsto
 
@@ -149,7 +178,7 @@ Restante da Sprint 2: `.env.example`.
 | R-01 | SQLite em produção sem replicação — falha de disco = perda de dados  | Baixa         | Crítico | Backup automático    |
 | R-02 | Sem CI/CD — regressões chegam a produção sem detecção automática      | Alta          | Alto    | Nenhuma              |
 | R-03 | Chaves secretas em variáveis de ambiente sem documentação formal      | Média         | Alto    | `.env` removido do git|
-| R-04 | Sem rate limiting — `/api/auth/login` vulnerável a força bruta        | Média         | Alto    | Nenhuma              |
+| ~~R-04~~ | ~~Sem rate limiting — `/api/auth/login` vulnerável a força bruta~~ | Baixa | Alto | **Mitigado (2026-07-11)** — `irflow_rate_limit.py`, 5 tentativas/min por identificador (KI-001) |
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
 | R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
@@ -177,16 +206,16 @@ Restante da Sprint 2: `.env.example`.
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint 2.7) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint P0.1 Unidade 5) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list — Sprint 2.2 a 2.7) | pytest | `irflow_validation.py` 100% · `irflow_blueprints_auth.py` 83% · `irflow_core.py` 88% · `irflow_price_tables.py` 83% · `app.py` 53% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 58% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes — Sprint 2.2 a Sprint P0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `irflow_blueprints_auth.py` 84% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **43%** (`pytest --cov`, 331 testes, pós-merge Sprint 2.7 — 2026-07-11) |
+| **Global (repo, `main`)** |                  |              | **46%** (`pytest --cov`, 387 testes, pós-merge Sprint P0.1 Unidade 5 — 2026-07-11) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%. Gate de CI tornado bloqueante no mesmo commit (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%, e segue subindo com Sprint 3/P0.1 (46% agora). Gate de CI bloqueante desde a Sprint 2.7 (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 
 ---
 

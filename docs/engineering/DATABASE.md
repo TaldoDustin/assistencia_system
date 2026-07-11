@@ -258,6 +258,23 @@ Distinta de `shopping_list_logs`, que continua própria desse domínio e não fo
 
 **Índice:** `idx_audit_log_entidade` em `(entidade, entidade_id)`.
 
+### `password_reset_tokens`
+
+Recuperação de senha via token de uso único gerado pelo admin (Sprint 3, Unidade 4) — não é
+self-service por e-mail, o admin gera e entrega o link manualmente.
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `usuario_id` | INTEGER NOT NULL | |
+| `token` | TEXT UNIQUE NOT NULL | `secrets.token_urlsafe(24)` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+| `expira_em` | TEXT NOT NULL | `criado_em` + `IR_FLOW_PASSWORD_RESET_TOKEN_HOURS` (default 24h) |
+| `usado_em` | TEXT | `NULL` até o token ser consumido; também usado para invalidar token anterior ao gerar um novo |
+| `criado_por` | INTEGER | admin que gerou o token |
+
+**Índice:** `idx_password_reset_tokens_usuario_id` em `(usuario_id)`.
+
 ### `os_checklists`
 
 Checklist de diagnóstico do aparelho, acessível publicamente via token (rota

@@ -568,6 +568,25 @@ def criar_tabelas():
                 """
             )
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                expira_em TEXT NOT NULL,
+                usado_em TEXT,
+                criado_por INTEGER
+            )
+            """)
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_usuario_id
+                ON password_reset_tokens (usuario_id)
+                """
+            )
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")

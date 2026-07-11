@@ -250,8 +250,11 @@ explícita do usuário para antecipar do cronograma original (Sprint 3=20%, Spri
 
 ---
 
-### T-10 — `.env.example`
-**20 variáveis** documentadas com comentários e defaults seguros  
+### T-10 — `.env.example` ✅ CONCLUÍDA (2026-07-11, fechada junto da Sprint 3 Unidade 8)
+**26 variáveis** documentadas com comentários e defaults seguros (planejado: 20) — inclui as 2 novas da
+Sprint 3 (`IR_FLOW_SESSION_INACTIVITY_MINUTES`, `IR_FLOW_PASSWORD_RESET_TOKEN_HOURS`) mais as ~24 já
+existentes em `app.py`, incluindo 6 injetadas automaticamente pela plataforma de deploy (documentadas
+como referência, não para setar manualmente).
 **Depende de:** nada — independente
 
 ---
@@ -341,11 +344,11 @@ T-11 (concluída antecipadamente)
 
 - [x] `pytest tests/` passa sem falhas em máquina limpa — 331 testes, 2026-07-11
 - [x] Cobertura >= 40% nos módulos alvo — 43% global, gate bloqueante em `pyproject.toml`
-- [ ] `ruff check .` passa (com baseline documentado) — **vermelho em `main`, 20 erros pré-existentes não introduzidos nesta sprint, registrado como KI-017/R-08, corrigir antes da Sprint 3**
+- [ ] `ruff check .` passa (com baseline documentado) — **vermelho em `main`, 62 erros pré-existentes (contagem corrigida em 2026-07-11, ver KI-017), não introduzidos por nenhuma sprint em andamento, registrado como KI-017/R-08**
 - [ ] `npm run lint` passa sem erros
 - [ ] GitHub Actions CI verde em push para `main` — bloqueado por KI-017 (job `Lint` falha, `backend`/`frontend` não rodam)
 - [x] Nenhum teste cria ou modifica `database.db` — isolamento via `IR_FLOW_DATA_DIR`
-- [ ] `.env.example` com todas as variáveis
+- [x] `.env.example` com todas as variáveis — 26 vars, 2026-07-11 (T-10, fechada junto da Sprint 3)
 - [ ] `ENGINEERING_GUIDE.md` permite setup local sem ajuda
 - [ ] `PROJECT_STATUS.md` atualizado com novo score e cobertura — cobertura atualizada (43%); recálculo formal do score fica para a próxima revisão, mesma disciplina já aplicada em revisões anteriores (não decidir unilateralmente aqui)
 - [ ] `KNOWN_ISSUES.md`: KI-007 (commits) marcado como mitigado

@@ -145,7 +145,7 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 - [x] Cobertura >= 40% nas rotas de OS, auth, preços e shopping list — 43% global, atingida em 2026-07-11 (Sprint 2.7), gate bloqueante em `pyproject.toml`/`ci.yml`
 - [x] Testes rodam com banco SQLite em memória (sem depender do `database.db`) — via `IR_FLOW_DATA_DIR`, ver `tests/conftest.py`
 - [ ] Playwright E2E incluído no CI em modo headless
-- [ ] `.env.example` documentado com todas as variáveis necessárias
+- [x] `.env.example` documentado com todas as variáveis necessárias — feito em 2026-07-11 (T-10)
 - [ ] Badge de CI no README
 
 **Testes obrigatórios:**

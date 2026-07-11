@@ -412,6 +412,22 @@ instância inconsistente com todas as outras ao redor — optado por manter cons
 estabelecido do arquivo em vez de silenciar o lint em um ponto isolado. Confirmado: subiu para **62**
 na Unidade 6 (`estoque.requer_imei`), mesma justificativa.
 
+**Correção de escopo definitiva (2026-07-11, Sprint 3 Unidade 8):** todas as contagens acima (20 → 60 →
+61 → 62) mediam apenas `app.py` + `irflow_blueprints_api.py`. `.github/workflows/ci.yml` roda
+`ruff check .` — **o repositório inteiro**, não só esses dois arquivos. Rodando o comando real do CI:
+**175 erros**, incluindo módulos nunca antes contados (`irflow_blueprints_orders.py`,
+`irflow_mercadophone.py`, `irflow_os.py`, `irflow_price_tables.py`, `irflow_reports.py`,
+`irflow_storage.py`, `irflow_reference_data.py`, `irflow_blueprints_admin.py`) e, principalmente, uma
+dezena de scripts soltos na raiz do repo (`diagnose_dashboard_filter.py`, `test_sync.py`,
+`validate_changes.py`, `test_dashboard_filter.py`, `test_solution.py`, `test_update_os.py`,
+`test_shopping_list.py`, `test_routes.py`, `debug_shopping.py`, `smoke_test_full.py`,
+`check_old_orders.py`) — scripts de debug/smoke pré-pytest (`docs/operations/SPRINTS/SPRINT_02.md` os
+cita como "7 scripts ad-hoc no banco real"), fora de `tests/` e por isso nunca rodados pelo pytest, mas
+ainda escaneados pelo `ruff check .` do CI. Nenhum dos 9 arquivos novos desta sprint
+(`irflow_rate_limit.py`, `irflow_audit.py`, `irflow_clientes_*.py`, `irflow_estoque_unidades_*.py`,
+`irflow_vendas_service.py`) aparece nessa lista — confirmado zero regressão. **62 continua sendo o
+número relevante para o que a Sprint 3/P0.1 tocou**, mas **175 é o número real que bloqueia o CI**.
+
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o
 resto do pipeline de CI para qualquer PR.

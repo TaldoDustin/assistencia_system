@@ -126,6 +126,10 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 | Tokens de checklist expiram | ❌ | **KI-002 — sprint 3** |
 | Tokens revogados ao fechar OS | ❌ | Não implementado |
 | Checklist público não expõe dados sensíveis além do necessário | ⚠️ | Verificar campos retornados no endpoint |
+| Token de reset de senha é aleatório e de uso único | ✅ | `secrets.token_urlsafe(24)`, mesma técnica de `gerar_token_checklist_os`; `usado_em` marca consumo |
+| Token de reset de senha expira | ✅ | 24h por padrão (`IR_FLOW_PASSWORD_RESET_TOKEN_HOURS`) — curto porque é entregue manualmente pelo admin, não por e-mail com prazo longo |
+| Gerar novo token invalida o anterior | ✅ | No máximo um token válido por usuário simultaneamente |
+| Reset de senha é self-service por e-mail | N/A | Decisão explícita: não é — token gerado e entregue manualmente pelo admin, sem infraestrutura de e-mail transacional nova |
 
 ---
 

@@ -2800,6 +2800,94 @@ def create_api_blueprint(deps):
 
         return ok()
 
+    # ── RECUPERAÇÃO DE SENHA (token gerado pelo admin) ──────────────────────
+
+    def _password_reset_token_horas():
+        try:
+            return int(os.environ.get("IR_FLOW_PASSWORD_RESET_TOKEN_HOURS", "24"))
+        except (TypeError, ValueError):
+            return 24
+
+    @api.route("/usuarios/<int:uid>/reset-token", methods=["POST"])
+    def gerar_token_reset_senha(uid):
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT id FROM usuarios WHERE id=?", (uid,))
+            if not cursor.fetchone():
+                return err("Usuário não encontrado.", 404)
+
+            agora = datetime.now()
+            expira_em = (agora + timedelta(hours=_password_reset_token_horas())).isoformat()
+            token = secrets.token_urlsafe(24)
+
+            # Invalida qualquer token anterior ainda não usado deste usuário —
+            # nunca mais de um token válido por vez.
+            cursor.execute(
+                "UPDATE password_reset_tokens SET usado_em=? WHERE usuario_id=? AND usado_em IS NULL",
+                (agora.isoformat(), uid),
+            )
+            cursor.execute(
+                """
+                INSERT INTO password_reset_tokens (usuario_id, token, expira_em, criado_por)
+                VALUES (?, ?, ?, ?)
+                """,
+                (uid, token, expira_em, session.get("usuario_id")),
+            )
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
+
+        return ok(token=token, expira_em=expira_em)
+
+    @api.route("/password-reset/<token>", methods=["POST"])
+    def consumir_token_reset_senha(token):
+        body = safe_json(request)
+        senha_nova = (body.get("senha_nova") or "").strip()
+        if not senha_nova:
+            return err("Informe a nova senha.")
+
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "SELECT id, usuario_id, expira_em, usado_em FROM password_reset_tokens WHERE token=?",
+                (token,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return err("Token inválido.", 404)
+
+            token_id, usuario_id, expira_em, usado_em = row
+            if usado_em:
+                return err("Este token já foi usado.", 410)
+            if datetime.fromisoformat(expira_em) < datetime.now():
+                return err("Este token expirou.", 410)
+
+            agora_iso = datetime.now().isoformat()
+            cursor.execute(
+                "UPDATE usuarios SET senha_hash=? WHERE id=?",
+                (generate_password_hash(senha_nova), usuario_id),
+            )
+            cursor.execute(
+                "UPDATE password_reset_tokens SET usado_em=? WHERE id=?",
+                (agora_iso, token_id),
+            )
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
+
+        return ok()
+
     # ── BACKUP ─────────────────────────────────────────────────────────────
 
     @api.route("/backup/criar", methods=["POST"])

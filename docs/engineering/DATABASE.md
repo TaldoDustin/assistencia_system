@@ -72,6 +72,7 @@ Autenticação e perfis de acesso.
 | `observacoes` | TEXT | *(ALTER)* |
 | `origem_integracao` | TEXT | *(ALTER)* — origem quando criada via MercadoPhone |
 | `id_externo_integracao` | TEXT | *(ALTER)* — id no sistema externo |
+| `cliente_id` | INTEGER | *(ALTER, Sprint P0.1)* — FK lógica para `clientes.id`, nullable, **sem backfill**: OS existentes continuam só com `cliente` (texto); novas OS podem ser vinculadas a um cliente, mas nada força isso ainda |
 
 Sem índice declarado explicitamente (candidato a `idx_os_status_data_tecnico` — ver KI-005/Sprint 5).
 
@@ -171,6 +172,30 @@ Log de entradas/saídas de estoque.
 | `valor` | REAL | NOT NULL |
 | `data` | TEXT | |
 | `observacoes` | TEXT | |
+
+### `clientes`
+
+Entidade Cliente (Sprint P0.1) — primeiro domínio a seguir a convenção controller/service/repository de
+`docs/engineering/ENGINEERING_GUIDE.md` §3.1 (`irflow_clientes_controller.py`,
+`irflow_clientes_service.py`, `irflow_clientes_repository.py`).
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `nome` | TEXT NOT NULL | |
+| `telefone` | TEXT | |
+| `email` | TEXT | |
+| `cpf_cnpj` | TEXT | |
+| `observacoes` | TEXT NOT NULL | `''` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+| `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Regra de cadastro (service, não schema):** nome obrigatório + ao menos um contato (telefone OU
+e-mail) — sem `UNIQUE`/`NOT NULL` em `telefone`/`email`/`cpf_cnpj` porque a deduplicação (por qual campo,
+como tratar duplicados existentes) segue `TODO` — decisão de negócio pendente do Product Owner
+(`docs/product/features/CLIENTES.md`).
+
+**Índices:** `idx_clientes_nome`, `idx_clientes_telefone`, `idx_clientes_cpf_cnpj`.
 
 ### `compras` — lista de compras (versão legada/simplificada)
 
@@ -337,7 +362,14 @@ estoque ──< estoque_lotes.estoque_id
 estoque ──< os_pecas.estoque_id
 estoque ──< movimentacoes.estoque_id
 estoque ──< shopping_list.produto_id
+
+clientes ──< os.cliente_id (Sprint P0.1 — nullable, sem backfill)
+usuarios ──< audit_log.usuario_id
+usuarios ──< password_reset_tokens.usuario_id
 ```
+
+`login_attempts` não tem relacionamento com `usuarios` — `identificador` é o IP resolvido do cliente, não
+um `usuario_id` (a tentativa é registrada mesmo sem o login ter sido bem-sucedido).
 
 **Nota:** nenhuma constraint `FOREIGN KEY` é declarada no schema — integridade referencial é mantida
 apenas pela lógica da aplicação. Isso é dívida técnica implícita não listada individualmente em

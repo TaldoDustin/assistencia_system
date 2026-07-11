@@ -119,6 +119,22 @@ ação.
 
 ---
 
+## Clientes
+
+**BR-023 — ✅ Implementado**
+Cadastro de cliente exige nome e ao menos um contato (telefone ou e-mail) — sem isso o cliente não pode
+ser reencontrado depois.
+*Fonte: `irflow_clientes_service.py::criar_cliente`/`atualizar_cliente`; `docs/product/features/CLIENTES.md`
+"Decisões estruturais".*
+
+**BR-024 — ✅ Implementado**
+Cliente com OS vinculada (`os.cliente_id`) não pode ser excluído — mesmo padrão de BR-005 (item de
+estoque em uso não pode ser excluído).
+*Fonte: `irflow_clientes_service.py::excluir_cliente`, `irflow_clientes_repository.py::possui_os_vinculada`;
+`docs/product/features/CLIENTES.md` "Casos de erro".*
+
+---
+
 ## Vendas (especificado, não implementado)
 
 Decisões já tomadas em conversa entre Product Owner e engenharia (2026-07-09), registradas em
@@ -148,10 +164,13 @@ Aparelho escolhido sem estoque disponível no momento da confirmação gera erro
 pagamento, nunca depois.
 *Fonte: `VENDAS.md` — "Casos de erro".*
 
-**BR-022 — 📋 Especificado**
-Cliente é uma entidade própria (tabela `clientes`) — nenhuma venda pode salvar nome de cliente como texto
-solto, diferente de como a OS trata `cliente` hoje.
-*Fonte: `VENDAS.md` — "Critérios de aceite"; `docs/engineering/DOMAIN_MODEL.md` seção 2.*
+**BR-022 — ✅ Implementado (pré-requisito pronto; Vendas em si segue não implementado)**
+Cliente é uma entidade própria (tabela `clientes`) — implementado na Sprint P0.1 como fundação
+reutilizável, antes do módulo de Vendas em si existir. `os.cliente_id` (aditivo, nullable) já permite
+vincular uma OS a um cliente, mas nenhuma venda existe ainda para aplicar a regra "nenhuma venda salva
+nome como texto solto" — isso será validado quando `VENDAS.md` for implementado.
+*Fonte: `irflow_clientes_service.py` (BR-023, BR-024); `VENDAS.md` — "Critérios de aceite";
+`docs/engineering/DOMAIN_MODEL.md` seção 1.12.*
 
 ### Regras candidatas — exemplos citados nesta conversa (2026-07-10), pendentes de confirmação formal
 
@@ -177,6 +196,7 @@ conta própria.
 ## Documentos relacionados
 
 - `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022)
+- `docs/product/features/CLIENTES.md` — fonte das regras de Clientes (BR-023, BR-024)
 - `docs/engineering/DOMAIN_MODEL.md` — domínios e arquivos onde cada regra implementada vive
 - `docs/engineering/DATABASE.md` — schema citado nas regras de Estoque/Compras
 - `docs/operations/KNOWN_ISSUES.md` — bugs já corrigidos que originaram alguma regra (ex.: BR-007 ↔ B-11)

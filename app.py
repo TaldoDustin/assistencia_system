@@ -587,6 +587,23 @@ def criar_tabelas():
                 """
             )
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS clientes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                telefone TEXT,
+                email TEXT,
+                cpf_cnpj TEXT,
+                observacoes TEXT NOT NULL DEFAULT '',
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_telefone ON clientes (telefone)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_cpf_cnpj ON clientes (cpf_cnpj)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes (nome)")
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -645,6 +662,13 @@ def criar_tabelas():
 
             try:
                 cursor.execute("ALTER TABLE os ADD COLUMN id_externo_integracao TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                # Aditiva, nullable, sem backfill (CLIENTES.md) -- OS existentes
+                # continuam com `cliente` (texto) e nada mais.
+                cursor.execute("ALTER TABLE os ADD COLUMN cliente_id INTEGER")
             except sqlite3.OperationalError:
                 pass
 
@@ -1432,7 +1456,14 @@ def verificar_autenticacao():
     if session.get("usuario_id") and not sessao_ainda_ativa(session):
         session.clear()
 
+    # Bypass por path (não só pelo blueprint "api.") — cobre também blueprints
+    # de domínio novos sob /api/* (ex.: clientes_api, estoque_unidades_api),
+    # que autenticam via usuario_logado() dentro de si mesmos, igual à API
+    # principal. Checar o path em vez do nome do blueprint evita ter que
+    # atualizar esta lista a cada novo domínio adicionado sob /api/*.
     if endpoint and endpoint.startswith("api."):
+        return
+    if request.path.startswith("/api/"):
         return
 
     perms = ROUTE_PERMISSIONS.get(endpoint)
@@ -1549,6 +1580,15 @@ app.register_blueprint(
         }
     )
 )
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE CLIENTES (Sprint P0.1 — primeiro domínio a seguir
+# a convenção controller/service/repository de ENGINEERING_GUIDE.md §3.1)
+# ============================================================================
+
+from irflow_clientes_controller import create_clientes_blueprint  # noqa: E402
+
+app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

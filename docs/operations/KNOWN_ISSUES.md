@@ -400,8 +400,17 @@ regra de mudança única do `CLAUDE.md`). Candidato a uma sprint de limpeza isol
 arquivos críticos que a Sprint 3 está tocando) o total real é **60 erros** — `app.py` sozinho
 contribui um bloco grande de `F401` (imports não usados) nunca contado antes. Confirmado via
 `git stash` que os 60 já existiam em `main` antes de qualquer mudança desta sessão — nenhuma unidade
-da Sprint 3/P0.1 piora esse número, cada uma é checada com `ruff check &lt;arquivos tocados&gt;` antes do
+da Sprint 3/P0.1 piora esse número, cada uma é checada com `ruff check <arquivos tocados>` antes do
 commit para garantir isso.
+
+**Exceção documentada (2026-07-11, Sprint P0.1 Unidade 5):** o total subiu para **61** com a adição de
+`os.cliente_id` — um novo bloco `try: ALTER TABLE ... / except sqlite3.OperationalError: pass`, que
+segue exatamente o idioma já documentado em `DATABASE.md`/`ENGINEERING_GUIDE.md` para migração aditiva
+de coluna (repetido ~15 vezes em `app.py`, cada instância já contava para os 60 originais via `SIM105`).
+Escrever esse bloco de outra forma (`contextlib.suppress`, sugestão do `ruff`) deixaria essa única
+instância inconsistente com todas as outras ao redor — optado por manter consistência com o padrão
+estabelecido do arquivo em vez de silenciar o lint em um ponto isolado. O mesmo vai se repetir na
+Unidade 6 (`estoque.requer_imei`).
 
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o

@@ -1,4 +1,6 @@
+import os
 import unicodedata
+from datetime import datetime, timedelta
 
 
 STATUS_EM_ANDAMENTO = "Em andamento"
@@ -82,3 +84,41 @@ def to_float(value, default=0.0):
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _limite_inatividade_minutos():
+    try:
+        return int(os.environ.get("IR_FLOW_SESSION_INACTIVITY_MINUTES", "30"))
+    except (TypeError, ValueError):
+        return 30
+
+
+def sessao_ainda_ativa(session, agora=None):
+    """
+    Janela deslizante de inatividade de sessão. Retorna False se a sessão está
+    inativa há mais tempo que IR_FLOW_SESSION_INACTIVITY_MINUTES (default 30).
+
+    Em toda checagem que não expira, atualiza `session["_ultima_atividade"]`
+    para o instante atual — cada request autenticado reseta o timer.
+
+    Sessões sem "_ultima_atividade" (criadas antes desta funcionalidade
+    existir, ou logo após o login) são tratadas como ativas agora, não
+    expiradas de imediato — evita derrubar sessões em andamento no momento
+    do deploy.
+
+    Quem chama é responsável por checar `usuario_id` antes — esta função não
+    avalia se a sessão está autenticada, só há quanto tempo está inativa.
+    """
+    agora = agora or datetime.now()
+    ultima_atividade_str = session.get("_ultima_atividade")
+
+    if ultima_atividade_str:
+        try:
+            ultima_atividade = datetime.fromisoformat(ultima_atividade_str)
+        except (TypeError, ValueError):
+            ultima_atividade = agora
+        if agora - ultima_atividade > timedelta(minutes=_limite_inatividade_minutos()):
+            return False
+
+    session["_ultima_atividade"] = agora.isoformat()
+    return True

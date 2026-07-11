@@ -531,6 +531,22 @@ def criar_tabelas():
             )
             """)
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS login_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                identificador TEXT NOT NULL,
+                sucesso INTEGER NOT NULL,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_login_attempts_identificador_criado_em
+                ON login_attempts (identificador, criado_em)
+                """
+            )
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -1391,6 +1407,7 @@ def verificar_autenticacao():
 
 from irflow_blueprints_auth import create_auth_blueprint  # noqa: E402
 from irflow_blueprints_api import create_api_blueprint  # noqa: E402
+from irflow_rate_limit import resolver_ip_cliente, limite_excedido, registrar_tentativa  # noqa: E402
 
 app.register_blueprint(
     create_auth_blueprint(
@@ -1398,6 +1415,9 @@ app.register_blueprint(
             "conectar": conectar,
             "generate_password_hash": generate_password_hash,
             "check_password_hash": check_password_hash,
+            "resolver_ip_cliente": resolver_ip_cliente,
+            "limite_excedido": limite_excedido,
+            "registrar_tentativa": registrar_tentativa,
         }
     )
 )
@@ -1463,6 +1483,9 @@ app.register_blueprint(
             "backup_email_destino": BACKUP_EMAIL_DESTINO,
             "check_password_hash": check_password_hash,
             "generate_password_hash": generate_password_hash,
+            "resolver_ip_cliente": resolver_ip_cliente,
+            "limite_excedido": limite_excedido,
+            "registrar_tentativa": registrar_tentativa,
             "sincronizar_mercado_phone": sincronizar_mercado_phone,
             "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
             "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,

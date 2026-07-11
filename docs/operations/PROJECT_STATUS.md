@@ -17,12 +17,12 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build), cobertura ainda não bloqueante (`--cov-fail-under=0`) |
-| Cobertura de testes| Em crescimento (36% global, 268 testes — ver Cobertura de Testes) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura agora bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 20 erros de `ruff check .` pré-existentes (KI-017) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
+| Cobertura de testes| 43% global, 331 testes — meta de 40% da Sprint 2 atingida (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Média (sem auditoria formal)    |
 
-O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. A maior fragilidade atual é a cobertura de testes ainda abaixo da meta e a ausência de threshold bloqueante de cobertura no CI — não mais a ausência de pipeline em si (corrigido nesta revisão: o pipeline já existia, o documento estava desatualizado).
+O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. A cobertura de testes atingiu a meta da Sprint 2 (40%) e o gate de CI já bloqueia regressão de cobertura. A fragilidade mais visível agora é operacional, não funcional: o job de lint do CI está vermelho em `main` por dívida técnica pré-existente (KI-017), bloqueando o restante do pipeline para qualquer push.
 
 ---
 
@@ -62,7 +62,9 @@ Objetivo: estabelecer pipeline de CI, testes unitários no backend e cobertura m
 
 **Sprint 2.6 — Padronização de Validação e Parsing (T-26, T-27) concluída em 2026-07-07, mergeada em `main`:** criada camada compartilhada de parsing (`irflow_validation.py`: `parse_int`, `parse_float`, `safe_json`, `validate_positive_number`) e aplicada em `irflow_blueprints_api.py`, eliminando ~50 pontos de duplicação (22x `request.get_json(silent=True) or {}`, checagens de valor positivo, parsing de quantidade). No processo, corrigidos 9 pontos onde um valor não numérico em `request.args`/corpo JSON derrubava a rota com 500 não tratado (KI-013, commit `fix:` isolado do `refactor:`). Registrado KI-014 (bloco `criar_estoque` duplicado e morto, sem efeito em runtime, fora de escopo). 38 testes novos (`tests/test_validation.py`, `tests/test_api_parsing.py`, `tests/test_api_parsing_refactor.py`). Auto-merge com os hotfixes de estoque da Sprint 2.5 (`584c501`, `44be10c`) verificado linha a linha — sem sobreposição, ambos preservados corretamente. Ver `docs/operations/SPRINTS/SPRINT_02.md`.
 
-Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, tornar a cobertura bloqueante no CI (hoje `--cov-fail-under=0`), `.env.example`.
+**Sprint 2.7 — Fechamento (T-28, T-29) concluída em 2026-07-11:** `tests/test_pricing.py` (27 casos — lógica pura de `irflow_price_tables.py` e integração de `/api/precos*`) e `tests/test_shopping.py` (34 casos — CRUD, workflow de status, bloqueio de compra simultânea, auditoria de `/api/shopping-list`), mais fixtures locais de limpeza por teste. Cobertura global subiu de 36% para 43%, passando a meta de 40% da Sprint 2. Durante a escrita de `test_shopping.py`, um bug real foi encontrado em `POST /api/shopping-list` (quantidade `0` normalizada silenciosamente para `1` — C-01+C-04) e corrigido via `hotfix/quantidade-zero-shopping-list` antes de continuar (KI-016). Cobertura tornada bloqueante no CI (`fail_under = 40` em `pyproject.toml`, `continue-on-error` removido de `ci.yml`) com aprovação explícita do usuário. Achado adicional fora de escopo: `ruff check .` falha em `main` com 20 erros pré-existentes, não introduzidos nesta sprint — registrado como KI-017, não corrigido (seria refatoração multi-arquivo). `.env.example` permanece pendente. Ver `docs/operations/SPRINTS/SPRINT_02.md`.
+
+Restante da Sprint 2: `.env.example`.
 
 ### Escopo previsto
 
@@ -72,7 +74,7 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, tornar a cobertura 
 - Configurar Playwright no CI (headless)
 - Documentar variáveis de ambiente em `.env.example`
 - Padronizar mensagens de commit (Conventional Commits)
-- Tornar a cobertura bloqueante no CI (remover `--cov-fail-under=0` e os `continue-on-error` temporários de formatação, hoje adiados para a Sprint 3)
+- ~~Tornar a cobertura bloqueante no CI~~ — feito em 2026-07-11 (`fail_under = 40`); os `continue-on-error` de formatação (ruff format/isort/black) seguem adiados para a Sprint 3, sem mudança
 
 ---
 
@@ -118,6 +120,7 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, tornar a cobertura 
 | ~~B-12~~ | ~~`GET /api/estoque` com qualquer filtro (modelo/tipo/qualidade) retornava sempre lista vazia — ordem errada de parâmetros SQL~~ | ~~Alta~~ | ~~Resolvido (2026-07-07, hotfix, commit `44be10c`)~~ |
 | ~~B-13~~ | ~~9 rotas de `irflow_blueprints_api.py` retornavam 500 não tratado com entrada não numérica em `int()`/`float()` (KI-013)~~ | ~~Média~~ | ~~Resolvido (2026-07-07)~~ |
 | ~~B-14~~ | ~~`PATCH /api/ordens/<id>/status` e `PUT /api/ordens/<id>` sem `status_padrao=""` explícito — status ausente/inválido normalizado silenciosamente para "Em andamento"; em `PUT`, reabria OS Finalizada e zerava `data_finalizado` sem erro (KI-015)~~ | ~~Crítica~~ | ~~Resolvido (2026-07-10, hotfix, commit `2defd17`; achados originais durante a Sprint 2.4, commits `c85a321`/`e755f25`, 2026-07-07)~~ |
+| ~~B-15~~ | ~~`POST /api/shopping-list` normalizava `quantidade_solicitada: 0` silenciosamente para `1` (operador `or` tratando `0` como ausente) em vez de rejeitar (KI-016)~~ | ~~Média~~ | ~~Resolvido (2026-07-11, hotfix `quantidade-zero-shopping-list`, achado durante a Sprint 2.7)~~ |
 
 ---
 
@@ -150,6 +153,7 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, tornar a cobertura 
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
 | R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
+| R-08 | `ruff check .` vermelho em `main` (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, mas descoberto rodando `ruff check .` localmente em 2026-07-11 |
 
 ---
 
@@ -173,28 +177,29 @@ Restante da Sprint 2: `test_pricing.py`, `test_shopping.py`, tornar a cobertura 
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-10, pós-merge Sprint 2.4) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint 2.7) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação — Sprint 2.2 a 2.6) | pytest | `irflow_validation.py` 100% · `irflow_blueprints_auth.py` 83% · `irflow_core.py` 88% · `app.py` 53% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 49% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list — Sprint 2.2 a 2.7) | pytest | `irflow_validation.py` 100% · `irflow_blueprints_auth.py` 83% · `irflow_core.py` 88% · `irflow_price_tables.py` 83% · `app.py` 53% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 58% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **36%** (`pytest --cov`, 268 testes, pós-merge Sprint 2.4 — 2026-07-10) |
+| **Global (repo, `main`)** |                  |              | **43%** (`pytest --cov`, 331 testes, pós-merge Sprint 2.7 — 2026-07-11) |
 
-> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. Ainda não atingida — depende de `test_pricing.py`, `test_shopping.py` (não iniciados). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
+> Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%. Gate de CI tornado bloqueante no mesmo commit (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 
 ---
 
 ## Próximos Objetivos
 
 ### Curto prazo (Sprint 2)
-1. ~~Implementar pipeline de CI com GitHub Actions~~ — já existe, ver "Estado Atual"; falta tornar a cobertura bloqueante
+1. ~~Implementar pipeline de CI com GitHub Actions~~ — já existe, ver "Estado Atual"
 2. Migrar smoke tests para pytest com fixtures
-3. Atingir 40% de cobertura nas rotas críticas (hoje 36%) — `test_pricing.py`, `test_shopping.py`
+3. ~~Atingir 40% de cobertura nas rotas críticas~~ — feito em 2026-07-11 (43%, `test_pricing.py`, `test_shopping.py`)
 4. Documentar `.env.example`
 5. Padronizar commits com Conventional Commits
-6. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/engineering/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
+6. **[Novo, prioridade alta]** Corrigir os 20 erros de `ruff check .` em `main` (KI-017/R-08) — bloqueia o job `Lint` e, por consequência, `backend`/`frontend` no CI para qualquer PR. Fora do escopo desta sprint (seria refatoração multi-arquivo), mas recomendado antes da Sprint 3
+7. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/engineering/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)
 1. Quebrar `irflow_blueprints_api.py` em módulos menores

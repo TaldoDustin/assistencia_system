@@ -328,3 +328,66 @@ retomar o Sprint 2 após a frente de documentação de produto/marca.
 
 Responsável:
 —
+
+---
+
+## ~~KI-016~~ — RESOLVIDO
+
+Descrição:
+Em `irflow_blueprints_api.py`, `POST /api/shopping-list` calculava a quantidade solicitada com
+`parse_int(body.get("quantidade_solicitada") or body.get("quantidade"), default=1)`. Como `0` é
+falsy em Python, enviar `quantidade_solicitada: 0` fazia o `or` cair para
+`body.get("quantidade")` (ausente), que por sua vez caía no `default=1` do `parse_int` — antes
+mesmo de chegar na validação `if quantidade is None or quantidade <= 0: return err(...)`, que
+nunca era alcançada com o valor real enviado pelo chamador.
+
+Impacto:
+Médio. `POST /api/shopping-list` (rota real usada por `Compras.jsx`) criava o item silenciosamente
+com quantidade `1` em vez de rejeitar a entrada `0` — mutação silenciosa de dado persistido sem
+erro (C-01 + C-04, `docs/engineering/ENGINEERING_GUIDE.md` §11).
+
+Status:
+Resolvido em 2026-07-11 via `hotfix/quantidade-zero-shopping-list`. Trocado o `or` por
+`body.get("quantidade_solicitada", body.get("quantidade"))` — `dict.get` com fallback só usa o
+segundo valor quando a chave está de fato ausente, preservando `0` explícito para a validação
+existente rejeitar. Achado durante a escrita de `tests/test_shopping.py` (restante da Sprint 2).
+Suíte completa (331 testes) confirmada sem regressão antes do merge.
+
+Sprint prevista:
+Identificado e corrigido fora de sprint — bloqueava o fechamento da Sprint 2 (política de
+interrupção do `CLAUDE.md`).
+
+Responsável:
+—
+
+---
+
+## KI-017
+
+Descrição:
+`ruff check .` falha atualmente em `main` com 20 erros (`F841` variáveis não usadas em
+`irflow_blueprints_api.py` linhas 28-70, `SIM105`/`SIM102` em vários pontos, `E401` imports
+múltiplos em uma linha, e o `F811` já conhecido de KI-014). O job `Lint` do CI
+(`.github/workflows/ci.yml`) marca o passo `ruff check .` como BLOQUEANTE, e os jobs `backend` e
+`frontend` dependem de `Lint` via `needs: lint` — ou seja, nenhum desses jobs roda enquanto o lint
+estiver vermelho.
+
+Impacto:
+Alto (operacional, não funcional). Nenhum dos 20 erros é bug de comportamento — não foram gerados
+por nenhuma mudança desta sessão (confirmado: nenhum está nas linhas tocadas pelo hotfix
+KI-016/`quantidade-zero-shopping-list`). O risco real é que o CI pode estar vermelho em `main` há
+algum tempo sem que `PROJECT_STATUS.md` refletisse isso — merece verificação do histórico real de
+execuções no GitHub Actions antes de assumir desde quando.
+
+Status:
+Aberto — identificado em 2026-07-11 ao rodar `ruff check .` localmente antes de mergear o hotfix
+KI-016. Fora de escopo corrigir aqui (seria refatoração de ~20 pontos em vários arquivos, viola a
+regra de mudança única do `CLAUDE.md`). Candidato a uma sprint de limpeza isolada (`chore:` ou
+`refactor:`, nunca junto de uma feature/fix).
+
+Sprint prevista:
+Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o
+resto do pipeline de CI para qualquer PR.
+
+Responsável:
+—

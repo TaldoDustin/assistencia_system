@@ -214,21 +214,31 @@ Ambos os fixes seguem o mesmo padrão: `normalizar_status_os(valor, status_padra
 
 ---
 
-### T-06 — `tests/test_pricing.py`
-**7 casos:** listar preços, sugerir com modelo/reparo existentes, modelo inexistente, sem parâmetros, múltiplos reparos (valida soma), criar como admin, criar como não-admin (403)  
+### T-06 — `tests/test_pricing.py` ✅ CONCLUÍDA (2026-07-11, escopo ampliado)
+**27 casos** (planejado: 7) — unitários de `irflow_price_tables.py` (normalização de modelo/serviço,
+`sugerir_preco_tabela` com soma/dedup de serviços, `encontrar_servico_tabela` com correspondência
+fuzzy por token, round-trip `salvar_tabelas_preco`/`carregar_tabelas_preco`) mais integração de
+`/api/precos*` (autenticação, autorização admin, `sugerir` com parâmetros ausentes/inválidos).
 **Depende de:** T-03
 
 ---
 
-### T-07 — `tests/test_shopping.py`
-**8 casos:** listar, criar, criar sem campos, atualizar, PATCH status válido, PATCH status inválido, deletar, listar agrupado  
+### T-07 — `tests/test_shopping.py` ✅ CONCLUÍDA (2026-07-11, escopo ampliado)
+**34 casos** (planejado: 8) — CRUD completo, paginação/filtros, matriz de transição de status
+(válida/inválida/idempotente/estado terminal), bloqueio de compra simultânea, cancelamento (soft
+delete), agrupamento e auditoria (`/logs`, BR-016). Achado durante a escrita: bug real em
+`POST /api/shopping-list` (quantidade `0` normalizada silenciosamente para `1`) — corrigido via
+`hotfix/quantidade-zero-shopping-list` (KI-016) antes de continuar, conforme política de
+interrupção de sprint do `CLAUDE.md`/`ENGINEERING_GUIDE.md` §11.
 **Depende de:** T-03
 
 ---
 
-### T-08 — Coverage config
-**Arquivo:** `pyproject.toml` (seção `[tool.coverage]`)  
-**Threshold:** `fail_under = 40` nos módulos alvo  
+### T-08 — Coverage config ✅ CONCLUÍDA (2026-07-11)
+**Arquivo:** `pyproject.toml` (seção `[tool.coverage.report]`)  
+**Threshold:** `fail_under = 40` — aplicado após cobertura real medida em 43%, com aprovação
+explícita do usuário para antecipar do cronograma original (Sprint 3=20%, Sprint 4=40%).
+`.github/workflows/ci.yml` também atualizado — removido `continue-on-error` do job `Coverage`.
 **Depende de:** T-04, T-05, T-06, T-07
 
 ---
@@ -329,13 +339,13 @@ T-11 (concluída antecipadamente)
 
 ## Definition of Done
 
-- [ ] `pytest tests/` passa sem falhas em máquina limpa
-- [ ] Cobertura >= 40% nos módulos alvo
-- [ ] `ruff check .` passa (com baseline documentado)
+- [x] `pytest tests/` passa sem falhas em máquina limpa — 331 testes, 2026-07-11
+- [x] Cobertura >= 40% nos módulos alvo — 43% global, gate bloqueante em `pyproject.toml`
+- [ ] `ruff check .` passa (com baseline documentado) — **vermelho em `main`, 20 erros pré-existentes não introduzidos nesta sprint, registrado como KI-017/R-08, corrigir antes da Sprint 3**
 - [ ] `npm run lint` passa sem erros
-- [ ] GitHub Actions CI verde em push para `main`
-- [ ] Nenhum teste cria ou modifica `database.db`
+- [ ] GitHub Actions CI verde em push para `main` — bloqueado por KI-017 (job `Lint` falha, `backend`/`frontend` não rodam)
+- [x] Nenhum teste cria ou modifica `database.db` — isolamento via `IR_FLOW_DATA_DIR`
 - [ ] `.env.example` com todas as variáveis
 - [ ] `ENGINEERING_GUIDE.md` permite setup local sem ajuda
-- [ ] `PROJECT_STATUS.md` atualizado com novo score e cobertura
+- [ ] `PROJECT_STATUS.md` atualizado com novo score e cobertura — cobertura atualizada (43%); recálculo formal do score fica para a próxima revisão, mesma disciplina já aplicada em revisões anteriores (não decidir unilateralmente aqui)
 - [ ] `KNOWN_ISSUES.md`: KI-007 (commits) marcado como mitigado

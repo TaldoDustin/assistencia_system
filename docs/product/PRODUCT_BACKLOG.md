@@ -15,9 +15,9 @@ de publicar, não copiada às cegas do exemplo dado.
 
 | Prioridade | Épico | Status | Valor de Negócio | Fonte / Nota |
 |---|---|---|---|---|
-| P0 | Vendas | Especificação (`docs/product/features/VENDAS.md`) | Muito Alto | Prioridade #1 do produto — ver `VENDAS.md` "Por que existe" |
-| P0 | Clientes (entidade própria) | Não iniciado | Muito Alto | Pré-requisito estrutural de Vendas — `docs/engineering/DOMAIN_MODEL.md` seção 2; decisão já tomada de criar tabela `clientes` no V1 de Vendas (`docs/company/DECISION_LOG.md`, 2026-07-09) |
-| P0 | IMEI Individual | Não iniciado | Muito Alto | Gap de schema já registrado — `docs/company/BRAND_IDENTITY.md` seção 2, `docs/engineering/DOMAIN_MODEL.md` seção 1.4; pré-requisito de Vendas (reserva de IMEI, BR-017) |
+| P0 | Vendas | Especificação (`docs/product/features/VENDAS.md`, atualizada em 2026-07-11 com modelo de dados e wireframes) | Muito Alto | Prioridade #1 do produto — ver `VENDAS.md` "Por que existe" |
+| P0 | Clientes (entidade própria) | Especificação (`docs/product/features/CLIENTES.md`, 2026-07-11) | Muito Alto | Pré-requisito estrutural de Vendas — `docs/engineering/DOMAIN_MODEL.md` seção 2; decisão já tomada de criar tabela `clientes` no V1 de Vendas (`docs/company/DECISION_LOG.md`, 2026-07-09). Spec ainda sem validação direta do Product Owner — ver "Decisões de negócio pendentes" em `CLIENTES.md` |
+| P0 | IMEI Individual | Especificação (`docs/product/features/IMEI.md`, 2026-07-11) | Muito Alto | Gap de schema já registrado — `docs/company/BRAND_IDENTITY.md` seção 2, `docs/engineering/DOMAIN_MODEL.md` seção 1.4; pré-requisito de Vendas (reserva de IMEI, BR-017). Spec ainda sem validação direta do Product Owner — ver "Decisões de negócio pendentes" em `IMEI.md` |
 | P1 | Financeiro | Não iniciado | Alto | Deferido deliberadamente do V1 de Vendas (`docs/company/DECISION_LOG.md`, 2026-07-09) — não é lacuna, é sequenciamento |
 | P1 | Caixa | Não iniciado | Alto | Mesma decisão de adiamento do Financeiro |
 | P1 | Dashboard Executivo | Parcial | Alto | **Nota de verificação:** já existe um dashboard básico (`frontend/src/pages/Dashboard.jsx`, KPIs de faturamento/lucro/serviços/técnico) — o que falta é a versão executiva completa descrita na visão original (ticket médio, OS atrasadas, top vendedores, margem) |
@@ -47,5 +47,5 @@ de publicar, não copiada às cegas do exemplo dado.
 - `docs/company/RELEASE_STRATEGY.md` — em qual versão cada épico deste backlog é planejado para sair
 - `docs/operations/ROADMAP.md` — roadmap de engenharia (fases/sprints técnicas, eixo separado)
 - `docs/company/DECISION_LOG.md` — decisões que justificam prioridade/sequenciamento acima
-- `docs/product/features/VENDAS.md` — único épico com spec completa hoje
+- `docs/product/features/VENDAS.md`, `CLIENTES.md`, `IMEI.md` — os três épicos P0 com spec hoje (2026-07-11)
 - `docs/engineering/adr/ADR-005.md` — decisão pendente que bloqueia Multiempresa

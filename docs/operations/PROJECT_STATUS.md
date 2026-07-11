@@ -96,9 +96,11 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
   transições manuais `disponivel ↔ em_reparo`, `em_reparo/devolvido → disponivel` (BR-025, BR-026).
   `reservado`/`vendido` existem no schema, sem uso — reservados para o futuro Vendas. Fecha o gap de
   marca de IMEI (`BRAND_IDENTITY.md` seção 2). Sem tela ainda. 20 testes.
+- **Unidade 7 — Stub `irflow_vendas_service.py`:** arquivo só com docstring, sem rota/tabela/wiring —
+  placeholder explícito para quando o épico Vendas for aprovado, referenciando Clientes e
+  `estoque_unidades` como pré-requisitos já entregues.
 
-Pendente: Unidade 7 (stub `irflow_vendas_service.py`), Unidade 8 (`.env.example`), Unidade 9 (adendo
-`ENGINEERING_GUIDE.md` §3.1).
+Pendente: Unidade 8 (`.env.example`), Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
 
 ### Escopo previsto
 

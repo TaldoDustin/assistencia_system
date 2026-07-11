@@ -847,7 +847,7 @@ def create_api_blueprint(deps):
             except Exception:
                 produto_id = None
             produto_nome = (body.get("produto_nome") or "").strip()
-            quantidade = parse_int(body.get("quantidade_solicitada") or body.get("quantidade"), default=1)
+            quantidade = parse_int(body.get("quantidade_solicitada", body.get("quantidade")), default=1)
             prioridade = (body.get("prioridade") or "NORMAL").strip().upper()
             observacao = (body.get("observacao") or "").strip()
 

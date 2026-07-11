@@ -17,7 +17,7 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 62 erros de `ruff check .` pré-existentes (KI-017, ver nota de escopo corrigida) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com **175 erros** de `ruff check .` pré-existentes em todo o repositório (KI-017, contagem corrigida em 2026-07-11 — inclui scripts soltos na raiz, não só os arquivos que a Sprint 3/P0.1 tocou) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
 | Cobertura de testes| 48% global, 407 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
@@ -100,7 +100,11 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
   placeholder explícito para quando o épico Vendas for aprovado, referenciando Clientes e
   `estoque_unidades` como pré-requisitos já entregues.
 
-Pendente: Unidade 8 (`.env.example`), Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
+- **Unidade 8 — `.env.example`:** pendente desde a Sprint 2 (T-10), fechado aqui — 26 variáveis
+  documentadas (as ~24 já existentes em `app.py` + as 2 novas desta sprint), incluindo as injetadas
+  automaticamente por plataforma de deploy, comentadas como referência.
+
+Pendente: Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
 
 ### Escopo previsto
 
@@ -189,7 +193,7 @@ Pendente: Unidade 8 (`.env.example`), Unidade 9 (adendo `ENGINEERING_GUIDE.md` �
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
 | R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
-| R-08 | `ruff check .` vermelho em `main` (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, mas descoberto rodando `ruff check .` localmente em 2026-07-11 |
+| R-08 | `ruff check .` vermelho em `main` — 175 erros em todo o repo, incluindo scripts legados soltos na raiz (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, contagem real confirmada em 2026-07-11 (Sprint 3 Unidade 8) |
 
 ---
 

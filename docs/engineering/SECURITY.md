@@ -139,7 +139,7 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 |------|--------|-----------|
 | Credenciais removidas do repositório | ✅ | Commit `832945c` |
 | `.env` no `.gitignore` | ✅ | Verificar |
-| `.env.example` documenta todas as variáveis sem valores reais | ❌ | **Sprint 2 — T-10** |
+| `.env.example` documenta todas as variáveis sem valores reais | ✅ | Criado em 2026-07-11 (T-10, fechado junto da Unidade 8 da Sprint 3) — 26 variáveis documentadas, nenhum valor real |
 | `FLASK_SECRET_KEY` forte em produção | ⚠️ | Responsabilidade do operador — documentar |
 | Tokens de integração (MercadoPhone) via variável de ambiente | ✅ | `MERCADO_PHONE_API_TOKEN` |
 | Nenhum segredo em logs ou respostas de erro | ⚠️ | A verificar |

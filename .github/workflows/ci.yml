@@ -130,7 +130,5 @@ jobs:
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Coverage (G-05)
-        # TEMPORÁRIO — continue-on-error até Sprint 3 (threshold=20% bloqueante)
-        run: pytest tests/ --cov --cov-report=term-missing --cov-fail-under=0
-        continue-on-error: true
+      - name: Coverage (G-05) — BLOQUEANTE (threshold 40%, ver pyproject.toml)
+        run: pytest tests/ --cov --cov-report=term-missing --cov-fail-under=40

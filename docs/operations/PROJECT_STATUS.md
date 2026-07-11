@@ -102,9 +102,16 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
 
 - **Unidade 8 — `.env.example`:** pendente desde a Sprint 2 (T-10), fechado aqui — 26 variáveis
   documentadas (as ~24 já existentes em `app.py` + as 2 novas desta sprint), incluindo as injetadas
-  automaticamente por plataforma de deploy, comentadas como referência.
+  automaticamente por plataforma de deploy, comentadas como referência. No processo, contagem real de
+  KI-017 corrigida para 175 erros (repo inteiro, não só os 2 arquivos que a Sprint 3/P0.1 tocou).
+- **Unidade 9 — Adendo `ENGINEERING_GUIDE.md` §3.1:** registra a interpretação "README de domínio =
+  docstring no topo do `_service.py`" (já usada em Clientes e `estoque_unidades`) como precedente formal
+  para os próximos domínios.
 
-Pendente: Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
+**Sprint 3 e Sprint P0.1 (fase de fundações do produto) concluídas em 2026-07-11** — 9 unidades, testes
+subindo de 331 (fim da Sprint 2.7) para 407 (+76), cobertura 43% → 48%. Próximo passo, por decisão do
+usuário: retomar o épico Vendas com as fundações (Clientes, IMEI, auditoria, camada de serviços) já
+prontas.
 
 ### Escopo previsto
 

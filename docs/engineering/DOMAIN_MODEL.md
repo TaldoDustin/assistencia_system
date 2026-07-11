@@ -69,8 +69,8 @@ separado hoje está registrado como está — ver seção 3.
 | Frontend | Páginas de estoque (dentro do fluxo principal) |
 | Testes | `tests/test_stock_creation_query.py`, `tests/test_stock_movement.py`, `tests/test_stock_os_integration.py`, `tests/test_stock_security.py` (69 casos, Sprint 2.5) |
 | Depende de | Nenhum outro domínio |
-| Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios |
-| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica. **Gap de marca:** `docs/company/BRAND_IDENTITY.md` promete rastreamento individual por IMEI — a tabela `estoque` hoje não tem essa coluna, controle é por item agregado |
+| Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios, `estoque_unidades` (seção 1.13) |
+| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica. ~~**Gap de marca:** rastreamento individual por IMEI~~ — resolvido na Sprint P0.1 via `estoque_unidades` (seção 1.13), extensão do domínio, não substituição — `estoque.quantidade` continua a fonte agregada para itens sem `requer_imei` |
 
 ### 1.5 Compras / Lista de Compras (Shopping List)
 
@@ -169,6 +169,20 @@ separado hoje está registrado como está — ver seção 3.
 | Depende de | `irflow_audit.py` (auditoria de create/update/delete) |
 | Dependido por | OS (`os.cliente_id`, opcional, sem uso ainda), futuramente Vendas (`docs/product/features/VENDAS.md`) |
 | Observação | Deduplicação (por telefone, CPF, ou ambos) e o que fazer com clientes duplicados já existentes seguem `TODO` — decisão de negócio pendente do Product Owner, por isso não há `UNIQUE` em `telefone`/`cpf_cnpj`/`email` no schema |
+
+### 1.13 Estoque_Unidades (rastreamento por IMEI)
+
+| Aspecto | Hoje |
+|---|---|
+| Responsabilidade | Unidade individual de um item de estoque rastreada por IMEI — extensão do domínio Estoque (seção 1.4), não domínio isolado (`docs/product/features/IMEI.md`) |
+| Tabela(s) | `estoque_unidades`; lê (não escreve) `estoque.requer_imei` |
+| Lógica | `irflow_estoque_unidades_service.py` — segunda aplicação da convenção `controller → service → repository` (depois de Clientes, seção 1.12) |
+| HTTP | `irflow_estoque_unidades_controller.py` (`estoque_unidades_api`, prefixo `/api/estoque-unidades`) |
+| Frontend | Nenhum ainda — fundação de backend apenas |
+| Testes | `tests/test_estoque_unidades.py` (20 casos) |
+| Depende de | Estoque (leitura de `requer_imei`), `irflow_audit.py` (auditoria de create/status_change) |
+| Dependido por | Futuramente Vendas (reserva de IMEI, `docs/product/features/VENDAS.md` BR-017) |
+| Observação | Schema já modela `reservado`/`vendido` (para quando Vendas existir), mas nenhum endpoint desta sprint produz ou aceita esses estados — só `disponivel ↔ em_reparo` e `em_reparo/devolvido → disponivel` são alcançáveis (`TRANSICOES_VALIDAS` no service). Formato de IMEI não validado ainda (`TODO` em `IMEI.md`) |
 
 ---
 

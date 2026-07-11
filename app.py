@@ -604,6 +604,31 @@ def criar_tabelas():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_cpf_cnpj ON clientes (cpf_cnpj)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes (nome)")
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS estoque_unidades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                estoque_id INTEGER NOT NULL,
+                lote_id INTEGER,
+                imei TEXT UNIQUE,
+                status TEXT NOT NULL DEFAULT 'disponivel',
+                reservado_por INTEGER,
+                reservado_ate TEXT,
+                venda_id INTEGER,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_estoque_id ON estoque_unidades (estoque_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_status ON estoque_unidades (status)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_imei ON estoque_unidades (imei)"
+            )
+
             # Add valor column if it doesn't exist
             try:
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -689,6 +714,13 @@ def criar_tabelas():
 
             try:
                 cursor.execute("ALTER TABLE estoque ADD COLUMN qualidade TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                # Flag manual (admin) -- nem todo item de estoque precisa de
+                # unidade individual por IMEI (peca de reparo continua agregada).
+                cursor.execute("ALTER TABLE estoque ADD COLUMN requer_imei INTEGER NOT NULL DEFAULT 0")
             except sqlite3.OperationalError:
                 pass
 
@@ -1589,6 +1621,15 @@ app.register_blueprint(
 from irflow_clientes_controller import create_clientes_blueprint  # noqa: E402
 
 app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE ESTOQUE_UNIDADES (Sprint P0.1 — rastreamento
+# individual por IMEI, extensão do domínio Estoque)
+# ============================================================================
+
+from irflow_estoque_unidades_controller import create_estoque_unidades_blueprint  # noqa: E402
+
+app.register_blueprint(create_estoque_unidades_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

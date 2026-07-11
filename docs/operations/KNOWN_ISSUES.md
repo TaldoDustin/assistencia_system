@@ -409,8 +409,8 @@ segue exatamente o idioma já documentado em `DATABASE.md`/`ENGINEERING_GUIDE.md
 de coluna (repetido ~15 vezes em `app.py`, cada instância já contava para os 60 originais via `SIM105`).
 Escrever esse bloco de outra forma (`contextlib.suppress`, sugestão do `ruff`) deixaria essa única
 instância inconsistente com todas as outras ao redor — optado por manter consistência com o padrão
-estabelecido do arquivo em vez de silenciar o lint em um ponto isolado. O mesmo vai se repetir na
-Unidade 6 (`estoque.requer_imei`).
+estabelecido do arquivo em vez de silenciar o lint em um ponto isolado. Confirmado: subiu para **62**
+na Unidade 6 (`estoque.requer_imei`), mesma justificativa.
 
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o

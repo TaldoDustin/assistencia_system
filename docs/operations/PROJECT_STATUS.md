@@ -17,8 +17,8 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 61 erros de `ruff check .` pré-existentes (KI-017, ver nota de escopo corrigida) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
-| Cobertura de testes| 46% global, 387 testes (ver Cobertura de Testes) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com 62 erros de `ruff check .` pré-existentes (KI-017, ver nota de escopo corrigida) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
+| Cobertura de testes| 48% global, 407 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
 
@@ -91,9 +91,14 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
   Achado corrigido: `verificar_autenticacao()` só reconhecia bypass de `/api/*` pelo nome do blueprint
   `api.*` — um segundo blueprint sob `/api/*` caía na checagem de sessão legada; trocado para checar
   `request.path`, escala para qualquer domínio futuro sob `/api/*` sem precisar editar essa lista de novo.
+- **Unidade 6 — Domínio `estoque_unidades` (IMEI):** `irflow_estoque_unidades_controller/service/repository.py`
+  — segunda aplicação da convenção. Cadastro de unidade individual (bloqueado se `estoque.requer_imei=0`),
+  transições manuais `disponivel ↔ em_reparo`, `em_reparo/devolvido → disponivel` (BR-025, BR-026).
+  `reservado`/`vendido` existem no schema, sem uso — reservados para o futuro Vendas. Fecha o gap de
+  marca de IMEI (`BRAND_IDENTITY.md` seção 2). Sem tela ainda. 20 testes.
 
-Pendente: Unidade 6 (`estoque_unidades`/IMEI), Unidade 7 (stub `irflow_vendas_service.py`), Unidade 8
-(`.env.example`), Unidade 9 (adendo `ENGINEERING_GUIDE.md` §3.1).
+Pendente: Unidade 7 (stub `irflow_vendas_service.py`), Unidade 8 (`.env.example`), Unidade 9 (adendo
+`ENGINEERING_GUIDE.md` §3.1).
 
 ### Escopo previsto
 
@@ -206,14 +211,14 @@ Pendente: Unidade 6 (`estoque_unidades`/IMEI), Unidade 7 (stub `irflow_vendas_se
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint P0.1 Unidade 5) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint P0.1 Unidade 6) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes — Sprint 2.2 a Sprint P0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `irflow_blueprints_auth.py` 84% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades — Sprint 2.2 a Sprint P0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **46%** (`pytest --cov`, 387 testes, pós-merge Sprint P0.1 Unidade 5 — 2026-07-11) |
+| **Global (repo, `main`)** |                  |              | **48%** (`pytest --cov`, 407 testes, pós-merge Sprint P0.1 Unidade 6 — 2026-07-11) |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%, e segue subindo com Sprint 3/P0.1 (46% agora). Gate de CI bloqueante desde a Sprint 2.7 (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 

@@ -135,6 +135,24 @@ estoque em uso não pode ser excluído).
 
 ---
 
+## Estoque_Unidades (rastreamento por IMEI)
+
+**BR-025 — ✅ Implementado**
+Uma unidade individual por IMEI só pode ser cadastrada para um item de estoque marcado com
+`requer_imei = 1` — cadastro em item não marcado é rejeitado.
+*Fonte: `irflow_estoque_unidades_service.py::criar_unidade`; `docs/product/features/IMEI.md`
+"Decisões estruturais".*
+
+**BR-026 — ✅ Implementado**
+Transição de status de uma unidade só é permitida entre `disponivel`, `em_reparo` e `devolvido`
+(`disponivel ↔ em_reparo`, `em_reparo → devolvido`, `devolvido → disponivel` direto) — `reservado` e
+`vendido` existem no schema para o futuro módulo de Vendas, mas nenhuma transição desta sprint os
+produz ou aceita como destino.
+*Fonte: `irflow_estoque_unidades_service.py::TRANSICOES_VALIDAS`; `docs/product/features/IMEI.md`,
+decisão confirmada com o usuário em 2026-07-11 (devolvido → disponivel direto).*
+
+---
+
 ## Vendas (especificado, não implementado)
 
 Decisões já tomadas em conversa entre Product Owner e engenharia (2026-07-09), registradas em

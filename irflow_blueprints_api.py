@@ -74,6 +74,9 @@ def create_api_blueprint(deps):
     backup_email_destino = deps["backup_email_destino"]
     check_password_hash = deps["check_password_hash"]
     generate_password_hash = deps["generate_password_hash"]
+    resolver_ip_cliente = deps["resolver_ip_cliente"]
+    limite_excedido = deps["limite_excedido"]
+    registrar_tentativa = deps["registrar_tentativa"]
     sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
     reimportar_todas_os_mercado_phone = deps["reimportar_todas_os_mercado_phone"]
     reprocessar_todas_os_mercado_phone = deps["reprocessar_todas_os_mercado_phone"]
@@ -458,20 +461,33 @@ def create_api_blueprint(deps):
         body = safe_json(request)
         usuario_txt = (body.get("usuario") or "").strip()
         senha_txt = body.get("senha") or ""
-
-        if not usuario_txt or not senha_txt:
-            return err("Usuário e senha são obrigatórios.")
+        identificador = resolver_ip_cliente(request)
 
         conn = conectar()
         cursor = conn.cursor()
+
+        if limite_excedido(cursor, identificador):
+            conn.close()
+            return err("Muitas tentativas de login. Tente novamente em instantes.", 429)
+
+        if not usuario_txt or not senha_txt:
+            registrar_tentativa(cursor, identificador, False)
+            conn.commit()
+            conn.close()
+            return err("Usuário e senha são obrigatórios.")
+
         cursor.execute(
             "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
             (usuario_txt,),
         )
         row = cursor.fetchone()
+
+        sucesso = bool(row and row[4] == 1 and check_password_hash(row[2], senha_txt))
+        registrar_tentativa(cursor, identificador, sucesso)
+        conn.commit()
         conn.close()
 
-        if row and row[4] == 1 and check_password_hash(row[2], senha_txt):
+        if sucesso:
             session.permanent = True
             session["usuario_id"] = row[0]
             session["usuario_nome"] = row[1]

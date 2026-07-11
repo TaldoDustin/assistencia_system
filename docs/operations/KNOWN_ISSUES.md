@@ -1,18 +1,28 @@
 # Known Issues
 
-## KI-001
+## ~~KI-001~~ — RESOLVIDO
 
 Descrição:
-Ausência de rate limiting na rota `POST /api/auth/login`. Qualquer agente pode realizar tentativas de login ilimitadas sem bloqueio por IP ou por usuário.
+Ausência de rate limiting na rota `POST /api/auth/login`. Qualquer agente podia realizar tentativas de
+login ilimitadas sem bloqueio por IP ou por usuário.
 
 Impacto:
-Alto. O endpoint está vulnerável a ataques de força bruta contra credenciais de usuários do sistema.
+Alto. O endpoint estava vulnerável a ataques de força bruta contra credenciais de usuários do sistema.
 
 Status:
-Aberto.
+Resolvido em 2026-07-11 (Sprint 3, Unidade 1). Contador de tentativas em SQLite (tabela
+`login_attempts`, `irflow_rate_limit.py`) — 5 tentativas/minuto por identificador, aplicado em
+`POST /api/auth/login` (rota real usada pelo frontend) e `POST /login` (rota legada). Contador em SQLite
+em vez de memória do processo porque o Gunicorn de produção roda com `--workers 2`
+(`Dockerfile`) — memória de processo daria um limite efetivo mais fraco e contornável entre workers;
+SQLite já é compartilhado entre eles via WAL. Identificador resolvido via `Fly-Client-IP` (header do
+proxy da Fly.io) com fallback para `X-Forwarded-For`/`remote_addr` — nenhum desses headers era lido
+antes. Coberto por `tests/test_rate_limit_login.py` (7 casos). Isolamento de teste garantido por fixture
+autouse em `tests/conftest.py` (`_limpar_login_attempts`), já que o cliente de teste do Flask sempre usa
+o mesmo IP.
 
 Sprint prevista:
-Sprint 3 — Segurança e Observabilidade.
+Sprint 3 — Segurança e Observabilidade. Resolvido em 2026-07-11.
 
 Responsável:
 —
@@ -384,6 +394,14 @@ Aberto — identificado em 2026-07-11 ao rodar `ruff check .` localmente antes d
 KI-016. Fora de escopo corrigir aqui (seria refatoração de ~20 pontos em vários arquivos, viola a
 regra de mudança única do `CLAUDE.md`). Candidato a uma sprint de limpeza isolada (`chore:` ou
 `refactor:`, nunca junto de uma feature/fix).
+
+**Correção de escopo (2026-07-11, Sprint 3 Unidade 1):** a contagem de "20 erros" acima media só
+`irflow_blueprints_api.py`. Rodando `ruff check app.py irflow_blueprints_api.py` juntos (os dois
+arquivos críticos que a Sprint 3 está tocando) o total real é **60 erros** — `app.py` sozinho
+contribui um bloco grande de `F401` (imports não usados) nunca contado antes. Confirmado via
+`git stash` que os 60 já existiam em `main` antes de qualquer mudança desta sessão — nenhuma unidade
+da Sprint 3/P0.1 piora esse número, cada uma é checada com `ruff check &lt;arquivos tocados&gt;` antes do
+commit para garantir isso.
 
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o

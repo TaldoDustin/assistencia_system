@@ -25,9 +25,17 @@ Este documento define a política de segurança do Fluxoly Platform, com um chec
 | Salt único por senha | ✅ | Werkzeug gera automaticamente |
 | `FLASK_SECRET_KEY` forte e única por ambiente | ⚠️ | Default inseguro em dev — documentado no `.env.example` |
 | Sessão invalidada completamente no logout | ⚠️ | `session.clear()` — validar que não há cookie residual |
-| Rate limiting em `/api/auth/login` | ❌ | **KI-001 — sprint 3** |
-| Bloqueio após tentativas excessivas | ❌ | Dependente do rate limiting |
-| Timeout de sessão por inatividade | ❌ | Não configurado |
+| Rate limiting em `/api/auth/login` | ✅ | KI-001 resolvido — 5 tentativas/minuto por identificador (`irflow_rate_limit.py`, tabela `login_attempts`, contador em SQLite em vez de memória — ver nota abaixo) |
+| Bloqueio após tentativas excessivas | ✅ | Mesma implementação acima — 429 na 6ª tentativa dentro da janela |
+| Timeout de sessão por inatividade | ❌ | Não configurado — Sprint 3 (Unidade 2) |
+
+**Nota de implementação (rate limiting):** o Gunicorn de produção roda com `--workers 2` (`Dockerfile`) — um
+contador em memória de processo (Flask-Limiter default) seria por worker, enfraquecendo o limite nominal
+para ~10/min efetivos e permitindo contorno parcial via roteamento entre workers. Por isso o contador vive
+em SQLite (`login_attempts`), já compartilhado entre os workers via WAL — limite realmente global, sem
+dependência nova. O identificador do cliente é resolvido via `Fly-Client-IP` (header do proxy da Fly.io),
+com fallback para `X-Forwarded-For` e por fim `request.remote_addr` — nenhum desses headers era lido antes
+desta mudança.
 
 ---
 
@@ -128,7 +136,7 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Rate limiting em rotas de autenticação | ❌ | **KI-001 — sprint 3** |
+| Rate limiting em rotas de autenticação | ✅ | KI-001 resolvido — ver seção 1 |
 | Rate limiting em rotas públicas (checklist) | ❌ | Ausente |
 | Proteção contra upload de arquivos excessivamente grandes | N/A | Sem upload de arquivos no fluxo principal |
 | Paginação em listagens (proteção contra dump) | ❌ | **KI-005 — sprint 5** |

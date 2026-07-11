@@ -31,6 +31,24 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def _limpar_login_attempts():
+    """
+    O cliente de teste do Flask usa sempre o mesmo IP (127.0.0.1) e nao envia
+    header Fly-Client-IP, entao todo teste que faz login compartilharia o
+    mesmo identificador de rate limit. Sem isolamento, um teste que exercita
+    varias tentativas de login (validas ou invalidas) esgotaria o limite
+    para todos os testes seguintes na mesma sessao pytest.
+    """
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM login_attempts")
+        conn.commit()
+    finally:
+        conn.close()
+    yield
+
+
 def _criar_usuario(nome, perfil="tecnico", ativo=1):
     login = f"user_{uuid.uuid4().hex[:10]}"
     conn = _app.conectar()

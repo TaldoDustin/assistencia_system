@@ -107,11 +107,33 @@ dados feita inline em `criar_tabelas()` via `INSERT OR IGNORE`).
 | `modelo` | TEXT | *(ALTER)* — normalizado via `normalizar_modelo_iphone` |
 | `tipo` | TEXT | *(ALTER)* |
 | `qualidade` | TEXT | *(ALTER)* |
+| `requer_imei` | INTEGER NOT NULL DEFAULT 0 | *(ALTER, Sprint P0.1)* — flag manual (admin/técnico) indicando se este item exige rastreamento por unidade individual via `estoque_unidades`; peças de reparo continuam agregadas (0) |
 
 **Índices:**
 - `idx_estoque_sku` em `(sku)`
 - `idx_estoque_tripla` em `(modelo, tipo, qualidade)` — suporta busca de peça compatível por
   modelo/tipo/qualidade
+
+### `estoque_unidades`
+
+Rastreamento individual por IMEI (Sprint P0.1 — `docs/product/features/IMEI.md`), extensão do domínio
+Estoque, não domínio isolado. Segue a convenção controller/service/repository de
+`docs/engineering/ENGINEERING_GUIDE.md` §3.1 (`irflow_estoque_unidades_*.py`).
+
+| Coluna | Tipo | Observação |
+|--------|------|------------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `estoque_id` | INTEGER NOT NULL | FK lógica para `estoque.id` |
+| `lote_id` | INTEGER | FK lógica para `estoque_lotes.id`, opcional |
+| `imei` | TEXT UNIQUE | `NULL` permitido (SQLite não colide `NULL`s em `UNIQUE`) — formato não validado nesta sprint (`TODO` em `IMEI.md`) |
+| `status` | TEXT NOT NULL DEFAULT `'disponivel'` | Valores no schema: `disponivel \| reservado \| vendido \| em_reparo \| devolvido`. **Só `disponivel`/`em_reparo`/`devolvido` são alcançáveis por endpoint nesta sprint** — `reservado`/`vendido` existem para o futuro módulo de Vendas, nenhuma rota atual os produz ou aceita como destino (`irflow_estoque_unidades_service.py::TRANSICOES_VALIDAS`) |
+| `reservado_por` | INTEGER | Sem uso ainda — reservado para Vendas |
+| `reservado_ate` | TEXT | Sem uso ainda — reservado para Vendas |
+| `venda_id` | INTEGER | Sem uso ainda — reservado para Vendas |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+| `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índices:** `idx_estoque_unidades_estoque_id`, `idx_estoque_unidades_status`, `idx_estoque_unidades_imei`.
 
 ### `estoque_lotes`
 
@@ -366,6 +388,8 @@ estoque ──< shopping_list.produto_id
 clientes ──< os.cliente_id (Sprint P0.1 — nullable, sem backfill)
 usuarios ──< audit_log.usuario_id
 usuarios ──< password_reset_tokens.usuario_id
+estoque ──< estoque_unidades.estoque_id (Sprint P0.1)
+estoque_lotes ──< estoque_unidades.lote_id (opcional)
 ```
 
 `login_attempts` não tem relacionamento com `usuarios` — `identificador` é o IP resolvido do cliente, não

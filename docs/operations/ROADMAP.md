@@ -113,7 +113,10 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 
 > **Status: EM ANDAMENTO**  
 > Antes de qualquer nova feature, o projeto precisa de uma base confiável: CI, testes e observabilidade mínima.
-> Sprint 2.2 (primeiros testes — login/logout/sessão) concluída em 2026-07-07. Ver `docs/operations/SPRINTS/SPRINT_02.md`.
+> Sprint 2.2 (primeiros testes — login/logout/sessão) concluída em 2026-07-07. Sprint 2.7 (2026-07-11)
+> fechou a meta de cobertura (43%, gate bloqueante) e corrigiu um bug real encontrado no processo
+> (KI-016). Resta `.env.example` e Playwright no CI antes de considerar a Sprint 2 encerrada. Ver
+> `docs/operations/SPRINTS/SPRINT_02.md`.
 
 ---
 
@@ -137,10 +140,10 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 - `requirements-dev.txt` — pytest, pytest-cov, coverage
 
 **Critérios de aceitação:**
-- [ ] GitHub Actions executa em cada push para `main` e PRs
-- [ ] Pipeline inclui: lint (flake8/ruff), testes (pytest), build frontend
-- [ ] Cobertura >= 40% nas rotas de OS, auth, preços e shopping list
-- [ ] Testes rodam com banco SQLite em memória (sem depender do `database.db`)
+- [x] GitHub Actions executa em cada push para `main` e PRs
+- [x] Pipeline inclui: lint (flake8/ruff), testes (pytest), build frontend
+- [x] Cobertura >= 40% nas rotas de OS, auth, preços e shopping list — 43% global, atingida em 2026-07-11 (Sprint 2.7), gate bloqueante em `pyproject.toml`/`ci.yml`
+- [x] Testes rodam com banco SQLite em memória (sem depender do `database.db`) — via `IR_FLOW_DATA_DIR`, ver `tests/conftest.py`
 - [ ] Playwright E2E incluído no CI em modo headless
 - [ ] `.env.example` documentado com todas as variáveis necessárias
 - [ ] Badge de CI no README

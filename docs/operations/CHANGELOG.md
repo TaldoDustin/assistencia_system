@@ -54,6 +54,10 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `tests/test_stock_movement.py` — cobertura de movimentação de estoque (Sprint 2.5): entrada/saída via ajuste, saldo final, consumo FIFO de lotes
 - `tests/test_stock_os_integration.py` — cobertura de integração estoque × Ordem de Serviço (Sprint 2.5): consumo automático, múltiplas peças, mesma peça em mais de uma OS, devolução (cancelamento/exclusão), alteração/remoção/substituição de peças, compatibilidade por modelo
 - `tests/test_stock_security.py` — cobertura de segurança e exclusão de estoque (Sprint 2.5): sem sessão, SQL injection, payload inválido, exclusão bloqueada quando peça em uso em OS aberta
+- `tests/test_pricing.py` — cobertura de tabela de preços (restante da Sprint 2): testes unitários de `irflow_price_tables.py` (normalização de modelo/serviço, `sugerir_preco_tabela`, `encontrar_servico_tabela` com correspondência fuzzy) e testes de integração de `GET/POST /api/precos`, `GET /api/precos/sugerir`, `POST /api/precos/excluir`
+- `tests/test_shopping.py` — cobertura completa de `/api/shopping-list` (restante da Sprint 2): CRUD, paginação/filtros, workflow de transição de status (matriz de transições válidas/inválidas, idempotência, estado terminal `CANCELADO`), bloqueio de compra simultânea, cancelamento (soft delete), agrupamento (`/grouped`) e auditoria (`/logs`, BR-016)
+- `docs/product/features/CLIENTES.md` — spec do épico P0 Clientes: fluxo, modelo de dados (`clientes` + migração aditiva `os.cliente_id`), wireframes conceituais, casos de erro, critérios de aceite. Decisões de negócio pendentes (deduplicação, campos adicionais) marcadas `TODO`, sem validação do Product Owner ainda
+- `docs/product/features/IMEI.md` — spec do épico P0 IMEI Individual: fluxo, modelo de dados (`estoque_unidades` + `estoque.requer_imei`), wireframes conceituais, casos de erro, critérios de aceite. Mesma ressalva de `CLIENTES.md` sobre decisões pendentes
 
 <!-- Sprint 2.4 (testes de OS) segue em branch própria aguardando revisão de
      merge — a entrada de "Adicionado" só entra aqui quando a branch for de
@@ -65,9 +69,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `PUT /api/estoque/<id>` calculava o diff de movimentação com a quantidade não limitada a zero — enviar quantidade negativa gerava um registro de saída maior que o saldo real no histórico de movimentações (Sprint 2.5, achado durante investigação de testes, hotfix)
 - `GET /api/estoque` com qualquer filtro (modelo, tipo ou qualidade) sempre retornava lista vazia, por ordem errada de parâmetros SQL (Sprint 2.5, achado durante investigação de testes, hotfix)
 - `PATCH /api/ordens/<id>/status` e `PUT /api/ordens/<id>` aceitavam `status` ausente ou desconhecido e o normalizavam silenciosamente para "Em andamento" em vez de rejeitar — em `PUT`, isso reabria uma OS Finalizada e zerava `data_finalizado` sem erro; ambas as rotas agora exigem `status` explícito e válido (KI-015, hotfix `2defd17`, achado ao retomar o Sprint 2 e revisar a branch `test/sprint-2-4-regras-negocio-os` para merge)
+- `POST /api/shopping-list` calculava `quantidade` com `body.get("quantidade_solicitada") or body.get("quantidade")` — como `0` é falsy em Python, enviar `quantidade_solicitada: 0` caía no `or` e virava o default `1` do `parse_int`, antes mesmo de chegar na validação `quantidade <= 0`; o item era criado silenciosamente com quantidade `1` em vez de ser rejeitado (KI-016, hotfix `quantidade-zero-shopping-list`, achado durante a escrita de `test_shopping.py`, C-01+C-04 — ver `ENGINEERING_GUIDE.md` §11)
 
 ### Modificado
 - `irflow_blueprints_api.py` (Sprint 2.6): ~30 pontos de parsing/validação já protegidos (20x `request.get_json(silent=True) or {}`, checagens de valor positivo em estoque/custos, parsing de quantidade em shopping-list e config do MercadoPhone) substituídos pela camada compartilhada de `irflow_validation.py` — sem mudança de comportamento observável
+- `pyproject.toml`/`.github/workflows/ci.yml` — cobertura tornada bloqueante no CI (`fail_under = 40`, removido `continue-on-error`), antecipando o cronograma original que só previa bloqueio a partir da Sprint 3 (20%) — cobertura real medida (43%) já passava da meta de 40% da Sprint 2, decisão explícita do usuário de não segurar o gate abaixo do que a suíte já garante
+- `docs/product/features/VENDAS.md` — adicionadas as seções "Modelo de dados", "Wireframes conceituais" e "Dependências" (faltantes desde a criação em 2026-07-09); nenhuma decisão já tomada foi alterada
+- `docs/product/PRODUCT_BACKLOG.md` — Clientes e IMEI Individual atualizados de "Não iniciado" para "Especificação", apontando para `CLIENTES.md`/`IMEI.md`
 
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions

@@ -38,6 +38,7 @@ from irflow_core import (
     coletar_status_opcoes,
     normalizar_busca_texto,
     normalizar_status_os,
+    sessao_ainda_ativa,
     status_aberto,
     status_aguardando_peca,
     status_cancelado,
@@ -1383,6 +1384,15 @@ def verificar_autenticacao():
     # Rotas estáticas e API — autenticação gerenciada pela própria API
     if endpoint in ("static", "serve_react", "serve_react_assets"):
         return
+
+    # Expiração de sessão por inatividade — roda para TODA rota autenticada,
+    # inclusive /api/*, já que este before_request dispara antes do bypass
+    # abaixo. Limpar a sessão aqui é suficiente para /api/* também: o
+    # usuario_logado() de irflow_blueprints_api.py checa session["usuario_id"],
+    # que já estará vazio quando a view rodar.
+    if session.get("usuario_id") and not sessao_ainda_ativa(session):
+        session.clear()
+
     if endpoint and endpoint.startswith("api."):
         return
 

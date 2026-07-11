@@ -27,7 +27,7 @@ Este documento define a política de segurança do Fluxoly Platform, com um chec
 | Sessão invalidada completamente no logout | ⚠️ | `session.clear()` — validar que não há cookie residual |
 | Rate limiting em `/api/auth/login` | ✅ | KI-001 resolvido — 5 tentativas/minuto por identificador (`irflow_rate_limit.py`, tabela `login_attempts`, contador em SQLite em vez de memória — ver nota abaixo) |
 | Bloqueio após tentativas excessivas | ✅ | Mesma implementação acima — 429 na 6ª tentativa dentro da janela |
-| Timeout de sessão por inatividade | ❌ | Não configurado — Sprint 3 (Unidade 2) |
+| Timeout de sessão por inatividade | ✅ | Janela deslizante de 30 min (`IR_FLOW_SESSION_INACTIVITY_MINUTES`), `irflow_core.py::sessao_ainda_ativa` aplicada em `verificar_autenticacao()` — cobre `/api/*` e views legadas no mesmo ponto (ver nota abaixo) |
 
 **Nota de implementação (rate limiting):** o Gunicorn de produção roda com `--workers 2` (`Dockerfile`) — um
 contador em memória de processo (Flask-Limiter default) seria por worker, enfraquecendo o limite nominal
@@ -36,6 +36,16 @@ em SQLite (`login_attempts`), já compartilhado entre os workers via WAL — lim
 dependência nova. O identificador do cliente é resolvido via `Fly-Client-IP` (header do proxy da Fly.io),
 com fallback para `X-Forwarded-For` e por fim `request.remote_addr` — nenhum desses headers era lido antes
 desta mudança.
+
+**Nota de implementação (timeout de inatividade):** existiam duas checagens de sessão paralelas antes
+desta mudança — `verificar_autenticacao()` (`app.py`, `before_request` global, cobre views legadas) e
+`usuario_logado()` (`irflow_blueprints_api.py`, chamada por toda rota `/api/*`). Como
+`verificar_autenticacao()` dispara para **toda** requisição (inclusive `/api/*`) antes do bypass que a
+função já tinha para endpoints `api.*`, a checagem de inatividade foi colocada logo antes desse bypass —
+um único ponto cobre as duas superfícies sem duplicar a regra: ao expirar, `session.clear()` já limpa
+`usuario_id` antes de `usuario_logado()` ser avaliado na view real. Sessões sem marca de atividade (por
+exemplo, criadas antes desta mudança existir) não expiram na primeira requisição — evita derrubar sessões
+em andamento no momento do deploy.
 
 ---
 

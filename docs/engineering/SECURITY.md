@@ -33,9 +33,10 @@ Este documento define a política de segurança do Fluxoly Platform, com um chec
 contador em memória de processo (Flask-Limiter default) seria por worker, enfraquecendo o limite nominal
 para ~10/min efetivos e permitindo contorno parcial via roteamento entre workers. Por isso o contador vive
 em SQLite (`login_attempts`), já compartilhado entre os workers via WAL — limite realmente global, sem
-dependência nova. O identificador do cliente é resolvido via `Fly-Client-IP` (header do proxy da Fly.io),
-com fallback para `X-Forwarded-For` e por fim `request.remote_addr` — nenhum desses headers era lido antes
-desta mudança.
+dependência nova. O identificador do cliente é resolvido via `Fly-Client-IP` (header injetado quando
+rodando atrás do proxy da Fly.io — não é o caso da produção atual, Render), com fallback para
+`X-Forwarded-For` (o header que o proxy do Render de fato envia) e por fim `request.remote_addr` —
+nenhum desses headers era lido antes desta mudança.
 
 **Nota de implementação (timeout de inatividade):** existiam duas checagens de sessão paralelas antes
 desta mudança — `verificar_autenticacao()` (`app.py`, `before_request` global, cobre views legadas) e
@@ -98,7 +99,7 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 | Item | Status | Observação |
 |------|--------|-----------|
 | Sessões com `SameSite=Lax` ou `Strict` (deploy unificado) | ⚠️ | Verificar configuração de cookie |
-| `SameSite=None; Secure` apenas quando necessário (deploy separado) | ⚠️ | Verificar se ainda necessário no Fly.io |
+| `SameSite=None; Secure` apenas quando necessário (deploy separado) | ⚠️ | Verificar se ainda necessário — produção atual já é deploy separado (Render + Vercel) |
 | CSRF token em formulários críticos | N/A | API REST com JSON — CSRF via SameSite |
 
 ---
@@ -164,7 +165,7 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 | Logs de operações críticas (criação/edição/deleção de OS) | ❌ | Auditoria central (`audit_log`, ver abaixo) existe mas OS ainda não foi migrada para chamá-la — fora de escopo da Sprint 3 (mudaria domínio existente, não é feature nova) |
 | Logs de tentativas de login falhas | ✅ | Tabela `login_attempts` (KI-001) grava toda tentativa (sucesso e falha) — não é logging estruturado em JSON, mas cobre a auditabilidade |
 | Logs sem exposição de dados sensíveis | N/A | Sem logs de aplicação estruturados hoje |
-| Logs consultáveis em produção | ❌ | Fly.io tem logs básicos mas não estruturados |
+| Logs consultáveis em produção | ❌ | Render tem logs básicos mas não estruturados |
 | Auditoria central reutilizável entre domínios | ✅ | `audit_log` (`irflow_audit.py::registrar_log_auditoria`) — tabela genérica (entidade/entidade_id/ação/antes/depois), consumida pela primeira vez pelos domínios Clientes e `estoque_unidades` (Sprint P0.1) |
 
 **Ação Sprint 3:** Implementar logging estruturado em JSON para operações críticas — auditoria em banco

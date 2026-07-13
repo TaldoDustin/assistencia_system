@@ -2,7 +2,7 @@
 
 **Projeto:** Fluxoly Platform  
 **Data de atualização:** 2026-07-06  
-**Versão atual:** 1.x (pós-deploy Fly.io)  
+**Versão atual:** 1.x (pós-deploy Render + Vercel)  
 **Horizonte:** 4 fases / ~8 sprints
 
 ---
@@ -49,7 +49,7 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 - [ ] Tabela de preços por modelo/reparo
 - [ ] Relatórios básicos (IR Phones, Técnicos)
 - [ ] Backup manual e automático
-- [ ] Deploy em Fly.io estável
+- [ ] Deploy em produção estável (Render + Vercel)
 
 **Testes obrigatórios:**
 - Smoke test de todas as rotas REST (`smoke_test_full.py`)
@@ -335,7 +335,7 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 - Teste de carga: 10 usuários simultâneos recebendo notificações
 
 **Riscos:**
-- WebSocket em Fly.io requer configuração adicional
+- WebSocket em Render (backend) requer configuração adicional; frontend na Vercel complica ainda mais por ser deploy separado
 - Polling tem impacto de performance — decidir arquitetura antes de implementar
 
 **Definition of Done:**

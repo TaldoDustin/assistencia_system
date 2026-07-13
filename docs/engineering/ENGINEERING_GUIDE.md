@@ -62,7 +62,7 @@ Meta para Sprint 4: separar a camada de acesso a dados.
 | Testes backend | pytest | >=8.0 | — |
 | Lint backend | Ruff | >=0.5 | Sprint 2 |
 | Lint frontend | ESLint | ^9 | — |
-| Deploy | Fly.io | — | — |
+| Deploy | Render (backend) + Vercel (frontend) | — | — |
 
 **Antes de adicionar qualquer nova dependência:**
 1. Verifique se o problema não pode ser resolvido com o que já existe.

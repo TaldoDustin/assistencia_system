@@ -145,8 +145,9 @@ obedece à seguinte governança interna de TI:
 
 **Aplicado nesta revisão da documentação (2026-07-10):** todo texto de documentação que descreve o
 produto para o negócio passa a dizer "Fluxoly"; referências técnicas/API passam a dizer "Fluxoly
-Platform". Nomes de repositório, domínio de produção (`assistencia-system.fly.dev`), arquivos `irflow_*.py`
-e `database.db` **não são alterados** nesta etapa — ver `docs/engineering/adr/ADR-006.md`.
+Platform". Nomes de repositório, domínio de produção (nomenclatura legada `assistencia-system`, hoje
+servida via Render + Vercel — a hospedagem já migrou de Fly.io, mas o nome legado do slug não), arquivos
+`irflow_*.py` e `database.db` **não são alterados** nesta etapa — ver `docs/engineering/adr/ADR-006.md`.
 
 ---
 

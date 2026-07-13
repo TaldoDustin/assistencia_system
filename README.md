@@ -5,7 +5,8 @@ de preços, lista de compras, assistência técnica, garantias, relatórios e ba
 Nome legado no repositório e infraestrutura: Assistência System (ver `docs/company/BRAND_IDENTITY.md`
 seção 9 para o cronograma de transição de marca).
 
-**Produção:** [assistencia-system.fly.dev](https://assistencia-system.fly.dev)
+**Produção:** backend em [irflow-backend.onrender.com](https://irflow-backend.onrender.com) (Render) ·
+frontend em [assistencia-system.vercel.app](https://assistencia-system.vercel.app) (Vercel)
 
 ---
 
@@ -15,7 +16,7 @@ seção 9 para o cronograma de transição de marca).
 |--------|-----------|
 | Backend | Python 3.11 · Flask 3 · SQLite (WAL) |
 | Frontend | React 19 · Vite · Radix UI · Tailwind CSS |
-| Deploy | Fly.io |
+| Deploy | Render (backend) + Vercel (frontend) |
 | Testes | pytest · Playwright |
 
 ---
@@ -55,9 +56,11 @@ npm run dev
 # Frontend disponível em http://localhost:5173
 ```
 
-### Em produção (via Fly.io)
+### Em produção (Render + Vercel)
 
-O frontend é compilado e servido pelo próprio Flask:
+Backend (Render) e frontend (Vercel) são deploys separados — ver `DEPLOY.md` para o passo a passo
+completo. Também é possível rodar em processo único (Flask servindo o build do Vite), útil para
+deploy alternativo ou teste local:
 
 ```bash
 cd frontend && npm run build   # gera frontend/dist/

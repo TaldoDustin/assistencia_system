@@ -18,11 +18,12 @@ Depende de: nenhum outro módulo de domínio.
 
 def resolver_ip_cliente(request):
     """
-    Resolve o IP real do cliente atrás do proxy da Fly.io.
+    Resolve o IP real do cliente atrás do proxy reverso.
 
-    Fly injeta o header `Fly-Client-IP` com o IP original do cliente; na
-    ausência dele (ambiente local/dev, outro proxy), cai para
-    `X-Forwarded-For` e por fim `request.remote_addr`.
+    Produção atual (Render) injeta `X-Forwarded-For`. `Fly-Client-IP` é
+    checado primeiro por compatibilidade com um deploy anterior em Fly.io;
+    na ausência de ambos (dev local, outro proxy), cai para
+    `request.remote_addr`.
     """
     fly_ip = (request.headers.get("Fly-Client-IP") or "").strip()
     if fly_ip:

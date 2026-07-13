@@ -3,7 +3,7 @@
 **Projeto:** Fluxoly Platform  
 **Responsável:** Principal Software Engineer  
 **Branch principal:** `main`  
-**Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
+**Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-10  
 **Próxima revisão:** 2026-07-13
@@ -14,7 +14,7 @@
 
 | Dimensão           | Status                          |
 |--------------------|---------------------------------|
-| Produção           | Operacional (Fly.io)            |
+| Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com **175 erros** de `ruff check .` pré-existentes em todo o repositório (KI-017, contagem corrigida em 2026-07-11 — inclui scripts soltos na raiz, não só os arquivos que a Sprint 3/P0.1 tocou) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
@@ -198,7 +198,7 @@ prontas.
 | R-03 | Chaves secretas em variáveis de ambiente sem documentação formal      | Média         | Alto    | `.env` removido do git|
 | ~~R-04~~ | ~~Sem rate limiting — `/api/auth/login` vulnerável a força bruta~~ | Baixa | Alto | **Mitigado (2026-07-11)** — `irflow_rate_limit.py`, 5 tentativas/min por identificador (KI-001) |
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
-| R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
+| R-06 | Dependência única de Render + Vercel sem estratégia de fallback documentada | Baixa   | Médio   | `DEPLOY.md` documenta o passo a passo, sem provedor alternativo |
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
 | R-08 | `ruff check .` vermelho em `main` — 175 erros em todo o repo, incluindo scripts legados soltos na raiz (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, contagem real confirmada em 2026-07-11 (Sprint 3 Unidade 8) |
 

@@ -30,9 +30,9 @@ function SidebarContent({ currentPath, user, onNavigate, onLogout }) {
       <div className="px-4 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">IR</span>
+            <span className="text-primary-foreground font-bold text-sm">F</span>
           </div>
-          <span className="font-semibold text-sidebar-foreground text-base">IR Flow</span>
+          <span className="font-semibold text-sidebar-foreground text-base">Fluxoly</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export default function Layout() {
         >
           <Menu className="h-5 w-5 text-sidebar-foreground" />
         </button>
-        <span className="ml-3 font-semibold text-sidebar-foreground">IR Flow</span>
+        <span className="ml-3 font-semibold text-sidebar-foreground">Fluxoly</span>
       </div>
 
       {mobileOpen && (

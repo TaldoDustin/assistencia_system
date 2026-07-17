@@ -87,7 +87,8 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
   e-mail), expira em 24h, `secrets.token_urlsafe` como `gerar_token_checklist_os`. 10 testes.
 - **Unidade 5 — Domínio Clientes:** `irflow_clientes_controller/service/repository.py` — primeira
   aplicação real da convenção de `ENGINEERING_GUIDE.md` §3.1. CRUD + busca/paginação, `os.cliente_id`
-  aditivo sem backfill, exclusão bloqueada com OS vinculada (BR-023, BR-024). Sem tela ainda. 23 testes.
+  aditivo sem backfill, exclusão bloqueada com OS vinculada (BR-023, BR-024). Sem tela nesta sprint —
+  tela real entregue em 2026-07-17 na branch `demo/commercial-preview` (ver nota abaixo). 23 testes.
   Achado corrigido: `verificar_autenticacao()` só reconhecia bypass de `/api/*` pelo nome do blueprint
   `api.*` — um segundo blueprint sob `/api/*` caía na checagem de sessão legada; trocado para checar
   `request.path`, escala para qualquer domínio futuro sob `/api/*` sem precisar editar essa lista de novo.
@@ -112,6 +113,15 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
 subindo de 331 (fim da Sprint 2.7) para 407 (+76), cobertura 43% → 48%. Próximo passo, por decisão do
 usuário: retomar o épico Vendas com as fundações (Clientes, IMEI, auditoria, camada de serviços) já
 prontas.
+
+**Fora da sequência de sprints — Modo de Demonstração Comercial (2026-07-17, branch `demo/commercial-preview`):**
+decisão do usuário (CTO) de priorizar uma demonstração comercial para os primeiros clientes-parceiro
+antes de retomar o épico Vendas. Entregue: tela real de Clientes (fechando o gap da Unidade 5 acima) e
+telas de preview com dado fictício + badge (Vendas, Financeiro, Fluxoly Insights) para os módulos ainda
+não implementados. Ver `docs/operations/CHANGELOG.md` para detalhes. Durante a verificação, encontrado e
+corrigido via `hotfix/select-jsx-build-syntax` um bug crítico pré-existente e não relacionado: `npm run
+build` estava quebrado em `main` (KI-020, resolvido) — mascarado pelo Lint vermelho do CI (KI-017), que
+impede o job `frontend` de rodar.
 
 ### Escopo previsto
 

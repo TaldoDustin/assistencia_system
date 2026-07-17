@@ -437,26 +437,37 @@ Responsável:
 
 ---
 
-## KI-018
+## ~~KI-018~~ — RESOLVIDO
 
 Descrição:
-`frontend/src/App.jsx` e `frontend/src/components/Layout.jsx` declaram a rota `/compras` duas vezes,
-apontando para páginas diferentes (`ShoppingList.jsx` e `Compras.jsx`). Em `react-router-dom`, a
-segunda declaração (`Compras`) sobrescreve a primeira — `ShoppingList.jsx` fica inacessível pela
-navegação normal. O item de menu duplicado ("Compras" e "Lista de Compras", ambos com `path: "/compras"`)
-reflete o mesmo problema no `navItems` de `Layout.jsx`.
+`frontend/src/App.jsx` e `frontend/src/components/Layout.jsx` declaravam a rota `/compras` duas vezes,
+apontando para páginas diferentes (`ShoppingList.jsx` e `Compras.jsx`). O item de menu duplicado
+("Compras" e "Lista de Compras", ambos com `path: "/compras"`) refletia o mesmo problema no `navItems`
+de `Layout.jsx`.
 
 Impacto:
-Baixo a médio — não é um erro visível (a rota resolve para `Compras.jsx` normalmente), mas
-`ShoppingList.jsx` é código morto do ponto de vista de navegação, e não está claro qual das duas
-páginas é a atual/correta sem investigar.
+Crítico na prática, não só "baixo a médio" como avaliado na identificação inicial: `Compras.jsx` (o
+componente com o botão "Editar" de status) lia `data.compras`, uma chave que a API real nunca retorna
+(retorna `items`) — a lista sempre aparecia vazia, então o botão de editar nunca chegava a aparecer.
+`ShoppingList.jsx` (o componente correto, campos batendo com a API) não tinha nenhum controle de edição
+de status. Ou seja: **não era possível editar o status de um item da lista de compras por nenhum dos
+dois caminhos** — achado relatado pelo usuário ao testar a demo, não hipotético.
+
+Correção adicional à identificação original: testado empiricamente qual dos dois componentes duplicados
+de fato renderizava em `/compras` — era `ShoppingList.jsx` (a primeira declaração), não `Compras.jsx`
+como a avaliação inicial presumiu sem testar.
 
 Status:
-Aberto — identificado em 2026-07-17 durante a construção do modo de demonstração comercial
-(`demo/commercial-preview`), sem relação com a feature em questão. Fora de escopo corrigir aqui.
+Resolvido em 2026-07-17 via commits `a18a368`/`9bc6c35` (branch `demo/commercial-preview`). Removida a
+rota/item de menu duplicado; apagados `Compras.jsx` e `EditShoppingItemModal.jsx` (mortos e quebrados,
+nenhum outro lugar os importava). Adicionada edição de status em `ShoppingList.jsx` via `Select` por
+linha, usando o endpoint já existente e validado `PATCH /shopping-list/<id>/status` (mapa de transições
+válidas, bloqueio de compra simultânea) — visível só para admin/técnico, os únicos perfis que o backend
+aceita para essa ação hoje. Verificado ao vivo: item real criado via API, status mudado de `PENDENTE`
+para `EM_COTACAO` na UI, toast de confirmação.
 
 Sprint prevista:
-Não definida.
+Resolvido fora de sprint, durante preparação de demonstração comercial.
 
 Responsável:
 —

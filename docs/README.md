@@ -44,6 +44,9 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/DECISION_LOG.md`](company/DECISION_LOG.md) — Histórico executivo de decisões de produto (distinto de ADR).
 - [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
 - [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Proposta de versionamento (1.0 a 2.0), decisão final pendente do Product Owner.
+- [`company/SALES_DECK.md`](company/SALES_DECK.md) — Material de apresentação comercial (base para PDF, slide, reunião, site).
+- [`company/DEMO_SCRIPT.md`](company/DEMO_SCRIPT.md) — Roteiro cronometrado da demonstração ao vivo.
+- [`company/FAQ_COMERCIAL.md`](company/FAQ_COMERCIAL.md) — Respostas padronizadas a objeções de venda.
 
 ---
 

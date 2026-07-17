@@ -1,8 +1,13 @@
 import { lazy, Suspense, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, DollarSign, TrendingUp, CheckCircle, Clock, BarChart2, Wallet, Package, Tag } from "lucide-react";
-import { dashboard as dashboardApi, constantes } from "@/api/client";
+import {
+  Loader2, DollarSign, TrendingUp, CheckCircle, Clock, BarChart2, Wallet, Package, Tag,
+  Warehouse, Users, ShoppingCart, Sparkles,
+} from "lucide-react";
+import { dashboard as dashboardApi, constantes, clientes as clientesApi } from "@/api/client";
 import KpiCard from "@/components/dashboard/KpiCard";
+import { PreviewBadge } from "@/components/ui/preview-badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -25,6 +30,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [tecnicos, setTecnicos] = useState([]);
   const [filters, setFilters] = useState({ startDate: "", endDate: "", tecnico: "" });
+  const [totalClientes, setTotalClientes] = useState(null);
 
   const fetchData = async (params = {}) => {
     setLoading(true);
@@ -43,6 +49,9 @@ export default function Dashboard() {
     fetchData();
     constantes.get().then((res) => {
       if (res?.ok) setTecnicos(res.tecnicos || []);
+    });
+    clientesApi.list().then((res) => {
+      if (res?.ok) setTotalClientes(res.total ?? 0);
     });
   }, []);
 
@@ -111,6 +120,8 @@ export default function Dashboard() {
             <KpiCard title="Urgentes" value={data?.shopping_urgentes} icon={Tag} isCurrency={false} color="red" />
             <KpiCard title="Ticket Médio" value={data?.ticket_medio} icon={BarChart2} color="blue" />
             <KpiCard title="Resultado Líq." value={data?.resultado_liquido} icon={Wallet} color={data?.resultado_liquido >= 0 ? "green" : "red"} />
+            <KpiCard title="Investido em Estoque" value={data?.gasto_total_estoque} icon={Warehouse} color="blue" />
+            <KpiCard title="Clientes Cadastrados" value={totalClientes} icon={Users} isCurrency={false} color="primary" />
           </div>
 
           {/* Charts */}
@@ -141,6 +152,61 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Faturamento por Vendedor */}
+          <div className="bg-card rounded-xl border border-border p-5">
+            <h3 className="text-sm font-medium text-card-foreground mb-4">Faturamento por Vendedor</h3>
+            {(data?.resumo_por_vendedor || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma OS com vendedor registrado no período.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendedor</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">OS</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faturamento</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Lucro</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {data.resumo_por_vendedor.map((v) => (
+                      <tr key={v.vendedor}>
+                        <td className="px-3 py-2 font-medium text-card-foreground">{v.vendedor}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{v.os_total}</td>
+                        <td className="px-3 py-2 text-emerald-400">{formatCurrency(v.faturamento)}</td>
+                        <td className="px-3 py-2 text-blue-400">{formatCurrency(v.lucro)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Explore mais */}
+          <div className="bg-card rounded-xl border border-border p-5">
+            <h3 className="text-sm font-medium text-card-foreground mb-4">Explore mais</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { to: "/vendas", label: "Vendas", Icon: ShoppingCart },
+                { to: "/financeiro", label: "Financeiro", Icon: Wallet },
+                { to: "/insights", label: "Fluxoly Insights", Icon: Sparkles },
+              ].map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary p-3 hover:bg-accent/40 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                    <item.Icon className="h-4 w-4 text-primary" />
+                    {item.label}
+                  </span>
+                  <PreviewBadge />
+                </Link>
+              ))}
             </div>
           </div>
         </>

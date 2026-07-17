@@ -14,7 +14,6 @@ const navItems = [
   { path: "/insights", label: "Fluxoly Insights", icon: Sparkles },
   { path: "/vendas", label: "Vendas", icon: ShoppingCart },
   { path: "/clientes", label: "Clientes", icon: Contact },
-  { path: "/compras", label: "Compras", icon: ClipboardList },
   { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardList },
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },

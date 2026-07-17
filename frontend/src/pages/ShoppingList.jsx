@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { shoppingList as shoppingApi } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 
+const STATUS_OPTIONS = ["PENDENTE", "EM_COTACAO", "EM_COMPRA", "COMPRADO", "RECEBIDO", "CANCELADO", "ARQUIVADO"];
+
 export default function ShoppingList() {
+  const { user } = useAuth();
+  const canEditStatus = user?.perfil === "admin" || user?.perfil === "tecnico";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ status: "ALL", prioridade: "ALL", produto: "" });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [total, setTotal] = useState(0);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const fetch = async () => {
     setLoading(true);
@@ -33,6 +39,24 @@ export default function ShoppingList() {
 
   useEffect(() => { setPage(1); }, [filters.status, filters.prioridade, filters.produto]);
   useEffect(() => { fetch(); }, [filters, page, perPage]);
+
+  const handleStatusChange = async (item, novoStatus) => {
+    if (novoStatus === item.status) return;
+    setUpdatingId(item.id);
+    try {
+      const res = await shoppingApi.patchStatus(item.id, { status: novoStatus });
+      if (res?.ok) {
+        toast.success("Status atualizado!");
+        fetch();
+      } else {
+        toast.error(res?.erro || "Erro ao atualizar status");
+      }
+    } catch {
+      toast.error("Erro ao atualizar status");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -95,7 +119,22 @@ export default function ShoppingList() {
                     <td className="px-3 py-2">{it.produto_nome || it.produto_id || '—'}</td>
                     <td className="px-3 py-2">{it.os_id || '—'}</td>
                     <td className="px-3 py-2">{it.quantidade_solicitada}</td>
-                    <td className="px-3 py-2">{it.status}</td>
+                    <td className="px-3 py-2">
+                      {canEditStatus ? (
+                        <Select
+                          value={it.status}
+                          onValueChange={(v) => handleStatusChange(it, v)}
+                          disabled={updatingId === it.id}
+                        >
+                          <SelectTrigger className="w-36" aria-label={`Status do item ${it.id}`}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        it.status
+                      )}
+                    </td>
                     <td className="px-3 py-2">{it.responsavel_nome || '—'}</td>
                     <td className="px-3 py-2">{it.created_at || ''}</td>
                   </tr>

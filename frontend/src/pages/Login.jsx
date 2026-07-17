@@ -46,9 +46,9 @@ export default function Login() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-3">
-            <span className="text-primary-foreground font-bold text-lg">IR</span>
+            <span className="text-primary-foreground font-bold text-lg">F</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">IR Flow</h1>
+          <h1 className="text-2xl font-bold text-foreground">Fluxoly</h1>
           <p className="text-muted-foreground text-sm mt-1">Sistema de Assistência Técnica</p>
         </div>
 

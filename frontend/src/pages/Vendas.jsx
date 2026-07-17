@@ -81,6 +81,10 @@ export default function Vendas() {
           <ShoppingCart className="h-4 w-4 mr-2" />
           Finalizar Venda
         </Button>
+
+        <p className="text-xs text-muted-foreground text-center pt-1">
+          Primeiros clientes parceiros terão prioridade na definição deste módulo.
+        </p>
       </div>
     </div>
   );

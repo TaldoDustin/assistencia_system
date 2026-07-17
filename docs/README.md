@@ -47,6 +47,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/SALES_DECK.md`](company/SALES_DECK.md) — Material de apresentação comercial (base para PDF, slide, reunião, site).
 - [`company/DEMO_SCRIPT.md`](company/DEMO_SCRIPT.md) — Roteiro cronometrado da demonstração ao vivo.
 - [`company/FAQ_COMERCIAL.md`](company/FAQ_COMERCIAL.md) — Respostas padronizadas a objeções de venda.
+- [`company/CUSTOMER_FEEDBACK.md`](company/CUSTOMER_FEEDBACK.md) — Registro de feedback de clientes/prospects reais, insumo para priorização de roadmap.
 
 ---
 

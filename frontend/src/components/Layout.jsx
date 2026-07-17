@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, ClipboardList, Package, Wrench, DollarSign,
   BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, HardDriveDownload,
+  Contact, ShoppingCart, Wallet, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
@@ -10,6 +11,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/insights", label: "Fluxoly Insights", icon: Sparkles },
+  { path: "/vendas", label: "Vendas", icon: ShoppingCart },
+  { path: "/clientes", label: "Clientes", icon: Contact },
   { path: "/compras", label: "Compras", icon: ClipboardList },
   { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardList },
   { path: "/kanban", label: "Kanban", icon: Kanban },
@@ -18,6 +22,7 @@ const navItems = [
   { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
   { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
+  { path: "/financeiro", label: "Financeiro", icon: Wallet },
   { path: "/custos", label: "Custos Operacionais", icon: DollarSign, adminOnly: true },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3, adminOnly: true },
   { path: "/backup", label: "Backups", icon: HardDriveDownload, adminOnly: true },

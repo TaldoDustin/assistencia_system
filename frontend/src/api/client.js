@@ -343,6 +343,18 @@ export const usuarios = {
   delete: (id)        => del(`/usuarios/${id}`),
 };
 
+// ── Clientes ─────────────────────────────────────────────────────────────────
+export const clientes = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/clientes${qs ? "?" + qs : ""}`);
+  },
+  get:    (id)        => get(`/clientes/${id}`),
+  create: (data)      => post("/clientes", data),
+  update: (id, data)  => put(`/clientes/${id}`, data),
+  delete: (id)        => del(`/clientes/${id}`),
+};
+
 // ── Integracoes ──────────────────────────────────────────────────────────────
 export const integracoes = {
   mercadophone: {

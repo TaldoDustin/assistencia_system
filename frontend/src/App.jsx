@@ -22,6 +22,10 @@ const OperationalCosts = lazy(() => import("@/pages/OperationalCosts"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Backup = lazy(() => import("@/pages/Backup"));
 const Users = lazy(() => import("@/pages/Users"));
+const Clientes = lazy(() => import("@/pages/Clientes"));
+const Vendas = lazy(() => import("@/pages/Vendas"));
+const Financeiro = lazy(() => import("@/pages/Financeiro"));
+const Insights = lazy(() => import("@/pages/Insights"));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -70,6 +74,10 @@ function AppRoutes() {
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/backup" element={<Backup />} />
           <Route path="/usuarios" element={<Users />} />
+          <Route path="/clientes" element={<Clientes />} />
+          <Route path="/vendas" element={<Vendas />} />
+          <Route path="/financeiro" element={<Financeiro />} />
+          <Route path="/insights" element={<Insights />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

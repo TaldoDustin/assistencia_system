@@ -434,3 +434,93 @@ resto do pipeline de CI para qualquer PR.
 
 Responsável:
 —
+
+---
+
+## KI-018
+
+Descrição:
+`frontend/src/App.jsx` e `frontend/src/components/Layout.jsx` declaram a rota `/compras` duas vezes,
+apontando para páginas diferentes (`ShoppingList.jsx` e `Compras.jsx`). Em `react-router-dom`, a
+segunda declaração (`Compras`) sobrescreve a primeira — `ShoppingList.jsx` fica inacessível pela
+navegação normal. O item de menu duplicado ("Compras" e "Lista de Compras", ambos com `path: "/compras"`)
+reflete o mesmo problema no `navItems` de `Layout.jsx`.
+
+Impacto:
+Baixo a médio — não é um erro visível (a rota resolve para `Compras.jsx` normalmente), mas
+`ShoppingList.jsx` é código morto do ponto de vista de navegação, e não está claro qual das duas
+páginas é a atual/correta sem investigar.
+
+Status:
+Aberto — identificado em 2026-07-17 durante a construção do modo de demonstração comercial
+(`demo/commercial-preview`), sem relação com a feature em questão. Fora de escopo corrigir aqui.
+
+Sprint prevista:
+Não definida.
+
+Responsável:
+—
+
+---
+
+## KI-019
+
+Descrição:
+`frontend/src/components/Layout.jsx` ainda usa a marca "IR Flow" (logo "IR" + texto) na sidebar,
+tanto na versão desktop quanto na barra mobile — nome legado do produto, não "Fluxoly"
+(`docs/company/BRAND_IDENTITY.md` seção 9 já previa isso como pendente, mas listava só nomes de
+repositório/domínio/módulos, não a interface do usuário exibida na tela, que segundo a própria
+seção 9 já deveria ser "Fluxoly" desde 2026-07-10).
+
+Impacto:
+Baixo tecnicamente, mas alto de imagem numa demonstração comercial — qualquer prospect vê "IR Flow"
+na sidebar, não "Fluxoly".
+
+Status:
+Aberto — identificado em 2026-07-17 durante a construção do modo de demonstração comercial. Fora de
+escopo corrigir nesta mudança (troca de texto/logo é simples, mas é um rename de marca na UI, não
+parte do pedido original — feito à parte para não misturar as duas mudanças no mesmo commit).
+
+Sprint prevista:
+Não definida — candidato a correção rápida antes de qualquer demonstração comercial real.
+
+Responsável:
+—
+
+---
+
+## ~~KI-020~~ — RESOLVIDO
+
+Descrição:
+`frontend/src/components/ui/select.jsx` estava com a formatação colapsada em statements de uma linha
+só (5 edições manuais em 09-10/06/2026), sem `cn()`/classes Tailwind. O parser do Vite 8 (Rolldown,
+`"vite": "^8.0.4"`, resolvido para `8.0.8` no lockfile) não consegue interpretar esse formato —
+`npm run build` falhava com `Expected a semicolon or an implicit semicolon after a statement`. Como o
+job `Lint` do CI bloqueia `backend`/`frontend` via `needs: lint` (KI-017), o job `frontend` nunca
+chegou a rodar de verdade desde que o bug foi introduzido — o build de produção estava quebrado em
+`main` sem que o CI acusasse.
+
+Impacto:
+Crítico — qualquer deploy real do frontend (Vercel, que roda `npm run build`) falharia a partir desta
+regressão. Achado incidentalmente em 2026-07-17 ao rodar `npm run build` pela primeira vez durante a
+construção do modo de demonstração comercial (`demo/commercial-preview`), sem relação com essa feature.
+
+Causa raiz adicional:
+Uma correção idêntica já existia pronta desde 2026-07-06 (commit `ae7c575`, "Fix frontend build/dist
+pipeline"), mas ficou numa branch de worktree (`origin/worktree-quizzical-cuddling-stardust`) que nunca
+foi mergeada em `main` — 85 commits de `main` já tinham passado por cima dela sem que ninguém notasse
+que o fix não tinha entrado.
+
+Status:
+Resolvido em 2026-07-17 via `hotfix/select-jsx-build-syntax` (commit `22aa0b2`, merge `main`) —
+reaplicado apenas o arquivo `select.jsx` daquele commit antigo (as outras mudanças dele — anchoring de
+`.gitignore`/`.dockerignore` para `dist/`/`build/`, commit de `frontend/dist/`, proxy em
+`vite.config.js`, fix de `tests/e2e/app.spec.js` — são independentes, ficam fora deste hotfix e não
+foram avaliadas). `npm run build` e `npx eslint` confirmados limpos após a correção; zero mudança de
+comportamento (só formatação/sintaxe).
+
+Sprint prevista:
+Resolvido fora de sprint (hotfix).
+
+Responsável:
+—

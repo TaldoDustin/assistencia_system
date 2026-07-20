@@ -4,6 +4,7 @@ All routes under /api/* — consumed by the React SPA frontend.
 Authentication: Flask session cookies (same-origin, credentials: 'include').
 """
 
+import contextlib
 from datetime import datetime, timedelta
 import json
 import re
@@ -816,10 +817,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(items=items, total=total, page=page, per_page=per_page)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao listar shopping list: {exc}")
 
     @api.route("/shopping-list/<int:item_id>")
@@ -844,10 +843,8 @@ def create_api_blueprint(deps):
                 "created_at": r[12] or "", "updated_at": r[13] or "", "purchased_at": r[14] or "", "received_at": r[15] or "", "cancelled_at": r[16] or "",
             })
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao obter item: {exc}")
 
     @api.route("/shopping-list", methods=["POST"])
@@ -899,10 +896,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=new_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao criar item: {exc}")
 
     @api.route("/shopping-list/<int:item_id>", methods=["PUT"])
@@ -951,10 +946,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao atualizar item: {exc}")
 
     @api.route("/shopping-list/<int:item_id>/status", methods=["PATCH"])
@@ -1054,10 +1047,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id, status=novo)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao alterar status: {exc}")
 
     @api.route("/shopping-list/<int:item_id>", methods=["DELETE"])
@@ -1084,10 +1075,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao cancelar item: {exc}")
 
     @api.route("/shopping-list/grouped")
@@ -1107,10 +1096,8 @@ def create_api_blueprint(deps):
                 result.append({"produto_id": r[0], "produto_nome": r[1] or "", "quantidade_total": int(r[2] or 0), "os_count": int(r[3] or 0)})
             return ok(grouped=result)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao agrupar: {exc}")
 
 
@@ -1148,10 +1135,8 @@ def create_api_blueprint(deps):
                 })
             return ok(logs=logs)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao listar logs: {exc}")
 
 
@@ -1211,10 +1196,8 @@ def create_api_blueprint(deps):
             # default JSON
             return ok(records=records)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao exportar logs: {exc}")
 
 
@@ -2989,10 +2972,8 @@ def create_api_blueprint(deps):
             # Garante colunas/tabelas novas quando o backup é de schema antigo.
             forcar_migracao_schema()
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 os.unlink(tmp.name)
-            except Exception:
-                pass
         return ok(mensagem="Backup restaurado com sucesso.")
 
 

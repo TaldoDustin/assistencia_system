@@ -6,6 +6,7 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # ============================================================================
 # IMPORTS PADRÃO DA BIBLIOTECA
 # ============================================================================
+import contextlib
 import functools
 import os
 import shutil
@@ -614,99 +615,63 @@ def criar_tabelas():
             )
 
             # Add valor column if it doesn't exist
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_descricao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_fornecedor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN data_finalizado TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN cor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN imei TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN vendedor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN observacoes TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN origem_integracao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN id_externo_integracao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 # Aditiva, nullable, sem backfill (CLIENTES.md) -- OS existentes
                 # continuam com `cliente` (texto) e nada mais.
                 cursor.execute("ALTER TABLE os ADD COLUMN cliente_id INTEGER")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN sku TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN tipo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN qualidade TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 # Flag manual (admin) -- nem todo item de estoque precisa de
                 # unidade individual por IMEI (peca de reparo continua agregada).
                 cursor.execute("ALTER TABLE estoque ADD COLUMN requer_imei INTEGER NOT NULL DEFAULT 0")
-            except sqlite3.OperationalError:
-                pass
 
             cursor.execute(
                 """

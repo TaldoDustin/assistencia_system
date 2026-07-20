@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
-**Última revisão:** 2026-07-10  
-**Próxima revisão:** 2026-07-13
+**Última revisão:** 2026-07-20  
+**Próxima revisão:** a definir (início do Épico Vendas)
 
 ---
 
@@ -17,12 +17,12 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com **175 erros** de `ruff check .` pré-existentes em todo o repositório (KI-017, contagem corrigida em 2026-07-11 — inclui scripts soltos na raiz, não só os arquivos que a Sprint 3/P0.1 tocou) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-20 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR |
 | Cobertura de testes| 48% global, 407 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
 
-O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. A fragilidade mais visível agora continua sendo operacional, não funcional: o job de lint do CI está vermelho em `main` por dívida técnica pré-existente (KI-017), bloqueando o restante do pipeline para qualquer push — ainda não corrigido, fora de escopo das sprints em andamento.
+O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. Em 2026-07-20, antes do início do Épico Vendas (decisão do usuário — CTO), o lint vermelho em `main` (KI-017) foi corrigido em 6 commits atômicos na branch `chore/fix-ruff-lint-ki-017` — o CI estava bloqueado para qualquer PR desde antes da Sprint 3. No processo, também foi resolvido KI-014 (bloco de código morto duplicado em `irflow_blueprints_api.py`).
 
 ---
 
@@ -185,7 +185,7 @@ prontas.
 | TD-08 | Commits com mensagens vagas ("att", "S", "att 09/06 5")               | Baixo   | Alta       |
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
-| TD-11 | Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (linhas 220-267, nunca roteado — KI-014) | Baixo | Baixa |
+| ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
 
 ---
 
@@ -200,7 +200,7 @@ prontas.
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
 | R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
-| R-08 | `ruff check .` vermelho em `main` — 175 erros em todo o repo, incluindo scripts legados soltos na raiz (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, contagem real confirmada em 2026-07-11 (Sprint 3 Unidade 8) |
+| ~~R-08~~ | ~~`ruff check .` vermelho em `main` — job `Lint` bloqueava `backend`/`frontend` via `needs: lint` (KI-017)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-20)** — `ruff check .` → 0 erros, branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos |
 
 ---
 
@@ -245,7 +245,7 @@ prontas.
 3. ~~Atingir 40% de cobertura nas rotas críticas~~ — feito em 2026-07-11 (43%, `test_pricing.py`, `test_shopping.py`)
 4. Documentar `.env.example`
 5. Padronizar commits com Conventional Commits
-6. **[Novo, prioridade alta]** Corrigir os 20 erros de `ruff check .` em `main` (KI-017/R-08) — bloqueia o job `Lint` e, por consequência, `backend`/`frontend` no CI para qualquer PR. Fora do escopo desta sprint (seria refatoração multi-arquivo), mas recomendado antes da Sprint 3
+6. ~~Corrigir os erros de `ruff check .` em `main` (KI-017/R-08)~~ — feito em 2026-07-20 (0 erros, branch `chore/fix-ruff-lint-ki-017`), antes do início do Épico Vendas
 7. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/engineering/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)

@@ -944,11 +944,15 @@ def create_api_blueprint(deps):
                 'ARQUIVADO': set(),
             }
 
-            if atual_status and atual_status in valid_transitions and novo not in valid_transitions.get(atual_status, set()):
-                # Permite idempotência
-                if novo != atual_status:
-                    conn.close()
-                    return err(f"Transição inválida de {atual_status} para {novo}")
+            # Permite idempotência (novo == atual_status nunca é bloqueado)
+            if (
+                atual_status
+                and atual_status in valid_transitions
+                and novo not in valid_transitions.get(atual_status, set())
+                and novo != atual_status
+            ):
+                conn.close()
+                return err(f"Transição inválida de {atual_status} para {novo}")
 
             antes = atual_status
             updates = []
@@ -1193,9 +1197,8 @@ def create_api_blueprint(deps):
             reparo_nome = texto_reparos_os(reparos_info, tipo)
 
             # Mantém OS antigas da integração no banco, mas oculta da listagem.
-            if origem_integracao == "mercado_phone" and mp_sync_start_date:
-                if (not data) or (data < mp_sync_start_date):
-                    continue
+            if origem_integracao == "mercado_phone" and mp_sync_start_date and ((not data) or (data < mp_sync_start_date)):
+                continue
 
             if q:
                 haystack = f"{os_id} {row[2]} {row[3]} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {row[14] or ''} {row[15] or ''} {row[16] or ''} {row[17] or ''}".lower()
@@ -2899,8 +2902,11 @@ def create_api_blueprint(deps):
         import sqlite3 as _sqlite3
         import tempfile
         import shutil
-        # Salva em temp para validar antes de sobrescrever
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+        # Salva em temp para validar antes de sobrescrever. delete=False + unlink manual
+        # no finally (nao um `with`) e proposital: no Windows, fechar o handle antes do
+        # os.unlink() no finally abaixo falharia com PermissionError enquanto o arquivo
+        # ainda esta em uso por sqlite3.connect()/shutil.copy2() no corpo do try.
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")  # noqa: SIM115
         try:
             f.save(tmp.name)
             # Testa integridade

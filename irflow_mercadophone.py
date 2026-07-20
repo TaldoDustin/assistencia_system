@@ -371,7 +371,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
     salvar_reparos_os = helpers["salvar_reparos_os"]
     normalizar_busca_texto = helpers["normalizar_busca_texto"]
     normalizar_status_os = helpers["normalizar_status_os"]
-    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, l: "")
+    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, lista: "")
     lista_tecnicos = helpers.get("tecnicos", [])
     lista_vendedores = helpers.get("vendedores", [])
 
@@ -936,7 +936,7 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
     salvar_reparos_os = helpers["salvar_reparos_os"]
     normalizar_busca_texto = helpers["normalizar_busca_texto"]
     normalizar_status_os = helpers["normalizar_status_os"]
-    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, l: "")
+    canonicalizar_para_lista = helpers.get("canonicalizar_para_lista", lambda v, lista: "")
     lista_tecnicos = helpers.get("tecnicos", [])
     lista_vendedores = helpers.get("vendedores", [])
 
@@ -1128,7 +1128,7 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
         raise RuntimeError(
             f"API MercadoPhone indisponível agora ({type(exc).__name__}: {exc}). "
             "Reimportação cancelada sem apagar dados locais."
-        )
+        ) from exc
 
     conn = conectar()
     cursor = conn.cursor()

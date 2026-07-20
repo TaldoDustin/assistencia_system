@@ -493,7 +493,7 @@ def create_orders_blueprint(deps):
                     (os_id,),
                 )
                 pecas = cursor.fetchall()
-                for os_peca_id, estoque_id, qtd in pecas:
+                for _os_peca_id, estoque_id, qtd in pecas:
                     cursor.execute("SELECT quantidade FROM estoque WHERE id=?", (estoque_id,))
                     item = cursor.fetchone()
                     if not item:

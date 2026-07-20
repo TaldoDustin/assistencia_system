@@ -165,7 +165,7 @@ def encontrar_servico_tabela(nome_reparo, tabela):
     if not nome_reparo or not isinstance(tabela, dict):
         return ""
 
-    servicos = [servico for servico in tabela.keys() if isinstance(servico, str)]
+    servicos = [servico for servico in tabela if isinstance(servico, str)]
     if not servicos:
         return ""
 

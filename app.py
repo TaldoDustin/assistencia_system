@@ -276,9 +276,13 @@ def _origem_permitida_cors(origem):
             return True
 
         # Suporte simples ao padrao de preview do Vercel.
-        if "vercel" in permitido_txt and (".*" in permitido_txt or "\\." in permitido_txt):
-            if origem.startswith("https://") and origem.endswith(".vercel.app"):
-                return True
+        if (
+            "vercel" in permitido_txt
+            and (".*" in permitido_txt or "\\." in permitido_txt)
+            and origem.startswith("https://")
+            and origem.endswith(".vercel.app")
+        ):
+            return True
 
     return False
 
@@ -935,8 +939,8 @@ def autenticar_integracao_mercado_phone():
             "[MercadoPhone] Token webhook inválido. "
             f"esperado={_mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN)} "
             f"candidatos={[ _mascarar_token(c) for c in candidatos ]} "
-            f"headers={sorted(list(request.headers.keys()))} "
-            f"query_keys={sorted(list(request.args.keys()))}"
+            f"headers={sorted(request.headers.keys())} "
+            f"query_keys={sorted(request.args.keys())}"
         )
         abort(401)
 
@@ -1066,7 +1070,7 @@ def obter_alertas_sistema(limit=8):
         LIMIT 10
         """
     )
-    for item_id, descricao, quantidade in cursor.fetchall():
+    for _item_id, descricao, quantidade in cursor.fetchall():
         qtd = quantidade or 0
         status_txt = "sem estoque" if qtd == 0 else f"{qtd} unid."
         alerts.append(
@@ -1087,7 +1091,7 @@ def obter_alertas_sistema(limit=8):
         ORDER BY id DESC
         """
     )
-    for os_id, cliente, modelo, status, data_os in cursor.fetchall():
+    for os_id, cliente, _modelo, status, data_os in cursor.fetchall():
         if normalizar_status_os(status) not in {STATUS_EM_ANDAMENTO, STATUS_AGUARDANDO_PECA}:
             continue
         dt = parse_data_ymd(data_os)
@@ -1113,7 +1117,7 @@ def obter_alertas_sistema(limit=8):
         ORDER BY id DESC
         """
     )
-    for os_id, cliente, modelo, data_finalizado, data_os, status in cursor.fetchall():
+    for os_id, cliente, _modelo, data_finalizado, data_os, status in cursor.fetchall():
         if normalizar_status_os(status) != STATUS_FINALIZADO:
             continue
         if (cliente or "").strip().lower() == "ir phones":

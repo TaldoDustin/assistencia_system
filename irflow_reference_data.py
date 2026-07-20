@@ -342,6 +342,4 @@ def nome_reparo_importavel(nome):
     texto_norm = normalizar_busca_texto(texto)
     if texto_norm in {"iphone", "ipad", "smartphone", "celular", "assistencia", "garantia", "reparo"}:
         return False
-    if extrair_modelo_da_descricao_aparelho(texto):
-        return False
-    return True
+    return not extrair_modelo_da_descricao_aparelho(texto)

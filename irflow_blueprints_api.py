@@ -221,56 +221,6 @@ def create_api_blueprint(deps):
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
 
-    # ── Inject dependencies ────────────────────────────────────────────────
-    def criar_estoque():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        body = request.get_json(silent=True) or {}
-        descricao = (body.get("descricao") or "").strip()
-        modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
-        tipo = _normalizar_tipo_estoque(body.get("tipo"))
-        qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
-        valor = float(body.get("valor") or 0)
-        fornecedor = (body.get("fornecedor") or "Nao informado").strip()
-        quantidade = int(body.get("quantidade") or 0)
-        data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-
-        if not descricao or valor <= 0 or quantidade < 0:
-            return err("Preencha descrição, valor e quantidade.")
-
-        conn = conectar()
-        cursor = conn.cursor()
-        try:
-            # Permitir sempre cadastrar novo produto, mesmo com modelo/tipo/qualidade igual
-
-            cursor.execute(
-                """
-                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, tipo, qualidade)
-                VALUES (?,?,?,?,?,?,?,?)
-                """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, tipo, qualidade),
-            )
-            novo_id = cursor.lastrowid
-            if quantidade > 0:
-                cursor.execute(
-                    """
-                    INSERT INTO estoque_lotes (
-                        estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
-                    )
-                    VALUES (?,?,?,?,?,?,?,?)
-                    """,
-                    (novo_id, fornecedor, valor, quantidade, quantidade, data_compra, "", datetime.now().isoformat()),
-                )
-            conn.commit()
-            return ok(id=novo_id)
-        except Exception as e:
-            conn.rollback()
-            return err(f"Erro ao criar item: {e}")
-        finally:
-            conn.close()
-        return bool(session.get("usuario_id"))
-
     def usuario_admin():
         return session.get("usuario_perfil") == "admin"
 

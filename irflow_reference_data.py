@@ -217,6 +217,19 @@ REPAROS_PADRAO = [
     "TROCA DE FLASH",
 ]
 
+PRODUTOS_CATEGORIAS = [
+    "iPhone",
+    "Apple Watch",
+    "AirPods",
+    "Acessorio",
+]
+
+PRODUTOS_CONDICOES = [
+    "Novo",
+    "Seminovo",
+    "Vitrine",
+]
+
 
 def normalizar_modelo_iphone(modelo):
     valor = texto_limpo(modelo)

@@ -618,6 +618,32 @@ def criar_tabelas():
                 "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_imei ON estoque_unidades (imei)"
             )
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS produtos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria TEXT NOT NULL,
+                marca TEXT,
+                modelo TEXT,
+                cor TEXT,
+                capacidade TEXT,
+                condicao TEXT NOT NULL DEFAULT 'Novo',
+                descricao TEXT,
+                sku TEXT,
+                fornecedor TEXT,
+                preco_custo REAL,
+                preco_venda REAL NOT NULL,
+                quantidade INTEGER NOT NULL DEFAULT 0,
+                requer_rastreio_unidade INTEGER NOT NULL DEFAULT 0,
+                ativo INTEGER NOT NULL DEFAULT 1,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos (categoria)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_sku ON produtos (sku)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_ativo ON produtos (ativo)")
+
             # Add valor column if it doesn't exist
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -1583,6 +1609,15 @@ app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 from irflow_estoque_unidades_controller import create_estoque_unidades_blueprint  # noqa: E402
 
 app.register_blueprint(create_estoque_unidades_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE PRODUTOS (Sprint Comercial 0.1 — catálogo
+# comercial de venda, domínio novo e separado de Estoque/peças de reparo)
+# ============================================================================
+
+from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
+
+app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

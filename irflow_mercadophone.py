@@ -399,7 +399,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
         ("mercado_phone", external_id),
     )
     existente = cursor.fetchone()
-    
+
     # Se a OS já existe, atualizar o status e outras informações
     if existente:
         os_id = existente[0]

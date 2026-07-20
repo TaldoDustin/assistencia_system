@@ -1192,7 +1192,8 @@ def create_api_blueprint(deps):
 
             if fmt == 'csv':
                 # gerar CSV simples
-                import io, csv
+                import io
+                import csv
                 out = io.StringIO()
                 writer = csv.writer(out)
                 writer.writerow(['id','shopping_list_id','usuario_id','usuario_nome','acao','valor_anterior','valor_novo','created_at'])
@@ -2966,7 +2967,9 @@ def create_api_blueprint(deps):
         if not header.startswith(b"SQLite format 3"):
             return err("Arquivo inválido: não é um banco SQLite.", 400)
         f.seek(0)
-        import sqlite3 as _sqlite3, tempfile, shutil
+        import sqlite3 as _sqlite3
+        import tempfile
+        import shutil
         # Salva em temp para validar antes de sobrescrever
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
         try:

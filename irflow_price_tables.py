@@ -228,7 +228,7 @@ def carregar_tabelas_preco(caminho_arquivo):
     if not os.path.exists(caminho_arquivo):
         return tabelas_preco_vazias()
     try:
-        with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
+        with open(caminho_arquivo, encoding="utf-8") as arquivo:
             tabelas = json.load(arquivo)
     except (OSError, json.JSONDecodeError):
         return tabelas_preco_vazias()

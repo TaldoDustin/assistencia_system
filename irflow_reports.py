@@ -12,7 +12,6 @@ from irflow_core import (
     STATUS_FINALIZADO,
     calcular_faturamento_os,
     calcular_lucro_os,
-    normalizar_busca_texto,
     normalizar_status_os,
 )
 from irflow_os import obter_reparos_por_os

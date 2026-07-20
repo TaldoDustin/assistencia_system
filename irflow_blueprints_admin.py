@@ -13,7 +13,6 @@ def create_admin_blueprint(deps):
     categorias_custos_operacionais = deps["categorias_custos_operacionais"]
     carregar_tabelas_preco = deps["carregar_tabelas_preco"]
     salvar_tabelas_preco = deps["salvar_tabelas_preco"]
-    iphone_models = deps["iphone_models"]
 
     @bp.route("/custos-operacionais", methods=["GET", "POST"])
     def cadastrar_custo_operacional():

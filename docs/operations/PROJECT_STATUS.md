@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
-**Última revisão:** 2026-07-10  
-**Próxima revisão:** 2026-07-13
+**Última revisão:** 2026-07-21  
+**Próxima revisão:** a definir (Sprint Comercial 1.2 — tela Clientes)
 
 ---
 
@@ -17,12 +17,12 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). **Atenção:** job `Lint` está vermelho em `main` com **175 erros** de `ruff check .` pré-existentes em todo o repositório (KI-017, contagem corrigida em 2026-07-11 — inclui scripts soltos na raiz, não só os arquivos que a Sprint 3/P0.1 tocou) — como `backend`/`frontend` dependem de `Lint`, o pipeline inteiro fica bloqueado até isso ser corrigido |
-| Cobertura de testes| 48% global, 407 testes (ver Cobertura de Testes) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-20 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR |
+| Cobertura de testes| 50% global, 434 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
 
-O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. A fragilidade mais visível agora continua sendo operacional, não funcional: o job de lint do CI está vermelho em `main` por dívida técnica pré-existente (KI-017), bloqueando o restante do pipeline para qualquer push — ainda não corrigido, fora de escopo das sprints em andamento.
+O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. Em 2026-07-20, antes do início do Épico Vendas (decisão do usuário — CTO), o lint vermelho em `main` (KI-017) foi corrigido em 6 commits atômicos na branch `chore/fix-ruff-lint-ki-017` — o CI estava bloqueado para qualquer PR desde antes da Sprint 3. No processo, também foi resolvido KI-014 (bloco de código morto duplicado em `irflow_blueprints_api.py`). No mesmo dia, a Sprint Comercial 0.1 entregou o primeiro passo do Épico Vendas: domínio `produtos` (catálogo comercial — iPhone/Apple Watch/AirPods/Acessório), separado do domínio Estoque (peças de reparo) por decisão de arquitetura investigada e confirmada com o usuário antes de implementar. Sem tela ainda — ver `docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`.
 
 ---
 
@@ -113,6 +113,35 @@ subindo de 331 (fim da Sprint 2.7) para 407 (+76), cobertura 43% → 48%. Próxi
 usuário: retomar o épico Vendas com as fundações (Clientes, IMEI, auditoria, camada de serviços) já
 prontas.
 
+---
+
+**Sprint Comercial 0.1 — Catálogo de Produtos (CONCLUÍDA em 2026-07-20, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`):** primeira tarefa do Épico Vendas propriamente dito,
+divisão de trabalho Frente A (usuário, relacionamento com cliente)/Frente B (Claude, implementação em
+tarefas pequenas e fechadas). Domínio `produtos` — `irflow_produtos_controller/service/repository.py`,
+terceira aplicação da convenção de `ENGINEERING_GUIDE.md` §3.1. `categoria` (iPhone/Apple Watch/AirPods/
+Acessório) e `condicao` (Novo/Seminovo/Vitrine) validadas contra lista fechada e **rejeitadas** com 400
+quando inválidas — decisão deliberada de não repetir a coerção silenciosa de
+`_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`, que já causou KI-015 e KI-016. Margem nunca
+persistida, sempre calculada no service. Sem tela ainda. 27 testes. Testes subindo de 407 para 434,
+cobertura subindo de 48% para 50%. `VENDAS.md` recebeu nota sinalizando que `vendas.estoque_unidade_id` precisa
+ser revisado no Sprint Comercial 0.2 (rastreamento por unidade/IMEI de produtos, ainda não desenhado).
+
+**Sprint Comercial 1.1 — Tela Produtos (CONCLUÍDA em 2026-07-21, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.1.md`):** primeira tela do Épico Vendas — sequenciamento
+decidido pelo usuário (CTO) pela ótica de impacto no cliente (backend/testes já prontos, zero mudança
+de banco), não pela ótica de implementação. `frontend/src/pages/Produtos.jsx` consome integralmente
+`/api/produtos*`, sem tocar backend/schema. Ajuste de produto pedido antes da implementação: cards de
+resumo (Produtos/Seminovos/Vitrine), badges de categoria com emoji, busca única combinando todos os
+campos relevantes (client-side — o parâmetro `q` do backend só cobre descrição/modelo/SKU), coluna
+"Unidades" com placeholder reservando espaço para rastreamento por IMEI de uma sprint futura sem
+redesenho posterior. Escrita restrita a `admin` no frontend, espelhando a permissão já existente no
+backend. Validado manualmente ponta a ponta (servidor real + banco isolado, nunca `database.db`,
+navegador dirigido via Playwright) — login, listagem, busca combinada, criar/editar/excluir, e visão
+restrita do perfil `vendedor` (sem botão/ícones de escrita). Sem framework de teste de
+componente/unitário no frontend ainda (0% de cobertura unitária) — não expandido nesta sprint por
+decisão de manter o escopo pequeno.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -185,7 +214,7 @@ prontas.
 | TD-08 | Commits com mensagens vagas ("att", "S", "att 09/06 5")               | Baixo   | Alta       |
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
-| TD-11 | Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (linhas 220-267, nunca roteado — KI-014) | Baixo | Baixa |
+| ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
 
 ---
 
@@ -200,7 +229,7 @@ prontas.
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
 | R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
-| R-08 | `ruff check .` vermelho em `main` — 175 erros em todo o repo, incluindo scripts legados soltos na raiz (KI-017) — job `Lint` bloqueia `backend`/`frontend` via `needs: lint`, nenhum PR consegue rodar o restante do CI enquanto isso não for corrigido | Alta | Alto | Nenhuma — não introduzido nesta sessão, contagem real confirmada em 2026-07-11 (Sprint 3 Unidade 8) |
+| ~~R-08~~ | ~~`ruff check .` vermelho em `main` — job `Lint` bloqueava `backend`/`frontend` via `needs: lint` (KI-017)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-20)** — `ruff check .` → 0 erros, branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos |
 
 ---
 
@@ -224,14 +253,14 @@ prontas.
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint P0.1 Unidade 6) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-20, pós Sprint Comercial 0.1) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades — Sprint 2.2 a Sprint P0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades, produtos — Sprint 2.2 a Sprint Comercial 0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_produtos_service.py` 99% · `irflow_produtos_controller.py` 91% · `irflow_produtos_repository.py` 85% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **48%** (`pytest --cov`, 407 testes, pós-merge Sprint P0.1 Unidade 6 — 2026-07-11) |
+| **Global (repo, `main`)** |                  |              | **50%** (`pytest --cov`, 434 testes, pós Sprint Comercial 0.1 — 2026-07-20) |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%, e segue subindo com Sprint 3/P0.1 (46% agora). Gate de CI bloqueante desde a Sprint 2.7 (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 
@@ -245,7 +274,7 @@ prontas.
 3. ~~Atingir 40% de cobertura nas rotas críticas~~ — feito em 2026-07-11 (43%, `test_pricing.py`, `test_shopping.py`)
 4. Documentar `.env.example`
 5. Padronizar commits com Conventional Commits
-6. **[Novo, prioridade alta]** Corrigir os 20 erros de `ruff check .` em `main` (KI-017/R-08) — bloqueia o job `Lint` e, por consequência, `backend`/`frontend` no CI para qualquer PR. Fora do escopo desta sprint (seria refatoração multi-arquivo), mas recomendado antes da Sprint 3
+6. ~~Corrigir os erros de `ruff check .` em `main` (KI-017/R-08)~~ — feito em 2026-07-20 (0 erros, branch `chore/fix-ruff-lint-ki-017`), antes do início do Épico Vendas
 7. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/engineering/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)

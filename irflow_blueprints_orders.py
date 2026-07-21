@@ -15,11 +15,6 @@ def create_orders_blueprint(deps):
     status_cancelado = deps["status_cancelado_const"]
     status_em_andamento = deps["status_em_andamento_const"]
     status_os_validos = deps["status_os_validos"]
-    status_aberto = deps["status_aberto"]
-    coletar_status_opcoes = deps["coletar_status_opcoes"]
-    calcular_faturamento_os = deps["calcular_faturamento_os"]
-    calcular_lucro_os = deps["calcular_lucro_os"]
-    carregar_os_com_relacoes = deps["carregar_os_com_relacoes"]
     extrair_reparo_ids = deps["extrair_reparo_ids"]
     validar_reparo_ids = deps["validar_reparo_ids"]
     vendedor_valido = deps["vendedor_valido"]
@@ -498,7 +493,7 @@ def create_orders_blueprint(deps):
                     (os_id,),
                 )
                 pecas = cursor.fetchall()
-                for os_peca_id, estoque_id, qtd in pecas:
+                for _os_peca_id, estoque_id, qtd in pecas:
                     cursor.execute("SELECT quantidade FROM estoque WHERE id=?", (estoque_id,))
                     item = cursor.fetchone()
                     if not item:

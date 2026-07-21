@@ -207,10 +207,7 @@ def modelo_compativel(modelo_peca, modelo_os):
     if not tokens:
         return True
 
-    for token in tokens:
-        if token in modelo_os_norm or modelo_os_norm in token:
-            return True
-    return False
+    return any(token in modelo_os_norm or modelo_os_norm in token for token in tokens)
 
 
 def ler_valores_financeiros_form(formulario):
@@ -303,7 +300,7 @@ def devolver_pecas_da_os(cursor, os_id, tipo_movimentacao):
     )
     pecas = cursor.fetchall()
 
-    for os_peca_id, estoque_id, qtd, valor, descricao, fornecedor, modelo in pecas:
+    for _os_peca_id, estoque_id, qtd, valor, descricao, fornecedor, modelo in pecas:
         cursor.execute("SELECT id FROM estoque WHERE id=?", (estoque_id,))
         existe = cursor.fetchone()
 

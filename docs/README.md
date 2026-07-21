@@ -98,6 +98,7 @@ Decisões técnicas importantes, com contexto e alternativas avaliadas:
 - [`operations/SPRINTS/SPRINT_00.md`](operations/SPRINTS/SPRINT_00.md) — MVP em Produção (concluída)
 - [`operations/SPRINTS/SPRINT_01.md`](operations/SPRINTS/SPRINT_01.md) — Correções Críticas e Shopping List (concluída)
 - [`operations/SPRINTS/SPRINT_02.md`](operations/SPRINTS/SPRINT_02.md) — Infraestrutura de Qualidade (em andamento)
+- [`operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`](operations/SPRINTS/SPRINT_COMERCIAL_0.1.md) — Catálogo de Produtos (concluída)
 
 → Template para novas sprints: [`operations/templates/SPRINT_TEMPLATE.md`](operations/templates/SPRINT_TEMPLATE.md)
 

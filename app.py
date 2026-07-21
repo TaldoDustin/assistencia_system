@@ -6,21 +6,20 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # ============================================================================
 # IMPORTS PADRÃO DA BIBLIOTECA
 # ============================================================================
+import contextlib
 import functools
 import os
 import shutil
 import sqlite3
 import sys
 import threading
-import time
 import webbrowser
-from collections import defaultdict
 from datetime import datetime, timedelta
 
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, render_template, request, redirect, jsonify, flash, url_for, send_from_directory, Response, abort, session
+from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # ============================================================================
@@ -40,11 +39,9 @@ from irflow_core import (
     normalizar_status_os,
     sessao_ainda_ativa,
     status_aberto,
-    status_aguardando_peca,
     status_cancelado,
     status_finalizado,
     texto_limpo,
-    to_float,
 )
 
 # ============================================================================
@@ -67,7 +64,6 @@ from irflow_os import (
 )
 
 from irflow_mercadophone import (
-    corrigir_dados_importados_mercado_phone,
     detalhar_os_mercado_phone,
     importar_os_mercado_phone,
     loop_sincronizacao_mercado_phone,
@@ -77,12 +73,9 @@ from irflow_mercadophone import (
 )
 
 from irflow_storage import (
-    aplicar_retencao_backups_automaticos,
     carregar_configuracoes_integracoes,
     criar_backup,
-    diretorio_google_drive_disponivel,
     enviar_backup_email,
-    executar_backup_diario_automatico,
     garantir_pasta_backup_google_drive,
     iniciar_thread_backup_automatico,
     salvar_configuracoes_integracoes,
@@ -120,19 +113,11 @@ from irflow_reports import (
     agrupar_relatorio_custos_operacionais,
     agrupar_relatorio_ir_phones,
     agrupar_relatorio_tecnicos,
-    buscar_dados_relatorios,
-    formatar_mes_referencia,
     formatar_periodo_relatorio,
-    linha_tabela,
-    limitar_texto,
-    moeda_pdf,
     montar_linhas_relatorio_custos_operacionais,
     montar_linhas_relatorio_ir_phones,
     montar_linhas_relatorio_tecnicos,
     montar_pdf_texto,
-    normalizar_chave_preco,
-    normalizar_texto_pdf,
-    obter_data_referencia_os,
     texto_reparos_os,
 )
 
@@ -291,9 +276,13 @@ def _origem_permitida_cors(origem):
             return True
 
         # Suporte simples ao padrao de preview do Vercel.
-        if "vercel" in permitido_txt and (".*" in permitido_txt or "\\." in permitido_txt):
-            if origem.startswith("https://") and origem.endswith(".vercel.app"):
-                return True
+        if (
+            "vercel" in permitido_txt
+            and (".*" in permitido_txt or "\\." in permitido_txt)
+            and origem.startswith("https://")
+            and origem.endswith(".vercel.app")
+        ):
+            return True
 
     return False
 
@@ -629,100 +618,90 @@ def criar_tabelas():
                 "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_imei ON estoque_unidades (imei)"
             )
 
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS produtos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria TEXT NOT NULL,
+                marca TEXT,
+                modelo TEXT,
+                cor TEXT,
+                capacidade TEXT,
+                condicao TEXT NOT NULL DEFAULT 'Novo',
+                descricao TEXT,
+                sku TEXT,
+                fornecedor TEXT,
+                preco_custo REAL,
+                preco_venda REAL NOT NULL,
+                quantidade INTEGER NOT NULL DEFAULT 0,
+                requer_rastreio_unidade INTEGER NOT NULL DEFAULT 0,
+                ativo INTEGER NOT NULL DEFAULT 1,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos (categoria)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_sku ON produtos (sku)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_ativo ON produtos (ativo)")
+
             # Add valor column if it doesn't exist
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_descricao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_fornecedor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN peca_modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN data_finalizado TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN cor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN imei TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN vendedor TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN observacoes TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN origem_integracao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN id_externo_integracao TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 # Aditiva, nullable, sem backfill (CLIENTES.md) -- OS existentes
                 # continuam com `cliente` (texto) e nada mais.
                 cursor.execute("ALTER TABLE os ADD COLUMN cliente_id INTEGER")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN modelo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN sku TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN tipo TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE estoque ADD COLUMN qualidade TEXT")
-            except sqlite3.OperationalError:
-                pass
 
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 # Flag manual (admin) -- nem todo item de estoque precisa de
                 # unidade individual por IMEI (peca de reparo continua agregada).
                 cursor.execute("ALTER TABLE estoque ADD COLUMN requer_imei INTEGER NOT NULL DEFAULT 0")
-            except sqlite3.OperationalError:
-                pass
 
             cursor.execute(
                 """
@@ -986,8 +965,8 @@ def autenticar_integracao_mercado_phone():
             "[MercadoPhone] Token webhook inválido. "
             f"esperado={_mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN)} "
             f"candidatos={[ _mascarar_token(c) for c in candidatos ]} "
-            f"headers={sorted(list(request.headers.keys()))} "
-            f"query_keys={sorted(list(request.args.keys()))}"
+            f"headers={sorted(request.headers.keys())} "
+            f"query_keys={sorted(request.args.keys())}"
         )
         abort(401)
 
@@ -1117,7 +1096,7 @@ def obter_alertas_sistema(limit=8):
         LIMIT 10
         """
     )
-    for item_id, descricao, quantidade in cursor.fetchall():
+    for _item_id, descricao, quantidade in cursor.fetchall():
         qtd = quantidade or 0
         status_txt = "sem estoque" if qtd == 0 else f"{qtd} unid."
         alerts.append(
@@ -1138,7 +1117,7 @@ def obter_alertas_sistema(limit=8):
         ORDER BY id DESC
         """
     )
-    for os_id, cliente, modelo, status, data_os in cursor.fetchall():
+    for os_id, cliente, _modelo, status, data_os in cursor.fetchall():
         if normalizar_status_os(status) not in {STATUS_EM_ANDAMENTO, STATUS_AGUARDANDO_PECA}:
             continue
         dt = parse_data_ymd(data_os)
@@ -1164,7 +1143,7 @@ def obter_alertas_sistema(limit=8):
         ORDER BY id DESC
         """
     )
-    for os_id, cliente, modelo, data_finalizado, data_os, status in cursor.fetchall():
+    for os_id, cliente, _modelo, data_finalizado, data_os, status in cursor.fetchall():
         if normalizar_status_os(status) != STATUS_FINALIZADO:
             continue
         if (cliente or "").strip().lower() == "ir phones":
@@ -1630,6 +1609,15 @@ app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 from irflow_estoque_unidades_controller import create_estoque_unidades_blueprint  # noqa: E402
 
 app.register_blueprint(create_estoque_unidades_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE PRODUTOS (Sprint Comercial 0.1 — catálogo
+# comercial de venda, domínio novo e separado de Estoque/peças de reparo)
+# ============================================================================
+
+from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
+
+app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

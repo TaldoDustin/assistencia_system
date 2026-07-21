@@ -277,7 +277,7 @@ Responsável:
 
 ---
 
-## KI-014
+## ~~KI-014~~ — RESOLVIDO
 
 Descrição:
 Em `irflow_blueprints_api.py`, existe uma definição de `def criar_estoque():` sem decorador
@@ -294,12 +294,14 @@ Baixo. Sem efeito em runtime — apenas ruído de manutenção (48 linhas mortas
 leitura futura do arquivo).
 
 Status:
-Aberto — identificado durante a Sprint 2.6, fora do escopo desta sprint (que é
-parsing/validação, não limpeza de código morto). Candidato a remoção pontual e isolada em sprint
-futura ou junto da decomposição do módulo (Sprint 4).
+Resolvido em 2026-07-20, commit `c3294a3` (branch `chore/fix-ruff-lint-ki-017`). Bloco morto
+removido por completo, incluindo a linha órfã. Achado no processo de corrigir KI-017 (o `F811`
+era um dos 175 erros de `ruff check .`). Rota real de `criar_estoque()` e comportamento da API
+não mudam — confirmado por `pytest tests/` (407 testes) sem regressão. Fecha também TD-11
+(`docs/operations/PROJECT_STATUS.md`).
 
 Sprint prevista:
-Não definida — candidato a Sprint 4 (Decomposição do Módulo API) ou remoção avulsa antes disso.
+Identificado durante a Sprint 2.6 (2026-07-07); resolvido em 2026-07-20 junto de KI-017.
 
 Responsável:
 —
@@ -372,10 +374,10 @@ Responsável:
 
 ---
 
-## KI-017
+## ~~KI-017~~ — RESOLVIDO
 
 Descrição:
-`ruff check .` falha atualmente em `main` com 20 erros (`F841` variáveis não usadas em
+`ruff check .` falhava em `main` com 20 erros (`F841` variáveis não usadas em
 `irflow_blueprints_api.py` linhas 28-70, `SIM105`/`SIM102` em vários pontos, `E401` imports
 múltiplos em uma linha, e o `F811` já conhecido de KI-014). O job `Lint` do CI
 (`.github/workflows/ci.yml`) marca o passo `ruff check .` como BLOQUEANTE, e os jobs `backend` e
@@ -428,9 +430,40 @@ ainda escaneados pelo `ruff check .` do CI. Nenhum dos 9 arquivos novos desta sp
 `irflow_vendas_service.py`) aparece nessa lista — confirmado zero regressão. **62 continua sendo o
 número relevante para o que a Sprint 3/P0.1 tocou**, mas **175 é o número real que bloqueia o CI**.
 
+**Resolvido em 2026-07-20 (branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos), decisão do
+usuário (CTO) de destravar o CI antes de iniciar o Épico Vendas — todo PR futuro dependeria de um
+pipeline que já nascia bloqueado.** Categorização dos 175 erros reais:
+
+- **95 (54%)** viviam em 11 scripts de debug/smoke pré-pytest soltos na raiz do repo (já citados
+  acima como causa do salto de 62→175) — nenhum coletado pelo pytest (`testpaths=["tests"]`),
+  nenhum invocado pelo `ci.yml`. Movidos para `scripts/` (já excluído do ruff em `pyproject.toml`,
+  mesmo lugar de `diagnose_mercadophone.py`/`import_legacy_db.py`) — zero mudança de conteúdo,
+  commit `94cfdb2`.
+- **24** resolvidos por `ruff check --fix` (imports não usados, espaço em branco, f-strings sem
+  placeholder, etc.) nos módulos de produção — commit `2cd3822`.
+- **28** (`SIM105`) convertidos para `contextlib.suppress` — 18 no idioma de `ALTER TABLE` de
+  `app.py` (já documentado acima como intencional; convertidas todas juntas nesta mudança, o que
+  preserva a consistência interna do arquivo em vez de quebrá-la) e 10 no idioma de limpeza
+  best-effort de `irflow_blueprints_api.py` — commit `f00a993`.
+- **1** (`F811`) era o bloco morto de `criar_estoque()` — resolvido junto de KI-014, commit
+  `c3294a3`.
+- **10** (`F841`) eram bindings `deps[...]` nunca referenciados — commit `ba0edd3`.
+- **17** restantes (`B904`, `B007`, `E741`, `C414`, `SIM102/103/110/115/118`) corrigidos
+  pontualmente, cada um reescrito 1:1 do mesmo comportamento — commit `605b5f5`. Uma exceção
+  documentada: `SIM115` em `irflow_blueprints_api.py` (restauração de backup) foi suprimida com
+  `# noqa` em vez de convertida para `with`, porque fechar o handle do `NamedTemporaryFile` antes
+  do `os.unlink()` manual no `finally` falharia com `PermissionError` no Windows enquanto o
+  arquivo ainda está em uso por `sqlite3.connect()`/`shutil.copy2()`.
+
+`ruff check .` → 0 erros (era exatamente o comando que o job `Lint` do CI roda). 407 testes,
+100% passando, cobertura 48% (gate ≥ 40%) — confirmado após cada um dos 6 commits, não só no
+final. R-08 (`docs/operations/PROJECT_STATUS.md`) mitigado junto — `backend`/`frontend` voltam a
+rodar via `needs: lint` para qualquer PR novo, inclusive os do Épico Vendas.
+
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o
-resto do pipeline de CI para qualquer PR.
+resto do pipeline de CI para qualquer PR. Resolvido em 2026-07-20, antes do início do Épico
+Vendas.
 
 Responsável:
 —

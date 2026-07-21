@@ -237,6 +237,19 @@ REPAROS_PADRAO = [
     "TROCA DE FLASH",
 ]
 
+PRODUTOS_CATEGORIAS = [
+    "iPhone",
+    "Apple Watch",
+    "AirPods",
+    "Acessorio",
+]
+
+PRODUTOS_CONDICOES = [
+    "Novo",
+    "Seminovo",
+    "Vitrine",
+]
+
 
 def normalizar_modelo_iphone(modelo):
     valor = texto_limpo(modelo)
@@ -362,6 +375,4 @@ def nome_reparo_importavel(nome):
     texto_norm = normalizar_busca_texto(texto)
     if texto_norm in {"iphone", "ipad", "smartphone", "celular", "assistencia", "garantia", "reparo"}:
         return False
-    if extrair_modelo_da_descricao_aparelho(texto):
-        return False
-    return True
+    return not extrair_modelo_da_descricao_aparelho(texto)

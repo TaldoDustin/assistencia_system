@@ -5,7 +5,7 @@ e a escolha entre elas (`docs/engineering/adr/`). **Decision Log é executivo** 
 produto/negócio, o motivo e o impacto, em ordem cronológica, para que ninguém precise reconstruir "por
 que decidimos isso" a partir de conversas antigas.
 
-**Última revisão:** 2026-07-10
+**Última revisão:** 2026-07-20
 
 **Regra de escrita:** toda entrada cita a fonte onde a decisão foi originalmente registrada (a maioria já
 está documentada em outro lugar — este log não substitui esses documentos, indexa-os cronologicamente
@@ -135,6 +135,21 @@ e `docs/operations/ROADMAP.md` voltam a ser a referência ativa.
 **Fonte:** Decisão do Product Owner nesta conversa, 2026-07-10.
 
 ---
+
+## 2026-07-20 — Catálogo comercial (`produtos`) é domínio novo, não extensão de Estoque
+
+**Decisão:** o catálogo de itens à venda (iPhone, Apple Watch, AirPods, Acessório) vira uma tabela e um
+domínio (`produtos`) inteiramente separados de `estoque` (peças de reparo) — não uma extensão dele.
+**Motivo:** investigação antes de implementar (2 agentes de pesquisa, docs + código real) confirmou que
+`estoque.tipo`/`qualidade` são listas fechadas hardcoded para vocabulário de peça de reparo (`Tela`/
+`Bateria`/...) com coerção silenciosa para um valor default, e que o frontend (`Stock.jsx`) é inteiramente
+rotulado "peças" — sem preço de venda, margem ou condição. Estender `estoque` misturaria dois modelos
+mentais diferentes na mesma tabela/tela em uso real hoje.
+**Impacto:** `docs/engineering/DATABASE.md` (tabela `produtos`), `docs/engineering/DOMAIN_MODEL.md` seção
+1.14, `docs/product/BUSINESS_RULES.md` BR-027 a BR-029. `docs/product/features/VENDAS.md` precisa ser
+revisado no Sprint Comercial 0.2 — hoje aponta `vendas.estoque_unidade_id` para `estoque_unidades`, que
+não serve mais para produto comercial.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-20 — `docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`.
 
 ## Documentos relacionados
 

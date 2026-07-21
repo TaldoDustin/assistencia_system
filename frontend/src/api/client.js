@@ -236,6 +236,18 @@ export const estoque = {
   delete: (id)         => del(`/estoque/${id}`),
 };
 
+// ── Produtos (Catálogo Comercial) ──────────────────────────────────────────
+export const produtos = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/produtos${qs ? "?" + qs : ""}`);
+  },
+  get:    (id)         => get(`/produtos/${id}`),
+  create: (data)       => post("/produtos", data),
+  update: (id, data)   => put(`/produtos/${id}`, data),
+  delete: (id)         => del(`/produtos/${id}`),
+};
+
 // ── Shopping List (Compras) ───────────────────────────────────────────────
 export const shoppingList = {
   list: (params = {}) => {

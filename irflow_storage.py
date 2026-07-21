@@ -29,7 +29,7 @@ def carregar_configuracoes_integracoes(integrations_config_path):
         return padrao
 
     try:
-        with open(integrations_config_path, "r", encoding="utf-8") as arquivo:
+        with open(integrations_config_path, encoding="utf-8") as arquivo:
             dados = json.load(arquivo)
             if isinstance(dados, dict):
                 return dados

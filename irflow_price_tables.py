@@ -165,7 +165,7 @@ def encontrar_servico_tabela(nome_reparo, tabela):
     if not nome_reparo or not isinstance(tabela, dict):
         return ""
 
-    servicos = [servico for servico in tabela.keys() if isinstance(servico, str)]
+    servicos = [servico for servico in tabela if isinstance(servico, str)]
     if not servicos:
         return ""
 
@@ -228,7 +228,7 @@ def carregar_tabelas_preco(caminho_arquivo):
     if not os.path.exists(caminho_arquivo):
         return tabelas_preco_vazias()
     try:
-        with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
+        with open(caminho_arquivo, encoding="utf-8") as arquivo:
             tabelas = json.load(arquivo)
     except (OSError, json.JSONDecodeError):
         return tabelas_preco_vazias()

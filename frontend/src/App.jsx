@@ -15,6 +15,7 @@ const Kanban = lazy(() => import("@/pages/Kanban"));
 const ShoppingList = lazy(() => import("@/pages/ShoppingList"));
 const Garantias = lazy(() => import("@/pages/Garantias"));
 const Stock = lazy(() => import("@/pages/Stock"));
+const Produtos = lazy(() => import("@/pages/Produtos"));
 const Compras = lazy(() => import("@/pages/Compras"));
 const RepairTypes = lazy(() => import("@/pages/RepairTypes"));
 const PriceTables = lazy(() => import("@/pages/PriceTables"));
@@ -62,6 +63,7 @@ function AppRoutes() {
           <Route path="/compras" element={<ShoppingList />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/garantias" element={<Garantias />} />
+          <Route path="/produtos" element={<Produtos />} />
           <Route path="/estoque" element={<Stock />} />
           <Route path="/compras" element={<Compras />} />
           <Route path="/reparos" element={<RepairTypes />} />

@@ -153,6 +153,37 @@ decisão confirmada com o usuário em 2026-07-11 (devolvido → disponivel diret
 
 ---
 
+## Produtos (catálogo comercial)
+
+Domínio novo, Sprint Comercial 0.1 — catálogo de itens à venda (iPhone, Apple Watch, AirPods,
+Acessório), separado do domínio Estoque (peças de reparo). Decisão de arquitetura investigada e
+confirmada com o usuário antes de implementar: `estoque.tipo`/`qualidade` são listas fechadas
+hardcoded para peça de reparo, incompatíveis com o vocabulário de um catálogo comercial.
+
+**BR-027 — ✅ Implementado**
+`categoria` de um produto só pode ser uma das quatro da lista fechada (iPhone, Apple Watch, AirPods,
+Acessório) e `condicao` só pode ser uma de (Novo, Seminovo, Vitrine) — valor fora dessas listas é
+**rejeitado com 400**, nunca normalizado/mascarado para um valor default.
+*Fonte: `irflow_produtos_service.py::_validar_campos`; `PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES` em
+`irflow_reference_data.py`. Decisão deliberada: `_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`
+mascaram entrada desconhecida com um default silencioso — esse padrão já causou duas dívidas reais
+neste projeto (KI-015, KI-016), não repetido em código novo.*
+
+**BR-028 — ✅ Implementado**
+Margem de um produto (preço de venda − preço de custo) nunca é persistida como coluna — é sempre
+calculada no momento da leitura, e é `None` quando o preço de custo não foi informado.
+*Fonte: `irflow_produtos_service.py::_produto_para_dict`; mesmo princípio de BR-019 (`vendas.margem`).*
+
+**BR-029 — ✅ Implementado**
+Criar, editar ou excluir um produto do catálogo é restrito ao perfil `admin` (preço/margem é dado
+sensível); listar e consultar é permitido a qualquer usuário autenticado (vendedor precisa consultar o
+catálogo numa venda).
+*Fonte: `irflow_produtos_controller.py`. Decisão de negócio V1, conservadora — abrir criação/edição
+para outros perfis é decisão pendente de validação com cliente real, ver
+`docs/company/CUSTOMER_FEEDBACK.md`.*
+
+---
+
 ## Vendas (especificado, não implementado)
 
 Decisões já tomadas em conversa entre Product Owner e engenharia (2026-07-09), registradas em

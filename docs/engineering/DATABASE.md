@@ -5,7 +5,7 @@ colunas adicionadas posteriormente via `ALTER TABLE` ad-hoc. Em caso de dúvida 
 de um ambiente, inspecione o banco diretamente — não assuma que este documento está 100% sincronizado
 (ver KI-004: ausência de migrations formais é dívida técnica conhecida, planejada para Sprint 4).
 
-**Última revisão:** 2026-07-07
+**Última revisão:** 2026-07-20
 **Motor:** SQLite, modo WAL (`_configurar_conexao_sqlite(conn, habilitar_wal=True)`)
 
 ---
@@ -134,6 +134,47 @@ Estoque, não domínio isolado. Segue a convenção controller/service/repositor
 | `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
 
 **Índices:** `idx_estoque_unidades_estoque_id`, `idx_estoque_unidades_status`, `idx_estoque_unidades_imei`.
+
+### `produtos`
+
+Catálogo comercial de venda (Sprint Comercial 0.1) — iPhone, Apple Watch, AirPods, Acessório. Domínio
+novo, **separado** de `estoque` (peças de reparo — `docs/engineering/DOMAIN_MODEL.md` seção 1.4):
+`estoque.tipo`/`qualidade` são listas fechadas hardcoded para vocabulário de peça de reparo
+(`Tela`/`Bateria`/...) e o frontend (`Stock.jsx`) é inteiramente rotulado "peças", sem campo de preço de
+venda/margem/condição — estender `estoque` misturaria dois modelos mentais diferentes na mesma tabela.
+Segue a convenção controller/service/repository de `docs/engineering/ENGINEERING_GUIDE.md` §3.1
+(`irflow_produtos_controller.py`/`_service.py`/`_repository.py`).
+
+| Coluna | Tipo | Default | Observação |
+|--------|------|---------|------------|
+| `id` | INTEGER PK AUTOINCREMENT | | |
+| `categoria` | TEXT NOT NULL | | Lista fechada: `iPhone`\|`Apple Watch`\|`AirPods`\|`Acessorio` (`PRODUTOS_CATEGORIAS`, `irflow_reference_data.py`). Valor fora da lista é **rejeitado**, não normalizado (BR-027) |
+| `marca` | TEXT | | Texto livre — Apple domina, mas acessórios têm outras marcas |
+| `modelo` | TEXT | | |
+| `cor` | TEXT | | Texto livre nesta sprint (não usa `IPHONE_COLORS`/`COLOR_ALIAS_MAP`, que são iPhone-only) |
+| `capacidade` | TEXT | | Ex.: "128GB" — texto livre |
+| `condicao` | TEXT NOT NULL | `'Novo'` | Lista fechada: `Novo`\|`Seminovo`\|`Vitrine` (`PRODUTOS_CONDICOES`). Mesma regra de rejeição de `categoria` (BR-027) |
+| `descricao` | TEXT | | |
+| `sku` | TEXT | | |
+| `fornecedor` | TEXT | | |
+| `preco_custo` | REAL | `NULL` | Opcional — se ausente, `margem` calculada é `None` |
+| `preco_venda` | REAL NOT NULL | | Obrigatório, deve ser `> 0` |
+| `quantidade` | INTEGER NOT NULL | `0` | Agregado — usado enquanto o item não tem rastreio por unidade |
+| `requer_rastreio_unidade` | INTEGER NOT NULL | `0` | Mesmo padrão de `estoque.requer_imei` — sinaliza produtos que vão precisar de unidade/IMEI individual no Sprint Comercial 0.2 (tabela própria, ainda não desenhada) |
+| `ativo` | INTEGER NOT NULL | `1` | Visibilidade no catálogo — **não** é o status de unidade em estoque (disponível/reservado/vendido é conceito por unidade física, Sprint Comercial 0.2, não por SKU) |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` | |
+| `atualizado_em` | TEXT NOT NULL | `datetime('now')` | |
+
+**`margem` não é coluna** — sempre calculada em `irflow_produtos_service.py` (`preco_venda - preco_custo`,
+`None` se `preco_custo` ausente), nunca persistida nem editável diretamente (BR-028).
+
+**Índices:** `idx_produtos_categoria`, `idx_produtos_sku`, `idx_produtos_ativo`.
+
+**Sem relacionamento ainda** — tabela standalone nesta sprint. O Sprint Comercial 0.2 (rastreamento por
+unidade/IMEI de produtos) vai decidir a tabela filha (`produtos_unidades`, candidata, mesmo padrão de
+`estoque_unidades`) e, nesse momento, `docs/product/features/VENDAS.md` precisa ser revisado — hoje
+documenta `vendas.estoque_unidade_id` apontando para `estoque_unidades.id`, escrito antes deste catálogo
+existir.
 
 ### `estoque_lotes`
 

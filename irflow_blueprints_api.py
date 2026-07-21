@@ -4,6 +4,7 @@ All routes under /api/* — consumed by the React SPA frontend.
 Authentication: Flask session cookies (same-origin, credentials: 'include').
 """
 
+import contextlib
 from datetime import datetime, timedelta
 import json
 import re
@@ -25,12 +26,9 @@ def create_api_blueprint(deps):
     status_finalizado = deps["status_finalizado"]
     status_cancelado = deps["status_cancelado"]
     status_aberto = deps["status_aberto"]
-    status_em_andamento = deps["status_em_andamento"]
-    status_aguardando_peca = deps["status_aguardando_peca"]
     calcular_faturamento_os = deps["calcular_faturamento_os"]
     calcular_lucro_os = deps["calcular_lucro_os"]
     carregar_os_com_relacoes = deps["carregar_os_com_relacoes"]
-    extrair_reparo_ids = deps["extrair_reparo_ids"]
     validar_reparo_ids = deps["validar_reparo_ids"]
     vendedor_valido = deps["vendedor_valido"]
     salvar_reparos_os = deps["salvar_reparos_os"]
@@ -67,7 +65,6 @@ def create_api_blueprint(deps):
     backup_dir = deps["backup_dir"]
     criar_backup = deps["criar_backup"]
     google_drive_backup_dir = deps["google_drive_backup_dir"]
-    garantir_pasta_backup_google_drive = deps["garantir_pasta_backup_google_drive"]
     enviar_backup_email = deps["enviar_backup_email"]
     backup_email_remetente = deps["backup_email_remetente"]
     backup_email_senha_app = deps["backup_email_senha_app"]
@@ -219,56 +216,6 @@ def create_api_blueprint(deps):
 
     ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
     ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
-
-    # ── Inject dependencies ────────────────────────────────────────────────
-    def criar_estoque():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        body = request.get_json(silent=True) or {}
-        descricao = (body.get("descricao") or "").strip()
-        modelo = normalizar_modelo_iphone(body.get("modelo") or "") or (body.get("modelo") or "").strip()
-        tipo = _normalizar_tipo_estoque(body.get("tipo"))
-        qualidade = _normalizar_qualidade_estoque(body.get("qualidade"))
-        valor = float(body.get("valor") or 0)
-        fornecedor = (body.get("fornecedor") or "Nao informado").strip()
-        quantidade = int(body.get("quantidade") or 0)
-        data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-
-        if not descricao or valor <= 0 or quantidade < 0:
-            return err("Preencha descrição, valor e quantidade.")
-
-        conn = conectar()
-        cursor = conn.cursor()
-        try:
-            # Permitir sempre cadastrar novo produto, mesmo com modelo/tipo/qualidade igual
-
-            cursor.execute(
-                """
-                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, tipo, qualidade)
-                VALUES (?,?,?,?,?,?,?,?)
-                """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, tipo, qualidade),
-            )
-            novo_id = cursor.lastrowid
-            if quantidade > 0:
-                cursor.execute(
-                    """
-                    INSERT INTO estoque_lotes (
-                        estoque_id, fornecedor, valor_compra, quantidade, quantidade_disponivel, data_compra, observacoes, criado_em
-                    )
-                    VALUES (?,?,?,?,?,?,?,?)
-                    """,
-                    (novo_id, fornecedor, valor, quantidade, quantidade, data_compra, "", datetime.now().isoformat()),
-                )
-            conn.commit()
-            return ok(id=novo_id)
-        except Exception as e:
-            conn.rollback()
-            return err(f"Erro ao criar item: {e}")
-        finally:
-            conn.close()
-        return bool(session.get("usuario_id"))
 
     def usuario_admin():
         return session.get("usuario_perfil") == "admin"
@@ -816,10 +763,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(items=items, total=total, page=page, per_page=per_page)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao listar shopping list: {exc}")
 
     @api.route("/shopping-list/<int:item_id>")
@@ -844,10 +789,8 @@ def create_api_blueprint(deps):
                 "created_at": r[12] or "", "updated_at": r[13] or "", "purchased_at": r[14] or "", "received_at": r[15] or "", "cancelled_at": r[16] or "",
             })
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao obter item: {exc}")
 
     @api.route("/shopping-list", methods=["POST"])
@@ -899,10 +842,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=new_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao criar item: {exc}")
 
     @api.route("/shopping-list/<int:item_id>", methods=["PUT"])
@@ -951,10 +892,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao atualizar item: {exc}")
 
     @api.route("/shopping-list/<int:item_id>/status", methods=["PATCH"])
@@ -1005,11 +944,15 @@ def create_api_blueprint(deps):
                 'ARQUIVADO': set(),
             }
 
-            if atual_status and atual_status in valid_transitions and novo not in valid_transitions.get(atual_status, set()):
-                # Permite idempotência
-                if novo != atual_status:
-                    conn.close()
-                    return err(f"Transição inválida de {atual_status} para {novo}")
+            # Permite idempotência (novo == atual_status nunca é bloqueado)
+            if (
+                atual_status
+                and atual_status in valid_transitions
+                and novo not in valid_transitions.get(atual_status, set())
+                and novo != atual_status
+            ):
+                conn.close()
+                return err(f"Transição inválida de {atual_status} para {novo}")
 
             antes = atual_status
             updates = []
@@ -1054,10 +997,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id, status=novo)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao alterar status: {exc}")
 
     @api.route("/shopping-list/<int:item_id>", methods=["DELETE"])
@@ -1084,10 +1025,8 @@ def create_api_blueprint(deps):
             conn.close()
             return ok(id=item_id)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao cancelar item: {exc}")
 
     @api.route("/shopping-list/grouped")
@@ -1107,10 +1046,8 @@ def create_api_blueprint(deps):
                 result.append({"produto_id": r[0], "produto_nome": r[1] or "", "quantidade_total": int(r[2] or 0), "os_count": int(r[3] or 0)})
             return ok(grouped=result)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao agrupar: {exc}")
 
 
@@ -1148,10 +1085,8 @@ def create_api_blueprint(deps):
                 })
             return ok(logs=logs)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao listar logs: {exc}")
 
 
@@ -1192,7 +1127,8 @@ def create_api_blueprint(deps):
 
             if fmt == 'csv':
                 # gerar CSV simples
-                import io, csv
+                import io
+                import csv
                 out = io.StringIO()
                 writer = csv.writer(out)
                 writer.writerow(['id','shopping_list_id','usuario_id','usuario_nome','acao','valor_anterior','valor_novo','created_at'])
@@ -1210,10 +1146,8 @@ def create_api_blueprint(deps):
             # default JSON
             return ok(records=records)
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return err(f"Erro ao exportar logs: {exc}")
 
 
@@ -1263,9 +1197,8 @@ def create_api_blueprint(deps):
             reparo_nome = texto_reparos_os(reparos_info, tipo)
 
             # Mantém OS antigas da integração no banco, mas oculta da listagem.
-            if origem_integracao == "mercado_phone" and mp_sync_start_date:
-                if (not data) or (data < mp_sync_start_date):
-                    continue
+            if origem_integracao == "mercado_phone" and mp_sync_start_date and ((not data) or (data < mp_sync_start_date)):
+                continue
 
             if q:
                 haystack = f"{os_id} {row[2]} {row[3]} {tecnico} {status} {reparo_nome} {modelo} {vendedor} {row[14] or ''} {row[15] or ''} {row[16] or ''} {row[17] or ''}".lower()
@@ -2966,9 +2899,14 @@ def create_api_blueprint(deps):
         if not header.startswith(b"SQLite format 3"):
             return err("Arquivo inválido: não é um banco SQLite.", 400)
         f.seek(0)
-        import sqlite3 as _sqlite3, tempfile, shutil
-        # Salva em temp para validar antes de sobrescrever
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+        import sqlite3 as _sqlite3
+        import tempfile
+        import shutil
+        # Salva em temp para validar antes de sobrescrever. delete=False + unlink manual
+        # no finally (nao um `with`) e proposital: no Windows, fechar o handle antes do
+        # os.unlink() no finally abaixo falharia com PermissionError enquanto o arquivo
+        # ainda esta em uso por sqlite3.connect()/shutil.copy2() no corpo do try.
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".db")  # noqa: SIM115
         try:
             f.save(tmp.name)
             # Testa integridade
@@ -2986,10 +2924,8 @@ def create_api_blueprint(deps):
             # Garante colunas/tabelas novas quando o backup é de schema antigo.
             forcar_migracao_schema()
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 os.unlink(tmp.name)
-            except Exception:
-                pass
         return ok(mensagem="Backup restaurado com sucesso.")
 
 

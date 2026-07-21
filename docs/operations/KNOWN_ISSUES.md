@@ -460,10 +460,16 @@ pipeline que já nascia bloqueado.** Categorização dos 175 erros reais:
 final. R-08 (`docs/operations/PROJECT_STATUS.md`) mitigado junto — `backend`/`frontend` voltam a
 rodar via `needs: lint` para qualquer PR novo, inclusive os do Épico Vendas.
 
+**Correção de registro (2026-07-21):** o commit local/branch existia desde 2026-07-20, mas o merge
+efetivo em `origin/main` só aconteceu em 2026-07-21, junto do merge de `feat/produtos-catalogo`
+(Sprint Comercial 1.1) — a branch de lint era pré-requisito dela e nunca havia sido mesclada em
+`origin/main` isoladamente. Achado ao mesclar a Tela Produtos; `ruff check .` confirmado em 0 erros
+no repositório inteiro após o merge, 434 testes (407 + 27 de `test_produtos.py`) passando.
+
 Sprint prevista:
 Não definida — recomendado priorizar antes da Sprint 3, já que um lint vermelho bloqueia todo o
-resto do pipeline de CI para qualquer PR. Resolvido em 2026-07-20, antes do início do Épico
-Vendas.
+resto do pipeline de CI para qualquer PR. Commit criado em 2026-07-20, mergeado em `origin/main`
+em 2026-07-21.
 
 Responsável:
 —

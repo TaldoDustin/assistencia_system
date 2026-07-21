@@ -17,7 +17,7 @@
 | Produção           | Operacional (Fly.io)            |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-20 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
 | Cobertura de testes| 50% global, 434 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
@@ -141,6 +141,21 @@ navegador dirigido via Playwright) — login, listagem, busca combinada, criar/e
 restrita do perfil `vendedor` (sem botão/ícones de escrita). Sem framework de teste de
 componente/unitário no frontend ainda (0% de cobertura unitária) — não expandido nesta sprint por
 decisão de manter o escopo pequeno.
+
+**Hotfix H-002 — Catálogo iPhone 17 (RESOLVIDO em 2026-07-21, KI-018):** `IPHONE_MODELS`/
+`IPHONE_COLORS` (`irflow_reference_data.py`) atualizados com iPhone 17/17 Air/17 Pro/17 Pro Max —
+bloqueio operacional real (impossível abrir OS para esses aparelhos). Cores usam lista genérica
+por decisão deliberada (sem necessidade comercial ainda de nome exato). Comentário de fonte única
+adicionado acima de `IPHONE_MODELS`. Branch própria a partir de `main`, mergeada separada da feature.
+
+**Merge em `main` (2026-07-21):** `fix/catalogo-iphone-17` e `feat/produtos-catalogo` mesclados nesta
+ordem. O merge da Tela Produtos trouxe consigo, sem ser plano desta sessão, o fechamento efetivo de
+KI-017/KI-014 em `origin/main` — a branch `feat/produtos-catalogo` havia sido construída em cima de
+`chore/fix-ruff-lint-ki-017`, cujo merge em `origin/main` nunca havia de fato acontecido apesar da
+documentação já registrar como concluído em 2026-07-20 (achado reportado ao usuário antes de
+completar o merge; aceito deliberadamente trazer os dois juntos, já que nenhum é código novo desta
+sessão). `ruff check .` → 0 erros no repositório inteiro, 434 testes (407 + 27 de `test_produtos.py`)
+passando, `npm run build`/`npm run lint` sem erros novos — confirmado após o merge, não só antes.
 
 ### Escopo previsto
 

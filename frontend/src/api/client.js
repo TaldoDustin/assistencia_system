@@ -293,7 +293,22 @@ export const precos = {
 
 // ── Garantias ────────────────────────────────────────────────────────────────
 export const garantias = {
-  list: async () => normalizeWarrantyResponse(await get("/garantias")),
+  list: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return normalizeWarrantyResponse(await get(`/garantias${qs ? "?" + qs : ""}`));
+  },
+};
+
+// ── Clientes ─────────────────────────────────────────────────────────────────
+export const clientes = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/clientes${qs ? "?" + qs : ""}`);
+  },
+  get:    (id)         => get(`/clientes/${id}`),
+  create: (data)       => post("/clientes", data),
+  update: (id, data)   => put(`/clientes/${id}`, data),
+  delete: (id)         => del(`/clientes/${id}`),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────

@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
-**Última revisão:** 2026-07-20  
-**Próxima revisão:** a definir (início do Épico Vendas)
+**Última revisão:** 2026-07-21  
+**Próxima revisão:** a definir (Sprint Comercial 1.2 — tela Clientes)
 
 ---
 
@@ -126,6 +126,21 @@ quando inválidas — decisão deliberada de não repetir a coerção silenciosa
 persistida, sempre calculada no service. Sem tela ainda. 27 testes. Testes subindo de 407 para 434,
 cobertura subindo de 48% para 50%. `VENDAS.md` recebeu nota sinalizando que `vendas.estoque_unidade_id` precisa
 ser revisado no Sprint Comercial 0.2 (rastreamento por unidade/IMEI de produtos, ainda não desenhado).
+
+**Sprint Comercial 1.1 — Tela Produtos (CONCLUÍDA em 2026-07-21, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.1.md`):** primeira tela do Épico Vendas — sequenciamento
+decidido pelo usuário (CTO) pela ótica de impacto no cliente (backend/testes já prontos, zero mudança
+de banco), não pela ótica de implementação. `frontend/src/pages/Produtos.jsx` consome integralmente
+`/api/produtos*`, sem tocar backend/schema. Ajuste de produto pedido antes da implementação: cards de
+resumo (Produtos/Seminovos/Vitrine), badges de categoria com emoji, busca única combinando todos os
+campos relevantes (client-side — o parâmetro `q` do backend só cobre descrição/modelo/SKU), coluna
+"Unidades" com placeholder reservando espaço para rastreamento por IMEI de uma sprint futura sem
+redesenho posterior. Escrita restrita a `admin` no frontend, espelhando a permissão já existente no
+backend. Validado manualmente ponta a ponta (servidor real + banco isolado, nunca `database.db`,
+navegador dirigido via Playwright) — login, listagem, busca combinada, criar/editar/excluir, e visão
+restrita do perfil `vendedor` (sem botão/ícones de escrita). Sem framework de teste de
+componente/unitário no frontend ainda (0% de cobertura unitária) — não expandido nesta sprint por
+decisão de manter o escopo pequeno.
 
 ### Escopo previsto
 

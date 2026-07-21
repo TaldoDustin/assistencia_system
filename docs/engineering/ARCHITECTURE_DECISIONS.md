@@ -17,7 +17,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-004](adr/ADR-004.md) | Bugs em sprints de teste/QA/validação seguem fluxo `hotfix/` obrigatório | Aceita — não retroativa | 2026-07-07 |
 | [ADR-005](adr/ADR-005.md) | Estratégia de multiempresa | Proposta — alternativas técnicas prontas, decisão pendente do Product Owner | 2026-07-08 |
 | [ADR-006](adr/ADR-006.md) | Reorganização de `docs/` por audiência e adoção da marca Fluxoly | Aceita | 2026-07-10 |
-| [ADR-007](adr/ADR-007.md) | Consolidação de rastreamento por IMEI entre Estoque e Produtos | Proposta — alternativas técnicas prontas, decisão pendente do usuário (CTO) | 2026-07-21 |
+| [ADR-007](adr/ADR-007.md) | Consolidação de rastreamento por IMEI entre Estoque e Produtos — nova tabela `unidades_serializadas` | Aceita | 2026-07-21 |
 
 ---
 

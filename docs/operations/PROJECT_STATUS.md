@@ -6,7 +6,7 @@
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
 **Última revisão:** 2026-07-21  
-**Próxima revisão:** a definir (Sprint Comercial 1.3 — tela IMEI)
+**Próxima revisão:** plano de migração `unidades_serializadas` (ADR-007), pré-requisito da Sprint Comercial 1.3
 
 ---
 
@@ -170,6 +170,21 @@ endpoint legado por correspondência de nome, mesma limitação de antes, agora 
 "Compras" aparece como placeholder vazio, como antecipado pelo usuário — módulo de Vendas ainda não
 existe. Validado manualmente ponta a ponta (servidor real + banco isolado + navegador dirigido via
 Playwright, dados de OS/garantia semeados via API para exercitar o perfil).
+
+**Sprint Comercial 1.3 — Tela IMEI (PAUSADA em 2026-07-21, ver ADR-007):** ao investigar a
+implementação, ficou claro que `estoque_unidades` hoje só cobre peças de `estoque` (assistência) — não
+o cenário real que a tela deveria resolver (buscar um aparelho de revenda do catálogo `produtos` por
+IMEI). Decisão de arquitetura registrada e **aceita pelo usuário (CTO)** em `ADR-007.md`: `estoque_unidades`
+**evoluirá** para o domínio `unidades_serializadas` (dados preservados, não descartados), fonte única de
+verdade para qualquer unidade física rastreada por IMEI/serial. Dois princípios de arquitetura fixados
+junto da decisão: **Regra de Ouro** (um IMEI/serial = uma unidade, nunca duplicada entre domínios — cada
+domínio consome e transiciona o mesmo registro) e **Princípio de Propriedade** (cada domínio só pode
+transicionar os estados que lhe pertencem — ex.: Vendas é dona de `Disponível → Reservado → Vendido`,
+Assistência de `Em Garantia → Em Reparo → Disponível`; Garantias só consulta/registra eventos). Rename
+feito na mesma migração que generaliza a origem (`produto_id` nullable), evitando uma segunda migração só
+para isso. Migração ainda não implementada — próximo passo é o plano de migração (schema, cópia de
+dados, testes), sujeito a aprovação antes de tocar o banco. Sprint Comercial 1.3 retoma somente após a
+migração validada.
 
 ### Escopo previsto
 

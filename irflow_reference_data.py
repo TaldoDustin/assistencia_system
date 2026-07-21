@@ -3,6 +3,14 @@ import re
 from irflow_core import normalizar_busca_texto, texto_limpo
 
 
+# IMPORTANTE
+# Sempre manter esta lista atualizada.
+# Esta e a fonte unica utilizada por:
+# - Nova OS
+# - Editar OS
+# - Estoque
+# - Tabela de precos
+# - API /api/constantes
 IPHONE_MODELS = [
     "iPhone XR",
     "iPhone XS",
@@ -33,6 +41,10 @@ IPHONE_MODELS = [
     "iPhone 16 Pro",
     "iPhone 16 Pro Max",
     "iPhone 16e",
+    "iPhone 17",
+    "iPhone 17 Air",
+    "iPhone 17 Pro",
+    "iPhone 17 Pro Max",
 ]
 
 IPHONE_MODEL_MAP = {modelo.lower(): modelo for modelo in IPHONE_MODELS}
@@ -75,6 +87,14 @@ IPHONE_COLORS = {
     "iPhone 16 Pro": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16 Pro Max": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16e": ["Preto", "Branco"],
+    # Cores da linha iPhone 17 (lancamento 2025): lista generica de proposito, nao
+    # o catalogo oficial Apple — decisao deliberada (Hotfix H-002) para nao arriscar
+    # nome de cor incorreto sem necessidade comercial ainda. Trocar pelos nomes
+    # oficiais quando/se houver demanda real de precisao (ex.: Vendas/Produtos).
+    "iPhone 17": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Air": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Pro": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Pro Max": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
 }
 
 COLOR_ALIAS_MAP = {
@@ -251,7 +271,7 @@ def extrair_modelo_da_descricao_aparelho(descricao):
     if not texto:
         return ""
 
-    match = re.search(r"\b(?:iphone|ip)\s*(\d{1,2})(?:\s*(pro max|promax|pro|plus|mini|e))?\b", texto)
+    match = re.search(r"\b(?:iphone|ip)\s*(\d{1,2})(?:\s*(pro max|promax|pro|plus|mini|air|e))?\b", texto)
     if match:
         numero = match.group(1)
         sufixo = (match.group(2) or "").replace("promax", "pro max").strip()

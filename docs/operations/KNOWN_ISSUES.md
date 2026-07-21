@@ -434,3 +434,42 @@ resto do pipeline de CI para qualquer PR.
 
 Responsável:
 —
+
+---
+
+## ~~KI-018~~ — RESOLVIDO
+
+Descrição:
+`IPHONE_MODELS`/`IPHONE_COLORS` (`irflow_reference_data.py`) — fonte única do catálogo de modelos
+usado em `GET /api/constantes` e consumido por `NewOrder.jsx`/`EditOrder.jsx`/`Stock.jsx`/
+`PriceTables.jsx` — parava em "iPhone 16e", sem os modelos da linha iPhone 17 (lançamento 2025:
+iPhone 17, iPhone 17 Air, iPhone 17 Pro, iPhone 17 Pro Max).
+
+Impacto:
+Alto (operacional). Impedia abrir Ordem de Serviço para qualquer aparelho da linha iPhone 17 — o
+modelo simplesmente não aparecia no dropdown de seleção, já que o backend não valida `modelo` contra
+uma whitelist (a lista só alimenta as opções do frontend).
+
+Status:
+Resolvido em 2026-07-21 via `fix/catalogo-iphone-17` (Hotfix H-002), branch a partir de `main`.
+Adicionados os 4 modelos a `IPHONE_MODELS`. Cores em `IPHONE_COLORS` usam uma lista genérica
+(`Preto`/`Branco`/`Azul`/`Verde`/`Rosa`, mesmo padrão de outras gerações) em vez de nomes específicos
+do catálogo oficial Apple — decisão deliberada do usuário (CTO) em revisão: sem necessidade comercial
+ainda de precisão de cor por variante, o risco de publicar um nome de cor incorreto supera o
+benefício; trocar pelos nomes oficiais quando/se houver essa demanda (ex.: Vendas/Produtos). Regex de
+extração de modelo por descrição livre (`extrair_modelo_da_descricao_aparelho`) ajustado para
+reconhecer o sufixo "air", nunca usado antes nesta lista — sem o ajuste, uma descrição como "iPhone
+17 Air 256GB" seria extraída incorretamente como "iPhone 17", perdendo a distinção do modelo.
+Comentário adicionado acima de `IPHONE_MODELS` documentando que é fonte única consumida por Nova
+OS/Editar OS/Estoque/Tabela de Preços/`API /api/constantes`, para reduzir o risco de o catálogo ficar
+desatualizado de novo sem que o próximo desenvolvedor perceba o alcance da lista. Nenhuma mudança de
+schema/endpoint/regra de negócio. Confirmado que `IPHONE_MODELS`/`IPHONE_COLORS` é fonte única, sem
+lista duplicada em nenhum outro módulo, antes de editar. Suíte completa (407 testes) sem regressão.
+Validado manualmente: criação real de OS com modelo "iPhone 17 Pro Max" via API e via tela
+`NewOrder.jsx` (servidor local, banco isolado).
+
+Sprint prevista:
+Fora de sprint — pedido direto do usuário (CTO), prioridade por bloqueio operacional imediato.
+
+Responsável:
+—

@@ -18,11 +18,11 @@
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-20 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR |
-| Cobertura de testes| 48% global, 407 testes (ver Cobertura de Testes) |
+| Cobertura de testes| 50% global, 434 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — rate limiting, expiração de sessão, auditoria central e recuperação de senha entregues na Sprint 3 (ver seção Sprints) |
 
-O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. Em 2026-07-20, antes do início do Épico Vendas (decisão do usuário — CTO), o lint vermelho em `main` (KI-017) foi corrigido em 6 commits atômicos na branch `chore/fix-ruff-lint-ki-017` — o CI estava bloqueado para qualquer PR desde antes da Sprint 3. No processo, também foi resolvido KI-014 (bloco de código morto duplicado em `irflow_blueprints_api.py`).
+O sistema está em produção e cobre o ciclo completo de uma assistência técnica: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Além disso, a Sprint 3 fechou quatro lacunas de segurança (rate limiting de login, expiração de sessão por inatividade, auditoria central reutilizável, recuperação de senha via token do admin) e a Sprint P0.1 entregou o primeiro domínio de produto (Clientes) seguindo pela primeira vez a convenção controller/service/repository documentada em `ENGINEERING_GUIDE.md` §3.1. Em 2026-07-20, antes do início do Épico Vendas (decisão do usuário — CTO), o lint vermelho em `main` (KI-017) foi corrigido em 6 commits atômicos na branch `chore/fix-ruff-lint-ki-017` — o CI estava bloqueado para qualquer PR desde antes da Sprint 3. No processo, também foi resolvido KI-014 (bloco de código morto duplicado em `irflow_blueprints_api.py`). No mesmo dia, a Sprint Comercial 0.1 entregou o primeiro passo do Épico Vendas: domínio `produtos` (catálogo comercial — iPhone/Apple Watch/AirPods/Acessório), separado do domínio Estoque (peças de reparo) por decisão de arquitetura investigada e confirmada com o usuário antes de implementar. Sem tela ainda — ver `docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`.
 
 ---
 
@@ -112,6 +112,20 @@ serviços). Plano completo em `docs/operations/SPRINTS/` (a formalizar em `SPRIN
 subindo de 331 (fim da Sprint 2.7) para 407 (+76), cobertura 43% → 48%. Próximo passo, por decisão do
 usuário: retomar o épico Vendas com as fundações (Clientes, IMEI, auditoria, camada de serviços) já
 prontas.
+
+---
+
+**Sprint Comercial 0.1 — Catálogo de Produtos (CONCLUÍDA em 2026-07-20, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`):** primeira tarefa do Épico Vendas propriamente dito,
+divisão de trabalho Frente A (usuário, relacionamento com cliente)/Frente B (Claude, implementação em
+tarefas pequenas e fechadas). Domínio `produtos` — `irflow_produtos_controller/service/repository.py`,
+terceira aplicação da convenção de `ENGINEERING_GUIDE.md` §3.1. `categoria` (iPhone/Apple Watch/AirPods/
+Acessório) e `condicao` (Novo/Seminovo/Vitrine) validadas contra lista fechada e **rejeitadas** com 400
+quando inválidas — decisão deliberada de não repetir a coerção silenciosa de
+`_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`, que já causou KI-015 e KI-016. Margem nunca
+persistida, sempre calculada no service. Sem tela ainda. 27 testes. Testes subindo de 407 para 434,
+cobertura subindo de 48% para 50%. `VENDAS.md` recebeu nota sinalizando que `vendas.estoque_unidade_id` precisa
+ser revisado no Sprint Comercial 0.2 (rastreamento por unidade/IMEI de produtos, ainda não desenhado).
 
 ### Escopo previsto
 
@@ -224,14 +238,14 @@ prontas.
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-11, pós-merge Sprint P0.1 Unidade 6) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-20, pós Sprint Comercial 0.1) |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades — Sprint 2.2 a Sprint P0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades, produtos — Sprint 2.2 a Sprint Comercial 0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_produtos_service.py` 99% · `irflow_produtos_controller.py` 91% · `irflow_produtos_repository.py` 85% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **48%** (`pytest --cov`, 407 testes, pós-merge Sprint P0.1 Unidade 6 — 2026-07-11) |
+| **Global (repo, `main`)** |                  |              | **50%** (`pytest --cov`, 434 testes, pós Sprint Comercial 0.1 — 2026-07-20) |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%, e segue subindo com Sprint 3/P0.1 (46% agora). Gate de CI bloqueante desde a Sprint 2.7 (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 

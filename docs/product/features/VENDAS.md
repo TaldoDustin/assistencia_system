@@ -138,6 +138,14 @@ Não decidido nesta conversa — não assumir resposta implícita para nenhum de
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`
 (`estoque_unidades`) existirem antes de fazer sentido implementar este schema.
 
+**Nota (2026-07-20, Sprint Comercial 0.1):** este schema foi escrito antes de existir um catálogo
+comercial (`produtos`, ver `docs/engineering/DATABASE.md`) — `estoque_unidades` era, até então, a única
+tabela candidata a representar "o que foi vendido". `estoque_unidades` continua correta para o domínio
+Estoque (peças de reparo com rastreio por IMEI), mas o campo `estoque_unidade_id` abaixo precisa ser
+revisitado no Sprint Comercial 0.2, quando o rastreamento por unidade/IMEI de `produtos` for desenhado
+(candidata: tabela própria `produtos_unidades`, mesmo padrão de `estoque_unidades`) — a venda de um
+iPhone do catálogo comercial não deveria apontar para a tabela de peças de reparo.
+
 ```sql
 CREATE TABLE vendas (
     id                          INTEGER PRIMARY KEY AUTOINCREMENT,

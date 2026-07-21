@@ -5,7 +5,7 @@ Não descreve estado desejado nem features futuras em detalhe — para isso, ver
 e os ADRs relevantes. Divergências entre este documento e o código devem ser corrigidas aqui (o código é a fonte
 da verdade — mesma regra de `ARCHITECTURE.md`).
 
-**Última revisão:** 2026-07-09
+**Última revisão:** 2026-07-20
 **Fonte:** `app.py` (schema), `docs/engineering/ARCHITECTURE.md` (camadas), `tests/` (arquivos reais em `main`), leitura direta dos módulos `irflow_*.py`.
 
 ---
@@ -183,6 +183,20 @@ separado hoje está registrado como está — ver seção 3.
 | Depende de | Estoque (leitura de `requer_imei`), `irflow_audit.py` (auditoria de create/status_change) |
 | Dependido por | Futuramente Vendas (reserva de IMEI, `docs/product/features/VENDAS.md` BR-017) |
 | Observação | Schema já modela `reservado`/`vendido` (para quando Vendas existir), mas nenhum endpoint desta sprint produz ou aceita esses estados — só `disponivel ↔ em_reparo` e `em_reparo/devolvido → disponivel` são alcançáveis (`TRANSICOES_VALIDAS` no service). Formato de IMEI não validado ainda (`TODO` em `IMEI.md`) |
+
+### 1.14 Produtos (catálogo comercial)
+
+| Aspecto | Hoje |
+|---|---|
+| Responsabilidade | Catálogo de itens à venda (iPhone, Apple Watch, AirPods, Acessório) — domínio **novo e separado** de Estoque (seção 1.4), não uma extensão. `estoque.tipo`/`qualidade` são vocabulário de peça de reparo (hardcoded, coerção silenciosa para valor default), incompatível com um catálogo comercial |
+| Tabela(s) | `produtos` — standalone nesta sprint, sem tabela filha ainda |
+| Lógica | `irflow_produtos_service.py` — terceira aplicação da convenção `controller → service → repository`. `categoria`/`condicao` validadas contra lista fechada (`PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES`, `irflow_reference_data.py`) e **rejeitadas** (não normalizadas) quando inválidas |
+| HTTP | `irflow_produtos_controller.py` (`produtos_api`, prefixo `/api/produtos`) |
+| Frontend | Nenhum ainda — fundação de backend apenas (Sprint Comercial 0.1) |
+| Testes | `tests/test_produtos.py` (27 casos) |
+| Depende de | `irflow_reference_data.py` (listas fechadas), `irflow_audit.py` (auditoria de create/update/delete) |
+| Dependido por | Futuramente Vendas — mas `docs/product/features/VENDAS.md` ainda referencia `estoque_unidades`, não `produtos`; precisa ser revisado no Sprint Comercial 0.2 |
+| Observação | `requer_rastreio_unidade` já existe no schema (mesmo padrão de `estoque.requer_imei`) para não exigir outro `ALTER TABLE` quando o rastreamento por unidade/IMEI de produtos for desenhado (Sprint Comercial 0.2, tabela filha ainda não decidida) |
 
 ---
 

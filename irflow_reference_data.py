@@ -3,6 +3,14 @@ import re
 from irflow_core import normalizar_busca_texto, texto_limpo
 
 
+# IMPORTANTE
+# Sempre manter esta lista atualizada.
+# Esta e a fonte unica utilizada por:
+# - Nova OS
+# - Editar OS
+# - Estoque
+# - Tabela de precos
+# - API /api/constantes
 IPHONE_MODELS = [
     "iPhone XR",
     "iPhone XS",
@@ -79,12 +87,14 @@ IPHONE_COLORS = {
     "iPhone 16 Pro": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16 Pro Max": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16e": ["Preto", "Branco"],
-    # Cores da linha iPhone 17 (lancamento 2025) — nomes best-effort traduzidos do
-    # catalogo oficial Apple; confirmar/ajustar nomenclatura exata se necessario.
-    "iPhone 17": ["Preto", "Branco", "Azul-nevoa", "Salvia", "Lavanda"],
-    "iPhone 17 Air": ["Preto-espacial", "Branco-nuvem", "Azul-ceu", "Dourado-claro"],
-    "iPhone 17 Pro": ["Prata", "Laranja-cosmico", "Azul-profundo"],
-    "iPhone 17 Pro Max": ["Prata", "Laranja-cosmico", "Azul-profundo"],
+    # Cores da linha iPhone 17 (lancamento 2025): lista generica de proposito, nao
+    # o catalogo oficial Apple — decisao deliberada (Hotfix H-002) para nao arriscar
+    # nome de cor incorreto sem necessidade comercial ainda. Trocar pelos nomes
+    # oficiais quando/se houver demanda real de precisao (ex.: Vendas/Produtos).
+    "iPhone 17": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Air": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Pro": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
+    "iPhone 17 Pro Max": ["Preto", "Branco", "Azul", "Verde", "Rosa"],
 }
 
 COLOR_ALIAS_MAP = {

@@ -434,3 +434,37 @@ resto do pipeline de CI para qualquer PR.
 
 Responsável:
 —
+
+---
+
+## ~~KI-018~~ — RESOLVIDO
+
+Descrição:
+`IPHONE_MODELS`/`IPHONE_COLORS` (`irflow_reference_data.py`) — fonte única do catálogo de modelos
+usado em `GET /api/constantes` e consumido por `NewOrder.jsx`/`EditOrder.jsx`/`Stock.jsx`/
+`PriceTables.jsx` — parava em "iPhone 16e", sem os modelos da linha iPhone 17 (lançamento 2025:
+iPhone 17, iPhone 17 Air, iPhone 17 Pro, iPhone 17 Pro Max).
+
+Impacto:
+Alto (operacional). Impedia abrir Ordem de Serviço para qualquer aparelho da linha iPhone 17 — o
+modelo simplesmente não aparecia no dropdown de seleção, já que o backend não valida `modelo` contra
+uma whitelist (a lista só alimenta as opções do frontend).
+
+Status:
+Resolvido em 2026-07-21 via `fix/catalogo-iphone-17` (Hotfix H-002), branch a partir de `main`.
+Adicionados os 4 modelos a `IPHONE_MODELS` e cores correspondentes a `IPHONE_COLORS` (best-effort —
+nomenclatura exata do catálogo oficial Apple a confirmar/ajustar se necessário; campo não bloqueia a
+criação da OS). Regex de extração de modelo por descrição livre
+(`extrair_modelo_da_descricao_aparelho`) ajustado para reconhecer o sufixo "air", nunca usado antes
+nesta lista — sem o ajuste, uma descrição como "iPhone 17 Air 256GB" seria extraída incorretamente
+como "iPhone 17", perdendo a distinção do modelo. Nenhuma mudança de schema/endpoint/regra de
+negócio. Confirmado que `IPHONE_MODELS`/`IPHONE_COLORS` é fonte única, sem lista duplicada em
+nenhum outro módulo, antes de editar. Suíte completa (407 testes) sem regressão. Validado
+manualmente: criação real de OS com modelo "iPhone 17 Pro Max" via API e via tela `NewOrder.jsx`
+(servidor local, banco isolado).
+
+Sprint prevista:
+Fora de sprint — pedido direto do usuário (CTO), prioridade por bloqueio operacional imediato.
+
+Responsável:
+—

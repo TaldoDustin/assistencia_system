@@ -33,6 +33,10 @@ IPHONE_MODELS = [
     "iPhone 16 Pro",
     "iPhone 16 Pro Max",
     "iPhone 16e",
+    "iPhone 17",
+    "iPhone 17 Air",
+    "iPhone 17 Pro",
+    "iPhone 17 Pro Max",
 ]
 
 IPHONE_MODEL_MAP = {modelo.lower(): modelo for modelo in IPHONE_MODELS}
@@ -75,6 +79,12 @@ IPHONE_COLORS = {
     "iPhone 16 Pro": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16 Pro Max": ["Titanio preto", "Titanio branco", "Titanio natural", "Titanio-deserto"],
     "iPhone 16e": ["Preto", "Branco"],
+    # Cores da linha iPhone 17 (lancamento 2025) — nomes best-effort traduzidos do
+    # catalogo oficial Apple; confirmar/ajustar nomenclatura exata se necessario.
+    "iPhone 17": ["Preto", "Branco", "Azul-nevoa", "Salvia", "Lavanda"],
+    "iPhone 17 Air": ["Preto-espacial", "Branco-nuvem", "Azul-ceu", "Dourado-claro"],
+    "iPhone 17 Pro": ["Prata", "Laranja-cosmico", "Azul-profundo"],
+    "iPhone 17 Pro Max": ["Prata", "Laranja-cosmico", "Azul-profundo"],
 }
 
 COLOR_ALIAS_MAP = {
@@ -251,7 +261,7 @@ def extrair_modelo_da_descricao_aparelho(descricao):
     if not texto:
         return ""
 
-    match = re.search(r"\b(?:iphone|ip)\s*(\d{1,2})(?:\s*(pro max|promax|pro|plus|mini|e))?\b", texto)
+    match = re.search(r"\b(?:iphone|ip)\s*(\d{1,2})(?:\s*(pro max|promax|pro|plus|mini|air|e))?\b", texto)
     if match:
         numero = match.group(1)
         sufixo = (match.group(2) or "").replace("promax", "pro max").strip()

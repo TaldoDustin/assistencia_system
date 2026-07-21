@@ -1,0 +1,386 @@
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Loader2, Plus, Pencil, Trash2, Search, User, Phone, Mail, FileText } from "lucide-react";
+import { clientes as clientesApi, ordens as ordensApi, garantias as garantiasApi } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+
+const EMPTY_FORM = { nome: "", telefone: "", email: "", cpf_cnpj: "", observacoes: "" };
+
+function GarantiaBadge({ status, dias }) {
+  const map = {
+    vencida:  "bg-red-500/10 text-red-300 border-red-500/30",
+    vencendo: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    ativa:    "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+  };
+  const label = status === "vencida" ? "Vencida" : status === "vencendo" ? `Vencendo (${dias}d)` : `${dias}d restantes`;
+  return (
+    <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", map[status] || "bg-secondary/70 text-muted-foreground border-border"].join(" ")}>
+      {label}
+    </span>
+  );
+}
+
+function PerfilCliente({ cliente, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [ordens, setOrdens] = useState([]);
+  const [garantiasCliente, setGarantiasCliente] = useState([]);
+
+  useEffect(() => {
+    let ativo = true;
+    Promise.all([
+      ordensApi.clienteHistory(cliente.nome),
+      garantiasApi.list({ q: cliente.nome }),
+    ]).then(([histRes, garRes]) => {
+      if (!ativo) return;
+      setOrdens(histRes?.ok ? (histRes.ordens || []) : []);
+      setGarantiasCliente(garRes?.ok ? (garRes.garantias || []) : []);
+    }).finally(() => { if (ativo) setLoading(false); });
+    return () => { ativo = false; };
+  }, [cliente.nome]);
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" />
+            {cliente.nome}
+          </DialogTitle>
+          <DialogDescription>Perfil do cliente — dados, histórico de OS e garantias</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 mt-2">
+          <div className="grid grid-cols-2 gap-3 bg-secondary/40 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-card-foreground">{cliente.telefone || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-card-foreground">{cliente.email || "—"}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-card-foreground">{cliente.cpf_cnpj || "—"}</span>
+            </div>
+          </div>
+
+          {cliente.observacoes && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Observações</p>
+              <p className="text-sm text-card-foreground bg-secondary/40 rounded-lg p-3">{cliente.observacoes}</p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center h-24">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Histórico de OS {ordens.length > 0 && `(${ordens.length})`}
+                </p>
+                {ordens.length === 0 ? (
+                  <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Nenhuma OS encontrada para este cliente.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {ordens.map((o) => (
+                      <div key={o.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
+                        <span className="text-card-foreground">{o.modelo || "—"} <span className="text-muted-foreground">({o.tipo})</span></span>
+                        <span className="text-muted-foreground text-xs">{o.status} · {o.data ? new Date(o.data).toLocaleDateString("pt-BR") : "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Garantias {garantiasCliente.length > 0 && `(${garantiasCliente.length})`}
+                </p>
+                {garantiasCliente.length === 0 ? (
+                  <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Nenhuma garantia ativa para este cliente.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {garantiasCliente.map((g) => (
+                      <div key={g.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
+                        <span className="text-card-foreground">{g.modelo || "—"}</span>
+                        <GarantiaBadge status={g.status_garantia} dias={g.dias_restantes} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Compras</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">
+                  Nenhuma compra registrada ainda — módulo de Vendas em construção.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function Clientes() {
+  const { user } = useAuth();
+  const isAdmin = user?.perfil === "admin";
+
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editId, setEditId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [perfilCliente, setPerfilCliente] = useState(null);
+
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      const res = await clientesApi.list({ per_page: 500 });
+      if (res?.ok) setItems(res.items || []);
+      else toast.error(res?.erro || "Erro ao carregar clientes");
+    } catch {
+      toast.error("Erro ao carregar clientes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setEditId(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (item) => {
+    setForm({
+      nome: item.nome || "",
+      telefone: item.telefone || "",
+      email: item.email || "",
+      cpf_cnpj: item.cpf_cnpj || "",
+      observacoes: item.observacoes || "",
+    });
+    setEditId(item.id);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = editId ? await clientesApi.update(editId, form) : await clientesApi.create(form);
+      if (res?.ok) {
+        toast.success(editId ? "Cliente atualizado!" : "Cliente criado!");
+        setDialogOpen(false);
+        fetchItems();
+      } else {
+        toast.error(res?.erro || "Erro ao salvar cliente");
+      }
+    } catch {
+      toast.error("Erro ao salvar cliente");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await clientesApi.delete(deleteId);
+      if (res?.ok) {
+        toast.success("Cliente excluído");
+        setItems((prev) => prev.filter((i) => i.id !== deleteId));
+      } else {
+        toast.error(res?.erro || "Erro ao excluir cliente");
+      }
+    } catch {
+      toast.error("Erro ao excluir cliente");
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  const filtered = items.filter((item) => {
+    const termo = search.trim().toLowerCase();
+    if (!termo) return true;
+    const haystack = [item.nome, item.telefone, item.email, item.cpf_cnpj].filter(Boolean).join(" ").toLowerCase();
+    return termo.split(/\s+/).every((t) => haystack.includes(t));
+  });
+
+  const totalClientes = items.length;
+  const comTelefone = items.filter((i) => i.telefone).length;
+  const comEmail = items.filter((i) => i.email).length;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
+          <p className="text-muted-foreground text-sm">Cadastro e histórico dos clientes da loja</p>
+        </div>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {[
+          { label: "Clientes", value: totalClientes, color: "text-foreground" },
+          { label: "Com telefone", value: comTelefone, color: "text-emerald-400" },
+          { label: "Com e-mail", value: comEmail, color: "text-sky-400" },
+        ].map((s) => (
+          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome, telefone, e-mail, CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+        </div>
+        <div className="ml-auto flex items-center text-xs text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"} exibidos
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
+          {search ? "Nenhum cliente corresponde à busca atual." : "Nenhum cliente cadastrado ainda."}
+        </div>
+      ) : (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Nome", "Telefone", "E-mail", "CPF/CNPJ", ""].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-accent/30 transition-colors cursor-pointer" data-testid={`cliente-row-${item.id}`} onClick={() => setPerfilCliente(item)}>
+                    <td className="px-4 py-3 font-medium text-card-foreground">{item.nome}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.telefone || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.email || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.cpf_cnpj || "—"}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar cliente ${item.id}`} onClick={() => openEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+            <DialogDescription>Preencha os dados do cliente para cadastrar ou atualizar.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="cliente-nome">Nome *</Label>
+              <Input id="cliente-nome" value={form.nome} onChange={(e) => setForm((p) => ({ ...p, nome: e.target.value }))} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cliente-telefone">Telefone</Label>
+                <Input id="cliente-telefone" value={form.telefone} onChange={(e) => setForm((p) => ({ ...p, telefone: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cliente-email">E-mail</Label>
+                <Input id="cliente-email" type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="cliente-cpf-cnpj">CPF/CNPJ</Label>
+                <Input id="cliente-cpf-cnpj" value={form.cpf_cnpj} onChange={(e) => setForm((p) => ({ ...p, cpf_cnpj: e.target.value }))} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="cliente-observacoes">Observações</Label>
+                <Input id="cliente-observacoes" value={form.observacoes} onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))} />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>
+              <Button type="submit" disabled={submitting} data-testid="clientes-save-button">
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {submitting ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {isAdmin && (
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Clientes com OS vinculada não podem ser excluídos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {perfilCliente && <PerfilCliente cliente={perfilCliente} onClose={() => setPerfilCliente(null)} />}
+    </div>
+  );
+}

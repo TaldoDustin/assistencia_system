@@ -6,7 +6,7 @@
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
 **Última revisão:** 2026-07-21  
-**Próxima revisão:** a definir (Sprint Comercial 1.2 — tela Clientes)
+**Próxima revisão:** a definir (Sprint Comercial 1.3 — tela IMEI)
 
 ---
 
@@ -156,6 +156,20 @@ documentação já registrar como concluído em 2026-07-20 (achado reportado ao 
 completar o merge; aceito deliberadamente trazer os dois juntos, já que nenhum é código novo desta
 sessão). `ruff check .` → 0 erros no repositório inteiro, 434 testes (407 + 27 de `test_produtos.py`)
 passando, `npm run build`/`npm run lint` sem erros novos — confirmado após o merge, não só antes.
+
+**Sprint Comercial 1.2 — Tela Clientes (CONCLUÍDA em 2026-07-21, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.2.md`):** segunda tela do Épico Vendas.
+`frontend/src/pages/Clientes.jsx` consome integralmente `/api/clientes*` (Sprint 3 Unidade 5), sem
+tocar backend/schema. Além do CRUD (padrão igual à Tela Produtos — cards, busca única, permissão
+espelhando o backend: criar/editar para qualquer perfil autenticado, excluir só `admin`), inclui um
+painel de Perfil do Cliente com Histórico de OS e Garantias reais, montado a partir de dois endpoints
+já existentes (`GET /api/ordens/historico-cliente`, `GET /api/garantias?q=`) — nenhum endpoint novo.
+Achado durante a investigação: `os.cliente_id` existe no schema desde a Sprint P0.1 mas nenhum fluxo
+real o preenche hoje (só testes escrevem nele direto no banco); o histórico de OS depende do
+endpoint legado por correspondência de nome, mesma limitação de antes, agora só mais visível na UI.
+"Compras" aparece como placeholder vazio, como antecipado pelo usuário — módulo de Vendas ainda não
+existe. Validado manualmente ponta a ponta (servidor real + banco isolado + navegador dirigido via
+Playwright, dados de OS/garantia semeados via API para exercitar o perfil).
 
 ### Escopo previsto
 

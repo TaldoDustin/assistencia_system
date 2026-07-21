@@ -2,7 +2,7 @@ import { createElement, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, ClipboardList, Package, ShoppingBag, Wrench, DollarSign,
-  BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, HardDriveDownload,
+  BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, UserCircle, HardDriveDownload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
@@ -14,6 +14,7 @@ const navItems = [
   { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardList },
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },
+  { path: "/clientes", label: "Clientes", icon: UserCircle },
   { path: "/produtos", label: "Produtos", icon: ShoppingBag },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/compras", label: "Lista de Compras", icon: ClipboardList },

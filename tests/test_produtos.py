@@ -252,3 +252,19 @@ class TestExcluirProduto:
         login_como(client, usuario_admin)
         resp = client.delete("/api/produtos/999999")
         assert resp.status_code == 404
+
+
+class TestConstantesExpoeCategoriaCondicao:
+    """Sprint tecnica de centralizacao de referencias: PRODUTOS_CATEGORIAS/CONDICOES
+    precisam estar em GET /api/constantes para o frontend nao manter copia propria."""
+
+    def test_constantes_inclui_categorias_e_condicoes_de_produtos(self, client, login_como, usuario_tecnico):
+        from irflow_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
+
+        login_como(client, usuario_tecnico)
+        resp = client.get("/api/constantes")
+
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["produtos_categorias"] == PRODUTOS_CATEGORIAS
+        assert body["produtos_condicoes"] == PRODUTOS_CONDICOES

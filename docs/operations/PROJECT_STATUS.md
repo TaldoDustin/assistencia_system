@@ -207,6 +207,17 @@ implementação de sessão anterior) — validado manualmente rodando o app com 
 partir de `estoque` e de `produtos`, confirmando busca cruzada e badges de origem corretas para os
 dois casos.
 
+**Sprint Técnica — Centralização de Referências (CONCLUÍDA em 2026-07-22, pedido do usuário — CTO):**
+investigação encontrou uma única duplicação real: `PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES` já eram
+fonte única no backend, mas nunca expostas em `GET /api/constantes` — `Produtos.jsx` mantinha cópia
+própria hardcoded, com risco de divergir quando uma categoria/condição nova fosse adicionada só no
+backend. Corrigido: API expõe as duas listas, frontend consome (lista antiga mantida só como fallback
+defensivo). `IPHONE_MODELS`/`IPHONE_COLORS` já eram fonte única e já expostas — confirmado, nenhuma
+mudança necessária. "Fabricantes" não existe como lista fechada hoje (campo `marca` é texto livre em
+`produtos`) — criar uma seria feature nova, não consolidação, fora de escopo. 450 testes (novo teste
+confirmando o shape de `/api/constantes`), validado manualmente rodando o app — dropdown de categoria
+no modal de Produtos populado via API.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

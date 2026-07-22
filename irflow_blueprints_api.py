@@ -62,6 +62,8 @@ def create_api_blueprint(deps):
     status_os_opcoes = deps["status_os_opcoes"]
     categorias_custos = deps["categorias_custos"]
     reparos_padrao = deps["reparos_padrao"]
+    produtos_categorias = deps["produtos_categorias"]
+    produtos_condicoes = deps["produtos_condicoes"]
     backup_dir = deps["backup_dir"]
     criar_backup = deps["criar_backup"]
     google_drive_backup_dir = deps["google_drive_backup_dir"]
@@ -500,6 +502,8 @@ def create_api_blueprint(deps):
             "estoque_tipos": _sanitize_list(ESTOQUE_TIPOS),
             "estoque_qualidades": _sanitize_list(ESTOQUE_QUALIDADES),
             "reparos_padrao": _sanitize_list(reparos_padrao),
+            "produtos_categorias": _sanitize_list(produtos_categorias),
+            "produtos_condicoes": _sanitize_list(produtos_condicoes),
             "garantia_dias": 90,
         }
         return ok(**payload)

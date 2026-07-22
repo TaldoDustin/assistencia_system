@@ -218,6 +218,17 @@ mudança necessária. "Fabricantes" não existe como lista fechada hoje (campo `
 confirmando o shape de `/api/constantes`), validado manualmente rodando o app — dropdown de categoria
 no modal de Produtos populado via API.
 
+**Sprint Comercial 1.3.2 — Detalhes da Unidade Serializada (CONCLUÍDA em 2026-07-22, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.3.2.md`):** ao clicar numa unidade na listagem (C1.3.1),
+abre painel com IMEI, origem (produto/estoque), status, saúde da bateria, localização e histórico
+completo. Achado antes de codar: os eventos de auditoria (criação + mudança de status) já eram gravados
+em `audit_log` desde a Sprint P0.1, mas nenhum endpoint do sistema lia essa tabela de volta — adicionado
+`GET /api/unidades-serializadas/<id>/historico` (só leitura, zero schema), aprovado explicitamente pelo
+usuário antes de implementar por sair do escopo original ("só consumir API existente"). Cliente
+atual/Garantia mostrados como placeholder explícito — dependem do módulo de Vendas, ainda não
+implementado. 455 testes (34 no domínio de unidades serializadas), `ruff check .` limpo, validado
+manualmente com produto/unidade/2 transições de status semeados via API.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

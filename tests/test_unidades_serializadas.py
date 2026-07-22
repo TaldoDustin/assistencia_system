@@ -395,3 +395,65 @@ class TestTransicaoStatus:
 
         assert resp.status_code == 200
         _limpar_produto(produto_id)
+
+
+class TestObterUnidadeComOrigem:
+    """C1.3.2 (Detalhes da Unidade) — GET /<id> passou a incluir origem (mesmo
+    enriquecimento já usado na listagem), para o painel de detalhe mostrar o
+    produto/peça de origem sem uma segunda chamada."""
+
+    def test_detalhe_de_unidade_com_origem_estoque(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client, estoque_id=_criar_item_estoque(modelo="iPhone 12"))
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.get(f"/api/unidades-serializadas/{unidade_id}")
+
+        unidade = resp.get_json()["unidade"]
+        assert unidade["origem_tipo"] == "estoque"
+        assert unidade["origem_label"] == "iPhone 12"
+        _limpar_item_estoque(estoque_id)
+
+    def test_detalhe_de_unidade_com_origem_produto(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, produto_id = _criar_unidade_de_produto(client, produto_id=_criar_produto(modelo="iPhone 15 Pro"))
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.get(f"/api/unidades-serializadas/{unidade_id}")
+
+        unidade = resp.get_json()["unidade"]
+        assert unidade["origem_tipo"] == "produto"
+        assert unidade["origem_label"] == "iPhone 15 Pro"
+        assert unidade["produto_categoria"] == "iPhone"
+        _limpar_produto(produto_id)
+
+
+class TestHistoricoUnidade:
+    """C1.3.2 (Detalhes da Unidade) — GET /<id>/historico expõe audit_log já
+    gravado por criar_unidade/transicionar_status, nunca lido de volta antes."""
+
+    def test_sem_autenticacao_retorna_401(self, client):
+        resp = client.get("/api/unidades-serializadas/1/historico")
+        assert resp.status_code == 401
+
+    def test_unidade_inexistente_retorna_404(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        resp = client.get("/api/unidades-serializadas/999999/historico")
+        assert resp.status_code == 404
+
+    def test_historico_inclui_criacao_e_mudanca_de_status(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+        client.patch(f"/api/unidades-serializadas/{unidade_id}/status", json={"status": "em_reparo"})
+
+        resp = client.get(f"/api/unidades-serializadas/{unidade_id}/historico")
+
+        assert resp.status_code == 200
+        historico = resp.get_json()["historico"]
+        # mais recente primeiro
+        assert [h["acao"] for h in historico] == ["status_change", "create"]
+        assert historico[0]["valor_anterior"] == "disponivel"
+        assert historico[0]["valor_novo"] == "em_reparo"
+        assert historico[0]["usuario_nome"] == "Tecnico Teste"
+        _limpar_item_estoque(estoque_id)

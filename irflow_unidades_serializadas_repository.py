@@ -52,6 +52,35 @@ def buscar_por_id(cursor, unidade_id):
     return cursor.fetchone()
 
 
+def buscar_por_id_com_origem(cursor, unidade_id):
+    """Mesma unidade de `buscar_por_id`, com colunas de origem (join) para exibição
+    de detalhe — mesma invariante/join de `buscar_paginado`."""
+    cursor.execute(
+        f"SELECT {_COLUNAS_COM_ORIGEM} {_JOIN_ORIGEM} WHERE u.id = ?",
+        (unidade_id,),
+    )
+    return cursor.fetchone()
+
+
+def buscar_historico(cursor, unidade_id):
+    """Histórico de auditoria da unidade (criação + mudanças de status),
+    mais recente primeiro. Junta `usuarios` só para exibir o nome de quem
+    fez a alteração — não é acesso ao repository de outro domínio (mesma
+    justificativa de `obter_estoque_requer_imei`)."""
+    cursor.execute(
+        """
+        SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em,
+               COALESCE(us.nome, '')
+        FROM audit_log a
+        LEFT JOIN usuarios us ON a.usuario_id = us.id
+        WHERE a.entidade = 'unidade_serializada' AND a.entidade_id = ?
+        ORDER BY a.id DESC
+        """,
+        (unidade_id,),
+    )
+    return cursor.fetchall()
+
+
 def buscar_paginado(cursor, imei, estoque_id, produto_id, status, limit, offset):
     condicoes = []
     params = []

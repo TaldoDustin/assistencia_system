@@ -22,6 +22,21 @@ _COLUNAS = (
     "venda_id, saude_bateria, localizacao, criado_em, atualizado_em"
 )
 
+# Colunas + LEFT JOIN em estoque/produtos só para exibição (label de origem) —
+# não introduz filtro novo, mesma invariante de origem do resto do módulo.
+_COLUNAS_COM_ORIGEM = (
+    "u.id, u.estoque_id, u.produto_id, u.lote_id, u.imei, u.status, u.reservado_por, "
+    "u.reservado_ate, u.venda_id, u.saude_bateria, u.localizacao, u.criado_em, u.atualizado_em, "
+    "e.modelo AS estoque_modelo, e.descricao AS estoque_descricao, "
+    "p.modelo AS produto_modelo, p.descricao AS produto_descricao, "
+    "p.categoria AS produto_categoria, p.marca AS produto_marca"
+)
+_JOIN_ORIGEM = (
+    "FROM unidades_serializadas u "
+    "LEFT JOIN estoque e ON u.estoque_id = e.id "
+    "LEFT JOIN produtos p ON u.produto_id = p.id"
+)
+
 
 def inserir(cursor, estoque_id=None, produto_id=None, imei=None, lote_id=None):
     cursor.execute(
@@ -41,22 +56,22 @@ def buscar_paginado(cursor, imei, estoque_id, produto_id, status, limit, offset)
     condicoes = []
     params = []
     if imei:
-        condicoes.append("imei LIKE ?")
+        condicoes.append("u.imei LIKE ?")
         params.append(f"%{imei}%")
     if estoque_id:
-        condicoes.append("estoque_id = ?")
+        condicoes.append("u.estoque_id = ?")
         params.append(estoque_id)
     if produto_id:
-        condicoes.append("produto_id = ?")
+        condicoes.append("u.produto_id = ?")
         params.append(produto_id)
     if status:
-        condicoes.append("status = ?")
+        condicoes.append("u.status = ?")
         params.append(status)
 
     where_sql = " AND ".join(condicoes) if condicoes else "1=1"
     cursor.execute(
-        f"SELECT {_COLUNAS} FROM unidades_serializadas WHERE {where_sql} "
-        "ORDER BY id DESC LIMIT ? OFFSET ?",
+        f"SELECT {_COLUNAS_COM_ORIGEM} {_JOIN_ORIGEM} WHERE {where_sql} "
+        "ORDER BY u.id DESC LIMIT ? OFFSET ?",
         (*params, limit, offset),
     )
     return cursor.fetchall()

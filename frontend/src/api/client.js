@@ -248,6 +248,17 @@ export const produtos = {
   delete: (id)         => del(`/produtos/${id}`),
 };
 
+// ── Unidades Serializadas (rastreamento por IMEI/serial, ADR-007) ─────────
+export const unidadesSerializadas = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/unidades-serializadas${qs ? "?" + qs : ""}`);
+  },
+  get: (id) => get(`/unidades-serializadas/${id}`),
+  create: (data) => post("/unidades-serializadas", data),
+  updateStatus: (id, status) => request("PATCH", `/unidades-serializadas/${id}/status`, { status }),
+};
+
 // ── Shopping List (Compras) ───────────────────────────────────────────────
 export const shoppingList = {
   list: (params = {}) => {

@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, ClipboardList, Package, ShoppingBag, Wrench, DollarSign,
   BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, UserCircle, HardDriveDownload,
+  ScanBarcode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
@@ -16,6 +17,7 @@ const navItems = [
   { path: "/garantias", label: "Garantias", icon: Shield },
   { path: "/clientes", label: "Clientes", icon: UserCircle },
   { path: "/produtos", label: "Produtos", icon: ShoppingBag },
+  { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: ScanBarcode },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },

@@ -147,6 +147,33 @@ class TestListarUnidades:
         assert body["items"][0]["estoque_id"] is None
         _limpar_produto(produto_id)
 
+    def test_listagem_inclui_origem_de_estoque(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        estoque_id = _criar_item_estoque(modelo="iPhone 13 Pro")
+        criado, _ = _criar_unidade(client, estoque_id=estoque_id)
+        assert criado.status_code == 200
+
+        resp = client.get(f"/api/unidades-serializadas?estoque_id={estoque_id}")
+
+        item = resp.get_json()["items"][0]
+        assert item["origem_tipo"] == "estoque"
+        assert item["origem_label"] == "iPhone 13 Pro"
+        _limpar_item_estoque(estoque_id)
+
+    def test_listagem_inclui_origem_de_produto(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        produto_id = _criar_produto(modelo="iPhone 15 Pro Max")
+        criado, _ = _criar_unidade_de_produto(client, produto_id=produto_id)
+        assert criado.status_code == 200
+
+        resp = client.get(f"/api/unidades-serializadas?produto_id={produto_id}")
+
+        item = resp.get_json()["items"][0]
+        assert item["origem_tipo"] == "produto"
+        assert item["origem_label"] == "iPhone 15 Pro Max"
+        assert item["produto_categoria"] == "iPhone"
+        _limpar_produto(produto_id)
+
 
 class TestObterUnidade:
     def test_unidade_existente(self, client, login_como, usuario_tecnico):

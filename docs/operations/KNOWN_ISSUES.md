@@ -579,3 +579,38 @@ C1.3.5 (Integração com Estoque), que já vão mexer nesse fluxo.
 
 Responsável:
 —
+
+---
+
+## ~~KI-021~~ — RESOLVIDO
+
+Descrição:
+`getOrderDisplayNumber` (`frontend/src/lib/constants.js`) sempre exibia o `id` interno da OS (`#866`),
+mesmo para Ordens de Serviço importadas do MercadoPhone — que deveriam mostrar o número real da
+integração (`os.id_externo_integracao`) para permitir localizar a OS pelo número que o cliente/
+MercadoPhone usa, sincronizar atualizações e evitar duplicidade ao importar.
+
+Impacto:
+Alto (operacional). Usado em produção real — dificultava conferência cruzada entre o sistema e o
+MercadoPhone para toda OS de origem `mercado_phone`. `os.origem_integracao`/`os.id_externo_integracao`
+já existiam no schema e já eram retornados por `GET /api/ordens` (`_os_row_to_dict`); o dado nunca
+esteve ausente, só não era usado pela função de exibição.
+
+Status:
+Resolvido em 2026-07-22 via `hotfix/os-numero-mercadophone` (Hotfix H-003, pedido do usuário — CTO).
+Regressão identificada no commit `fda0929` (2026-06-09, co-autoria "Copilot", mensagem "fix shopping
+list mismatch"): a versão original de `getOrderDisplayNumber` já preferia `id_externo_integracao`
+quando `origem_integracao === "mercado_phone"`, com fallback para `String(order.id).slice(-5)` — o
+truncamento (`.slice(-5)`) era o bug real por trás daquele commit, mas a correção da época removeu a
+preferência pelo número externo inteira, não só o truncamento. Restaurada a preferência pelo número
+externo, sem reintroduzir o truncamento. Nenhuma mudança de schema/backend — os dados já existiam e já
+eram retornados pela API; só a exibição no frontend estava errada. Validado manualmente: OS nativa
+exibe `#1` (id interno), OS com `origem_integracao='mercado_phone'` exibe `#MP-90210` (número externo
+semeado via API/banco isolado para o teste).
+
+Sprint prevista:
+Fora de sprint — pedido direto do usuário (CTO), prioridade por bloqueio operacional imediato
+(Hotfix H-003, junto do achado de deploy pendente descrito no Problema 1 do mesmo pedido).
+
+Responsável:
+—

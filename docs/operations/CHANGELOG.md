@@ -119,6 +119,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Adicionado (2026-07-22 — Sprint Comercial 1.3.4)
 - `PATCH /api/unidades-serializadas/<id>` — edita `localizacao`/`saude_bateria` (únicos campos de manutenção sem endpoint de escrita até então). Saúde da bateria validada como percentual 0-100, rejeitada com erro explícito se inválida (nunca coagida silenciosamente). Campos derivados/imutáveis (origem, IMEI, status, campos de Vendas) explicitamente bloqueados e rejeitados com 400 se enviados — status continua usando `PATCH /<id>/status` já existente. `frontend/src/pages/UnidadesSerializadas.jsx`: `DetalheUnidade` evoluído para um único componente de visualização+edição (não dois modais separados) — decisão explícita do usuário para não duplicar estrutura entre detalhe e edição. IMEI/Origem sempre somente-leitura; Status vira `<Select>` limitado às transições válidas a partir do status atual; Localização/Saúde da bateria viram inputs. Antes de implementar: confirmado que "Observações" não existe no schema (nunca foi criada) — fora de escopo por decisão já dada pelo próprio usuário ("não alterar schema"); IMEI consultado explicitamente com o usuário e decidido como imutável após o cadastro (identificador primário usado em busca/auditoria/futura garantia). 9 novos testes (55 no domínio, 476 no total), `ruff check .` limpo, validado manualmente editando bateria/localização/status de uma unidade real, com histórico refletindo os 2 eventos gravados
 
+### Adicionado (2026-07-22 — Auditoria de branches)
+- `docs/company/CUSTOMER_FEEDBACK.md` — log de feedback de cliente (72 linhas), mergeado da branch `docs/customer-feedback-log` após auditoria das branches do repositório (19+ branches locais/remotas revisadas uma a uma contra `origin/main` real, não por suposição de nome)
+
+### Corrigido (2026-07-22 — Auditoria de branches)
+- `app.py`: `PUBLIC_BASE_URL` agora normaliza o protocolo (adiciona `https://` quando ausente) e usa `VERCEL_URL` como fallback quando `IR_FLOW_PUBLIC_BASE_URL` não está definida. Fix já existia há mais de um mês na branch `ajuste-render-webhook`, nunca mergeada — trazido via cherry-pick após revisão de uso (só consumido em um outro ponto do arquivo, sem outros pontos do código dependendo do formato antigo). Sem mudança de comportamento quando `IR_FLOW_PUBLIC_BASE_URL` já está definida corretamente; 476 testes passando
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

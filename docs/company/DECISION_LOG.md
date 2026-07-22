@@ -151,6 +151,23 @@ revisado no Sprint Comercial 0.2 — hoje aponta `vendas.estoque_unidade_id` par
 não serve mais para produto comercial.
 **Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-20 — `docs/operations/SPRINTS/SPRINT_COMERCIAL_0.1.md`.
 
+## 2026-07-22 — Numeração de OS do MercadoPhone: manter para o cliente atual, isolada por empresa no futuro
+
+**Decisão:** manter `getOrderDisplayNumber` exibindo o número externo do MercadoPhone
+(`id_externo_integracao`) para OS de `origem_integracao === "mercado_phone"`, como corrigido no Hotfix
+H-003 (KI-021) — isso reflete como o cliente atual já opera na prática. Para os próximos clientes
+(pós-multiempresa), a numeração de OS não deve depender de nenhuma integração externa: cada empresa terá
+sua própria sequência independente, começando em 1.
+**Motivo:** o cliente atual já usa o MercadoPhone como fonte de numeração no dia a dia — mudar isso agora
+quebraria a operação real. Mas isso é específico desse cliente, não uma regra geral do produto; a Fluxoly
+não pode depender de uma integração de terceiro para numerar OS de clientes que não usam o MercadoPhone.
+**Impacto:** requisito novo para ADR-005 (Estratégia de Multiempresa, ainda `PROPOSTA`) — qualquer que
+seja a opção de isolamento escolhida (banco por empresa / `empresa_id` / schema por empresa), a numeração
+de OS por empresa precisa ser uma sequência própria (ex.: `numero_os` com contador por `empresa_id`, não
+o `id INTEGER PRIMARY KEY AUTOINCREMENT` global nem um número de integração externa). Não implementado
+agora — só registrado como requisito para quando ADR-005 for decidida.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-22, no acompanhamento do Hotfix H-003.
+
 ## Documentos relacionados
 
 - `docs/engineering/ARCHITECTURE_DECISIONS.md` — decisões arquiteturais (ADR), complementar a este log

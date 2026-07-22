@@ -96,4 +96,4 @@ No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 2. Suba o frontend na Vercel seguindo as instruções acima.
 3. Teste o fluxo completo: frontend (Vercel) consumindo a API (Render).
 4. Ajuste variáveis de ambiente e CORS conforme necessário.
-5. (Opcional) Remova arquivos do Fly.io (`fly.toml`) se não for mais usar.
+5. `fly.toml` foi removido do repositório — não é mais usado desde a migração para Render + Vercel.

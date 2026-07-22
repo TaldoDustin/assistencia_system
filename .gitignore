@@ -33,7 +33,7 @@ temp_output.txt
 .coverage
 htmlcov/
 
-# Fly.io não precisa desses
+# Gerado em runtime — não precisa ir pro repo
 integrations.json
 
 .openclaude-profile.json.openclaude-profile.json

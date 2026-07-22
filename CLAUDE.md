@@ -9,9 +9,9 @@ Leia-o inteiramente antes de qualquer ação — sem exceções.
 
 **Fluxoly** é uma plataforma de gestão para lojas especializadas em dispositivos móveis premium (nome
 legado no código e infraestrutura: Assistência System — ver `docs/company/BRAND_IDENTITY.md`).
-Cobre o ciclo completo: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Está em produção no Fly.io.
+Cobre o ciclo completo: abertura de OS, controle de estoque, tabela de preços, lista de compras, garantias, relatórios e backup. Está em produção no Render (backend) + Vercel (frontend).
 
-Stack: **Flask 3 + SQLite** (backend) · **React 19 + Vite** (frontend) · **Fly.io** (produção).
+Stack: **Flask 3 + SQLite** (backend) · **React 19 + Vite** (frontend) · **Render + Vercel** (produção).
 
 ---
 

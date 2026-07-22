@@ -171,9 +171,11 @@ usam autenticação própria por token, fora do `ROUTE_PERMISSIONS` (ver R-07 em
 
 ## 8. Deploy
 
-- Produção: Fly.io, processo único Gunicorn servindo Flask (API + estático do build do Vite).
-- Frontend é buildado (`npm run build`) e servido pelo próprio Flask como estático em `/app/*`
-  (ver `serve_react` / `serve_react_assets`, isentos de `ROUTE_PERMISSIONS`).
+- Produção: backend Flask (Gunicorn) no Render, frontend estático (build do Vite) na Vercel —
+  serviços separados, ver `DEPLOY.md`.
+- O Flask também sabe servir o build do Vite como estático em `/app/*` (`serve_react` /
+  `serve_react_assets`, isentos de `ROUTE_PERMISSIONS`) — usado no modo processo único (dev local
+  ou deploy alternativo), mas não é o que a produção atual (Render + Vercel) usa.
 
 ---
 

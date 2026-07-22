@@ -3,7 +3,7 @@
 **Projeto:** Fluxoly Platform  
 **Responsável:** Principal Software Engineer  
 **Branch principal:** `main`  
-**Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
+**Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-21  
 **Próxima revisão:** plano de migração `unidades_serializadas` (ADR-007), pré-requisito da Sprint Comercial 1.3
@@ -14,7 +14,7 @@
 
 | Dimensão           | Status                          |
 |--------------------|---------------------------------|
-| Produção           | Operacional (Fly.io)            |
+| Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
@@ -271,7 +271,7 @@ migração validada.
 | R-03 | Chaves secretas em variáveis de ambiente sem documentação formal      | Média         | Alto    | `.env` removido do git|
 | ~~R-04~~ | ~~Sem rate limiting — `/api/auth/login` vulnerável a força bruta~~ | Baixa | Alto | **Mitigado (2026-07-11)** — `irflow_rate_limit.py`, 5 tentativas/min por identificador (KI-001) |
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |
-| R-06 | Dependência única de Fly.io sem estratégia de fallback documentada    | Baixa         | Médio   | DEPLOY.md alternativo|
+| R-06 | Dependência única de Render + Vercel sem estratégia de fallback documentada | Baixa   | Médio   | `DEPLOY.md` documenta o passo a passo, sem provedor alternativo |
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
 | ~~R-08~~ | ~~`ruff check .` vermelho em `main` — job `Lint` bloqueava `backend`/`frontend` via `needs: lint` (KI-017)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-20)** — `ruff check .` → 0 erros, branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos |
 

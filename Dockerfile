@@ -15,10 +15,10 @@ COPY . .
 # Copia o backup para o local do banco de dados
 
 # Volume persistente para banco de dados e dados gravados em disco
-# O Fly.io monta /data — a app detecta e usa automaticamente via FLY_DATA_DIR
+# Render monta /data (Disks) — a app detecta e usa automaticamente via RENDER_DISK_PATH
 VOLUME ["/data"]
 
-# Expõe a porta interna (Fly.io roteia externamente)
+# Expõe a porta interna (o provedor de deploy roteia externamente)
 EXPOSE 8080
 
 # Inicia com gunicorn (produção)

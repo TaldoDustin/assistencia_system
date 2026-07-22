@@ -618,3 +618,107 @@ class TestFiltrosAvancados:
         ids = [u["id"] for u in resp.get_json()["items"]]
         assert unidade_id in ids
         _limpar_produto(produto_id)
+
+
+class TestAtualizarUnidade:
+    """C1.3.4 — PATCH /<id> edita localizacao/saude_bateria. status usa o
+    endpoint próprio (/status, já testado em TestTransicaoStatus); origem/
+    imei são imutáveis após o cadastro (decisão do usuário/CTO, 2026-07-22).
+    Não há teste de "observações": o campo não existe no schema — não é
+    editável porque não existe, não por bloqueio de regra."""
+
+    def test_sem_autenticacao_retorna_403(self, client):
+        resp = client.patch("/api/unidades-serializadas/1", json={"localizacao": "Loja"})
+        assert resp.status_code == 403
+
+    def test_unidade_inexistente_retorna_404(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        resp = client.patch("/api/unidades-serializadas/999999", json={"localizacao": "Loja"})
+        assert resp.status_code == 404
+
+    def test_atualizar_localizacao(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"localizacao": "Bancada 4"})
+
+        assert resp.status_code == 200
+        detalhe = client.get(f"/api/unidades-serializadas/{unidade_id}").get_json()["unidade"]
+        assert detalhe["localizacao"] == "Bancada 4"
+        _limpar_item_estoque(estoque_id)
+
+    def test_atualizar_saude_bateria(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"saude_bateria": "88"})
+
+        assert resp.status_code == 200
+        detalhe = client.get(f"/api/unidades-serializadas/{unidade_id}").get_json()["unidade"]
+        assert detalhe["saude_bateria"] == "88"
+        _limpar_item_estoque(estoque_id)
+
+    def test_saude_bateria_invalida_e_rejeitada(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"saude_bateria": "150"})
+
+        assert resp.status_code == 400
+        _limpar_item_estoque(estoque_id)
+
+    def test_saude_bateria_nao_numerica_e_rejeitada(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"saude_bateria": "boa"})
+
+        assert resp.status_code == 400
+        _limpar_item_estoque(estoque_id)
+
+    def test_editar_campo_bloqueado_e_rejeitado(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"imei": "000000000000000"})
+
+        assert resp.status_code == 400
+        detalhe = client.get(f"/api/unidades-serializadas/{unidade_id}").get_json()["unidade"]
+        assert detalhe["imei"] != "000000000000000"
+        _limpar_item_estoque(estoque_id)
+
+    def test_editar_origem_e_rejeitado(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"produto_id": 999})
+
+        assert resp.status_code == 400
+        _limpar_item_estoque(estoque_id)
+
+    def test_atualizacao_grava_audit_log(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+
+        client.patch(f"/api/unidades-serializadas/{unidade_id}", json={"localizacao": "Laboratório"})
+
+        conn = _app.conectar()
+        try:
+            linha = conn.execute(
+                "SELECT acao, valor_novo FROM audit_log WHERE entidade='unidade_serializada' "
+                "AND entidade_id=? AND acao='update' ORDER BY id DESC LIMIT 1",
+                (unidade_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+
+        assert linha is not None
+        assert "Laborat" in linha[1]
+        _limpar_item_estoque(estoque_id)

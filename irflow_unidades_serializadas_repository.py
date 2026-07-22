@@ -184,6 +184,17 @@ def atualizar_status(cursor, unidade_id, status):
     )
 
 
+def atualizar_campos(cursor, unidade_id, localizacao, saude_bateria):
+    """C1.3.4 — únicos campos editáveis fora da transição de status:
+    localizacao e saude_bateria. `None` limpa o valor (mesma semântica de
+    "campo em branco" usada no cadastro)."""
+    cursor.execute(
+        "UPDATE unidades_serializadas SET localizacao = ?, saude_bateria = ?, "
+        "atualizado_em = datetime('now') WHERE id = ?",
+        (localizacao, saude_bateria, unidade_id),
+    )
+
+
 def obter_estoque_requer_imei(cursor, estoque_id):
     """Retorna None se o item de estoque não existe, senão True/False de `requer_imei`."""
     cursor.execute("SELECT requer_imei FROM estoque WHERE id = ?", (estoque_id,))

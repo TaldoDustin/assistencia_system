@@ -258,6 +258,7 @@ export const unidadesSerializadas = {
   historico: (id) => get(`/unidades-serializadas/${id}/historico`),
   create: (data) => post("/unidades-serializadas", data),
   updateStatus: (id, status) => request("PATCH", `/unidades-serializadas/${id}/status`, { status }),
+  update: (id, data) => request("PATCH", `/unidades-serializadas/${id}`, data),
 };
 
 // ── Shopping List (Compras) ───────────────────────────────────────────────

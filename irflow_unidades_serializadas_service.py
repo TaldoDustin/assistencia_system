@@ -236,3 +236,43 @@ def transicionar_status(conectar, usuario_id, unidade_id, novo_status):
         conn.close()
 
     return True, None
+
+
+# C1.3.4 — únicos campos editáveis fora da máquina de estados de status:
+# localizacao e saude_bateria. IMEI é tratado como imutável após o cadastro
+# (decisão do usuário/CTO, 2026-07-22 — identificador primário usado em
+# busca/auditoria/futura garantia). Origem (estoque_id/produto_id) nunca é
+# editável — é a invariante do domínio (Regra de Ouro, ADR-007).
+CAMPOS_BLOQUEADOS = {"estoque_id", "produto_id", "imei", "status", "venda_id", "reservado_por", "reservado_ate"}
+
+
+def atualizar_campos(conectar, usuario_id, unidade_id, localizacao=None, saude_bateria=None):
+    """Retorna (sucesso, erro). `erro` é None em caso de sucesso.
+
+    `saude_bateria` é validado como percentual (0-100) quando não vazio —
+    rejeitado com erro explícito se inválido, nunca coagido silenciosamente
+    (mesma filosofia de KI-015/KI-016)."""
+    localizacao = (localizacao or "").strip()
+    saude_bateria = (saude_bateria or "").strip()
+    if saude_bateria and not (saude_bateria.isdigit() and 0 <= int(saude_bateria) <= 100):
+        return False, "Saúde da bateria deve ser um número entre 0 e 100."
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        antes = repo.buscar_por_id(cursor, unidade_id)
+        if not antes:
+            return False, "Unidade não encontrada."
+
+        antes_dict = {"localizacao": antes[10], "saude_bateria": antes[9]}
+        depois_dict = {"localizacao": localizacao or None, "saude_bateria": saude_bateria or None}
+        repo.atualizar_campos(cursor, unidade_id, depois_dict["localizacao"], depois_dict["saude_bateria"])
+        registrar_log_auditoria(
+            cursor, "unidade_serializada", unidade_id, usuario_id, "update",
+            antes=antes_dict, depois=depois_dict,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return True, None

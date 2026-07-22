@@ -255,6 +255,7 @@ export const unidadesSerializadas = {
     return get(`/unidades-serializadas${qs ? "?" + qs : ""}`);
   },
   get: (id) => get(`/unidades-serializadas/${id}`),
+  historico: (id) => get(`/unidades-serializadas/${id}/historico`),
   create: (data) => post("/unidades-serializadas", data),
   updateStatus: (id, status) => request("PATCH", `/unidades-serializadas/${id}/status`, { status }),
 };

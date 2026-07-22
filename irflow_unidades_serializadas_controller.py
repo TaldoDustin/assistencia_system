@@ -90,6 +90,16 @@ def create_unidades_serializadas_blueprint(deps: dict):
             return err(erro, code)
         return ok(id=unidade_id)
 
+    @unidades_serializadas_api.route("/<int:unidade_id>/historico")
+    def obter_historico(unidade_id):
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        unidade = service.obter_unidade(conectar, unidade_id)
+        if not unidade:
+            return err("Unidade não encontrada.", 404)
+        return ok(historico=service.obter_historico(conectar, unidade_id))
+
     @unidades_serializadas_api.route("/<int:unidade_id>/status", methods=["PATCH"])
     def atualizar_status(unidade_id):
         if not usuario_logado() or not perfil_pode_escrever():

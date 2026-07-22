@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, ScanBarcode } from "lucide-react";
+import { Loader2, Search, ScanBarcode, Smartphone, MapPin, BatteryMedium, History } from "lucide-react";
 import { unidadesSerializadas as unidadesApi } from "@/api/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 // Estados alcançáveis nesta sprint — mesmo domínio de `TRANSICOES_VALIDAS`
 // em irflow_unidades_serializadas_service.py. 'reservado'/'vendido' existem
@@ -36,10 +40,152 @@ function formatDate(value) {
   return ano && mes && dia ? `${dia}/${mes}/${ano}` : value;
 }
 
+function formatDateTime(value) {
+  if (!value) return "—";
+  const [data, hora] = value.split(" ");
+  const [ano, mes, dia] = (data || "").split("-");
+  const horaCurta = (hora || "").slice(0, 5);
+  return ano && mes && dia ? `${dia}/${mes}/${ano} ${horaCurta}`.trim() : value;
+}
+
+const ACAO_LABEL = {
+  create: "Unidade cadastrada",
+  status_change: "Mudança de status",
+};
+
+function eventoDescricao(evento) {
+  if (evento.acao === "status_change") {
+    const de = STATUS_BADGE[evento.valor_anterior]?.label || evento.valor_anterior || "—";
+    const para = STATUS_BADGE[evento.valor_novo]?.label || evento.valor_novo || "—";
+    return `${de} → ${para}`;
+  }
+  return null;
+}
+
+function DetalheUnidade({ unidadeId, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [unidade, setUnidade] = useState(null);
+  const [historico, setHistorico] = useState([]);
+
+  useEffect(() => {
+    let ativo = true;
+    Promise.all([unidadesApi.get(unidadeId), unidadesApi.historico(unidadeId)]).then(([uRes, hRes]) => {
+      if (!ativo) return;
+      if (uRes?.ok) setUnidade(uRes.unidade);
+      else toast.error(uRes?.erro || "Erro ao carregar unidade");
+      setHistorico(hRes?.ok ? (hRes.historico || []) : []);
+    }).finally(() => { if (ativo) setLoading(false); });
+    return () => { ativo = false; };
+  }, [unidadeId]);
+
+  const origem = origemBadge(unidade?.origem_tipo);
+  const status = statusBadge(unidade?.status);
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5 text-primary" />
+            {loading ? "Carregando..." : (unidade?.origem_label || "Unidade")}
+          </DialogTitle>
+          <DialogDescription>Detalhes da unidade serializada — IMEI, status e histórico</DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-24">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : !unidade ? (
+          <p className="text-sm text-muted-foreground">Unidade não encontrada.</p>
+        ) : (
+          <div className="space-y-5 mt-2">
+            <div className="grid grid-cols-2 gap-3 bg-secondary/40 rounded-lg p-4">
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">IMEI / Serial</p>
+                <p className="font-mono text-card-foreground">{unidade.imei || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Origem</p>
+                <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium mt-0.5", origem.className].join(" ")}>
+                  {origem.label}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
+                <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium mt-0.5", status.className].join(" ")}>
+                  {status.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BatteryMedium className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-card-foreground text-sm">
+                  {unidade.saude_bateria != null ? `${unidade.saude_bateria}% de saúde` : "Saúde da bateria não registrada"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-card-foreground text-sm">{unidade.localizacao || "Localização não registrada"}</span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Cadastrado em</p>
+                <p className="text-card-foreground text-sm">{formatDate(unidade.criado_em)}</p>
+              </div>
+            </div>
+
+            {/* Campos que dependem do módulo de Vendas — ainda não existe */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Cliente atual</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Sem venda registrada — módulo de Vendas em construção.</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Garantia</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Não aplicável ainda — depende da venda.</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5" /> Histórico {historico.length > 0 && `(${historico.length})`}
+              </p>
+              {historico.length === 0 ? (
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Nenhum evento registrado.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {historico.map((evento) => (
+                    <div key={evento.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
+                      <div>
+                        <span className="text-card-foreground font-medium">{ACAO_LABEL[evento.acao] || evento.acao}</span>
+                        {eventoDescricao(evento) && (
+                          <span className="text-muted-foreground ml-2">{eventoDescricao(evento)}</span>
+                        )}
+                      </div>
+                      <div className="text-muted-foreground text-xs text-right">
+                        {evento.usuario_nome && <div>{evento.usuario_nome}</div>}
+                        <div>{formatDateTime(evento.criado_em)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="mt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function UnidadesSerializadas() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [detalheId, setDetalheId] = useState(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -147,7 +293,12 @@ export default function UnidadesSerializadas() {
                   const origem = origemBadge(item.origem_tipo);
                   const status = statusBadge(item.status);
                   return (
-                    <tr key={item.id} className="hover:bg-accent/30 transition-colors" data-testid={`unidade-row-${item.id}`}>
+                    <tr
+                      key={item.id}
+                      className="hover:bg-accent/30 transition-colors cursor-pointer"
+                      data-testid={`unidade-row-${item.id}`}
+                      onClick={() => setDetalheId(item.id)}
+                    >
                       <td className="px-4 py-3">
                         <span className="font-medium text-card-foreground font-mono">{item.imei || "—"}</span>
                       </td>
@@ -174,6 +325,8 @@ export default function UnidadesSerializadas() {
           </div>
         </div>
       )}
+
+      {detalheId && <DetalheUnidade unidadeId={detalheId} onClose={() => setDetalheId(null)} />}
     </div>
   );
 }

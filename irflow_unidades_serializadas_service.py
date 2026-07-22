@@ -104,10 +104,31 @@ def obter_unidade(conectar, unidade_id):
     conn = conectar()
     try:
         cursor = conn.cursor()
-        row = repo.buscar_por_id(cursor, unidade_id)
+        row = repo.buscar_por_id_com_origem(cursor, unidade_id)
     finally:
         conn.close()
-    return _unidade_para_dict(row)
+    return _unidade_com_origem_para_dict(row)
+
+
+def _evento_historico_para_dict(row):
+    return {
+        "id": row[0],
+        "acao": row[1],
+        "valor_anterior": row[2],
+        "valor_novo": row[3],
+        "criado_em": row[4],
+        "usuario_nome": row[5] or "",
+    }
+
+
+def obter_historico(conectar, unidade_id):
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        rows = repo.buscar_historico(cursor, unidade_id)
+    finally:
+        conn.close()
+    return [_evento_historico_para_dict(r) for r in rows]
 
 
 def criar_unidade(conectar, usuario_id, estoque_id, produto_id, imei, lote_id=None):

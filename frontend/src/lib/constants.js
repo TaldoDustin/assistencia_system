@@ -11,12 +11,19 @@ export function getOrderDisplayNumber(order) {
     return "";
   }
 
-  // Prefer internal OS id for display to avoid confusion with external integration ids.
+  // OS importada do MercadoPhone: usar o número real da integração, não o id
+  // interno do Fluxoly — permite localizar a OS pelo número que o cliente/
+  // MercadoPhone já usa, sincronizar atualizações e evitar duplicidade.
+  if (order.origem_integracao === "mercado_phone" && order.id_externo_integracao) {
+    return String(order.id_externo_integracao);
+  }
+
+  // OS nativa do Fluxoly: id interno, sem truncar (truncar via .slice(-5) foi
+  // o bug real corrigido em 2026-06-09, não a preferência pelo número externo).
   if (order.id !== undefined && order.id !== null) {
     return String(order.id);
   }
 
-  // Fallback to external id if internal id is missing.
   return String(order.id_externo_integracao || "");
 }
 

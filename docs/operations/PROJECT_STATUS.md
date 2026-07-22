@@ -295,6 +295,7 @@ dois casos.
 | R-06 | Dependência única de Render + Vercel sem estratégia de fallback documentada | Baixa   | Médio   | `DEPLOY.md` documenta o passo a passo, sem provedor alternativo |
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
 | ~~R-08~~ | ~~`ruff check .` vermelho em `main` — job `Lint` bloqueava `backend`/`frontend` via `needs: lint` (KI-017)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-20)** — `ruff check .` → 0 erros, branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos |
+| R-09 | Produção real (Render + Vercel) está atrás de `main` — confirmado em 2026-07-22 consultando `GET /api/constantes` da produção real: ainda retorna só até "iPhone 16e" (sem a linha 17, sem `produtos`, sem `unidades_serializadas`) | Alta | Alto (percepção de bug onde não há — usuário reportou "hotfix não aplicado" quando na verdade é deploy pendente) | Nenhuma automática — deploy é acionado manualmente no dashboard Render/Vercel, decisão já registrada do CTO de acumular mudanças para um RC completo antes do próximo deploy |
 
 ---
 

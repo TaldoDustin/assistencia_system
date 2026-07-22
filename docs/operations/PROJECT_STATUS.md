@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-21  
-**Próxima revisão:** plano de migração `unidades_serializadas` (ADR-007), pré-requisito da Sprint Comercial 1.3
+**Próxima revisão:** RC do sistema inteiro (pré-requisito do próximo deploy, que acumula ~10 dias de mudanças) — ver seção "Sprint em Andamento"
 
 ---
 
@@ -171,20 +171,30 @@ endpoint legado por correspondência de nome, mesma limitação de antes, agora 
 existe. Validado manualmente ponta a ponta (servidor real + banco isolado + navegador dirigido via
 Playwright, dados de OS/garantia semeados via API para exercitar o perfil).
 
-**Sprint Comercial 1.3 — Tela IMEI (PAUSADA em 2026-07-21, ver ADR-007):** ao investigar a
+**Sprint Comercial 1.3 — Tela IMEI (PAUSADA desde 2026-07-21, ver ADR-007):** ao investigar a
 implementação, ficou claro que `estoque_unidades` hoje só cobre peças de `estoque` (assistência) — não
 o cenário real que a tela deveria resolver (buscar um aparelho de revenda do catálogo `produtos` por
 IMEI). Decisão de arquitetura registrada e **aceita pelo usuário (CTO)** em `ADR-007.md`: `estoque_unidades`
 **evoluirá** para o domínio `unidades_serializadas` (dados preservados, não descartados), fonte única de
 verdade para qualquer unidade física rastreada por IMEI/serial. Dois princípios de arquitetura fixados
 junto da decisão: **Regra de Ouro** (um IMEI/serial = uma unidade, nunca duplicada entre domínios — cada
-domínio consome e transiciona o mesmo registro) e **Princípio de Propriedade** (cada domínio só pode
-transicionar os estados que lhe pertencem — ex.: Vendas é dona de `Disponível → Reservado → Vendido`,
-Assistência de `Em Garantia → Em Reparo → Disponível`; Garantias só consulta/registra eventos). Rename
-feito na mesma migração que generaliza a origem (`produto_id` nullable), evitando uma segunda migração só
-para isso. Migração ainda não implementada — próximo passo é o plano de migração (schema, cópia de
-dados, testes), sujeito a aprovação antes de tocar o banco. Sprint Comercial 1.3 retoma somente após a
-migração validada.
+domínio consome e transiciona o mesmo registro) e **Princípio da Responsabilidade de Transição** (cada
+domínio só pode transicionar os estados que lhe pertencem — ex.: Vendas é dona de `Disponível →
+Reservado → Vendido`, Assistência de `Em Garantia → Em Reparo → Disponível`; Garantias só
+consulta/registra eventos). Rename feito na mesma migração que generaliza a origem (`produto_id`
+nullable), evitando uma segunda migração só para isso.
+
+**Migração implementada e validada em RC (2026-07-21)** — branch `feat/unidades-serializadas`
+(commit `a5a0c8e`), PR aberto contra `main`, ver
+`docs/engineering/migrations/MIGRATION_unidades_serializadas.md` para o resultado completo do RC
+(integridade, idempotência, smoke test, todos verdes contra cópia real de produção). **Achado
+relevante do RC:** o backup de produção usado revelou que produção está ~10 dias atrás de `main` —
+sem a tabela `produtos` nem nenhuma feature da Sprint Comercial 0.1+. Decisão do CTO: antes do deploy,
+fazer um **RC do sistema inteiro** (não só desta migração), cobrindo login, dashboard, OS, estoque,
+compras, clientes, produtos, backup, MercadoPhone, usuários e IMEI — só depois desse RC mais amplo
+passar limpo é que o deploy (que na prática será um release acumulando ~10 dias de mudança) é
+liberado. RC do sistema inteiro: **não iniciado ainda**. Sprint Comercial 1.3 retoma só depois do
+deploy real em produção.
 
 ### Escopo previsto
 

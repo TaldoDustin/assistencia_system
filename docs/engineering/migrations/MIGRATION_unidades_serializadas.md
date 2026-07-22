@@ -1,16 +1,42 @@
 # Plano Técnico de Migração — `estoque_unidades` → `unidades_serializadas`
 
 **Data:** 2026-07-21
-**Status:** ✅ APROVADO pelo usuário (CTO) em 2026-07-21. **Ainda não implementado** — este documento
-descreve o plano; a implementação acontece em branch própria, seguindo exatamente o que está aprovado
-aqui (ver "Decisões Aprovadas pelo CTO" ao final).
+**Status:** ✅ IMPLEMENTADO E VALIDADO EM RC (2026-07-21) — branch `feat/unidades-serializadas`
+(commit `a5a0c8e`), PR aberto contra `main`. **RC (Release Candidate) da migração encerrado com sucesso**
+— ver "Resultado do RC" abaixo. Falta apenas a execução real em produção (checklist de deploy, seção 8),
+sujeita a decisão sobre o escopo do próximo deploy (ver nota abaixo).
 **Implementa:** [ADR-007](../adr/ADR-007.md) — Consolidação de rastreamento por IMEI entre Estoque e Produtos
 **Pré-requisito de:** Sprint Comercial 1.3 (Tela IMEI) e Sprint Comercial 2 (Primeira Venda)
 **Autor:** Claude (Principal Engineer), a pedido do usuário (CTO). Decisões finais de escopo (seção
 "Decisões Aprovadas pelo CTO") definidas pelo usuário (CTO).
 
-> Este documento é o plano aprovado. Nenhuma linha de código, migração ou schema foi alterada ao
-> escrevê-lo ou aprová-lo — a implementação é o próximo passo, em branch própria.
+> Implementação e RC concluídos. Produção ainda não migrada — ver "Resultado do RC" e nota sobre escopo
+> do próximo deploy antes de agendar a janela de manutenção.
+
+## Resultado do RC (2026-07-21)
+
+Validado contra uma cópia real de produção (backup `backup-20260722-011901.db`, baixado via
+`/api/backup/criar` + `/api/backup/download`, Render). Original preservado imutável (checksum SHA-256
+verificado antes/depois), toda a migração rodou só em cópia de trabalho descartável.
+
+- ✅ Checklist de integridade (seção 5): limpo. `estoque_unidades` tinha 0 linhas em produção no momento
+  do backup — risco de perda de dado era zero nesta execução específica.
+- ✅ Migração executada: `unidades_serializadas` criada, índices e `sqlite_sequence` corretos.
+- ✅ Idempotência: segunda execução do script é no-op seguro.
+- ✅ `PRAGMA integrity_check`: `ok` antes e depois.
+- ✅ Smoke test (login, abrir OS, editar OS, criar unidade por IMEI, alterar status, consultar por IMEI):
+  todos os 6 confirmados via API e visualmente no navegador, contra a cópia migrada rodando localmente.
+
+**Achado que muda o escopo do próximo deploy (não é sobre esta migração em si):** o backup usado no RC
+não tem a tabela `produtos` nem nenhuma feature da Sprint Comercial 0.1 em diante — produção está
+rodando código de ~2026-07-11, cerca de 10 dias atrás de `main`. O próximo deploy não será só esta
+migração; será, na prática, um release acumulando ~10 dias de mudanças nunca testadas em produção
+(Produtos, Clientes com perfil, segurança/auditoria da Sprint 3, esta migração). Decisão do CTO
+(2026-07-21): fazer um RC do sistema inteiro antes do deploy, não só desta migração — ver
+`docs/operations/PROJECT_STATUS.md` para o checklist e status desse RC mais amplo.
+
+Backup de produção usado neste RC **mantido** (não apagado) até o deploy real ser feito e validado —
+rede de segurança adicional, decisão do CTO.
 
 ---
 

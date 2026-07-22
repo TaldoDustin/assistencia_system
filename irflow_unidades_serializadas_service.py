@@ -77,18 +77,40 @@ def _unidade_com_origem_para_dict(row):
     return base
 
 
+# Faixas de saúde da bateria (C1.3.3) — mapeadas para min/max ou "não informado"
+# na camada de serviço, repository só recebe limites numéricos já resolvidos.
+FAIXAS_SAUDE_BATERIA = {
+    "100-95": (95, 100),
+    "94-90": (90, 94),
+    "89-85": (85, 89),
+    "<85": (None, 84),
+    "nao_informado": (None, None),
+}
+
+
 def listar_unidades(
-    conectar, imei="", estoque_id=None, produto_id=None, status="", page=None, per_page=None
+    conectar, termo="", estoque_id=None, produto_id=None, origem=None, status="",
+    saude_bateria_faixa="", localizacao="", sort="recente", page=None, per_page=None,
 ):
     page = page or PAGINA_PADRAO
     per_page = per_page or POR_PAGINA_PADRAO
     offset = (max(1, page) - 1) * per_page
 
+    saude_min, saude_max = FAIXAS_SAUDE_BATERIA.get(saude_bateria_faixa, (None, None))
+    saude_nao_informado = saude_bateria_faixa == "nao_informado"
+
     conn = conectar()
     try:
         cursor = conn.cursor()
-        total = repo.contar(cursor, imei, estoque_id, produto_id, status)
-        rows = repo.buscar_paginado(cursor, imei, estoque_id, produto_id, status, per_page, offset)
+        total = repo.contar(
+            cursor, termo, estoque_id, produto_id, origem, status,
+            saude_min, saude_max, saude_nao_informado, localizacao,
+        )
+        rows = repo.buscar_paginado(
+            cursor, termo, estoque_id, produto_id, origem, status,
+            saude_min, saude_max, saude_nao_informado, localizacao,
+            sort, per_page, offset,
+        )
     finally:
         conn.close()
 

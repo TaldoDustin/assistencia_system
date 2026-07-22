@@ -45,17 +45,24 @@ def create_unidades_serializadas_blueprint(deps: dict):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        imei = (request.args.get("imei") or "").strip()
+        # "q" é o nome novo (C1.3.3, busca combinada); "imei" segue aceito por
+        # compatibilidade — ambos alimentam a mesma busca combinada no service.
+        termo = (request.args.get("q") or request.args.get("imei") or "").strip()
         estoque_id = parse_int(request.args.get("estoque_id"), default=None)
         produto_id = parse_int(request.args.get("produto_id"), default=None)
+        origem = (request.args.get("origem") or "").strip() or None
         status = (request.args.get("status") or "").strip()
+        saude_bateria_faixa = (request.args.get("saude_bateria_faixa") or "").strip()
+        localizacao = (request.args.get("localizacao") or "").strip()
+        sort = (request.args.get("sort") or "recente").strip()
         page = parse_int(request.args.get("page"), default=1)
         per_page = parse_int(request.args.get("per_page"), default=20)
         if page is None or per_page is None:
             return err("Parâmetros page/per_page inválidos.")
 
         resultado = service.listar_unidades(
-            conectar, imei, estoque_id, produto_id, status, page, per_page
+            conectar, termo, estoque_id, produto_id, origem, status,
+            saude_bateria_faixa, localizacao, sort, page, per_page,
         )
         return ok(**resultado)
 

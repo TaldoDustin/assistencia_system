@@ -62,6 +62,7 @@ def _criar_produto(requer_rastreio_unidade=True, **overrides):
     cursor = conn.cursor()
     dados = {
         "categoria": "iPhone",
+        "marca": None,
         "modelo": f"iPhone Teste {uuid.uuid4().hex[:8]}",
         "condicao": "Seminovo",
         "preco_custo": 2000.0,
@@ -71,11 +72,11 @@ def _criar_produto(requer_rastreio_unidade=True, **overrides):
     dados.update(overrides)
     cursor.execute(
         """
-        INSERT INTO produtos (categoria, modelo, condicao, preco_custo, preco_venda, quantidade, requer_rastreio_unidade)
-        VALUES (?,?,?,?,?,?,?)
+        INSERT INTO produtos (categoria, marca, modelo, condicao, preco_custo, preco_venda, quantidade, requer_rastreio_unidade)
+        VALUES (?,?,?,?,?,?,?,?)
         """,
         (
-            dados["categoria"], dados["modelo"], dados["condicao"], dados["preco_custo"],
+            dados["categoria"], dados["marca"], dados["modelo"], dados["condicao"], dados["preco_custo"],
             dados["preco_venda"], dados["quantidade"], 1 if requer_rastreio_unidade else 0,
         ),
     )
@@ -456,4 +457,164 @@ class TestHistoricoUnidade:
         assert historico[0]["valor_anterior"] == "disponivel"
         assert historico[0]["valor_novo"] == "em_reparo"
         assert historico[0]["usuario_nome"] == "Tecnico Teste"
+
+
+def _definir_saude_localizacao(unidade_id, saude_bateria=None, localizacao=None):
+    """Sem endpoint de escrita ainda (C1.3.4) — grava direto no banco para
+    testar o filtro, mesmo padrão já usado para requer_imei/requer_rastreio."""
+    conn = _app.conectar()
+    conn.execute(
+        "UPDATE unidades_serializadas SET saude_bateria=?, localizacao=? WHERE id=?",
+        (saude_bateria, localizacao, unidade_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+class TestFiltrosAvancados:
+    """C1.3.3 — busca combinada, origem, faixa de bateria, localização e
+    ordenação, todos resolvidos no backend (nunca só no frontend)."""
+
+    def test_busca_combinada_encontra_por_modelo_de_produto(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, produto_id = _criar_unidade_de_produto(client, produto_id=_criar_produto(modelo="iPhone 15 Pro Max"))
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.get("/api/unidades-serializadas?q=15+Pro+Max")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert unidade_id in ids
+        _limpar_produto(produto_id)
+
+    def test_busca_combinada_encontra_por_marca_de_produto(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, produto_id = _criar_unidade_de_produto(
+            client, produto_id=_criar_produto(modelo="iPhone Teste Marca", marca="Apple")
+        )
+        unidade_id = criado.get_json()["id"]
+
+        resp = client.get("/api/unidades-serializadas?q=Apple")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert unidade_id in ids
+        _limpar_produto(produto_id)
+
+    def test_busca_combinada_encontra_por_localizacao(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        unidade_id = criado.get_json()["id"]
+        _definir_saude_localizacao(unidade_id, localizacao="Gaveta 3")
+
+        resp = client.get("/api/unidades-serializadas?q=gaveta")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert unidade_id in ids
         _limpar_item_estoque(estoque_id)
+
+    def test_parametro_imei_legado_continua_funcionando(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client, imei="352099001761481")
+
+        resp = client.get("/api/unidades-serializadas?imei=176148")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado.get_json()["id"] in ids
+        _limpar_item_estoque(estoque_id)
+
+    def test_filtro_origem_estoque(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado_estoque, estoque_id = _criar_unidade(client)
+        criado_produto, produto_id = _criar_unidade_de_produto(client)
+
+        resp = client.get("/api/unidades-serializadas?origem=estoque")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado_estoque.get_json()["id"] in ids
+        assert criado_produto.get_json()["id"] not in ids
+        _limpar_item_estoque(estoque_id)
+        _limpar_produto(produto_id)
+
+    def test_filtro_origem_produto(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado_estoque, estoque_id = _criar_unidade(client)
+        criado_produto, produto_id = _criar_unidade_de_produto(client)
+
+        resp = client.get("/api/unidades-serializadas?origem=produto")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado_produto.get_json()["id"] in ids
+        assert criado_estoque.get_json()["id"] not in ids
+        _limpar_item_estoque(estoque_id)
+        _limpar_produto(produto_id)
+
+    def test_filtro_faixa_saude_bateria(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado_alta, estoque_id_alta = _criar_unidade(client)
+        criado_baixa, estoque_id_baixa = _criar_unidade(client)
+        _definir_saude_localizacao(criado_alta.get_json()["id"], saude_bateria="97")
+        _definir_saude_localizacao(criado_baixa.get_json()["id"], saude_bateria="80")
+
+        resp = client.get("/api/unidades-serializadas?saude_bateria_faixa=100-95")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado_alta.get_json()["id"] in ids
+        assert criado_baixa.get_json()["id"] not in ids
+        _limpar_item_estoque(estoque_id_alta)
+        _limpar_item_estoque(estoque_id_baixa)
+
+    def test_filtro_saude_bateria_nao_informado(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado_sem, estoque_id_sem = _criar_unidade(client)
+        criado_com, estoque_id_com = _criar_unidade(client)
+        _definir_saude_localizacao(criado_com.get_json()["id"], saude_bateria="90")
+
+        resp = client.get("/api/unidades-serializadas?saude_bateria_faixa=nao_informado")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado_sem.get_json()["id"] in ids
+        assert criado_com.get_json()["id"] not in ids
+        _limpar_item_estoque(estoque_id_sem)
+        _limpar_item_estoque(estoque_id_com)
+
+    def test_filtro_localizacao(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, estoque_id = _criar_unidade(client)
+        _definir_saude_localizacao(criado.get_json()["id"], localizacao="Bancada 2")
+
+        resp = client.get("/api/unidades-serializadas?localizacao=bancada")
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert criado.get_json()["id"] in ids
+        _limpar_item_estoque(estoque_id)
+
+    def test_ordenacao_por_imei(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado_a, estoque_id_a = _criar_unidade(client, imei="111111111111111")
+        criado_b, estoque_id_b = _criar_unidade(client, imei="222222222222222")
+
+        resp = client.get("/api/unidades-serializadas?sort=imei&per_page=500")
+
+        imeis = [u["imei"] for u in resp.get_json()["items"] if u["imei"] in ("111111111111111", "222222222222222")]
+        assert imeis == ["111111111111111", "222222222222222"]
+        _limpar_item_estoque(estoque_id_a)
+        _limpar_item_estoque(estoque_id_b)
+
+    def test_ordenacao_por_status(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        resp = client.get("/api/unidades-serializadas?sort=status")
+        assert resp.status_code == 200
+
+    def test_filtros_combinados(self, client, login_como, usuario_tecnico):
+        login_como(client, usuario_tecnico)
+        criado, produto_id = _criar_unidade_de_produto(client, produto_id=_criar_produto(modelo="iPhone Combinado"))
+        unidade_id = criado.get_json()["id"]
+        _definir_saude_localizacao(unidade_id, saude_bateria="96", localizacao="Loja")
+
+        resp = client.get(
+            "/api/unidades-serializadas?q=Combinado&origem=produto&status=disponivel"
+            "&saude_bateria_faixa=100-95&localizacao=loja&sort=recente"
+        )
+
+        ids = [u["id"] for u in resp.get_json()["items"]]
+        assert unidade_id in ids
+        _limpar_produto(produto_id)

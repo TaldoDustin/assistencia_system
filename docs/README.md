@@ -44,6 +44,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/DECISION_LOG.md`](company/DECISION_LOG.md) — Histórico executivo de decisões de produto (distinto de ADR).
 - [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
 - [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Proposta de versionamento (1.0 a 2.0), decisão final pendente do Product Owner.
+- [`company/CUSTOMER_FEEDBACK.md`](company/CUSTOMER_FEEDBACK.md) — Log de feedback de clientes (Cliente → Pedido → Discussão → Decisão → Sprint); evidência que orienta o backlog funcional.
 
 ---
 

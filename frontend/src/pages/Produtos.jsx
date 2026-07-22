@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2, Search, Lock } from "lucide-react";
-import { produtos as produtosApi } from "@/api/client";
+import { produtos as produtosApi, constantes as constApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/lib/constants";
 
-// Listas fechadas espelhando `irflow_reference_data.py` (PRODUTOS_CATEGORIAS/CONDICOES) —
-// não expostas em GET /api/constantes ainda, mesmo padrão já usado em Stock.jsx para
-// tipo/qualidade de estoque.
-const CATEGORIA_OPTIONS = ["iPhone", "Apple Watch", "AirPods", "Acessorio"];
-const CONDICAO_OPTIONS = ["Novo", "Seminovo", "Vitrine"];
+// Fallback caso /api/constantes não retorne as listas (rede/erro) — espelha
+// `irflow_reference_data.py` (PRODUTOS_CATEGORIAS/CONDICOES), mesmo padrão de
+// Stock.jsx para tipo/qualidade de estoque. Fonte de verdade real é a API.
+const CATEGORIA_OPTIONS_FALLBACK = ["iPhone", "Apple Watch", "AirPods", "Acessorio"];
+const CONDICAO_OPTIONS_FALLBACK = ["Novo", "Seminovo", "Vitrine"];
 
 const CATEGORIA_BADGE = {
   "iPhone": { emoji: "🟦", label: "iPhone", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
@@ -84,6 +84,7 @@ export default function Produtos() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [constants, setConstants] = useState(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -103,6 +104,15 @@ export default function Produtos() {
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    constApi.get().then((res) => {
+      if (res?.ok) setConstants(res);
+    });
+  }, []);
+
+  const categoriaOptions = constants?.produtos_categorias?.length ? constants.produtos_categorias : CATEGORIA_OPTIONS_FALLBACK;
+  const condicaoOptions = constants?.produtos_condicoes?.length ? constants.produtos_condicoes : CONDICAO_OPTIONS_FALLBACK;
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -234,14 +244,14 @@ export default function Produtos() {
           <SelectTrigger className="w-44"><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
-            {CATEGORIA_OPTIONS.map((c) => <SelectItem key={c} value={c}>{categoriaBadge(c).label}</SelectItem>)}
+            {categoriaOptions.map((c) => <SelectItem key={c} value={c}>{categoriaBadge(c).label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={condicaoFilter || ""} onValueChange={(v) => setCondicaoFilter(v === "all" ? "" : v)}>
           <SelectTrigger className="w-40"><SelectValue placeholder="Condição" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as condições</SelectItem>
-            {CONDICAO_OPTIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {condicaoOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={ativoFilter || ""} onValueChange={(v) => setAtivoFilter(v === "all" ? "" : v)}>
@@ -351,7 +361,7 @@ export default function Produtos() {
                   <Select value={form.categoria} onValueChange={(v) => setForm((p) => ({ ...p, categoria: v }))}>
                     <SelectTrigger className="w-full" aria-label="Categoria do produto"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CATEGORIA_OPTIONS.map((c) => <SelectItem key={c} value={c}>{categoriaBadge(c).label}</SelectItem>)}
+                      {categoriaOptions.map((c) => <SelectItem key={c} value={c}>{categoriaBadge(c).label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -360,7 +370,7 @@ export default function Produtos() {
                   <Select value={form.condicao} onValueChange={(v) => setForm((p) => ({ ...p, condicao: v }))}>
                     <SelectTrigger className="w-full" aria-label="Condição do produto"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CONDICAO_OPTIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {condicaoOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

@@ -512,3 +512,36 @@ Fora de sprint — pedido direto do usuário (CTO), prioridade por bloqueio oper
 
 Responsável:
 —
+
+---
+
+## KI-019
+
+Descrição:
+No modo "processo único" (Flask servindo o build do React — `serve_react`/`serve_react_assets`,
+`app.py`), os `<script>`/`<link>` gerados pelo Vite em `frontend/dist/index.html` usam caminho
+absoluto `/assets/...` (`base: '/'` em `vite.config.js`), mas a rota Flask que serve esses arquivos é
+`/app/assets/<filename>` (prefixo `/app`). Toda requisição de asset (`.js`/`.css`) retorna 404, e a
+SPA nunca monta — tela em branco.
+
+Impacto:
+Alto no modo processo único especificamente (torna essa forma de deploy inutilizável), mas **zero
+impacto na produção real hoje** — produção roda backend (Render) e frontend (Vercel) como serviços
+separados, onde a Vercel serve `frontend/dist` na sua própria raiz e o caminho absoluto `/assets/...`
+funciona sem problema. Só afeta quem tentar rodar `app.py` localmente/como deploy alternativo servindo
+o build React embutido.
+
+Status:
+Aberto — identificado em 2026-07-21 durante o smoke test de RC da migração `unidades_serializadas`
+(`docs/engineering/migrations/MIGRATION_unidades_serializadas.md`), ao tentar validar visualmente
+contra `http://.../app` local. Contornado para o smoke test usando `npm run dev` (proxy do Vite para
+a API) em vez do modo processo único — não bloqueou a validação da migração. Não corrigido nesta
+sessão por estar fora do escopo da migração (regra de mudança única do `CLAUDE.md`); corrigir exigiria
+decidir entre alinhar `vite.config.js` (`base: '/app/'`) ou a rota Flask (`/assets/<filename>` sem
+prefixo) — decisão de arquitetura pequena, mas real, não tomada unilateralmente aqui.
+
+Sprint prevista:
+Não definida — sem urgência, já que o modo afetado não é o usado em produção.
+
+Responsável:
+—

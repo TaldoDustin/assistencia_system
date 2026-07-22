@@ -229,6 +229,17 @@ atual/Garantia mostrados como placeholder explícito — dependem do módulo de 
 implementado. 455 testes (34 no domínio de unidades serializadas), `ruff check .` limpo, validado
 manualmente com produto/unidade/2 transições de status semeados via API.
 
+**Sprint Comercial 1.3.3 — Filtros Avançados (CONCLUÍDA em 2026-07-22, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.3.3.md`):** busca combinada (IMEI/serial/modelo/marca/
+localização), filtros por origem/status/faixa de saúde da bateria/localização, ordenação, e paginação
+real — tudo resolvido no backend, nada só em memória no frontend (antes a tela carregava até 500
+registros de uma vez e filtrava localmente). Três pontos do pedido original reportados ao usuário (CTO)
+antes de codar por não terem suporte real: filtro por Cliente removido desta sprint (sem dado até
+Vendas existir); status "Em Garantia"/"Inativo" não incluídos (não existem em lugar nenhum, seria regra
+de negócio nova); filtros de bateria/localização construídos mesmo sem dado real hoje (mesmo padrão do
+KI-020), decisão deliberada para não gerar retrabalho quando C1.3.4 escrever esses campos. 467 testes
+(46 no domínio), `ruff check .` limpo, validado manualmente com dados de origem mista.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

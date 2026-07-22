@@ -81,49 +81,99 @@ def buscar_historico(cursor, unidade_id):
     return cursor.fetchall()
 
 
-def buscar_paginado(cursor, imei, estoque_id, produto_id, status, limit, offset):
+# Ordenações permitidas (C1.3.3) — whitelist explícita, nunca interpolar valor
+# vindo do cliente direto no SQL. "modelo" ordena pela mesma expressão de
+# fallback usada em `_origem_label` (Python), só que em SQL.
+_ORDENACOES = {
+    "recente": "u.id DESC",
+    "antigo": "u.id ASC",
+    "imei": "u.imei ASC",
+    "modelo": "COALESCE(e.modelo, e.descricao, p.modelo, p.descricao) ASC",
+    "status": "u.status ASC",
+}
+
+
+def _montar_filtros_avancados(termo, origem, status, saude_min, saude_max, saude_nao_informado, localizacao):
     condicoes = []
     params = []
-    if imei:
-        condicoes.append("u.imei LIKE ?")
-        params.append(f"%{imei}%")
-    if estoque_id:
-        condicoes.append("u.estoque_id = ?")
-        params.append(estoque_id)
-    if produto_id:
-        condicoes.append("u.produto_id = ?")
-        params.append(produto_id)
+    if termo:
+        padrao = f"%{termo.lower()}%"
+        condicoes.append(
+            "(lower(u.imei) LIKE ? OR lower(COALESCE(e.modelo, '')) LIKE ? "
+            "OR lower(COALESCE(e.descricao, '')) LIKE ? OR lower(COALESCE(p.modelo, '')) LIKE ? "
+            "OR lower(COALESCE(p.descricao, '')) LIKE ? OR lower(COALESCE(p.marca, '')) LIKE ? "
+            "OR lower(COALESCE(u.localizacao, '')) LIKE ?)"
+        )
+        params.extend([padrao] * 7)
+    if origem == "estoque":
+        condicoes.append("u.estoque_id IS NOT NULL")
+    elif origem == "produto":
+        condicoes.append("u.produto_id IS NOT NULL")
     if status:
         condicoes.append("u.status = ?")
         params.append(status)
+    if saude_nao_informado:
+        condicoes.append("(u.saude_bateria IS NULL OR u.saude_bateria = '')")
+    else:
+        if saude_min is not None:
+            condicoes.append("CAST(u.saude_bateria AS INTEGER) >= ?")
+            params.append(saude_min)
+        if saude_max is not None:
+            condicoes.append("CAST(u.saude_bateria AS INTEGER) <= ?")
+            params.append(saude_max)
+    if localizacao:
+        condicoes.append("lower(COALESCE(u.localizacao, '')) LIKE ?")
+        params.append(f"%{localizacao.lower()}%")
 
     where_sql = " AND ".join(condicoes) if condicoes else "1=1"
+    return where_sql, params
+
+
+def buscar_paginado(
+    cursor, termo="", estoque_id=None, produto_id=None, origem=None, status="",
+    saude_min=None, saude_max=None, saude_nao_informado=False, localizacao="",
+    sort="recente", limit=20, offset=0,
+):
+    where_sql, params = _montar_filtros_avancados(
+        termo, origem, status, saude_min, saude_max, saude_nao_informado, localizacao
+    )
+    condicoes_extra = []
+    if estoque_id:
+        condicoes_extra.append("u.estoque_id = ?")
+        params.append(estoque_id)
+    if produto_id:
+        condicoes_extra.append("u.produto_id = ?")
+        params.append(produto_id)
+    if condicoes_extra:
+        where_sql = f"{where_sql} AND {' AND '.join(condicoes_extra)}"
+
+    order_sql = _ORDENACOES.get(sort, _ORDENACOES["recente"])
     cursor.execute(
         f"SELECT {_COLUNAS_COM_ORIGEM} {_JOIN_ORIGEM} WHERE {where_sql} "
-        "ORDER BY u.id DESC LIMIT ? OFFSET ?",
+        f"ORDER BY {order_sql} LIMIT ? OFFSET ?",
         (*params, limit, offset),
     )
     return cursor.fetchall()
 
 
-def contar(cursor, imei, estoque_id, produto_id, status):
-    condicoes = []
-    params = []
-    if imei:
-        condicoes.append("imei LIKE ?")
-        params.append(f"%{imei}%")
+def contar(
+    cursor, termo="", estoque_id=None, produto_id=None, origem=None, status="",
+    saude_min=None, saude_max=None, saude_nao_informado=False, localizacao="",
+):
+    where_sql, params = _montar_filtros_avancados(
+        termo, origem, status, saude_min, saude_max, saude_nao_informado, localizacao
+    )
+    condicoes_extra = []
     if estoque_id:
-        condicoes.append("estoque_id = ?")
+        condicoes_extra.append("u.estoque_id = ?")
         params.append(estoque_id)
     if produto_id:
-        condicoes.append("produto_id = ?")
+        condicoes_extra.append("u.produto_id = ?")
         params.append(produto_id)
-    if status:
-        condicoes.append("status = ?")
-        params.append(status)
+    if condicoes_extra:
+        where_sql = f"{where_sql} AND {' AND '.join(condicoes_extra)}"
 
-    where_sql = " AND ".join(condicoes) if condicoes else "1=1"
-    cursor.execute(f"SELECT COUNT(*) FROM unidades_serializadas WHERE {where_sql}", tuple(params))
+    cursor.execute(f"SELECT COUNT(*) {_JOIN_ORIGEM} WHERE {where_sql}", tuple(params))
     return cursor.fetchone()[0] or 0
 
 

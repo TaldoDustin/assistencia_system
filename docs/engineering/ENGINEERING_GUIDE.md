@@ -134,7 +134,8 @@ irflow_<dominio>_repository.py
 **Adendo — README de domínio sem pasta própria (registrado em 2026-07-11, primeira aplicação real desta
 seção):** o item "README" das camadas obrigatórias acima pressupõe uma pasta de domínio (`domains/vendas/README.md`),
 que não existe neste layout flat-file. Interpretação aplicada em Clientes (`irflow_clientes_service.py`)
-e `estoque_unidades` (`irflow_estoque_unidades_service.py`), primeiros domínios a seguir esta convenção
+e `estoque_unidades` (`irflow_estoque_unidades_service.py`, renomeado para
+`irflow_unidades_serializadas_service.py` na migração ADR-007), primeiros domínios a seguir esta convenção
 de fato: o "README curto" vira um **bloco de docstring no topo do arquivo `_service.py`** — mesma
 informação (responsabilidade, tabelas usadas, dependências), sem arquivo separado. Usar este padrão para
 qualquer domínio novo enquanto o projeto não migrar para pasta por domínio.

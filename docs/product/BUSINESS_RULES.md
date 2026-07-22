@@ -135,20 +135,24 @@ estoque em uso não pode ser excluído).
 
 ---
 
-## Estoque_Unidades (rastreamento por IMEI)
+## Unidades_Serializadas (rastreamento por IMEI/serial)
+
+*Tabela evoluída de `estoque_unidades` na migração ADR-007 (2026-07-21) — mesmas regras abaixo,
+estendidas para cobrir origem em `estoque` OU `produtos`.*
 
 **BR-025 — ✅ Implementado**
-Uma unidade individual por IMEI só pode ser cadastrada para um item de estoque marcado com
-`requer_imei = 1` — cadastro em item não marcado é rejeitado.
-*Fonte: `irflow_estoque_unidades_service.py::criar_unidade`; `docs/product/features/IMEI.md`
-"Decisões estruturais".*
+Uma unidade individual por IMEI só pode ser cadastrada com origem em exatamente um de: um item de
+estoque marcado com `requer_imei = 1`, ou um produto marcado com `requer_rastreio_unidade = 1` —
+cadastro sem nenhuma origem, com ambas, ou em item/produto não marcado é rejeitado.
+*Fonte: `irflow_unidades_serializadas_service.py::criar_unidade`; `docs/product/features/IMEI.md`
+"Decisões estruturais"; ADR-007 (Regra de Ouro).*
 
 **BR-026 — ✅ Implementado**
 Transição de status de uma unidade só é permitida entre `disponivel`, `em_reparo` e `devolvido`
 (`disponivel ↔ em_reparo`, `em_reparo → devolvido`, `devolvido → disponivel` direto) — `reservado` e
 `vendido` existem no schema para o futuro módulo de Vendas, mas nenhuma transição desta sprint os
 produz ou aceita como destino.
-*Fonte: `irflow_estoque_unidades_service.py::TRANSICOES_VALIDAS`; `docs/product/features/IMEI.md`,
+*Fonte: `irflow_unidades_serializadas_service.py::TRANSICOES_VALIDAS`; `docs/product/features/IMEI.md`,
 decisão confirmada com o usuário em 2026-07-11 (devolvido → disponivel direto).*
 
 ---

@@ -107,33 +107,45 @@ dados feita inline em `criar_tabelas()` via `INSERT OR IGNORE`).
 | `modelo` | TEXT | *(ALTER)* — normalizado via `normalizar_modelo_iphone` |
 | `tipo` | TEXT | *(ALTER)* |
 | `qualidade` | TEXT | *(ALTER)* |
-| `requer_imei` | INTEGER NOT NULL DEFAULT 0 | *(ALTER, Sprint P0.1)* — flag manual (admin/técnico) indicando se este item exige rastreamento por unidade individual via `estoque_unidades`; peças de reparo continuam agregadas (0) |
+| `requer_imei` | INTEGER NOT NULL DEFAULT 0 | *(ALTER, Sprint P0.1)* — flag manual (admin/técnico) indicando se este item exige rastreamento por unidade individual via `unidades_serializadas`; peças de reparo continuam agregadas (0) |
 
 **Índices:**
 - `idx_estoque_sku` em `(sku)`
 - `idx_estoque_tripla` em `(modelo, tipo, qualidade)` — suporta busca de peça compatível por
   modelo/tipo/qualidade
 
-### `estoque_unidades`
+### `unidades_serializadas`
 
-Rastreamento individual por IMEI (Sprint P0.1 — `docs/product/features/IMEI.md`), extensão do domínio
-Estoque, não domínio isolado. Segue a convenção controller/service/repository de
-`docs/engineering/ENGINEERING_GUIDE.md` §3.1 (`irflow_estoque_unidades_*.py`).
+Rastreamento individual por IMEI/serial (Sprint P0.1 — `docs/product/features/IMEI.md`), evoluído de
+`estoque_unidades` na migração `docs/engineering/migrations/MIGRATION_unidades_serializadas.md`
+(ADR-007, 2026-07-21). Fonte única de verdade para qualquer unidade física da empresa, com origem em
+Estoque OU Produtos — nunca os dois (Regra de Ouro, ADR-007). Segue a convenção
+controller/service/repository de `docs/engineering/ENGINEERING_GUIDE.md` §3.1
+(`irflow_unidades_serializadas_*.py`).
+
+**Exceção à convenção de migração aditiva:** esta tabela foi recriada (`CREATE` → copiar dados →
+`DROP` → `RENAME`), não alterada via `ALTER TABLE ... ADD COLUMN` — porque relaxar `estoque_id` de
+`NOT NULL` para nullable não é possível via `ALTER TABLE` no SQLite. Ver o plano de migração linkado
+acima para a estratégia completa, rollback e checklist de integridade.
 
 | Coluna | Tipo | Observação |
 |--------|------|------------|
 | `id` | INTEGER PK AUTOINCREMENT | |
-| `estoque_id` | INTEGER NOT NULL | FK lógica para `estoque.id` |
+| `estoque_id` | INTEGER | FK lógica para `estoque.id`. Nullable — exatamente um de `estoque_id`/`produto_id` deve estar preenchido (invariante validada no service, não no banco) |
+| `produto_id` | INTEGER | FK lógica para `produtos.id` (ADR-007). Nullable, mesma invariante acima |
 | `lote_id` | INTEGER | FK lógica para `estoque_lotes.id`, opcional |
 | `imei` | TEXT UNIQUE | `NULL` permitido (SQLite não colide `NULL`s em `UNIQUE`) — formato não validado nesta sprint (`TODO` em `IMEI.md`) |
-| `status` | TEXT NOT NULL DEFAULT `'disponivel'` | Valores no schema: `disponivel \| reservado \| vendido \| em_reparo \| devolvido`. **Só `disponivel`/`em_reparo`/`devolvido` são alcançáveis por endpoint nesta sprint** — `reservado`/`vendido` existem para o futuro módulo de Vendas, nenhuma rota atual os produz ou aceita como destino (`irflow_estoque_unidades_service.py::TRANSICOES_VALIDAS`) |
+| `status` | TEXT NOT NULL DEFAULT `'disponivel'` | Valores no schema: `disponivel \| reservado \| vendido \| em_reparo \| devolvido`. **Só `disponivel`/`em_reparo`/`devolvido` são alcançáveis por endpoint nesta sprint** — `reservado`/`vendido` existem para o futuro módulo de Vendas, nenhuma rota atual os produz ou aceita como destino (`irflow_unidades_serializadas_service.py::TRANSICOES_VALIDAS`) |
 | `reservado_por` | INTEGER | Sem uso ainda — reservado para Vendas |
 | `reservado_ate` | TEXT | Sem uso ainda — reservado para Vendas |
 | `venda_id` | INTEGER | Sem uso ainda — reservado para Vendas |
+| `saude_bateria` | TEXT | Adicionado na migração ADR-007 — sem uso ainda |
+| `localizacao` | TEXT | Adicionado na migração ADR-007 — sem uso ainda |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` |
 | `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
 
-**Índices:** `idx_estoque_unidades_estoque_id`, `idx_estoque_unidades_status`, `idx_estoque_unidades_imei`.
+**Índices:** `idx_unidades_serializadas_estoque_id`, `idx_unidades_serializadas_produto_id`,
+`idx_unidades_serializadas_status`, `idx_unidades_serializadas_imei`.
 
 ### `produtos`
 
@@ -160,7 +172,7 @@ Segue a convenção controller/service/repository de `docs/engineering/ENGINEERI
 | `preco_custo` | REAL | `NULL` | Opcional — se ausente, `margem` calculada é `None` |
 | `preco_venda` | REAL NOT NULL | | Obrigatório, deve ser `> 0` |
 | `quantidade` | INTEGER NOT NULL | `0` | Agregado — usado enquanto o item não tem rastreio por unidade |
-| `requer_rastreio_unidade` | INTEGER NOT NULL | `0` | Mesmo padrão de `estoque.requer_imei` — sinaliza produtos que vão precisar de unidade/IMEI individual no Sprint Comercial 0.2 (tabela própria, ainda não desenhada) |
+| `requer_rastreio_unidade` | INTEGER NOT NULL | `0` | Mesmo padrão de `estoque.requer_imei` — consumido por `unidades_serializadas.produto_id` desde a migração ADR-007 |
 | `ativo` | INTEGER NOT NULL | `1` | Visibilidade no catálogo — **não** é o status de unidade em estoque (disponível/reservado/vendido é conceito por unidade física, Sprint Comercial 0.2, não por SKU) |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` | |
 | `atualizado_em` | TEXT NOT NULL | `datetime('now')` | |
@@ -170,11 +182,10 @@ Segue a convenção controller/service/repository de `docs/engineering/ENGINEERI
 
 **Índices:** `idx_produtos_categoria`, `idx_produtos_sku`, `idx_produtos_ativo`.
 
-**Sem relacionamento ainda** — tabela standalone nesta sprint. O Sprint Comercial 0.2 (rastreamento por
-unidade/IMEI de produtos) vai decidir a tabela filha (`produtos_unidades`, candidata, mesmo padrão de
-`estoque_unidades`) e, nesse momento, `docs/product/features/VENDAS.md` precisa ser revisado — hoje
-documenta `vendas.estoque_unidade_id` apontando para `estoque_unidades.id`, escrito antes deste catálogo
-existir.
+**Relacionamento:** `unidades_serializadas.produto_id` (nullable, FK lógica) desde a migração ADR-007 —
+rastreamento por unidade/IMEI de produtos reaproveita a mesma tabela de Estoque, não uma tabela filha
+própria. `docs/product/features/VENDAS.md` foi atualizado para apontar `vendas.estoque_unidade_id` para
+`unidades_serializadas.id`.
 
 ### `estoque_lotes`
 
@@ -429,8 +440,9 @@ estoque ──< shopping_list.produto_id
 clientes ──< os.cliente_id (Sprint P0.1 — nullable, sem backfill)
 usuarios ──< audit_log.usuario_id
 usuarios ──< password_reset_tokens.usuario_id
-estoque ──< estoque_unidades.estoque_id (Sprint P0.1)
-estoque_lotes ──< estoque_unidades.lote_id (opcional)
+estoque ──< unidades_serializadas.estoque_id (Sprint P0.1, opcional desde ADR-007)
+produtos ──< unidades_serializadas.produto_id (ADR-007, opcional)
+estoque_lotes ──< unidades_serializadas.lote_id (opcional)
 ```
 
 `login_attempts` não tem relacionamento com `usuarios` — `identificador` é o IP resolvido do cliente, não

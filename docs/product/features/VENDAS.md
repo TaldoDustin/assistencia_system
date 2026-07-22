@@ -136,22 +136,24 @@ Não decidido nesta conversa — não assumir resposta implícita para nenhum de
 ## Modelo de dados (proposto)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`
-(`estoque_unidades`) existirem antes de fazer sentido implementar este schema.
+(`unidades_serializadas`) existirem antes de fazer sentido implementar este schema.
 
-**Nota (2026-07-20, Sprint Comercial 0.1):** este schema foi escrito antes de existir um catálogo
-comercial (`produtos`, ver `docs/engineering/DATABASE.md`) — `estoque_unidades` era, até então, a única
-tabela candidata a representar "o que foi vendido". `estoque_unidades` continua correta para o domínio
-Estoque (peças de reparo com rastreio por IMEI), mas o campo `estoque_unidade_id` abaixo precisa ser
-revisitado no Sprint Comercial 0.2, quando o rastreamento por unidade/IMEI de `produtos` for desenhado
-(candidata: tabela própria `produtos_unidades`, mesmo padrão de `estoque_unidades`) — a venda de um
-iPhone do catálogo comercial não deveria apontar para a tabela de peças de reparo.
+**Nota (2026-07-20, Sprint Comercial 0.1) — resolvida em 2026-07-21 (ADR-007):** este schema foi
+escrito antes de existir um catálogo comercial (`produtos`, ver `docs/engineering/DATABASE.md`) —
+`estoque_unidades` era, até então, a única tabela candidata a representar "o que foi vendido", o que
+faria a venda de um iPhone do catálogo comercial apontar para a tabela de peças de reparo. Resolvido:
+`estoque_unidades` evoluiu para `unidades_serializadas` (ADR-007,
+`docs/engineering/migrations/MIGRATION_unidades_serializadas.md`) — fonte única de verdade para
+qualquer unidade física, com origem em Estoque OU Produtos (`produto_id`, nullable). O campo
+`estoque_unidade_id` abaixo deve apontar para `unidades_serializadas.id`, qualquer que seja a origem
+real da unidade vendida.
 
 ```sql
 CREATE TABLE vendas (
     id                          INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id                  INTEGER NOT NULL,   -- FK lógica para clientes.id (CLIENTES.md)
     vendedor_id                 INTEGER NOT NULL,   -- FK lógica para usuarios.id
-    estoque_unidade_id          INTEGER NOT NULL,   -- FK lógica para estoque_unidades.id (IMEI.md) — aparelho vendido
+    estoque_unidade_id          INTEGER NOT NULL,   -- FK lógica para unidades_serializadas.id (IMEI.md, ADR-007) — aparelho vendido
     troca_estoque_unidade_id    INTEGER,            -- unidade recebida em troca, se houver (nullable)
     valor_bruto                 REAL NOT NULL,
     desconto                    REAL NOT NULL DEFAULT 0,

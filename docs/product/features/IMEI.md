@@ -6,6 +6,12 @@ Product Owner — decisões de negócio abaixo marcadas `TODO`.
 **Épico:** Comercial/Operação — extensão do domínio Estoque existente (`DOMAIN_MODEL.md` seção 1.4),
 pré-requisito de `docs/product/features/VENDAS.md`.
 
+**Nota (2026-07-21):** a tabela `estoque_unidades` descrita abaixo (spec original, escrita antes de
+`produtos` existir) evoluiu para `unidades_serializadas` na migração ADR-007 — mesma estrutura, origem
+generalizada para cobrir também unidades do catálogo comercial (`produto_id`). Ver
+`docs/engineering/adr/ADR-007.md` e `docs/engineering/migrations/MIGRATION_unidades_serializadas.md`.
+Texto abaixo preservado como registro histórico do desenho original.
+
 ---
 
 ## Por que existe

@@ -166,7 +166,7 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 | Logs de tentativas de login falhas | ✅ | Tabela `login_attempts` (KI-001) grava toda tentativa (sucesso e falha) — não é logging estruturado em JSON, mas cobre a auditabilidade |
 | Logs sem exposição de dados sensíveis | N/A | Sem logs de aplicação estruturados hoje |
 | Logs consultáveis em produção | ❌ | Render tem logs básicos mas não estruturados |
-| Auditoria central reutilizável entre domínios | ✅ | `audit_log` (`irflow_audit.py::registrar_log_auditoria`) — tabela genérica (entidade/entidade_id/ação/antes/depois), consumida pela primeira vez pelos domínios Clientes e `estoque_unidades` (Sprint P0.1) |
+| Auditoria central reutilizável entre domínios | ✅ | `audit_log` (`irflow_audit.py::registrar_log_auditoria`) — tabela genérica (entidade/entidade_id/ação/antes/depois), consumida pela primeira vez pelos domínios Clientes e `unidades_serializadas` (Sprint P0.1; evoluído de `estoque_unidades` na migração ADR-007) |
 
 **Ação Sprint 3:** Implementar logging estruturado em JSON para operações críticas — auditoria em banco
 (`audit_log`) resolvida; logging estruturado em arquivo/stdout para observabilidade (Sentry etc.) segue

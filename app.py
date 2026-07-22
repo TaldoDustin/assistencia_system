@@ -594,28 +594,34 @@ def criar_tabelas():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes (nome)")
 
             cursor.execute("""
-            CREATE TABLE IF NOT EXISTS estoque_unidades (
+            CREATE TABLE IF NOT EXISTS unidades_serializadas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                estoque_id INTEGER NOT NULL,
+                estoque_id INTEGER,
+                produto_id INTEGER,
                 lote_id INTEGER,
                 imei TEXT UNIQUE,
                 status TEXT NOT NULL DEFAULT 'disponivel',
                 reservado_por INTEGER,
                 reservado_ate TEXT,
                 venda_id INTEGER,
+                saude_bateria TEXT,
+                localizacao TEXT,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now')),
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """)
 
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_estoque_id ON estoque_unidades (estoque_id)"
+                "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_estoque_id ON unidades_serializadas (estoque_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_status ON estoque_unidades (status)"
+                "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_produto_id ON unidades_serializadas (produto_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_estoque_unidades_imei ON estoque_unidades (imei)"
+                "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_status ON unidades_serializadas (status)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_imei ON unidades_serializadas (imei)"
             )
 
             cursor.execute("""
@@ -1468,7 +1474,7 @@ def verificar_autenticacao():
         session.clear()
 
     # Bypass por path (não só pelo blueprint "api.") — cobre também blueprints
-    # de domínio novos sob /api/* (ex.: clientes_api, estoque_unidades_api),
+    # de domínio novos sob /api/* (ex.: clientes_api, unidades_serializadas_api),
     # que autenticam via usuario_logado() dentro de si mesmos, igual à API
     # principal. Checar o path em vez do nome do blueprint evita ter que
     # atualizar esta lista a cada novo domínio adicionado sob /api/*.
@@ -1602,13 +1608,14 @@ from irflow_clientes_controller import create_clientes_blueprint  # noqa: E402
 app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 
 # ============================================================================
-# REGISTRO DO BLUEPRINT DE ESTOQUE_UNIDADES (Sprint P0.1 — rastreamento
-# individual por IMEI, extensão do domínio Estoque)
+# REGISTRO DO BLUEPRINT DE UNIDADES_SERIALIZADAS (Sprint P0.1, evoluído na
+# migração ADR-007 — rastreamento individual por IMEI/serial, fonte única de
+# verdade para unidades originadas de Estoque OU de Produtos)
 # ============================================================================
 
-from irflow_estoque_unidades_controller import create_estoque_unidades_blueprint  # noqa: E402
+from irflow_unidades_serializadas_controller import create_unidades_serializadas_blueprint  # noqa: E402
 
-app.register_blueprint(create_estoque_unidades_blueprint({"conectar": conectar}))
+app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # REGISTRO DO BLUEPRINT DE PRODUTOS (Sprint Comercial 0.1 — catálogo

@@ -125,6 +125,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Corrigido (2026-07-22 — Auditoria de branches)
 - `app.py`: `PUBLIC_BASE_URL` agora normaliza o protocolo (adiciona `https://` quando ausente) e usa `VERCEL_URL` como fallback quando `IR_FLOW_PUBLIC_BASE_URL` não está definida. Fix já existia há mais de um mês na branch `ajuste-render-webhook`, nunca mergeada — trazido via cherry-pick após revisão de uso (só consumido em um outro ponto do arquivo, sem outros pontos do código dependendo do formato antigo). Sem mudança de comportamento quando `IR_FLOW_PUBLIC_BASE_URL` já está definida corretamente; 476 testes passando
 
+### Adicionado (2026-07-22 — Preparação do Épico Vendas)
+- `docs/product/features/VENDAS_GAP_ANALYSIS.md` — análise de consistência entre `VENDAS.md` (rascunho de 09/jul) e o estado real do código, a pedido do usuário (CTO), antes de abrir o `discuss-phase` do Épico Vendas. Não altera `VENDAS.md` nem ADR-007 (ambos continuam fonte de verdade). Conclusão: fluxo de negócio, casos de erro, critérios de aceite e modelo de dados continuam 100% válidos (o próprio `VENDAS.md` já havia se autocorrigido para o ADR-007 em 20/21-jul). Dois gaps técnicos identificados para entrar no discuss-phase: (1) `VENDAS.md` não cita `irflow_audit.py` como dependência, apesar de `unidades_serializadas` já reutilizar esse padrão de auditoria; (2) `TRANSICOES_VALIDAS` em `irflow_unidades_serializadas_service.py` ainda não implementa `disponivel→reservado`/`reservado→vendido` — as colunas `venda_id`/`reservado_por`/`reservado_ate` já existem no schema (ADR-007), só falta o wiring. Nenhuma decisão de Product Owner pendente foi respondida (mesmas 5 de 09/jul, mais a definição do cliente piloto levantada nesta conversa)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

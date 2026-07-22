@@ -6,7 +6,7 @@
 **Ambiente de produção:** Fly.io — `https://assistencia-system.fly.dev`
 
 **Última revisão:** 2026-07-21  
-**Próxima revisão:** plano de migração `unidades_serializadas` (ADR-007), pré-requisito da Sprint Comercial 1.3
+**Próxima revisão:** deploy em produção da migração `unidades_serializadas` (ADR-007) — implementação já concluída contra bancos de teste, ver PR da branch `feat/unidades-serializadas`; pré-requisito da Sprint Comercial 1.3
 
 ---
 
@@ -171,20 +171,24 @@ endpoint legado por correspondência de nome, mesma limitação de antes, agora 
 existe. Validado manualmente ponta a ponta (servidor real + banco isolado + navegador dirigido via
 Playwright, dados de OS/garantia semeados via API para exercitar o perfil).
 
-**Sprint Comercial 1.3 — Tela IMEI (PAUSADA em 2026-07-21, ver ADR-007):** ao investigar a
-implementação, ficou claro que `estoque_unidades` hoje só cobre peças de `estoque` (assistência) — não
-o cenário real que a tela deveria resolver (buscar um aparelho de revenda do catálogo `produtos` por
-IMEI). Decisão de arquitetura registrada e **aceita pelo usuário (CTO)** em `ADR-007.md`: `estoque_unidades`
-**evoluirá** para o domínio `unidades_serializadas` (dados preservados, não descartados), fonte única de
-verdade para qualquer unidade física rastreada por IMEI/serial. Dois princípios de arquitetura fixados
-junto da decisão: **Regra de Ouro** (um IMEI/serial = uma unidade, nunca duplicada entre domínios — cada
-domínio consome e transiciona o mesmo registro) e **Princípio de Propriedade** (cada domínio só pode
-transicionar os estados que lhe pertencem — ex.: Vendas é dona de `Disponível → Reservado → Vendido`,
-Assistência de `Em Garantia → Em Reparo → Disponível`; Garantias só consulta/registra eventos). Rename
-feito na mesma migração que generaliza a origem (`produto_id` nullable), evitando uma segunda migração só
-para isso. Migração ainda não implementada — próximo passo é o plano de migração (schema, cópia de
-dados, testes), sujeito a aprovação antes de tocar o banco. Sprint Comercial 1.3 retoma somente após a
-migração validada.
+**Sprint Comercial 1.3 — Tela IMEI (bloqueada em 2026-07-21 por decisão de arquitetura, ver ADR-007;
+migração implementada em 2026-07-21 na branch `feat/unidades-serializadas`):** ao investigar a
+implementação, ficou claro que `estoque_unidades` só cobria peças de `estoque` (assistência) — não o
+cenário real que a tela deveria resolver (buscar um aparelho de revenda do catálogo `produtos` por
+IMEI). Decisão de arquitetura registrada e **aceita pelo usuário (CTO)** em `ADR-007.md`:
+`estoque_unidades` **evoluiu** para o domínio `unidades_serializadas` (dados preservados, não
+descartados), fonte única de verdade para qualquer unidade física rastreada por IMEI/serial. Dois
+princípios de arquitetura fixados junto da decisão: **Regra de Ouro** (um IMEI/serial = uma unidade,
+nunca duplicada entre domínios — cada domínio consome e transiciona o mesmo registro) e **Princípio da
+Responsabilidade de Transição** (cada domínio só pode transicionar os estados que lhe pertencem — ex.:
+Vendas é dona de `Disponível → Reservado → Vendido`, Assistência de `Em Garantia → Em Reparo →
+Disponível`; Garantias só consulta/registra eventos). Rename feito na mesma migração que generaliza a
+origem (`produto_id` nullable, `estoque_id` agora opcional), sem alias de compatibilidade (decisão
+deliberada do CTO — zero consumidores hoje). Implementação (schema, `irflow_unidades_serializadas_*.py`
+renomeados, `scripts/migrate_unidades_serializadas.py`, testes) concluída e validada **apenas contra
+bancos de teste/locais** — a migração do `database.db` de produção é um passo de deploy separado,
+seguindo o checklist do plano técnico (`docs/engineering/migrations/MIGRATION_unidades_serializadas.md`),
+ainda pendente. Sprint Comercial 1.3 retoma somente após esse deploy.
 
 ### Escopo previsto
 
@@ -297,14 +301,14 @@ migração validada.
 
 ## Cobertura de Testes
 
-| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-20, pós Sprint Comercial 0.1) |
+| Camada            | Tipo                     | Ferramenta   | Cobertura medida em `main` (`pytest-cov`, 2026-07-20, pós Sprint Comercial 0.1) — branch `feat/unidades-serializadas` (ainda não mergeada) entre parênteses |
 |-------------------|--------------------------|--------------|--------------------|
 | Backend — API     | Smoke tests ad-hoc       | Python scripts| ~25% das rotas (não medido via `pytest-cov`) |
-| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, estoque_unidades, produtos — Sprint 2.2 a Sprint Comercial 0.1) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_estoque_unidades_service.py` 97% · `irflow_estoque_unidades_controller.py` 95% · `irflow_produtos_service.py` 99% · `irflow_produtos_controller.py` 91% · `irflow_produtos_repository.py` 85% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% |
+| Backend — Módulos | pytest (auth, sessão, usuários, permissões, segurança, estoque, OS, parsing/validação, preços, shopping list, rate limit, sessão/inatividade, auditoria, reset de senha, clientes, unidades_serializadas, produtos — Sprint 2.2 a Sprint Comercial 0.1, migração ADR-007) | pytest | `irflow_validation.py` 100% · `irflow_clientes_repository.py` 100% · `irflow_clientes_service.py` 97% · `irflow_clientes_controller.py` 97% · `irflow_produtos_service.py` 99% · `irflow_produtos_controller.py` 91% · `irflow_produtos_repository.py` 85% · `irflow_core.py` 86% · `irflow_price_tables.py` 83% · `app.py` 55% (58% na branch) · `irflow_os.py` 64% · `irflow_blueprints_api.py` 59% (60% na branch) — `irflow_estoque_unidades_service.py` 97%/`irflow_estoque_unidades_controller.py` 95% em `main`, renomeados para `irflow_unidades_serializadas_service.py` 99%/`_controller.py` 95%/`_repository.py` 86% na branch |
 | Frontend — Pages  | Sem testes unitários     | —            | 0%                 |
 | Frontend — E2E    | Fluxos principais        | Playwright   | ~20% dos fluxos    |
 | Integração        | Script manual            | Python       | ~10%               |
-| **Global (repo, `main`)** |                  |              | **50%** (`pytest --cov`, 434 testes, pós Sprint Comercial 0.1 — 2026-07-20) |
+| **Global (repo, `main`)** |                  |              | **50%** (`pytest --cov`, 434 testes, pós Sprint Comercial 0.1 — 2026-07-20); **50,3%** (447 testes) na branch `feat/unidades-serializadas`, ainda não mergeada |
 
 > Meta Sprint 2: >= 40% de cobertura nas rotas críticas do backend. **Atingida** em 2026-07-11 com `test_pricing.py` e `test_shopping.py` (Sprint 2.7) — cobertura global subiu de 36% para 43%, e segue subindo com Sprint 3/P0.1 (46% agora). Gate de CI bloqueante desde a Sprint 2.7 (`fail_under = 40`). `test_os.py` (nome originalmente previsto) foi substituído por 3 módulos mais granulares na Sprint 2.4 (`test_os_creation_query.py`, `test_os_update_status.py`, `test_os_deletion_security.py`).
 

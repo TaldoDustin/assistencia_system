@@ -69,8 +69,8 @@ separado hoje está registrado como está — ver seção 3.
 | Frontend | Páginas de estoque (dentro do fluxo principal) |
 | Testes | `tests/test_stock_creation_query.py`, `tests/test_stock_movement.py`, `tests/test_stock_os_integration.py`, `tests/test_stock_security.py` (69 casos, Sprint 2.5) |
 | Depende de | Nenhum outro domínio |
-| Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios, `estoque_unidades` (seção 1.13) |
-| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica. ~~**Gap de marca:** rastreamento individual por IMEI~~ — resolvido na Sprint P0.1 via `estoque_unidades` (seção 1.13), extensão do domínio, não substituição — `estoque.quantidade` continua a fonte agregada para itens sem `requer_imei` |
+| Dependido por | OS (consumo de peças), Compras/Shopping List (reposição sugerida), Relatórios, `unidades_serializadas` (seção 1.13) |
+| Observação | Este é o domínio mais próximo de já ter uma "camada de serviço": a lógica de movimentação em `irflow_os.py` é reutilizável e já tem 69 testes cobrindo-a (Sprint 2.5). É o candidato natural a virar `irflow_estoque_service.py` formal quando um novo domínio (ex.: Vendas) precisar consumir a mesma lógica. ~~**Gap de marca:** rastreamento individual por IMEI~~ — resolvido na Sprint P0.1 via `unidades_serializadas` (seção 1.13), extensão do domínio, não substituição — `estoque.quantidade` continua a fonte agregada para itens sem `requer_imei` |
 
 ### 1.5 Compras / Lista de Compras (Shopping List)
 
@@ -170,19 +170,19 @@ separado hoje está registrado como está — ver seção 3.
 | Dependido por | OS (`os.cliente_id`, opcional, sem uso ainda), futuramente Vendas (`docs/product/features/VENDAS.md`) |
 | Observação | Deduplicação (por telefone, CPF, ou ambos) e o que fazer com clientes duplicados já existentes seguem `TODO` — decisão de negócio pendente do Product Owner, por isso não há `UNIQUE` em `telefone`/`cpf_cnpj`/`email` no schema |
 
-### 1.13 Estoque_Unidades (rastreamento por IMEI)
+### 1.13 Unidades_Serializadas (rastreamento por IMEI/serial)
 
 | Aspecto | Hoje |
 |---|---|
-| Responsabilidade | Unidade individual de um item de estoque rastreada por IMEI — extensão do domínio Estoque (seção 1.4), não domínio isolado (`docs/product/features/IMEI.md`) |
-| Tabela(s) | `estoque_unidades`; lê (não escreve) `estoque.requer_imei` |
-| Lógica | `irflow_estoque_unidades_service.py` — segunda aplicação da convenção `controller → service → repository` (depois de Clientes, seção 1.12) |
-| HTTP | `irflow_estoque_unidades_controller.py` (`estoque_unidades_api`, prefixo `/api/estoque-unidades`) |
+| Responsabilidade | Unidade física individual rastreada por IMEI/serial — fonte única de verdade, com origem em Estoque (seção 1.4) OU Produtos (seção 1.14), nunca os dois (Regra de Ouro, `ADR-007`). Evoluído de `estoque_unidades` (Sprint P0.1) na migração `docs/engineering/migrations/MIGRATION_unidades_serializadas.md` |
+| Tabela(s) | `unidades_serializadas`; lê (não escreve) `estoque.requer_imei` e `produtos.requer_rastreio_unidade` |
+| Lógica | `irflow_unidades_serializadas_service.py` — segunda aplicação da convenção `controller → service → repository` (depois de Clientes, seção 1.12) |
+| HTTP | `irflow_unidades_serializadas_controller.py` (`unidades_serializadas_api`, prefixo `/api/unidades-serializadas`) |
 | Frontend | Nenhum ainda — fundação de backend apenas |
-| Testes | `tests/test_estoque_unidades.py` (20 casos) |
-| Depende de | Estoque (leitura de `requer_imei`), `irflow_audit.py` (auditoria de create/status_change) |
+| Testes | `tests/test_unidades_serializadas.py` (~27 casos), `tests/test_migration_unidades_serializadas.py` (migração) |
+| Depende de | Estoque (leitura de `requer_imei`), Produtos (leitura de `requer_rastreio_unidade`), `irflow_audit.py` (auditoria de create/status_change) |
 | Dependido por | Futuramente Vendas (reserva de IMEI, `docs/product/features/VENDAS.md` BR-017) |
-| Observação | Schema já modela `reservado`/`vendido` (para quando Vendas existir), mas nenhum endpoint desta sprint produz ou aceita esses estados — só `disponivel ↔ em_reparo` e `em_reparo/devolvido → disponivel` são alcançáveis (`TRANSICOES_VALIDAS` no service). Formato de IMEI não validado ainda (`TODO` em `IMEI.md`) |
+| Observação | Schema já modela `reservado`/`vendido` (para quando Vendas existir), mas nenhum endpoint desta sprint produz ou aceita esses estados — só `disponivel ↔ em_reparo` e `em_reparo/devolvido → disponivel` são alcançáveis (`TRANSICOES_VALIDAS` no service). Formato de IMEI não validado ainda (`TODO` em `IMEI.md`). Princípio da Responsabilidade de Transição (ADR-007) — cada domínio futuro (Vendas, Garantias) só transiciona os estados que lhe pertencem |
 
 ### 1.14 Produtos (catálogo comercial)
 
@@ -195,8 +195,8 @@ separado hoje está registrado como está — ver seção 3.
 | Frontend | Nenhum ainda — fundação de backend apenas (Sprint Comercial 0.1) |
 | Testes | `tests/test_produtos.py` (27 casos) |
 | Depende de | `irflow_reference_data.py` (listas fechadas), `irflow_audit.py` (auditoria de create/update/delete) |
-| Dependido por | Futuramente Vendas — mas `docs/product/features/VENDAS.md` ainda referencia `estoque_unidades`, não `produtos`; precisa ser revisado no Sprint Comercial 0.2 |
-| Observação | `requer_rastreio_unidade` já existe no schema (mesmo padrão de `estoque.requer_imei`) para não exigir outro `ALTER TABLE` quando o rastreamento por unidade/IMEI de produtos for desenhado (Sprint Comercial 0.2, tabela filha ainda não decidida) |
+| Dependido por | `unidades_serializadas` (seção 1.13, origem `produto_id`) desde a migração ADR-007; futuramente Vendas |
+| Observação | `requer_rastreio_unidade` (schema desde a Sprint Comercial 0.1) passou a ser consumido pela primeira vez na migração `unidades_serializadas` (ADR-007) — a ambiguidade sinalizada em `VENDAS.md` sobre onde a unidade vendida vive está resolvida |
 
 ---
 
@@ -218,8 +218,8 @@ do domínio dono) — mesmo que o domínio inicialmente viva no mesmo diretório
 **Clientes (seção 1.12) é a primeira aplicação real dessa convenção** (Sprint P0.1, 2026-07-11) — sem
 pasta de domínio própria (`irflow_clientes_*.py` soltos na raiz, mesma convenção dos módulos existentes),
 o requisito de README curto virou um bloco de docstring no topo de `irflow_clientes_service.py` (adendo
-registrado em `ENGINEERING_GUIDE.md` §3.1). `estoque_unidades` (rastreamento por IMEI) segue o mesmo
-padrão logo em seguida.
+registrado em `ENGINEERING_GUIDE.md` §3.1). `unidades_serializadas` (rastreamento por IMEI/serial)
+segue o mesmo padrão logo em seguida.
 
 Este mapa deve ser atualizado a cada novo domínio adicionado ou reestruturado — é o inventário vivo,
 não um documento estático.

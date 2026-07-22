@@ -92,6 +92,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/product/features/VENDAS.md` — adicionadas as seções "Modelo de dados", "Wireframes conceituais" e "Dependências" (faltantes desde a criação em 2026-07-09); nenhuma decisão já tomada foi alterada
 - `docs/product/PRODUCT_BACKLOG.md` — Clientes e IMEI Individual atualizados de "Não iniciado" para "Especificação", apontando para `CLIENTES.md`/`IMEI.md`
 
+### Adicionado (2026-07-21 — migração ADR-007)
+- `docs/engineering/adr/ADR-007.md` — decisão de arquitetura (Aceita): consolidação de rastreamento por IMEI entre Estoque e Produtos. `estoque_unidades` evolui para `unidades_serializadas`, fonte única de verdade para qualquer unidade física da empresa, com origem em Estoque OU Produtos (nunca os dois — Regra de Ouro). Formaliza também o Princípio da Responsabilidade de Transição (cada domínio futuro só transiciona os estados que lhe pertencem)
+- `docs/engineering/migrations/MIGRATION_unidades_serializadas.md` — plano técnico de execução da migração (objetivo, impacto arquitetural, estratégia SQLite de recriação de tabela, rollback, checklist de integridade, testes obrigatórios, critérios de aceite, checklist de deploy, riscos, fora de escopo), aprovado pelo usuário (CTO)
+- `scripts/migrate_unidades_serializadas.py` — script idempotente de migração (recria a tabela dentro de uma única transação, valida contagem antes de remover a tabela antiga, corrige `sqlite_sequence`); testado contra bancos SQLite descartáveis, nunca executado contra `database.db` real nesta sessão
+- `tests/test_migration_unidades_serializadas.py` — suíte dedicada à migração: preservação de dados linha a linha, remoção da tabela antiga, recriação de índices, `sqlite_sequence` sem colisão de PK, idempotência (rodar duas vezes é no-op seguro)
+
+### Modificado (2026-07-21 — migração ADR-007)
+- `estoque_unidades` → `unidades_serializadas`: schema em `app.py::criar_tabelas()` (novas colunas `produto_id`, `saude_bateria`, `localizacao`; `estoque_id` relaxado para nullable); `irflow_estoque_unidades_{repository,service,controller}.py` renomeados para `irflow_unidades_serializadas_{repository,service,controller}.py`; rota `/api/estoque-unidades` → `/api/unidades-serializadas`; `tests/test_estoque_unidades.py` → `tests/test_unidades_serializadas.py` (~27 casos, incluindo os novos cenários de origem por `produto_id`). Sem alias de compatibilidade — decisão deliberada do CTO (zero consumidores hoje). Migração implementada e testada apenas contra bancos de teste/locais nesta sessão — a migração do `database.db` de produção é um passo de deploy separado, ainda pendente, seguindo o checklist do plano técnico
+- `docs/engineering/DATABASE.md`, `DOMAIN_MODEL.md`, `ENGINEERING_GUIDE.md`, `SECURITY.md` e `docs/product/BUSINESS_RULES.md` (BR-025/BR-026), `docs/product/features/IMEI.md`/`VENDAS.md` (nota pendente da Sprint Comercial 0.1 resolvida) e `docs/product/PRODUCT_BACKLOG.md` — atualizados para refletir o novo nome de tabela/arquivos/rota
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

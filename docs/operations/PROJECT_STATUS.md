@@ -197,6 +197,16 @@ imediatamente antes do próximo deploy, não antes de retomar a Sprint Comercial
 Migração do `database.db` real de produção ainda pendente — passo de deploy separado, checklist em
 `MIGRATION_unidades_serializadas.md`.
 
+**Sprint Comercial 1.3.1 — Tela de Listagem (CONCLUÍDA e mergeada em `main` em 2026-07-22):**
+`frontend/src/pages/UnidadesSerializadas.jsx` — busca única por IMEI/modelo/produto, cards de resumo
+(Unidades/Disponíveis/Em Reparo), badges de origem (Estoque/Produto) e status. Backend enriquecido com
+`LEFT JOIN` em `estoque`/`produtos` só para exibição (label de origem, categoria/marca quando aplicável)
+— nenhuma mudança de filtro/regra de negócio. 449 testes no total (29 em `test_unidades_serializadas.py`),
+`ruff check .` limpo. Revisado e mergeado por Claude nesta sessão (trabalho de
+implementação de sessão anterior) — validado manualmente rodando o app com unidades seedadas via API a
+partir de `estoque` e de `produtos`, confirmando busca cruzada e badges de origem corretas para os
+dois casos.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

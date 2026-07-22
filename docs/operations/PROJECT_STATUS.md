@@ -240,6 +240,20 @@ de negócio nova); filtros de bateria/localização construídos mesmo sem dado 
 KI-020), decisão deliberada para não gerar retrabalho quando C1.3.4 escrever esses campos. 467 testes
 (46 no domínio), `ruff check .` limpo, validado manualmente com dados de origem mista.
 
+**Sprint Comercial 1.3.4 — Edição da Unidade Serializada (CONCLUÍDA em 2026-07-22, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.3.4.md`):** `PATCH /api/unidades-serializadas/<id>`
+(localização, saúde da bateria — únicos campos de manutenção sem endpoint de escrita até então).
+Pedido explícito do usuário (CTO) tratado como módulo de manutenção, não edição isolada — campos
+derivados/imutáveis (origem, IMEI, status, campos de Vendas) bloqueados explicitamente com 400 se
+enviados; status continua no endpoint próprio já existente (`/status`), com sua máquina de estados.
+`DetalheUnidade` evoluído para um único componente de visualização+edição, por pedido explícito do
+usuário de não duplicar estrutura entre um modal de detalhe e um de edição separados. Dois pontos
+resolvidos antes de codar: "Observações" não existe no schema (fora de escopo, a própria instrução do
+usuário de não alterar schema já resolve); IMEI consultado explicitamente e decidido como imutável
+após o cadastro (identificador primário usado em busca/auditoria/futura garantia). 476 testes (55 no
+domínio), `ruff check .` limpo, validado manualmente editando bateria/localização/status de uma
+unidade real.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

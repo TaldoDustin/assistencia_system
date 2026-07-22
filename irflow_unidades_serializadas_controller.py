@@ -120,4 +120,26 @@ def create_unidades_serializadas_blueprint(deps: dict):
             return err(erro, code)
         return ok(id=unidade_id, status=novo_status)
 
+    @unidades_serializadas_api.route("/<int:unidade_id>", methods=["PATCH"])
+    def atualizar_unidade(unidade_id):
+        if not usuario_logado() or not perfil_pode_escrever():
+            return err("Acesso negado.", 403)
+
+        body = safe_json(request)
+        campos_bloqueados_enviados = service.CAMPOS_BLOQUEADOS & set(body.keys())
+        if campos_bloqueados_enviados:
+            return err(
+                f"Campo(s) não editável(is) por esta rota: {', '.join(sorted(campos_bloqueados_enviados))}. "
+                "Origem é fixa após o cadastro; status usa PATCH /<id>/status."
+            )
+
+        sucesso, erro = service.atualizar_campos(
+            conectar, session.get("usuario_id"), unidade_id,
+            body.get("localizacao"), body.get("saude_bateria"),
+        )
+        if not sucesso:
+            code = 404 if erro == "Unidade não encontrada." else 400
+            return err(erro, code)
+        return ok(id=unidade_id)
+
     return unidades_serializadas_api

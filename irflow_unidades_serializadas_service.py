@@ -58,6 +58,25 @@ def _unidade_para_dict(row):
     }
 
 
+def _origem_label(estoque_modelo, estoque_descricao, produto_modelo, produto_descricao):
+    """Label de exibição da origem — modelo com fallback para descrição, por domínio."""
+    return (estoque_modelo or estoque_descricao) or (produto_modelo or produto_descricao) or ""
+
+
+def _unidade_com_origem_para_dict(row):
+    """Mesma forma de `_unidade_para_dict`, com campos de origem (join) para listagem/exibição."""
+    if not row:
+        return None
+    base = _unidade_para_dict(row)
+    (_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao,
+     _produto_categoria, _produto_marca) = row[13:19]
+    base["origem_tipo"] = "estoque" if base["estoque_id"] else ("produto" if base["produto_id"] else None)
+    base["origem_label"] = _origem_label(_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao)
+    base["produto_categoria"] = _produto_categoria
+    base["produto_marca"] = _produto_marca
+    return base
+
+
 def listar_unidades(
     conectar, imei="", estoque_id=None, produto_id=None, status="", page=None, per_page=None
 ):
@@ -74,7 +93,7 @@ def listar_unidades(
         conn.close()
 
     return {
-        "items": [_unidade_para_dict(r) for r in rows],
+        "items": [_unidade_com_origem_para_dict(r) for r in rows],
         "total": total,
         "page": page,
         "per_page": per_page,

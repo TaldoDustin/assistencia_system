@@ -6,38 +6,41 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-23  
-**Próxima revisão:** Decisão do usuário (CTO) sobre os 13 pontos de risco restantes de `INC-001` — ver abaixo. Prioridade máxima, à frente de KIs e do Épico Vendas
+**Próxima revisão:** Decisão do usuário (CTO) sobre o próximo passo de `INC-001` (corrigir as 4 rotas de checklist já confirmadas / rodar instrumentação em ambiente real / escalar mais o teste local) — ver abaixo. Prioridade máxima, à frente de KIs e do Épico Vendas
 
 ---
 
-## 🟠 INC-001 — `database is locked` (P0, `/api/auth/login` corrigido, 13 pontos em aberto)
+## 🟠 INC-001 — `database is locked` (P0, `/api/auth/login` corrigido, causa raiz não confirmada em runtime)
 
 **Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo.**
 
 Reportado pelo usuário (CTO) em 2026-07-23 ao editar/criar OS e cadastrar/alterar estoque, de forma
 intermitente. Investigação encontrou: WAL e timeout já configurados corretamente (descartados como
 causa); as 4 rotas citadas como sintoma já têm `try/except/finally` corretos (não são a origem do
-vazamento, só a vítima do lock, se a hipótese estiver certa). Hipótese principal (**ainda não comprovada
-em runtime** — correção de registro feita pelo usuário em 2026-07-23, ver documento completo): 14 pontos
-de código ativo fazem escrita no banco sem proteção contra exceção — se uma exceção ocorre entre abrir a
-conexão e fechá-la, a conexão vaza com a transação de escrita ainda aberta, e em WAL isso bloquearia
-**todo** escritor seguinte até o processo coletar aquele objeto via GC. Hipótese específica de conexão
-aninhada dentro das 4 rotas de OS/Estoque (auditoria/movimentação abrindo `conectar()` de novo) foi
-investigada e **descartada** por leitura de código — todas passam o mesmo cursor pela cadeia inteira de
-chamadas.
+vazamento, só a vítima do lock, se a hipótese estiver certa). Hipótese específica de conexão aninhada
+dentro das 4 rotas de OS/Estoque (auditoria/movimentação abrindo `conectar()` de novo) foi investigada e
+**descartada** por leitura de código.
 
-**Corrigido:** `POST /api/auth/login` (maior frequência de chamada de todo o sistema, já é escrita) —
-hotfix isolado em `hotfix/conexao-login-database-locked`, por decisão explícita do usuário, mantido
-independente do resultado da investigação por ser uma melhoria objetiva. Provado por teste que injeta
-falha real no ponto exato da causa hipotetizada (`tests/test_inc001_login_connection_leak.py`),
-confirmado falhando contra o código anterior e passando contra a correção. 480 testes, `ruff check .`
+Após releitura completa (não só grep) das rotas candidatas: as 4 rotas de `/api/shopping-list*`
+reclassificadas de "sem proteção" para **risco estrutural, não vazamento confirmado** (fecham a conexão
+em todo caminho, via padrão não idiomático — `except` amplo + `close()` manual). As 4 rotas de checklist
+(`GET/POST .../checklist`, `GET/POST /api/checklist/<token>` — a última pública, sem login) seguem como
+**risco confirmado por leitura de código** — nenhuma tem qualquer `try/except`.
+
+**Corrigido:** `POST /api/auth/login` — hotfix isolado em `hotfix/conexao-login-database-locked`, mantido
+independente do resultado da investigação. Provado por teste automatizado. 480 testes, `ruff check .`
 limpo, zero regressão.
 
-**Ainda em aberto — prioridade número 1 do projeto, à frente de qualquer KI e do Épico Vendas, por
-decisão explícita do usuário (CTO):** decidido instrumentar (não corrigir os 13 pontos restantes ainda)
-— criação/fechamento de conexões rastreadas temporariamente para reproduzir o erro e identificar
-exatamente qual rota/fluxo segura o lock, antes de padronizar as demais rotas. Plano técnico em
-apresentação para aprovação (altera `app.py`).
+**Instrumentação dinâmica construída e validada** (branch `chore/inc-001-instrumentacao-conexoes`, não
+mergeada — gated por env var, zero impacto desligada): detecta corretamente uma conexão vazada em teste
+isolado. Duas rodadas de reprodução por carga local (`gunicorn --workers 2`, igual produção; 40 threads/
+45s e depois 120 threads/60s concentradas num único registro, ~16 mil escritas no total) **não
+reproduziram** o erro nem o aviso de vazamento — resultado negativo, causa raiz segue não confirmada em
+runtime.
+
+**Aguardando decisão do usuário (CTO) — prioridade número 1 do projeto:** corrigir as 4 rotas de
+checklist agora (risco já confirmado por código, independente de reprodução) vs. rodar a instrumentação
+num ambiente real com uso ao longo do tempo vs. escalar ainda mais o teste local.
 
 ---
 

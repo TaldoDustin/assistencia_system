@@ -1,11 +1,13 @@
 # INC-001 — `database is locked`
 
-**Status:** Investigado — causa raiz hipotetizada com evidência concreta, correção **não iniciada**
+**Status:** Parcialmente corrigido — `POST /api/auth/login` corrigido via hotfix isolado; **13 pontos
+de risco identificados na investigação seguem em aberto**, correção sistemática não iniciada
 **Severidade:** P0 (crítico)
 **Impacto:** Alto — afeta operações de escrita centrais (criar/editar OS, cadastrar/alterar estoque)
 **Ambientes:** Produção, Desenvolvimento
 **Reportado por:** Usuário (CTO), 2026-07-23
 **Investigado por:** Claude (Principal Engineer), 2026-07-23
+**Hotfix por:** Claude (Principal Engineer), 2026-07-23 — branch `hotfix/conexao-login-database-locked`
 
 ---
 
@@ -34,6 +36,28 @@ serão só deste documento.
 | WAL desabilitado | ✅ Verificado empiricamente (`PRAGMA journal_mode` numa conexão nova via `conectar()`) | **Descartada** — WAL está ativo. `criar_tabelas()` habilita WAL uma vez (`habilitar_wal=True`) na primeira execução; por ser uma propriedade persistida no arquivo do banco (não por conexão), continua ativo em toda conexão seguinte mesmo sem reafirmar o pragma |
 | Timeout pequeno | ✅ Lido em `app.py` | **Descartada** — `SQLITE_TIMEOUT_SECONDS = 30` (configurável via `IR_FLOW_SQLITE_TIMEOUT_SECONDS`), aplicado via `timeout=` no `sqlite3.connect()` **e** via `PRAGMA busy_timeout` em toda conexão (`_configurar_conexao_sqlite`) |
 | As 4 rotas citadas como sintoma (criar/editar OS, criar/editar estoque) fazem tudo dentro da mesma transação sem proteção | ✅ Lidas as 4 rotas por completo (`criar_ordem`, `atualizar_ordem`, `criar_estoque`, `atualizar_estoque`, `irflow_blueprints_api.py`) | **Descartada como causa direta** — as 4 já têm `try/except Exception: conn.rollback() ... finally: conn.close()` corretos. Se travam, é porque **outra conexão, em outra rota, já segura o lock de escrita** quando elas tentam escrever — não porque elas mesmas vazam |
+
+---
+
+## Correção aplicada — `POST /api/auth/login`
+
+Decisão do usuário (CTO): corrigir apenas `/api/auth/login` agora, como hotfix isolado e mínimo —
+não os outros 13 pontos identificados na investigação (ver tabela abaixo), que seguem em aberto até
+decisão separada.
+
+`irflow_blueprints_api.py::auth_login()` — conexão envolvida em `try/except/finally`: qualquer exceção
+entre `conectar()` e o fim da função agora faz `rollback()` e `close()` antes de propagar/retornar erro,
+em vez de vazar a conexão com a transação de escrita aberta. Nenhum outro comportamento da rota foi
+alterado (mesmos códigos de resposta, mesma lógica de rate limit e registro de tentativa).
+
+Prova por teste automatizado (`tests/test_inc001_login_connection_leak.py`): injeta uma exceção real no
+ponto exato da causa raiz (`registrar_tentativa`, o INSERT em `login_attempts`) via substituição do
+conteúdo da cell da closure (`cell.cell_contents`, técnica necessária porque `registrar_tentativa` é
+vinculada via `deps` uma única vez na criação do blueprint — não é monkeypatch-ável como atributo de
+módulo). Confirmado que, contra o código **antes** da correção, o mesmo teste falha (a exceção propaga
+sem tratamento); contra o código **depois** da correção, passa — inclusive a asserção de que uma
+escrita imediatamente seguinte não trava (prova de que a conexão foi de fato fechada, não só que a
+resposta HTTP teve o código certo). Suíte completa (480 testes) e `ruff check .` sem regressão.
 
 ---
 
@@ -78,7 +102,7 @@ uma contenção passageira e normal em um lock persistente.
 
 | Rota | Arquivo:linha | Frequência de uso |
 |---|---|---|
-| `POST /api/auth/login` | `irflow_blueprints_api.py:417` | **Altíssima — todo login** |
+| ✅ `POST /api/auth/login` — **corrigido** (ver seção acima) | `irflow_blueprints_api.py:417` | **Altíssima — todo login** |
 | `POST /api/shopping-list` | `irflow_blueprints_api.py:826` | Alta (toda criação de item de compra) |
 | `PUT /api/shopping-list/<id>` | `irflow_blueprints_api.py:865` | Alta |
 | `PATCH /api/shopping-list/<id>/status` | `irflow_blueprints_api.py:924` | Alta |
@@ -117,20 +141,22 @@ clientes finais).
 
 ---
 
-## Próximo passo recomendado (não decidido, aguardando o usuário)
+## Próximo passo recomendado (aguardando decisão do usuário)
 
-Duas opções, não excludentes:
+`POST /api/auth/login` já foi corrigido (ver "Correção aplicada" acima). Restam em aberto:
 
-1. **Instrumentar antes de corrigir** — adicionar log temporário (contagem de conexões abertas/fechadas,
-   ou captura de exceção com stack trace quando uma conexão é objeto de GC ainda aberta via
-   `sqlite3.Connection.__del__`/`gc` callback) para confirmar em produção/desenvolvimento real qual
-   rota realmente vaza, antes de tocar em 14 pontos de código.
-2. **Corrigir pelo padrão de maior risco já identificado** — `POST /api/auth/login` é evidência forte o
-   suficiente (maior frequência + já é escrita + já está comprovadamente sem proteção) para justificar
-   correção isolada e imediata via hotfix, mesmo sem confirmação por instrumentação, seguida de
-   correção sistemática dos outros 13 pontos como chore separado.
+1. **Corrigir sistematicamente os outros 13 pontos identificados** — mesmo padrão (`try/except/finally`
+   ao redor de cada conexão de escrita), como chore separado, rota por rota, com o mesmo tipo de teste
+   de regressão usado no hotfix de `/api/auth/login`. Prioridade sugerida: as 4 rotas de
+   `/api/shopping-list*` (alta frequência, confirmadas em uso pelo `Compras.jsx`) e
+   `POST /api/checklist/<token>` (pública, exposta a clientes finais) antes das rotas legadas
+   possivelmente mortas.
+2. **Instrumentar antes de corrigir o restante** — adicionar log temporário (contagem de conexões
+   abertas/fechadas, ou captura de exceção com stack trace quando uma conexão é objeto de GC ainda
+   aberta via `sqlite3.Connection.__del__`/`gc` callback) para confirmar em produção/desenvolvimento
+   real qual rota realmente vaza, antes de tocar nos 13 pontos restantes.
 
-Nenhuma das duas foi executada nesta sessão — decisão do usuário antes de prosseguir.
+Nenhuma das duas foi executada ainda para os 13 pontos restantes — decisão do usuário antes de prosseguir.
 
 ---
 

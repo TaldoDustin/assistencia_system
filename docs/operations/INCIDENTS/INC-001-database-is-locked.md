@@ -61,10 +61,16 @@ resposta HTTP teve o código certo). Suíte completa (480 testes) e `ruff check 
 
 ---
 
-## Achado principal — causa raiz mais provável
+## Achado principal — hipótese com forte evidência estática, ainda **não comprovada em runtime**
 
-**Conexões que fazem escrita (INSERT/UPDATE/DELETE) sem `try/except/finally` vazam a conexão inteira,
-com a transação de escrita ainda aberta, se qualquer exceção ocorrer entre o `conectar()` e o
+> Revisão do usuário (CTO), 2026-07-23: a formulação original desta seção afirmava "causa raiz mais
+> provável" como se fosse conclusão. Correto é tratar como **hipótese principal, bem fundamentada, mas
+> ainda não comprovada** — falta a ligação direta e observada entre exceção → conexão presa aberta →
+> `database is locked`. Essa ligação só é confirmada com instrumentação em runtime (ver seção abaixo),
+> não por leitura de código. Este documento foi corrigido para refletir isso.
+
+**Hipótese: conexões que fazem escrita (INSERT/UPDATE/DELETE) sem `try/except/finally` vazam a conexão
+inteira, com a transação de escrita ainda aberta, se qualquer exceção ocorrer entre o `conectar()` e o
 `conn.close()`.**
 
 Em WAL, leitores não bloqueiam escritores nem vice-versa — mas **escritores bloqueiam escritores**.
@@ -126,6 +132,32 @@ clientes finais).
 
 ---
 
+## Hipótese investigada e descartada — conexão aninhada dentro de OS/Estoque
+
+Revisão do usuário (CTO), 2026-07-23: os sintomas relatados (criar/editar OS, cadastrar/alterar estoque)
+não batem com a rota corrigida no hotfix (`/api/auth/login`). Hipótese levantada: as próprias rotas de
+OS/Estoque abrem uma segunda conexão internamente (ex.: auditoria ou movimentação de estoque chamando
+`conectar()` de novo enquanto a primeira conexão ainda está com escrita pendente) — o que causaria
+`database is locked` sem depender de nenhuma exceção vazando nada.
+
+**Verificado (só leitura de código, nenhuma mudança):** `criar_ordem`, `atualizar_ordem`,
+`criar_estoque` e `atualizar_estoque` passam o mesmo `cursor` por toda a cadeia de chamadas
+(`irflow_os.py::validar_reparo_ids/salvar_reparos_os/consumir_peca_da_os/devolver_pecas_da_os/
+adicionar_peca_os_sem_consumir`, `_recalcular_custo_medio`, `registrar_movimentacao`) — nenhuma dessas
+funções chama `conectar()` internamente. O módulo de auditoria central (`irflow_audit.py::
+registrar_log_auditoria`) também recebe `cursor` do chamador, sem abrir conexão própria — mas note que
+OS/Estoque (domínios legados) não chamam esse módulo hoje; só Produtos, Unidades Serializadas e Clientes
+o usam. Único `conectar()` duplicado encontrado no arquivo (`irflow_blueprints_api.py:621`, `conn2`) é
+numa rota de dashboard, só leitura (`SELECT COUNT`), e abre depois que a primeira conexão do mesmo
+handler já foi fechada — sem sobreposição.
+
+**Conclusão:** hipótese de conexão aninhada **descartada para estas 4 rotas especificamente**, por
+leitura de código. Isso reforça — mas não prova — a hipótese original: se o lock existe quando essas 4
+rotas escrevem, ele foi adquirido por **outra conexão, em outra rota**, ainda aberta no momento da
+tentativa de escrita. A pergunta em aberto é qual.
+
+---
+
 ## O que NÃO foi confirmado ainda (limite desta investigação)
 
 - **Qual exceção especificamente dispara o vazamento em produção** — a varredura é estática (leitura de
@@ -141,22 +173,17 @@ clientes finais).
 
 ---
 
-## Próximo passo recomendado (aguardando decisão do usuário)
+## Próximo passo decidido — instrumentação dinâmica antes de corrigir o restante
 
-`POST /api/auth/login` já foi corrigido (ver "Correção aplicada" acima). Restam em aberto:
+Decisão do usuário (CTO), 2026-07-23: não corrigir os 13 pontos restantes ainda. Primeiro, instrumentar
+a criação/fechamento de conexões e reproduzir o erro, para identificar exatamente qual rota ou fluxo
+segura o lock — só então padronizar as demais rotas. Plano técnico da instrumentação (chokepoint único:
+`app.py::conectar()`, gated por variável de ambiente, sem impacto se desligada) apresentado ao usuário
+para aprovação antes de implementar, por alterar `app.py` (regra de `CLAUDE.md`: mudança em `app.py`
+exige plano e aprovação).
 
-1. **Corrigir sistematicamente os outros 13 pontos identificados** — mesmo padrão (`try/except/finally`
-   ao redor de cada conexão de escrita), como chore separado, rota por rota, com o mesmo tipo de teste
-   de regressão usado no hotfix de `/api/auth/login`. Prioridade sugerida: as 4 rotas de
-   `/api/shopping-list*` (alta frequência, confirmadas em uso pelo `Compras.jsx`) e
-   `POST /api/checklist/<token>` (pública, exposta a clientes finais) antes das rotas legadas
-   possivelmente mortas.
-2. **Instrumentar antes de corrigir o restante** — adicionar log temporário (contagem de conexões
-   abertas/fechadas, ou captura de exceção com stack trace quando uma conexão é objeto de GC ainda
-   aberta via `sqlite3.Connection.__del__`/`gc` callback) para confirmar em produção/desenvolvimento
-   real qual rota realmente vaza, antes de tocar nos 13 pontos restantes.
-
-Nenhuma das duas foi executada ainda para os 13 pontos restantes — decisão do usuário antes de prosseguir.
+`POST /api/auth/login` permanece corrigido (ver "Correção aplicada" acima) — mantido independente do
+resultado da instrumentação, por ser uma melhoria objetiva mesmo que não seja a causa raiz do incidente.
 
 ---
 

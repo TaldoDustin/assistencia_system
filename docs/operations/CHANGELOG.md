@@ -141,6 +141,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/product/research/DISCOVERY_DECISIONS.md` — template vazio para registrar decisão + motivo + alternativas descartadas durante o discuss-phase, antes da formalização em `VENDAS.md`/ADR
 - **Decisão deliberada de não criar ainda:** pastas `INTERVIEWS/` e subpastas por concorrente além de Mercado Phone — mesma regra de não criar estrutura vazia sem conteúdo real, já aplicada a `VENDAS_DORES_REAIS.md`
 
+### Adicionado (2026-07-23)
+- `docs/product/PRODUCT_GLOSSARY.md` — glossário de termos do produto (Produto, Estoque, Unidade Serializada, IMEI, Origem, Cliente, Venda, Reserva, Garantia — nos dois sentidos distintos, de reparo e de venda —, Comissão), extraído do código/docs reais, não aspiracional. Pedido do usuário (CTO) após confusão recorrente de terminologia na semana (Produto vs. Estoque, Aparelho usado de forma ambígua). Marca explicitamente "Aparelho" como termo a evitar em spec/código por ambiguidade, e lista Venda/Reserva/Garantia de venda/Comissão como "especificado, não implementado" — nenhum deles existe no sistema hoje. `docs/README.md` atualizado com a entrada no índice de `product/`
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

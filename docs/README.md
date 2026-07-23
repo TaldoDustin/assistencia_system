@@ -50,6 +50,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 
 ## `product/` — Pesquisa e Planejamento de Produto
 
+- [`product/PRODUCT_GLOSSARY.md`](product/PRODUCT_GLOSSARY.md) — Glossário de termos (Produto, Estoque, Unidade Serializada, Venda, Reserva, etc.), extraído do código real, não aspiracional.
 - [`product/FEATURE_MATRIX_TEMPLATE.md`](product/FEATURE_MATRIX_TEMPLATE.md) — Funcionalidades atuais e comparação com concorrentes.
 - [`product/features/VENDAS.md`](product/features/VENDAS.md) — Spec de feature do módulo de Vendas (rascunho).
 - [`product/BUSINESS_RULES.md`](product/BUSINESS_RULES.md) — Livro de regras de negócio (BR-001+), implementadas e especificadas.

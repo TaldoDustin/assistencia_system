@@ -5,8 +5,32 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-21  
-**Próxima revisão:** Sprint Comercial 1.3 (Tela Unidades Serializadas) primeiro; RC do sistema inteiro só imediatamente antes do próximo deploy (que acumulará ~10 dias de mudanças) — ver seção "Sprint em Andamento"
+**Última revisão:** 2026-07-23  
+**Próxima revisão:** Decisão do usuário (CTO) sobre `INC-001` — ver abaixo. Prioridade máxima, à frente de KIs e do Épico Vendas
+
+---
+
+## 🔴 INC-001 — `database is locked` (P0, investigado, correção não iniciada)
+
+**Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo.**
+
+Reportado pelo usuário (CTO) em 2026-07-23 ao editar/criar OS e cadastrar/alterar estoque, de forma
+intermitente. Investigação (sem correção, por pedido explícito do usuário — "primeiro descobrir, depois
+corrigir") encontrou: WAL e timeout já configurados corretamente (descartados como causa); as 4 rotas
+citadas como sintoma já têm `try/except/finally` corretos (não são a origem do vazamento, só a vítima
+do lock). Causa raiz mais provável: **14 pontos de código ativo fazem escrita no banco sem proteção
+contra exceção** — se uma exceção ocorre entre abrir a conexão e fechá-la, a conexão vaza com a
+transação de escrita ainda aberta, e em WAL isso bloqueia **todo** escritor seguinte até o processo
+coletar aquele objeto via GC (não determinístico). O ponto de maior risco identificado:
+`POST /api/auth/login` — maior frequência de chamada de todo o sistema, já é escrita, sem proteção
+nenhuma. Também confirmado ativo e sem proteção: as 4 rotas de `/api/shopping-list*` e
+`POST /api/checklist/<token>` (rota pública, sem login, exposta a clientes finais).
+
+**Esta é a prioridade número 1 do projeto agora — à frente de qualquer KI e do Épico Vendas, por decisão
+explícita do usuário (CTO).** Próximo passo pendente da decisão dele: instrumentar antes de corrigir
+(confirmar em runtime qual exceção realmente dispara o vazamento) vs. corrigir direto pelo padrão de
+maior risco já identificado (`/api/auth/login`) como hotfix isolado, seguido de correção sistemática dos
+outros 13 pontos.
 
 ---
 

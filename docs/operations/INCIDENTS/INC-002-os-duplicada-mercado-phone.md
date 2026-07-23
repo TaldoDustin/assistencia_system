@@ -1,15 +1,16 @@
 # INC-002 — Ordens de Serviço duplicadas após sincronização com Mercado Phone
 
-**Status:** Investigado — causa estrutural confirmada por leitura de código, com alta confiança;
-**confirmação de que os dois registros existem de fato no banco (Cenário 1) ainda pendente** —
-depende de acesso a produção
+**Status:** Mecanismo corrigido (lock cross-processo) — impede novas duplicatas a partir de agora;
+**confirmação de que já existem linhas duplicadas em produção (Cenário 1) ainda pendente**, e nenhuma
+duplicata pré-existente foi limpa (fora de escopo desta correção)
 **Severidade:** P0 (crítico) — integridade de dados
 **Impacto:** Alto — se confirmado, contamina dashboard, faturamento, contagem de aparelhos, relatórios;
 risco futuro de vender/garantir/movimentar estoque contra a OS errada
-**Ambientes:** Produção (suspeita); estrutura do bug existe também em qualquer ambiente com sync do
+**Ambientes:** Produção (suspeita); estrutura do bug existia também em qualquer ambiente com sync do
 Mercado Phone habilitado e mais de um processo/worker
 **Reportado por:** Usuário (CTO), 2026-07-23 — observou OS "1072" aparecendo duas vezes
 **Investigado por:** Claude (Principal Engineer), 2026-07-23
+**Corrigido por:** Claude (Principal Engineer), 2026-07-23 — branch `hotfix/mercado-phone-sync-lock-cross-processo`
 
 ---
 
@@ -130,6 +131,40 @@ aplicada à thread de sincronização do Mercado Phone.**
 
 ---
 
+## Correção aplicada — lock cross-processo
+
+Decisão do usuário (CTO): corrigir a arquitetura da sincronização agora (lock em SQLite, mesmo padrão
+do KI-001), em vez de esperar a migração maior para um worker/cron dedicado — essa migração fica
+registrada como melhoria arquitetural futura, não bloqueia a correção imediata.
+
+`irflow_mercadophone.py` — `adquirir_lock_sync_mercado_phone()`/`liberar_lock_sync_mercado_phone()`
+implementam um lease com expiração (300s) usando a tabela `integracao_sync_estado` (já existente, sem
+mudança de schema): antes de sincronizar, cada processo tenta reivindicar o lock via um `UPDATE ...
+WHERE valor < <agora>` atômico; só um processo consegue. `sincronizar_mercado_phone()` agora tenta
+adquirir o lock primeiro — se outro worker já está sincronizando, retorna `lock_ocupado=True`
+imediatamente, sem chamar a API do Mercado Phone nem tocar no banco. Se o processo que detém o lock cair
+sem liberar, o lease expira sozinho depois de 300s (10x o intervalo padrão de sincronização) — não trava
+a sincronização permanentemente.
+
+Efeito colateral corrigido no mesmo commit: `reprocessar_todas_os_mercado_phone()` (reimportação
+completa, que primeiro apaga todas as OS do Mercado Phone e depois reimporta) tratava
+`importadas=0, ignoradas=0` como "nada para importar, sucesso" — exatamente o que o lock ocupado também
+retorna. Sem o ajuste, um lock ocupado na primeira tentativa faria a reimportação completa terminar sem
+reimportar nada, depois de já ter apagado tudo. Corrigido para tratar `lock_ocupado` como motivo de
+retry (orçamento próprio, não conta contra as tentativas normais).
+
+5 novos testes (`tests/test_inc002_mercado_phone_sync_lock.py`, 485 no total): aquisição/liberação/
+expiração do lock, curto-circuito de `sincronizar_mercado_phone()` sem chamada de rede quando ocupado, e
+uma corrida real entre 2 threads confirmando que exatamente uma vence (rodada 5x seguidas para
+descartar flakiness). `ruff check .` limpo, zero regressão.
+
+**O que esta correção NÃO faz:** não confirma nem limpa duplicatas que já possam existir em produção
+(pendente da consulta SQL abaixo); não adiciona a `UNIQUE INDEX` — isso é deliberadamente adiado até as
+duplicatas existentes serem resolvidas, porque criar um índice único sobre dados que já violam essa
+unicidade falha. Ver "Próximo passo" atualizado.
+
+---
+
 ## Bônus — possível conexão com INC-001 (`database is locked`)
 
 `sincronizar_mercado_phone()` (`irflow_mercadophone.py:738-836`) abre **uma única conexão** e mantém
@@ -162,17 +197,26 @@ aqui como pista para quando INC-001 voltar a ser investigado.
 
 ## Próximo passo (aguardando usuário)
 
-Não foi feita nenhuma correção nesta sessão — nem no schema, nem no importador, nem no dashboard —
-seguindo o mesmo protocolo de INC-001 (investigar primeiro). Pendente:
+O lock cross-processo (acima) já elimina o mecanismo que gera *novas* duplicatas. Pendente:
 
-1. Resposta à pergunta do sintoma (listagem vs. dashboard).
-2. Acesso ou consulta ao banco de produção para confirmar `SELECT id, id_externo_integracao FROM os
-   WHERE origem_integracao='mercado_phone' AND id_externo_integracao='1072'` — se retornar 2+ linhas,
-   Cenário 1 confirmado.
-3. Se confirmado, a correção mínima estrutural seria: (a) `UNIQUE INDEX` em
-   `(origem_integracao, id_externo_integracao)` como cinto de segurança no schema, e (b) mover a
-   coordenação da thread de sync para fora da memória de processo (ex.: lock em SQLite, mesmo padrão já
-   usado para `login_attempts` no KI-001) — mas isso é decisão de correção, não desta investigação.
+1. Resposta à pergunta do sintoma (listagem vs. dashboard) — ainda não descarta a hipótese de
+   JOIN/COUNT indevido (Cenário 2), que pode coexistir com o Cenário 1.
+2. Rodar no banco de produção:
+   ```sql
+   SELECT origem_integracao, id_externo_integracao, COUNT(*) AS total
+   FROM os
+   WHERE origem_integracao = 'mercado_phone'
+   GROUP BY origem_integracao, id_externo_integracao
+   HAVING COUNT(*) > 1;
+   ```
+   Se retornar linhas, Cenário 1 confirmado — e cada grupo encontrado precisa de uma decisão de
+   qual registro manter (provavelmente o mais antigo/`id` menor) antes de qualquer limpeza.
+3. Só depois de resolver duplicatas existentes (se houver): adicionar `UNIQUE INDEX` em
+   `(origem_integracao, id_externo_integracao)` como cinto de segurança definitivo no schema — mudança
+   de schema, requer plano e aprovação separados (`CLAUDE.md`).
+4. Migração arquitetural futura (registrada, não decidida): mover a sincronização para um Render Cron
+   Job ou Background Worker dedicado, para que só exista um processo sincronizando por natureza, em vez
+   de depender de um lock. Requer ADR (mudança de estratégia de deploy).
 
 ---
 

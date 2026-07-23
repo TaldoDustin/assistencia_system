@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
-import { ordens as ordensApi } from "@/api/client";
+import { ordens as ordensApi, constantes as constApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import OrderFilters from "@/components/orders/OrderFilters";
 import OrderTable from "@/components/orders/OrderTable";
@@ -40,6 +40,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({});
   const [deleteId, setDeleteId] = useState(null);
+  const [constants, setConstants] = useState(null);
 
   const fetchOrdens = async (opts = {}) => {
     const { silent = false } = opts;
@@ -55,11 +56,17 @@ export default function Orders() {
     }
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchOrdens();
     // Auto-refresh a cada 30 segundos
     const interval = setInterval(() => fetchOrdens({ silent: true }), 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    constApi.get().then((res) => {
+      if (res?.ok) setConstants(res);
+    });
   }, []);
 
   const handleDelete = async () => {
@@ -110,7 +117,7 @@ export default function Orders() {
         ))}
       </div>
 
-      <OrderFilters filters={filters} setFilters={setFilters} tecnicos={tecnicos} vendedores={vendedores} />
+      <OrderFilters filters={filters} setFilters={setFilters} tecnicos={tecnicos} vendedores={vendedores} constants={constants} />
 
       {loading ? (
         <div className="flex items-center justify-center h-40">

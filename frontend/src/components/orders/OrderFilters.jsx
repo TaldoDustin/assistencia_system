@@ -1,10 +1,12 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { STATUS_OPTIONS, OS_TYPES } from "@/lib/constants";
+import { STATUS_OPTIONS_FALLBACK, OS_TYPES_FALLBACK } from "@/lib/constants";
 
-export default function OrderFilters({ filters, setFilters, tecnicos = [], vendedores = [] }) {
+export default function OrderFilters({ filters, setFilters, tecnicos = [], vendedores = [], constants = null }) {
   const update = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const statusOptions = constants?.status_opcoes?.length ? constants.status_opcoes : STATUS_OPTIONS_FALLBACK;
+  const osTypes = constants?.os_tipos?.length ? constants.os_tipos : OS_TYPES_FALLBACK;
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap gap-3">
@@ -24,7 +26,7 @@ export default function OrderFilters({ filters, setFilters, tecnicos = [], vende
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os status</SelectItem>
-          {STATUS_OPTIONS.map((s) => (
+          {statusOptions.map((s) => (
             <SelectItem key={s} value={s}>{s}</SelectItem>
           ))}
         </SelectContent>
@@ -36,7 +38,7 @@ export default function OrderFilters({ filters, setFilters, tecnicos = [], vende
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os tipos</SelectItem>
-          {OS_TYPES.map((t) => (
+          {osTypes.map((t) => (
             <SelectItem key={t} value={t}>{t}</SelectItem>
           ))}
         </SelectContent>

@@ -26,6 +26,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 # IMPORTS DE MÓDULOS INTERNOS - CORE
 # ============================================================================
 from irflow_core import (
+    GARANTIA_REPARO_DIAS_PADRAO,
+    OS_TIPOS_OPCOES,
     STATUS_AGUARDANDO_PECA,
     STATUS_CANCELADO,
     STATUS_EM_ANDAMENTO,
@@ -1581,6 +1583,8 @@ app.register_blueprint(
             "vendedores": VENDEDORES,
             "tecnicos": TECNICOS,
             "status_os_opcoes": STATUS_OS_OPCOES,
+            "os_tipos_opcoes": OS_TIPOS_OPCOES,
+            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
             "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
             "reparos_padrao": REPAROS_PADRAO,
             "produtos_categorias": PRODUTOS_CATEGORIAS,

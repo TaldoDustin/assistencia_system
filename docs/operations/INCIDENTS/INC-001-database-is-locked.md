@@ -1,7 +1,9 @@
 # INC-001 — `database is locked`
 
-**Status:** Parcialmente corrigido — `POST /api/auth/login` corrigido via hotfix isolado; **13 pontos
-de risco identificados na investigação seguem em aberto**, correção sistemática não iniciada
+**Status:** Parcialmente corrigido — `POST /api/auth/login` corrigido via hotfix isolado; **4 rotas de
+checklist confirmadas sem proteção seguem em aberto** (4 rotas de shopping-list reclassificadas como
+risco estrutural, não vazamento confirmado); instrumentação de runtime pronta, reprodução local por
+carga (2 rodadas, até 120 threads/60s) não confirmou a causa raiz — aguardando decisão do usuário
 **Severidade:** P0 (crítico)
 **Impacto:** Alto — afeta operações de escrita centrais (criar/editar OS, cadastrar/alterar estoque)
 **Ambientes:** Produção, Desenvolvimento
@@ -106,16 +108,27 @@ uma contenção passageira e normal em um lock persistente.
 
 ### Lista completa — rotas de escrita sem proteção contra exceção (achado nesta investigação)
 
-| Rota | Arquivo:linha | Frequência de uso |
+> **Correção de registro (2026-07-23), após leitura completa de cada rota (não só grep):** a varredura
+> estática original classificou as 4 rotas de `/api/shopping-list*` como "sem proteção", pelo mesmo
+> critério usado nas outras — ausência de um bloco `try/finally` explícito. Lendo o corpo completo de
+> cada uma, isso é impreciso: elas usam um padrão diferente (não idiomático, mas efetivo) — `conn.close()`
+> manual antes de cada `return` antecipado, mais um `except Exception` amplo ao redor de toda a função
+> que também fecha a conexão. Em todo caminho de código rastreado, a conexão é fechada. **Reclassificadas
+> abaixo como risco estrutural (frágil a mudanças futuras), não como vazamento confirmado.** As 4 rotas de
+> checklist, em contraste, **não têm nenhum `try/except` nem fechamento no caminho de exceção** — essas
+> continuam como risco confirmado por leitura de código.
+
+| Rota | Arquivo:linha | Status após releitura completa |
 |---|---|---|
-| ✅ `POST /api/auth/login` — **corrigido** (ver seção acima) | `irflow_blueprints_api.py:417` | **Altíssima — todo login** |
-| `POST /api/shopping-list` | `irflow_blueprints_api.py:826` | Alta (toda criação de item de compra) |
-| `PUT /api/shopping-list/<id>` | `irflow_blueprints_api.py:865` | Alta |
-| `PATCH /api/shopping-list/<id>/status` | `irflow_blueprints_api.py:924` | Alta |
-| `DELETE /api/shopping-list/<id>` | `irflow_blueprints_api.py:1019` | Média |
-| `GET /api/ordens/<id>/checklist` | `irflow_blueprints_api.py:1310` | Média (grava token) |
-| `POST /api/ordens/<id>/checklist/token` | `irflow_blueprints_api.py:1344` | Baixa |
-| **`POST /api/checklist/<token>`** (salvar checklist público) | `irflow_blueprints_api.py:1445` | **Confirmado ativo — usado por `ChecklistDevice.jsx`, rota pública sem login, exposta a clientes finais via link compartilhado** |
+| ✅ `POST /api/auth/login` — **corrigido** (ver seção acima) | `irflow_blueprints_api.py:417` | Corrigido |
+| 🟡 `POST /api/shopping-list` | `irflow_blueprints_api.py:826` | Reclassificado — fecha em todo caminho (`except` amplo + `close()` manual antes de cada `return`); risco estrutural, não vazamento confirmado |
+| 🟡 `PUT /api/shopping-list/<id>` | `irflow_blueprints_api.py:865` | Idem |
+| 🟡 `PATCH /api/shopping-list/<id>/status` | `irflow_blueprints_api.py:924` | Idem |
+| 🟡 `DELETE /api/shopping-list/<id>` | `irflow_blueprints_api.py:1019` | Idem |
+| 🔴 `GET /api/ordens/<id>/checklist` | `irflow_blueprints_api.py:1310` | **Confirmado sem proteção** — nenhum `try/except`, `conn.close()` só no caminho feliz e no 404 |
+| 🔴 `POST /api/ordens/<id>/checklist/token` | `irflow_blueprints_api.py:1344` | **Confirmado sem proteção** — idem |
+| 🔴 `GET /api/checklist/<token>` (checklist público) | `irflow_blueprints_api.py:1388` | **Confirmado sem proteção** — idem, pública |
+| 🔴 **`POST /api/checklist/<token>`** (salvar checklist público) | `irflow_blueprints_api.py:1445` | **Confirmado sem proteção — maior risco restante.** Pública, sem login, exposta a clientes finais via link compartilhado (`ChecklistDevice.jsx`); nenhum `try/except` em toda a função |
 | `POST /nova` (view legada de criar OS) | `irflow_blueprints_orders.py:202` | **Provavelmente morta** — frontend usa `/api/ordens`, não este form legado |
 | `GET/POST /custos-operacionais` (view legada) | `irflow_blueprints_admin.py:48` | **Provavelmente morta** — `OperationalCosts.jsx` usa `/api/custos`, não este form legado |
 | `GET/POST /login` (view legada) | `irflow_blueprints_auth.py:43` | **Confirmado morta** — `Login.jsx` usa exclusivamente `/api/auth/login` |
@@ -123,12 +136,9 @@ uma contenção passageira e normal em um lock persistente.
 | `POST /estoque/deletar/<id>` (view legada) | `irflow_blueprints_inventory.py:161` | Provavelmente morta, não confirmado |
 | `sincronizar_reparos_padrao()` (só roda no startup) | `app.py:1084` | Baixíssima — 1x por boot |
 
-**14 pontos em código ativo** (mais 3 em scripts fora do app), levantados por varredura estática
-(regex + análise de bloco de função) — não é uma lista garantida 100% exaustiva, é o melhor
-levantamento possível sem instrumentação em runtime. Das rotas confirmadas **realmente em uso pelo
-frontend hoje**: `POST /api/auth/login` (altíssima frequência), as 4 rotas de `/api/shopping-list*`
-(alta frequência — usadas por `Compras.jsx`), e `POST /api/checklist/<token>` (pública, exposta a
-clientes finais).
+Resumo após releitura: das rotas realmente em uso pelo frontend hoje, **4 são risco confirmado** (as de
+checklist, incluindo a pública) e **4 são risco estrutural, não vazamento confirmado** (shopping-list) —
+não mais "13 pontos" tratados como equivalentes.
 
 ---
 
@@ -158,6 +168,44 @@ tentativa de escrita. A pergunta em aberto é qual.
 
 ---
 
+## Instrumentação dinâmica + reprodução por carga — resultado (2026-07-23)
+
+Implementada instrumentação temporária em `app.py::conectar()` (branch
+`chore/inc-001-instrumentacao-conexoes`, não mergeada ainda) — gated por
+`IR_FLOW_DEBUG_CONN_TRACE=1`, zero impacto desligada (480 testes + `ruff check .` sem mudança).
+Liga um wrapper (`_ConexaoRastreada`) que loga `OPEN`/`COMMIT`/`ROLLBACK`/`CLOSE` por conexão (id, rota,
+thread, duração) e, via `weakref.finalize`, avisa com o stack trace de abertura se uma conexão for
+coletada pelo GC sem `close()` — a evidência direta do mecanismo suspeito.
+
+**Instrumentação validada em isolamento:** testada com uma conexão deliberadamente vazada (aberta,
+sem `close()`) — o aviso disparou corretamente, com o stack trace exato apontando para o ponto de
+vazamento. O mecanismo de detecção funciona.
+
+**Reprodução por carga — resultado negativo:** rodado localmente contra `gunicorn --workers 2`
+(mesma configuração de produção, `Dockerfile`), banco isolado, script de carga concorrente
+(`requests` + `threading`) martelando simultaneamente `POST/PUT /api/ordens`, `POST/PUT /api/estoque`,
+`POST /api/shopping-list` + `PATCH .../status`, as 4 rotas de checklist (incluindo a pública, alvo
+prioritário — sem nenhuma proteção confirmada), e tentativas de login com senha errada (ruído
+proposital no rate limiter). Duas rodadas:
+
+| Rodada | Threads | Duração | Escritas concluídas | `database is locked` | Aviso de vazamento (GC) |
+|---|---|---|---|---|---|
+| 1 | 40 | 45s | ~4.700 | 0 | 0 |
+| 2 (concentrada num único registro de checklist compartilhado, para maximizar contenção) | 120 | 60s | ~11.300 | 0 | 0 |
+
+Nenhuma das duas rodadas reproduziu o erro nem disparou o aviso de vazamento, mesmo martelando
+diretamente as 4 rotas confirmadas sem proteção. Interpretação: os payloads usados são todos
+bem-formados — a validação de entrada roda **antes** de `conectar()` nessas rotas, então a única forma
+realista de uma exceção ocorrer no meio da transação é uma contenção genuína do SQLite (ex.: o próprio
+`busy_timeout` estourando sob carga muito mais sustentada, ou I/O mais lento que o SSD local usado
+neste teste). 16.000 escritas em ~2 minutos num disco local rápido não foi suficiente para gerar essa
+condição.
+
+**Conclusão:** a instrumentação está pronta e comprovadamente funcional, mas a reprodução local não
+confirmou a causa raiz. Decisão de próximo passo pendente do usuário (ver seção seguinte).
+
+---
+
 ## O que NÃO foi confirmado ainda (limite desta investigação)
 
 - **Qual exceção especificamente dispara o vazamento em produção** — a varredura é estática (leitura de
@@ -173,17 +221,24 @@ tentativa de escrita. A pergunta em aberto é qual.
 
 ---
 
-## Próximo passo decidido — instrumentação dinâmica antes de corrigir o restante
-
-Decisão do usuário (CTO), 2026-07-23: não corrigir os 13 pontos restantes ainda. Primeiro, instrumentar
-a criação/fechamento de conexões e reproduzir o erro, para identificar exatamente qual rota ou fluxo
-segura o lock — só então padronizar as demais rotas. Plano técnico da instrumentação (chokepoint único:
-`app.py::conectar()`, gated por variável de ambiente, sem impacto se desligada) apresentado ao usuário
-para aprovação antes de implementar, por alterar `app.py` (regra de `CLAUDE.md`: mudança em `app.py`
-exige plano e aprovação).
+## Próximo passo — aguardando decisão do usuário
 
 `POST /api/auth/login` permanece corrigido (ver "Correção aplicada" acima) — mantido independente do
-resultado da instrumentação, por ser uma melhoria objetiva mesmo que não seja a causa raiz do incidente.
+resultado da investigação, por ser uma melhoria objetiva mesmo que não seja a causa raiz do incidente.
+
+A reprodução local por carga não confirmou a causa raiz (ver seção anterior). Opções, não excludentes:
+
+1. **Corrigir as 4 rotas de checklist agora** (mesmo padrão do hotfix de login) — são risco confirmado
+   por leitura de código independentemente de reprodução em runtime, uma delas é pública, e a correção
+   é pequena e isolada. Não espera confirmação por instrumentação para agir sobre um risco já certo.
+2. **Rodar a instrumentação num ambiente real** (dev/staging com uso real ao longo de dias, não só um
+   teste de carga sintético de 2 minutos) — I/O de produção (disco de rede, latência) e padrões de uso
+   real podem gerar a contenção sustentada que o teste local não conseguiu simular.
+3. **Escalar ainda mais o teste local** (mais threads, mais duração, ou simular disco lento) —
+   risco de retorno decrescente; já foram 2 rodadas (40 e 120 threads) sem resultado.
+
+Branch `chore/inc-001-instrumentacao-conexoes` permanece pronta e não mergeada, aguardando qual dessas
+opções o usuário quer seguir.
 
 ---
 

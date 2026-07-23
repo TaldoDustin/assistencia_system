@@ -135,6 +135,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/product/research/VENDAS_DORES_REAIS.md` — template vazio para dores reais da operação, propositalmente sem dados fabricados — aguarda coleta de campo real
 - `docs/product/FEATURE_MATRIX_TEMPLATE.md` — linha "Vendas" da comparação com concorrentes atualizada para apontar à nova pasta de benchmark; nota "Concorrentes a Pesquisar" registra que a lista original (Mercado Phone, Nextsi, SisAssist) e a lista mencionada em conversa posterior (CellStore, Mobix, Tiny, Bling) ainda não foram reconciliadas pelo PO
 
+### Adicionado (2026-07-22 — Discovery de Vendas, refinamento estrutural)
+- `docs/product/research/README.md` — índice e critérios da pasta de pesquisa, a pedido do usuário (CTO), para não deixar os documentos "soltos"
+- `docs/product/research/VENDAS_QUESTIONS.md` — coluna "Prioridade" adicionada (🔴 Obrigatória/🟠 Importante/🟡 Depois/🔵 Futuro), derivada do checklist de MVP discutido em conversa; marcada explicitamente como proposta, não decisão fechada
+- `docs/product/research/DISCOVERY_DECISIONS.md` — template vazio para registrar decisão + motivo + alternativas descartadas durante o discuss-phase, antes da formalização em `VENDAS.md`/ADR
+- **Decisão deliberada de não criar ainda:** pastas `INTERVIEWS/` e subpastas por concorrente além de Mercado Phone — mesma regra de não criar estrutura vazia sem conteúdo real, já aplicada a `VENDAS_DORES_REAIS.md`
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

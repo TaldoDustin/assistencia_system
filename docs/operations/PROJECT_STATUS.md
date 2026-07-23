@@ -6,31 +6,34 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-23  
-**Próxima revisão:** Decisão do usuário (CTO) sobre `INC-001` — ver abaixo. Prioridade máxima, à frente de KIs e do Épico Vendas
+**Próxima revisão:** Decisão do usuário (CTO) sobre os 13 pontos de risco restantes de `INC-001` — ver abaixo. Prioridade máxima, à frente de KIs e do Épico Vendas
 
 ---
 
-## 🔴 INC-001 — `database is locked` (P0, investigado, correção não iniciada)
+## 🟠 INC-001 — `database is locked` (P0, `/api/auth/login` corrigido, 13 pontos em aberto)
 
 **Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo.**
 
 Reportado pelo usuário (CTO) em 2026-07-23 ao editar/criar OS e cadastrar/alterar estoque, de forma
-intermitente. Investigação (sem correção, por pedido explícito do usuário — "primeiro descobrir, depois
-corrigir") encontrou: WAL e timeout já configurados corretamente (descartados como causa); as 4 rotas
-citadas como sintoma já têm `try/except/finally` corretos (não são a origem do vazamento, só a vítima
-do lock). Causa raiz mais provável: **14 pontos de código ativo fazem escrita no banco sem proteção
-contra exceção** — se uma exceção ocorre entre abrir a conexão e fechá-la, a conexão vaza com a
-transação de escrita ainda aberta, e em WAL isso bloqueia **todo** escritor seguinte até o processo
-coletar aquele objeto via GC (não determinístico). O ponto de maior risco identificado:
-`POST /api/auth/login` — maior frequência de chamada de todo o sistema, já é escrita, sem proteção
-nenhuma. Também confirmado ativo e sem proteção: as 4 rotas de `/api/shopping-list*` e
-`POST /api/checklist/<token>` (rota pública, sem login, exposta a clientes finais).
+intermitente. Investigação encontrou: WAL e timeout já configurados corretamente (descartados como
+causa); as 4 rotas citadas como sintoma já têm `try/except/finally` corretos (não são a origem do
+vazamento, só a vítima do lock). Causa raiz mais provável: **14 pontos de código ativo fazem escrita no
+banco sem proteção contra exceção** — se uma exceção ocorre entre abrir a conexão e fechá-la, a conexão
+vaza com a transação de escrita ainda aberta, e em WAL isso bloqueia **todo** escritor seguinte até o
+processo coletar aquele objeto via GC (não determinístico). Também confirmado ativo e sem proteção: as 4
+rotas de `/api/shopping-list*` e `POST /api/checklist/<token>` (rota pública, sem login, exposta a
+clientes finais) — estes seguem em aberto.
 
-**Esta é a prioridade número 1 do projeto agora — à frente de qualquer KI e do Épico Vendas, por decisão
-explícita do usuário (CTO).** Próximo passo pendente da decisão dele: instrumentar antes de corrigir
-(confirmar em runtime qual exceção realmente dispara o vazamento) vs. corrigir direto pelo padrão de
-maior risco já identificado (`/api/auth/login`) como hotfix isolado, seguido de correção sistemática dos
-outros 13 pontos.
+**Corrigido:** `POST /api/auth/login` (maior frequência de chamada de todo o sistema, já é escrita) —
+hotfix isolado em `hotfix/conexao-login-database-locked`, por decisão explícita do usuário. Provado por
+teste que injeta falha real no ponto exato da causa raiz (`tests/test_inc001_login_connection_leak.py`),
+confirmado falhando contra o código anterior e passando contra a correção. 480 testes, `ruff check .`
+limpo, zero regressão.
+
+**Ainda em aberto — prioridade número 1 do projeto, à frente de qualquer KI e do Épico Vendas, por
+decisão explícita do usuário (CTO):** os outros 13 pontos identificados na investigação. Próximo passo
+pendente da decisão dele: instrumentar antes de corrigir (confirmar em runtime qual exceção realmente
+dispara o vazamento) vs. corrigir sistematicamente pelo mesmo padrão do hotfix, rota por rota.
 
 ---
 

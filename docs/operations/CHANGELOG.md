@@ -150,6 +150,17 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Adicionado (2026-07-23 — INC-001)
 - `docs/operations/INCIDENTS/INC-001-database-is-locked.md` — investigação do incidente P0 `database is locked` reportado pelo usuário (CTO) ao criar/editar OS e cadastrar/alterar estoque. Por pedido explícito, só investigação nesta sessão, nenhuma correção. Descartado como causa: WAL desabilitado, timeout pequeno, e as 4 rotas citadas como sintoma (que já têm `try/except/finally` corretos). Causa raiz mais provável: 14 pontos de código ativo escrevem no banco sem proteção contra exceção — uma conexão vazada com transação de escrita aberta bloqueia todo escritor seguinte em WAL até o processo coletar o objeto via GC. Maior risco identificado: `POST /api/auth/login` (maior frequência de chamada do sistema, já é escrita, sem proteção). Também confirmadas ativas e sem proteção: 4 rotas de `/api/shopping-list*` e `POST /api/checklist/<token>` (rota pública). Marcado como prioridade máxima do projeto, à frente de KIs e do Épico Vendas — decisão do usuário
 
+### Corrigido (2026-07-23 — hotfix/conexao-login-database-locked)
+- `POST /api/auth/login` (`irflow_blueprints_api.py::auth_login`) — conexão agora protegida com
+  `try/except/finally`: qualquer exceção entre `conectar()` e o fim da função faz `rollback()` e
+  `close()` antes de retornar erro, em vez de vazar a conexão com a transação de escrita aberta (causa
+  raiz de maior risco identificada em `docs/operations/INCIDENTS/INC-001-database-is-locked.md`).
+  Correção isolada e mínima, por decisão explícita do usuário (CTO) — os outros 13 pontos de risco
+  identificados na mesma investigação seguem em aberto, não fazem parte deste hotfix. 2 novos testes
+  (`tests/test_inc001_login_connection_leak.py`) provam o mecanismo exato via injeção de falha real no
+  ponto da causa raiz, confirmados falhando contra o código anterior e passando contra a correção. 480
+  testes no total, `ruff check .` limpo, zero regressão
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

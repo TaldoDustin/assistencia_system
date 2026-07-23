@@ -1,7 +1,7 @@
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
@@ -44,6 +44,60 @@ def definir_estado_integracao(cursor, chave, valor):
         """,
         (chave, str(valor)),
     )
+
+
+_LOCK_SYNC_CHAVE = "mercado_phone_sync_lock"
+_LOCK_SYNC_EPOCA = "0000-01-01 00:00:00"
+
+
+def adquirir_lock_sync_mercado_phone(conectar, ttl_segundos=300):
+    """Lock cross-processo (INC-002): impede que mais de um worker do Gunicorn rode a
+    sincronizacao do Mercado Phone ao mesmo tempo. `iniciar_sync_mercadophone_se_habilitado`
+    (app.py) inicia uma thread de sync por processo, sem coordenacao entre eles - com
+    --workers 2 em producao, dois processos concorrentes faziam SELECT-antes-de-INSERT
+    (TOCTOU) na mesma OS nova e podiam duplica-la.
+
+    Usa `integracao_sync_estado` (tabela ja existente, sem mudanca de schema) como um
+    lease com expiracao: se o processo que detem o lock cair sem liberar, o lock expira
+    sozinho depois de `ttl_segundos` em vez de travar a sincronizacao para sempre.
+    Conexao propria e commit imediato, para que a reivindicacao fique visivel a outros
+    processos antes de comecar o trabalho (potencialmente demorado) de sync.
+    """
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT OR IGNORE INTO integracao_sync_estado (chave, valor) VALUES (?, ?)",
+            (_LOCK_SYNC_CHAVE, _LOCK_SYNC_EPOCA),
+        )
+        agora = datetime.now()
+        expira_em = (agora + timedelta(seconds=ttl_segundos)).strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute(
+            """
+            UPDATE integracao_sync_estado
+            SET valor = ?
+            WHERE chave = ? AND valor < ?
+            """,
+            (expira_em, _LOCK_SYNC_CHAVE, agora.strftime("%Y-%m-%d %H:%M:%S")),
+        )
+        adquirido = cursor.rowcount == 1
+        conn.commit()
+        return adquirido
+    finally:
+        conn.close()
+
+
+def liberar_lock_sync_mercado_phone(conectar):
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE integracao_sync_estado SET valor = ? WHERE chave = ?",
+            (_LOCK_SYNC_EPOCA, _LOCK_SYNC_CHAVE),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def os_integracao_ja_vista(cursor, origem, external_id):
@@ -736,6 +790,18 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
 
 
 def sincronizar_mercado_phone(conectar, config, helpers):
+    """Adquire o lock cross-processo (INC-002) antes de sincronizar - se outro worker do
+    Gunicorn ja estiver sincronizando, retorna sem tocar na API nem no banco em vez de
+    competir com ele."""
+    if not adquirir_lock_sync_mercado_phone(conectar):
+        return {"ok": True, "importadas": 0, "ignoradas": 0, "inicializada": True, "lock_ocupado": True}
+    try:
+        return _sincronizar_mercado_phone_sem_lock(conectar, config, helpers)
+    finally:
+        liberar_lock_sync_mercado_phone(conectar)
+
+
+def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
     conn = conectar()
     cursor = conn.cursor()
     origem = "mercado_phone"
@@ -1153,12 +1219,32 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
         conn.close()
 
     tentativas = max(1, int(config.get("reimport_retry_attempts") or 3))
+    max_esperas_lock_ocupado = max(1, tentativas * 2)
     resultado_sync = {"importadas": 0, "ignoradas": 0}
     ultima_falha = ""
+    tentativa = 0
+    esperas_lock_ocupado = 0
 
-    for tentativa in range(1, tentativas + 1):
+    while tentativa < tentativas:
+        tentativa += 1
         try:
             resultado_sync = sincronizar_mercado_phone(conectar, config_forcada, helpers)
+
+            if resultado_sync.get("lock_ocupado"):
+                # Outro worker esta sincronizando agora (INC-002) - nao e "nada para
+                # importar", e sim "nao rodou ainda". Nao conta como tentativa real
+                # (orcamento proprio, limitado) para nao deixar a limpeza acima sem
+                # reimportacao so porque o lock estava ocupado no momento errado.
+                esperas_lock_ocupado += 1
+                tentativa -= 1
+                ultima_falha = "lock de sincronizacao ocupado por outro worker"
+                if esperas_lock_ocupado >= max_esperas_lock_ocupado:
+                    break
+                espera = min(15, 3 * esperas_lock_ocupado)
+                print(f"[MercadoPhone] Reimportação: {ultima_falha}. Nova tentativa em {espera}s...")
+                time.sleep(espera)
+                continue
+
             importadas = int(resultado_sync.get("importadas") or 0)
             ignoradas = int(resultado_sync.get("ignoradas") or 0)
 

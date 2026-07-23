@@ -161,6 +161,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   ponto da causa raiz, confirmados falhando contra o código anterior e passando contra a correção. 480
   testes no total, `ruff check .` limpo, zero regressão
 
+### Adicionado (2026-07-23 — INC-001, correções de registro e reprodução por carga)
+- `docs/operations/INCIDENTS/INC-001-database-is-locked.md` corrigido: causa raiz reformulada de "confirmada" para "hipótese principal, ainda não comprovada em runtime" (revisão do usuário/CTO); hipótese de conexão aninhada em OS/Estoque investigada e descartada por leitura de código; releitura completa das 13 rotas "sem proteção" reclassifica as 4 de `/api/shopping-list*` como risco estrutural (fecham em todo caminho via `except` amplo, não vazamento confirmado) — as 4 rotas de checklist (incluindo a pública) seguem como risco confirmado
+- Instrumentação temporária de conexões implementada em `app.py::conectar()` (branch `chore/inc-001-instrumentacao-conexoes`, não mergeada), gated por `IR_FLOW_DEBUG_CONN_TRACE=1`, zero impacto desligada (480 testes + `ruff check .` sem mudança). Validada detectando corretamente uma conexão vazada em teste isolado. Duas rodadas de reprodução por carga concorrente local (`gunicorn --workers 2`, igual produção — 40 threads/45s e 120 threads/60s, ~16 mil escritas) não reproduziram o erro nem o aviso de vazamento — resultado negativo, causa raiz segue não confirmada
+
+### Adicionado (2026-07-23 — INC-002)
+- `docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md` — investigação do incidente P0 de possível duplicação de Ordens de Serviço importadas do Mercado Phone (OS "1072" reportada pelo usuário/CTO). Causa estrutural encontrada por leitura de código, alta confiança: schema sem `UNIQUE` em `(origem_integracao, id_externo_integracao)`; importador confia só num `SELECT`-antes-de-`INSERT`; thread de sincronização inicia uma vez por processo do Gunicorn (`--workers 2` em produção, sem `--preload`) sem nenhuma coordenação entre processos — corrida clássica (TOCTOU) que pode duplicar a OS. Mesma classe de bug já corrigida em KI-001 (rate limiting) para outro recurso, nunca aplicada a este fluxo. Também identificado como candidato a causa de INC-001 (transação longa e concorrente por processo). Confirmação em produção e resposta do usuário sobre onde a duplicidade aparece (listagem vs. dashboard) pendentes — nenhuma correção de código feita, investigação apenas
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

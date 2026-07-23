@@ -204,6 +204,16 @@ condição.
 **Conclusão:** a instrumentação está pronta e comprovadamente funcional, mas a reprodução local não
 confirmou a causa raiz. Decisão de próximo passo pendente do usuário (ver seção seguinte).
 
+**Atualização (2026-07-23) — novo candidato encontrado durante a investigação de INC-002:**
+`sincronizar_mercado_phone()` (`irflow_mercadophone.py:738-836`) abre uma única conexão e mantém uma
+única transação aberta durante todo um ciclo de sincronização (múltiplas chamadas HTTP + INSERT/UPDATE
+por OS, só commitando no final) — e, por um bug estrutural separado (ver
+`docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md`), **essa rotina roda em cada um dos 2
+workers do Gunicorn de forma independente e concorrente**, sem nenhuma coordenação entre processos. Isso
+é o tipo de "transação muito grande, concorrente, de verdade" que a reprodução por carga sintética acima
+nunca simulou (só requisições HTTP curtas). Candidato mais realista do que qualquer coisa testada até
+agora — não confirmado, mas prioritário para a próxima rodada de investigação.
+
 ---
 
 ## O que NÃO foi confirmado ainda (limite desta investigação)

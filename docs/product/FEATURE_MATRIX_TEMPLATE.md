@@ -56,7 +56,7 @@ Este documento tem duas seções com propósitos diferentes:
 | Backup automático | ✅ | ❓ | | |
 | Login / Autenticação | ✅ (básico) | ❓ | | |
 | Permissões granulares | ❌ | ❓ | | |
-| Vendas (peça/acessório/serviço/combo) | ❌ | ❓ | | |
+| Vendas (peça/acessório/serviço/combo) | ❌ | 🟡 (Mercado Phone) | `docs/product/research/BENCHMARKS/MERCADO_PHONE.md` | Só visão geral de menus até 2026-07-22; walkthrough do fluxo completo ainda pendente — não marcar ✅/❌ até isso acontecer |
 | Caixa (abertura/fechamento/sangria) | ❌ | ❓ | | |
 | Financeiro (contas a pagar/receber) | ❌ | ❓ | | |
 | Dashboard com indicadores comerciais | ❌ | ❓ | | |
@@ -68,7 +68,13 @@ Este documento tem duas seções com propósitos diferentes:
 
 ### Concorrentes a Pesquisar
 
-TODO — lista a definir pelo Product Owner. Mencionados em discussão de roadmap: Mercado Phone, Nextsi, SisAssist.
+TODO — lista final a definir pelo Product Owner. Mencionados em discussão de roadmap (data original):
+Mercado Phone, Nextsi, SisAssist. Mencionados em conversa posterior (2026-07-22, ainda não reconciliado
+com a lista acima pelo PO): CellStore, Mobix, Tiny, Bling.
+
+Evidência de pesquisa por módulo (fatos observados, não conclusões) passa a viver em
+`docs/product/research/BENCHMARKS/` — um arquivo por concorrente, um walkthrough por módulo. Esta tabela
+consome esse trabalho (coluna "Fonte"), não o duplica.
 
 ---
 

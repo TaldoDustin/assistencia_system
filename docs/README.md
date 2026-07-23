@@ -54,6 +54,11 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`product/features/VENDAS.md`](product/features/VENDAS.md) — Spec de feature do módulo de Vendas (rascunho).
 - [`product/BUSINESS_RULES.md`](product/BUSINESS_RULES.md) — Livro de regras de negócio (BR-001+), implementadas e especificadas.
 - [`product/PRODUCT_BACKLOG.md`](product/PRODUCT_BACKLOG.md) — Fila priorizada de épicos (o quê construir a seguir).
+- [`product/features/VENDAS_GAP_ANALYSIS.md`](product/features/VENDAS_GAP_ANALYSIS.md) — Consistência entre `VENDAS.md` e o estado real do código (2026-07-22).
+- `product/research/` — Pesquisa de produto (benchmark, dores reais, perguntas em aberto). Nada aqui é especificação; nunca vira requisito sem passar por `product/features/`.
+  - [`product/research/BENCHMARKS/MERCADO_PHONE.md`](product/research/BENCHMARKS/MERCADO_PHONE.md) — Benchmark de concorrente, por módulo (Vendas pendente de walkthrough).
+  - [`product/research/VENDAS_QUESTIONS.md`](product/research/VENDAS_QUESTIONS.md) — Perguntas em aberto para o discuss-phase do Épico Vendas.
+  - [`product/research/VENDAS_DORES_REAIS.md`](product/research/VENDAS_DORES_REAIS.md) — Dores reais da operação (vazio, aguardando coleta de campo).
 
 ---
 

@@ -1,6 +1,8 @@
-export const STATUS_OPTIONS = ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"];
-export const OS_TYPES = ["Assistencia", "Garantia", "Upgrade"];
-export const GARANTIA_DIAS = 90;
+// Fallback caso /api/constantes não retorne as listas (rede/erro) — espelha
+// STATUS_OS_OPCOES/OS_TIPOS_OPCOES (irflow_core.py). Fonte de verdade real é
+// a API — mesmo padrão de Produtos.jsx/Stock.jsx.
+export const STATUS_OPTIONS_FALLBACK = ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"];
+export const OS_TYPES_FALLBACK = ["Assistencia", "Garantia", "Upgrade"];
 
 export function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);

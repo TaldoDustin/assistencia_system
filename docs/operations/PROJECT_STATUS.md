@@ -254,6 +254,19 @@ após o cadastro (identificador primário usado em busca/auditoria/futura garant
 domínio), `ruff check .` limpo, validado manualmente editando bateria/localização/status de uma
 unidade real.
 
+**Sprint Técnica — Centralização de Referências de OS (CONCLUÍDA em 2026-07-23, ver
+`docs/operations/SPRINTS/SPRINT_TECNICA_CENTRALIZACAO_OS.md`):** segunda parte da centralização de
+referências pedida pelo usuário (CTO), após a de Produtos (2026-07-22). Encontrado e corrigido: tipos de
+OS (Assistencia/Garantia/Upgrade) tinham 2 cópias inline no backend e 3 no frontend, com `OrderFilters.jsx`
+nunca buscando da API; prazo de garantia (90 dias) hardcoded 2x no mesmo arquivo backend;
+`GARANTIA_DIAS` no frontend era código morto. Tudo centralizado em `OS_TIPOS_OPCOES`/
+`GARANTIA_REPARO_DIAS_PADRAO` (`irflow_core.py`), exposto via `/api/constantes`, consumido por
+`Orders.jsx`/`OrderFilters.jsx`. Achado registrado, não corrigido: perfis (`admin`/`tecnico`/
+`vendedor`) espalhados como string literal em 11 arquivos backend sem lista central — categoria
+diferente (autorização, não referência de UI), risco desproporcional a um chore, candidato a sprint
+própria. 478 testes, `ruff check .` limpo, validado manualmente com os dropdowns de Status/Tipo em
+`/ordens`.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

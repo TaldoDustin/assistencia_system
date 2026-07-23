@@ -20,6 +20,16 @@ STATUS_OS_OPCOES = [
     STATUS_CANCELADO,
 ]
 
+# Tipo de OS não é validado contra lista fechada no backend hoje (aceita
+# qualquer texto, só usa "Assistencia" como default) — esta lista é a fonte
+# única de exibição (GET /api/constantes), não uma whitelist de gravação.
+OS_TIPOS_OPCOES = ["Assistencia", "Garantia", "Upgrade"]
+
+# Prazo padrão de garantia de reparo (dias) — distinto da futura garantia de
+# venda (docs/product/PRODUCT_GLOSSARY.md), que terá prazo próprio por tipo
+# de aparelho quando o Épico Vendas existir.
+GARANTIA_REPARO_DIAS_PADRAO = 90
+
 
 def texto_limpo(valor):
     return str(valor or "").strip()

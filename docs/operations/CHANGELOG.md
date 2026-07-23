@@ -144,6 +144,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Adicionado (2026-07-23)
 - `docs/product/PRODUCT_GLOSSARY.md` — glossário de termos do produto (Produto, Estoque, Unidade Serializada, IMEI, Origem, Cliente, Venda, Reserva, Garantia — nos dois sentidos distintos, de reparo e de venda —, Comissão), extraído do código/docs reais, não aspiracional. Pedido do usuário (CTO) após confusão recorrente de terminologia na semana (Produto vs. Estoque, Aparelho usado de forma ambígua). Marca explicitamente "Aparelho" como termo a evitar em spec/código por ambiguidade, e lista Venda/Reserva/Garantia de venda/Comissão como "especificado, não implementado" — nenhum deles existe no sistema hoje. `docs/README.md` atualizado com a entrada no índice de `product/`
 
+### Adicionado (2026-07-23 — Sprint Técnica: Centralização de Referências de OS)
+- `OS_TIPOS_OPCOES`/`GARANTIA_REPARO_DIAS_PADRAO` (`irflow_core.py`) — antes eram literais soltos duplicados: tipos de OS apareciam inline em 2 lugares do backend e em 3 cópias no frontend (`lib/constants.js`, fallback em `NewOrder.jsx`, fallback em `EditOrder.jsx`), com `OrderFilters.jsx` nunca buscando da API; prazo de garantia (90 dias) estava hardcoded 2x no mesmo arquivo backend, e `GARANTIA_DIAS` no frontend era código morto (nunca importado). `frontend/src/pages/Orders.jsx` passa a buscar `/api/constantes`; `OrderFilters.jsx` consome `status_opcoes`/`os_tipos` da API com fallback. Achado registrado, não corrigido: perfis (`admin`/`tecnico`/`vendedor`) espalhados como string literal em 11 arquivos backend sem lista central — categoria diferente (autorização, não referência de UI), fora de escopo por risco desproporcional a um chore. 2 novos testes (478 no total), `ruff check .` limpo, validado manualmente com os dropdowns de Status/Tipo em `/ordens` populados pela API real
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

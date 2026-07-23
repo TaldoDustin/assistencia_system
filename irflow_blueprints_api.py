@@ -60,6 +60,8 @@ def create_api_blueprint(deps):
     vendedores = deps["vendedores"]
     tecnicos = deps["tecnicos"]
     status_os_opcoes = deps["status_os_opcoes"]
+    os_tipos_opcoes = deps["os_tipos_opcoes"]
+    garantia_reparo_dias_padrao = deps["garantia_reparo_dias_padrao"]
     categorias_custos = deps["categorias_custos"]
     reparos_padrao = deps["reparos_padrao"]
     produtos_categorias = deps["produtos_categorias"]
@@ -497,14 +499,14 @@ def create_api_blueprint(deps):
             "vendedores": _sanitize_list(vendedores),
             "tecnicos": _sanitize_list(tecnicos),
             "status_opcoes": _sanitize_list(status_os_opcoes),
-            "os_tipos": _sanitize_list(["Assistencia", "Garantia", "Upgrade"]),
+            "os_tipos": _sanitize_list(os_tipos_opcoes),
             "categorias_custos": _sanitize_list(categorias_custos),
             "estoque_tipos": _sanitize_list(ESTOQUE_TIPOS),
             "estoque_qualidades": _sanitize_list(ESTOQUE_QUALIDADES),
             "reparos_padrao": _sanitize_list(reparos_padrao),
             "produtos_categorias": _sanitize_list(produtos_categorias),
             "produtos_condicoes": _sanitize_list(produtos_condicoes),
-            "garantia_dias": 90,
+            "garantia_dias": garantia_reparo_dias_padrao,
         }
         return ok(**payload)
 
@@ -2472,7 +2474,7 @@ def create_api_blueprint(deps):
 
         q = (request.args.get("q") or "").strip().lower()
         hoje = datetime.now().date()
-        garantia_dias = 90
+        garantia_dias = garantia_reparo_dias_padrao
 
         conn = conectar()
         cursor = conn.cursor()

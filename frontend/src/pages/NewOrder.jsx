@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/constants";
+import { formatCurrency, OS_TYPES_FALLBACK, STATUS_OPTIONS_FALLBACK } from "@/lib/constants";
 
 const EMPTY_FORM = {
   tipo: "Assistencia",
@@ -170,7 +170,7 @@ export default function NewOrder() {
               <Select value={form.tipo} onValueChange={(v) => setField("tipo", v)}>
                 <SelectTrigger aria-label="Tipo de OS"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(constants?.os_tipos || ["Assistencia", "Garantia", "Upgrade"]).map((t) => (
+                  {(constants?.os_tipos || OS_TYPES_FALLBACK).map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
@@ -247,7 +247,7 @@ export default function NewOrder() {
               <Select value={form.status} onValueChange={(v) => setField("status", v)}>
                 <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(constants?.status_opcoes || ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"]).map((s) => (
+                  {(constants?.status_opcoes || STATUS_OPTIONS_FALLBACK).map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>

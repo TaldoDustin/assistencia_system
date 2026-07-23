@@ -17,23 +17,27 @@
 Reportado pelo usuário (CTO) em 2026-07-23 ao editar/criar OS e cadastrar/alterar estoque, de forma
 intermitente. Investigação encontrou: WAL e timeout já configurados corretamente (descartados como
 causa); as 4 rotas citadas como sintoma já têm `try/except/finally` corretos (não são a origem do
-vazamento, só a vítima do lock). Causa raiz mais provável: **14 pontos de código ativo fazem escrita no
-banco sem proteção contra exceção** — se uma exceção ocorre entre abrir a conexão e fechá-la, a conexão
-vaza com a transação de escrita ainda aberta, e em WAL isso bloqueia **todo** escritor seguinte até o
-processo coletar aquele objeto via GC (não determinístico). Também confirmado ativo e sem proteção: as 4
-rotas de `/api/shopping-list*` e `POST /api/checklist/<token>` (rota pública, sem login, exposta a
-clientes finais) — estes seguem em aberto.
+vazamento, só a vítima do lock, se a hipótese estiver certa). Hipótese principal (**ainda não comprovada
+em runtime** — correção de registro feita pelo usuário em 2026-07-23, ver documento completo): 14 pontos
+de código ativo fazem escrita no banco sem proteção contra exceção — se uma exceção ocorre entre abrir a
+conexão e fechá-la, a conexão vaza com a transação de escrita ainda aberta, e em WAL isso bloquearia
+**todo** escritor seguinte até o processo coletar aquele objeto via GC. Hipótese específica de conexão
+aninhada dentro das 4 rotas de OS/Estoque (auditoria/movimentação abrindo `conectar()` de novo) foi
+investigada e **descartada** por leitura de código — todas passam o mesmo cursor pela cadeia inteira de
+chamadas.
 
 **Corrigido:** `POST /api/auth/login` (maior frequência de chamada de todo o sistema, já é escrita) —
-hotfix isolado em `hotfix/conexao-login-database-locked`, por decisão explícita do usuário. Provado por
-teste que injeta falha real no ponto exato da causa raiz (`tests/test_inc001_login_connection_leak.py`),
+hotfix isolado em `hotfix/conexao-login-database-locked`, por decisão explícita do usuário, mantido
+independente do resultado da investigação por ser uma melhoria objetiva. Provado por teste que injeta
+falha real no ponto exato da causa hipotetizada (`tests/test_inc001_login_connection_leak.py`),
 confirmado falhando contra o código anterior e passando contra a correção. 480 testes, `ruff check .`
 limpo, zero regressão.
 
 **Ainda em aberto — prioridade número 1 do projeto, à frente de qualquer KI e do Épico Vendas, por
-decisão explícita do usuário (CTO):** os outros 13 pontos identificados na investigação. Próximo passo
-pendente da decisão dele: instrumentar antes de corrigir (confirmar em runtime qual exceção realmente
-dispara o vazamento) vs. corrigir sistematicamente pelo mesmo padrão do hotfix, rota por rota.
+decisão explícita do usuário (CTO):** decidido instrumentar (não corrigir os 13 pontos restantes ainda)
+— criação/fechamento de conexões rastreadas temporariamente para reproduzir o erro e identificar
+exatamente qual rota/fluxo segura o lock, antes de padronizar as demais rotas. Plano técnico em
+apresentação para aprovação (altera `app.py`).
 
 ---
 

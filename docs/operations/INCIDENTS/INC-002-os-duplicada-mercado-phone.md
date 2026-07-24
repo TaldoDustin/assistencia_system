@@ -138,13 +138,12 @@ do KI-001), em vez de esperar a migração maior para um worker/cron dedicado �
 registrada como melhoria arquitetural futura, não bloqueia a correção imediata.
 
 `irflow_mercadophone.py` — `adquirir_lock_sync_mercado_phone()`/`liberar_lock_sync_mercado_phone()`
-implementam um lease com expiração (300s) usando a tabela `integracao_sync_estado` (já existente, sem
-mudança de schema): antes de sincronizar, cada processo tenta reivindicar o lock via um `UPDATE ...
-WHERE valor < <agora>` atômico; só um processo consegue. `sincronizar_mercado_phone()` agora tenta
-adquirir o lock primeiro — se outro worker já está sincronizando, retorna `lock_ocupado=True`
-imediatamente, sem chamar a API do Mercado Phone nem tocar no banco. Se o processo que detém o lock cair
-sem liberar, o lease expira sozinho depois de 300s (10x o intervalo padrão de sincronização) — não trava
-a sincronização permanentemente.
+implementam um lease com expiração usando a tabela `integracao_sync_estado` (já existente, sem mudança
+de schema): antes de sincronizar, cada processo tenta reivindicar o lock via um `UPDATE ... WHERE valor
+< <agora>` atômico; só um processo consegue. `sincronizar_mercado_phone()` agora tenta adquirir o lock
+primeiro — se outro worker já está sincronizando, retorna `lock_ocupado=True` imediatamente, sem chamar
+a API do Mercado Phone nem tocar no banco. Se o processo que detém o lock cair sem liberar, o lease
+expira sozinho — não trava a sincronização permanentemente.
 
 Efeito colateral corrigido no mesmo commit: `reprocessar_todas_os_mercado_phone()` (reimportação
 completa, que primeiro apaga todas as OS do Mercado Phone e depois reimporta) tratava
@@ -153,10 +152,29 @@ retorna. Sem o ajuste, um lock ocupado na primeira tentativa faria a reimportaç
 reimportar nada, depois de já ter apagado tudo. Corrigido para tratar `lock_ocupado` como motivo de
 retry (orçamento próprio, não conta contra as tentativas normais).
 
-5 novos testes (`tests/test_inc002_mercado_phone_sync_lock.py`, 485 no total): aquisição/liberação/
-expiração do lock, curto-circuito de `sincronizar_mercado_phone()` sem chamada de rede quando ocupado, e
-uma corrida real entre 2 threads confirmando que exatamente uma vence (rodada 5x seguidas para
-descartar flakiness). `ruff check .` limpo, zero regressão.
+**Refinamentos de uma segunda revisão (usuário/CTO), no mesmo dia:**
+- **TTL reduzido de 300s para 90s** (`LOCK_SYNC_TTL_SEGUNDOS_PADRAO`) — intervalo padrão de sync é 30s
+  e um ciclo sem novidades é rápido; 300s deixaria o sistema esperando até 5 minutos após um worker
+  morrer no meio de um sync, mais do que o necessário. 90s (3x o intervalo) dá folga para ciclos com
+  várias OS novas/atualizadas sem exagerar no tempo de espera pós-crash.
+- **Log quando o lock está ocupado** — antes só retornava `lock_ocupado=True` silenciosamente;
+  agora também imprime `[MercadoPhone] Sincronização ignorada: lock ocupado por outro worker.`, para
+  diagnosticar rápido se "o sync não rodou" for reportado no futuro.
+- **Teste de corrida escalado de 2 para 100 threads simultâneas** — mesma prova de atomicidade, mais
+  margem de confiança (produção só tem 2 workers reais, mas 100 concorrentes de uma vez é uma prova
+  bem mais forte contra qualquer não-atomicidade sutil no `UPDATE ... WHERE`).
+- **Novo teste de estresse: 300 aquisições reais (20 threads × 15 rodadas, cada rodada tenta até
+  conseguir)**, com um contador de seção crítica clássico — se o `UPDATE ... WHERE` não fosse atômico,
+  mais de uma thread entraria "dentro do lock" ao mesmo tempo e o contador passaria de 1 em algum
+  momento das 300 aquisições. Reduzido de 1000 para 300 aquisições depois de medir o impacto no tempo
+  da suíte (1000 acrescentava ~29s ao total; 300 acrescenta ~5s e já é duas ordens de grandeza acima
+  dos 2 workers reais).
+
+7 novos testes (`tests/test_inc002_mercado_phone_sync_lock.py`, 486 no total): aquisição/liberação/
+expiração do lock, curto-circuito de `sincronizar_mercado_phone()` sem chamada de rede quando ocupado,
+corrida real entre 100 threads confirmando que exatamente uma vence, e o teste de estresse de 300
+aquisições acima — suíte inteira rodada 3x seguidas para descartar flakiness. `ruff check .` limpo, zero
+regressão.
 
 **O que esta correção NÃO faz:** não confirma nem limpa duplicatas que já possam existir em produção
 (pendente da consulta SQL abaixo); não adiciona a `UNIQUE INDEX` — isso é deliberadamente adiado até as

@@ -48,9 +48,15 @@ def definir_estado_integracao(cursor, chave, valor):
 
 _LOCK_SYNC_CHAVE = "mercado_phone_sync_lock"
 _LOCK_SYNC_EPOCA = "0000-01-01 00:00:00"
+# Intervalo padrao de sync e 30s (MERCADO_PHONE_SYNC_INTERVAL_SECONDS, app.py) e um ciclo
+# sem novidades e rapido (so listagem, sem chamada por OS). 90s (3x o intervalo) da folga
+# para ciclos com varias OS novas/atualizadas sem deixar um worker morto bloqueando a
+# sincronizacao por muito tempo - revisado para baixo a partir de 300s por review do
+# usuario (CTO): "5 minutos de espera apos um crash e mais do que o necessario".
+LOCK_SYNC_TTL_SEGUNDOS_PADRAO = 90
 
 
-def adquirir_lock_sync_mercado_phone(conectar, ttl_segundos=300):
+def adquirir_lock_sync_mercado_phone(conectar, ttl_segundos=LOCK_SYNC_TTL_SEGUNDOS_PADRAO):
     """Lock cross-processo (INC-002): impede que mais de um worker do Gunicorn rode a
     sincronizacao do Mercado Phone ao mesmo tempo. `iniciar_sync_mercadophone_se_habilitado`
     (app.py) inicia uma thread de sync por processo, sem coordenacao entre eles - com
@@ -794,6 +800,7 @@ def sincronizar_mercado_phone(conectar, config, helpers):
     Gunicorn ja estiver sincronizando, retorna sem tocar na API nem no banco em vez de
     competir com ele."""
     if not adquirir_lock_sync_mercado_phone(conectar):
+        print("[MercadoPhone] Sincronização ignorada: lock ocupado por outro worker.")
         return {"ok": True, "importadas": 0, "ignoradas": 0, "inicializada": True, "lock_ocupado": True}
     try:
         return _sincronizar_mercado_phone_sem_lock(conectar, config, helpers)

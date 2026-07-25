@@ -220,6 +220,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - `immer`, `enhanced-resolve` — `npm audit` local não reproduz vulnerabilidade nas versões instaladas; classificado como "não reproduzido neste momento", não como falso positivo definitivo — reavaliar se surgir CVE nova ou se a base do Aikido divergir de novo
 - 502 testes no total, `ruff check .` limpo, zero regressão
 
+### Adicionado (2026-07-25 — Sprint Observabilidade)
+- `irflow_logging.py` — logging estruturado em JSON (`JSONFormatter`, `configurar_logging()`, `get_logger()`), sem dependência nova (stdlib `logging`). Cada linha carrega `request_id` quando emitida dentro de uma request Flask
+- `app.py` — correlation ID por request (`X-Request-Id`, gerado ou ecoado do cliente se vier num formato válido) e log de acesso JSON (`method`/rota via `url_rule.rule`/status/duração/usuário) em todo request
+- `/health` (liveness, sempre 200) e `/ready` (readiness, checa o banco via `SELECT 1`, 503 se falhar) — sem autenticação, bypass explícito no `before_request` de auth
+- `/metrics` (Prometheus): `http_requests_total` e `http_request_duration_seconds`, labels `method`/`route`/`status` (rota via `url_rule.rule`, nunca `request.path`, evita cardinalidade sem limite). Protegido por `METRICS_TOKEN` quando `IS_SERVER_RUNTIME`, nega por padrão se a variável não estiver configurada
+- Modo multiprocess do `prometheus_client` (Gunicorn roda `--workers 2` — registry padrão daria números por processo, mesma classe de bug de INC-001/INC-002/rate limiting): novo `gunicorn.conf.py` com hooks `on_starting`/`child_exit`; `Dockerfile` define `PROMETHEUS_MULTIPROC_DIR` via `ENV`, herdada pelos workers. Validado com `docker build`/`docker run` reais (via `colima`): 20 requests distribuídos entre os 2 workers agregados corretamente em `/metrics`
+- Sentry (`sentry-sdk[flask]`) inicializado só quando `SENTRY_DSN` está definida (vazia por padrão — usuário ainda não tem conta). `send_default_pii=False` explícito (dado real de cliente não pode vazar em breadcrumb), `traces_sample_rate=0` (só captura de erro, sem tracing)
+- Migração dos `print()` que já carregavam sinal operacional real para `logger.*` estruturado: `app.py` (admin padrão, token de webhook Mercado Phone), `irflow_storage.py` (thread de backup, relacionado a KI-006), `irflow_mercadophone.py` (sincronização) — 22 ocorrências no total, não os outros ~220 (a maioria em `scripts/` avulsos fora do processo do servidor)
+- Achado durante a validação real com Docker: Gunicorn ≥25 liga por padrão um socket de controle que falhava com "Permission denied" no container non-root (`$HOME` do `appuser` não é gravável por ele) — desabilitado via `control_socket_disable=True`, não usamos essa feature
+- 30 novos testes (`test_logging_json.py`, `test_health_ready.py`, `test_request_id.py`, `test_metrics.py`, `test_sentry_init.py`). 526 testes no total, `ruff check .` limpo, zero regressão
+- `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` — plano e retrospectiva completos
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

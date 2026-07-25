@@ -9,18 +9,28 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 import contextlib
 import functools
 import os
+import re
 import shutil
 import sqlite3
 import sys
 import threading
+import time
+import uuid
 import webbrowser
 from datetime import datetime, timedelta
 
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session
+from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session, g
 from werkzeug.security import check_password_hash, generate_password_hash
+
+# ============================================================================
+# IMPORTS DE OBSERVABILIDADE (Sprint Observabilidade)
+# ============================================================================
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest, multiprocess
+
+from irflow_logging import configurar_logging, get_logger
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
@@ -222,6 +232,31 @@ MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", 
 # ============================================================================
 # BOOTSTRAP FLASK
 # ============================================================================
+# Configurado antes de qualquer outra coisa poder logar durante o boot.
+configurar_logging()
+logger = get_logger("app")
+
+# Sentry (Sprint Observabilidade) -- só inicializa com SENTRY_DSN definida.
+# Vazia por padrão: usuário ainda não tem conta Sentry, vai criar depois e
+# só colar o DSN no Render (mesmo padrão de integração opcional já usado
+# pelo Mercado Phone). send_default_pii=False é deliberado -- o sistema
+# lida com dado real de cliente (nome, IMEI), não pode vazar em
+# breadcrumb/payload de erro. traces_sample_rate=0 -- só captura de erro,
+# sem tracing de performance (evita overhead/custo sem necessidade
+# confirmada; pode ser revisto depois se fizer sentido).
+_sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        send_default_pii=False,
+        traces_sample_rate=0,
+    )
+    logger.info("sentry_inicializado")
+
 try:
     from flask_cors import CORS
 except Exception:
@@ -361,6 +396,69 @@ def _security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
+# ============================================================================
+# CORRELATION ID + LOG DE ACESSO POR REQUEST (Sprint Observabilidade)
+# ============================================================================
+# Alfanumérico + hífen, até 64 chars — aceita o formato usual de UUID/ULID.
+# Um X-Request-Id de cliente fora desse formato é descartado (gera um novo),
+# nunca repassado como veio: evita que um valor hostil (ex. com quebra de
+# linha) vaze para dentro da linha de log JSON.
+_REQUEST_ID_VALIDO = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+# Labels usam request.url_rule.rule (ex. "/api/ordens/<int:os_id>"), nunca
+# request.path -- caso contrário cada OS/id vira uma série temporal nova
+# (cardinalidade sem limite). Em modo multiprocess (PROMETHEUS_MULTIPROC_DIR
+# setada, só acontece dentro do container -- ver Dockerfile/gunicorn.conf.py)
+# o prometheus_client detecta a env var por conta própria e faz cada Counter/
+# Histogram gravar num arquivo mmap compartilhado por worker; a agregação
+# entre workers só acontece na leitura, em /metrics (ver metrics_endpoint).
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total de requisições HTTP recebidas",
+    ["method", "route", "status"],
+)
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "http_request_duration_seconds",
+    "Duração das requisições HTTP em segundos",
+    ["method", "route"],
+)
+
+
+@app.before_request
+def _iniciar_request_id():
+    recebido = (request.headers.get("X-Request-Id") or "").strip()
+    g.request_id = recebido if _REQUEST_ID_VALIDO.match(recebido) else str(uuid.uuid4())
+    g._inicio_request = time.monotonic()
+
+
+@app.after_request
+def _logar_acesso(response):
+    response.headers["X-Request-Id"] = getattr(g, "request_id", "") or str(uuid.uuid4())
+
+    duracao_ms = None
+    inicio = getattr(g, "_inicio_request", None)
+    if inicio is not None:
+        duracao_ms = round((time.monotonic() - inicio) * 1000, 2)
+
+    rota = request.url_rule.rule if request.url_rule else request.path
+    logger.info(
+        "request",
+        extra={
+            "http_method": request.method,
+            "http_route": rota,
+            "http_status": response.status_code,
+            "duration_ms": duracao_ms,
+            "usuario_id": session.get("usuario_id"),
+        },
+    )
+
+    HTTP_REQUESTS_TOTAL.labels(method=request.method, route=rota, status=response.status_code).inc()
+    if duracao_ms is not None:
+        HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, route=rota).observe(duracao_ms / 1000)
+
     return response
 
 
@@ -939,7 +1037,7 @@ def criar_admin_padrao():
             conn.commit()
     except Exception as exc:
         # Loga o erro mas não interrompe o boot
-        print(f"[WARN] Erro ao criar admin padrão: {exc}")
+        logger.warning("criar_admin_padrao_falhou", extra={"erro": str(exc)})
     finally:
         conn.close()
 
@@ -1040,12 +1138,14 @@ def autenticar_integracao_mercado_phone():
             candidatos.append(valor)
 
     if MERCADO_PHONE_WEBHOOK_TOKEN not in candidatos:
-        print(
-            "[MercadoPhone] Token webhook inválido. "
-            f"esperado={_mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN)} "
-            f"candidatos={[ _mascarar_token(c) for c in candidatos ]} "
-            f"headers={sorted(request.headers.keys())} "
-            f"query_keys={sorted(request.args.keys())}"
+        logger.warning(
+            "mercadophone_webhook_token_invalido",
+            extra={
+                "esperado": _mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN),
+                "candidatos": [_mascarar_token(c) for c in candidatos],
+                "headers": sorted(request.headers.keys()),
+                "query_keys": sorted(request.args.keys()),
+            },
         )
         abort(401)
 
@@ -1535,7 +1635,16 @@ def verificar_autenticacao():
         return
 
     # Rotas estáticas e API — autenticação gerenciada pela própria API
-    if endpoint in ("static", "serve_react", "serve_react_assets"):
+    # "health_check"/"ready_check"/"metrics_endpoint": probes de infraestrutura
+    # (Render, Prometheus) não autenticam — Sprint Observabilidade.
+    if endpoint in (
+        "static",
+        "serve_react",
+        "serve_react_assets",
+        "health_check",
+        "ready_check",
+        "metrics_endpoint",
+    ):
         return
 
     # Expiração de sessão por inatividade — roda para TODA rota autenticada,
@@ -1704,6 +1813,68 @@ app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conec
 from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
 
 app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# HEALTH CHECKS (Sprint Observabilidade) — sem autenticação, usados por
+# probes de infraestrutura (Render, load balancer). Não usam a convenção
+# ok()/err() das blueprints de domínio de propósito — são infraestrutura,
+# não API de negócio.
+# ============================================================================
+
+
+@app.route("/health")
+def health_check():
+    """Liveness — processo está de pé. Não checa nenhuma dependência externa."""
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/ready")
+def ready_check():
+    """Readiness — banco de dados está acessível."""
+    try:
+        conn = conectar()
+        try:
+            conn.execute("SELECT 1")
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.error("readiness_check_failed", extra={"erro": str(exc)})
+        return jsonify({"status": "unavailable"}), 503
+    return jsonify({"status": "ok"}), 200
+
+
+def _metrics_autorizado():
+    # Fora de IS_SERVER_RUNTIME (dev local, testes) libera sem token, pra
+    # facilitar curl local. Em produção, exige METRICS_TOKEN configurada e
+    # correspondente -- se a variável não estiver setada, nega por padrão
+    # (mais seguro do que deixar aberto por omissão de configuração).
+    if not IS_SERVER_RUNTIME:
+        return True
+    token_esperado = os.environ.get("METRICS_TOKEN", "")
+    if not token_esperado:
+        return False
+    return request.headers.get("X-Metrics-Token", "") == token_esperado
+
+
+@app.route("/metrics")
+def metrics_endpoint():
+    """Métricas Prometheus. Em modo multiprocess (container com --workers 2,
+    ver Dockerfile/gunicorn.conf.py), agrega os dados de todos os workers a
+    partir dos arquivos em PROMETHEUS_MULTIPROC_DIR -- sem isso, cada worker
+    reportaria só a própria fatia do tráfego."""
+    if not _metrics_autorizado():
+        return jsonify({"erro": "Não autorizado."}), 401
+
+    multiproc_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    if multiproc_dir:
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+        payload = generate_latest(registry)
+    else:
+        payload = generate_latest()
+
+    return payload, 200, {"Content-Type": CONTENT_TYPE_LATEST}
+
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

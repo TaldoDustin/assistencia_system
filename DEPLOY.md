@@ -32,8 +32,11 @@ Adicione as variáveis necessárias em **Environment > Add Environment Variable*
 - `IR_FLOW_DATA_DIR=/data` (recomendado)
 - `RENDER_DISK_PATH=/data` (alternativa)
 - `IR_FLOW_CORS_ORIGINS=https://assistencia-system.vercel.app` (ou uma lista separada por vírgula)
+- `SENTRY_DSN` (opcional — Sprint Observabilidade, 2026-07-25; vazio desabilita a integração por completo)
+- `METRICS_TOKEN` (recomendado em produção — protege `/metrics`; sem essa variável, o endpoint nega por padrão)
 
 > Dica: se usar preview URLs do Vercel, inclua também esses domínios em `IR_FLOW_CORS_ORIGINS`.
+> `PROMETHEUS_MULTIPROC_DIR` não precisa ser configurada manualmente — já vem definida no `Dockerfile`.
 
 ### 5. Volume persistente (Disks)
 - Em **Disks**, clique em **Add Disk**

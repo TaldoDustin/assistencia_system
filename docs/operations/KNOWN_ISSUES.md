@@ -114,10 +114,16 @@ Impacto:
 Baixo. O operador pode ficar sem backup por dias sem perceber, aumentando o risco de perda de dados em caso de falha de disco.
 
 Status:
-Aberto.
+Aberto — parcialmente endereçado. Sprint Observabilidade (2026-07-25) migrou os `print()` da thread de
+backup (`irflow_storage.py`) para `logger.warning`/`logger.error` estruturado, e a integração Sentry
+(gated por `SENTRY_DSN`, ainda vazia — usuário não tem conta) captura automaticamente qualquer
+`logger.error(..., exc_info=True)` quando ativada. Isso dá visibilidade ao operador técnico via Sentry
+depois de configurada — mas continua sem nenhuma notificação visível na interface para o usuário da
+loja, que é o gap original descrito acima. Não fechar este KI só por causa da mudança de logging.
 
 Sprint prevista:
-Sprint 3 — Segurança e Observabilidade.
+Sprint 3 — Segurança e Observabilidade (concluída parcialmente nesse ponto por
+`docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md`, 2026-07-25).
 
 Responsável:
 —

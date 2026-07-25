@@ -180,6 +180,12 @@ Fase 4 — Evolução Funcional    [Sprint 6–7]   ░░░░░░░░░�
 
 ### Sprint 3 — Segurança e Observabilidade
 
+> **Nota (2026-07-25):** os critérios de segurança abaixo foram fechados pela Sprint Segurança 1.0
+> (`docs/security/SECURITY_AUDIT_2026-07.md`). Os critérios de observabilidade ("logs estruturados em
+> JSON", "alertas de erro em produção") foram fechados pela Sprint Observabilidade
+> (`docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md`) — checkboxes abaixo preservados como registro
+> histórico do planejamento original, não atualizados retroativamente.
+
 **Objetivo estratégico:** Eliminar vulnerabilidades ativas antes de qualquer expansão funcional.
 
 **Objetivo:** Corrigir vulnerabilidades de segurança conhecidas e implementar observabilidade básica (logs estruturados + alertas de erro).

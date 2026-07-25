@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
+from irflow_logging import get_logger
+
+logger = get_logger("irflow.mercadophone")
+
 
 def valor_payload(payload, *caminhos):
     for caminho in caminhos:
@@ -218,9 +222,15 @@ def chamar_api_mercado_phone(method_name, payload, config):
             if tentativa >= retries or not _erro_rede_transitorio(exc):
                 raise
             espera = min(8, 2 * tentativa)
-            print(
-                f"[MercadoPhone] Tentativa {tentativa}/{retries} falhou em {method_name}: "
-                f"{type(exc).__name__}: {exc}. Repetindo em {espera}s..."
+            logger.warning(
+                "mercadophone_api_tentativa_falhou",
+                extra={
+                    "tentativa": tentativa,
+                    "retries": retries,
+                    "method": method_name,
+                    "erro": f"{type(exc).__name__}: {exc}",
+                    "espera_s": espera,
+                },
             )
             time.sleep(espera)
 
@@ -518,7 +528,10 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
                 f"UPDATE os SET {set_clause} WHERE id=?",
                 (*updates.values(), os_id),
             )
-            print(f"[MercadoPhone] Atualizado OS {os_id} (código {external_id}): {list(updates.keys())}")
+            logger.info(
+                "mercadophone_os_atualizada",
+                extra={"os_id": os_id, "codigo_externo": external_id, "campos": list(updates.keys())},
+            )
 
         return {"os_id": os_id, "duplicada": False, "atualizada": True}
 
@@ -532,7 +545,7 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
             "servicos": len(lista_payload(payload, "servicos") or lista_payload(payload, "servicosOs")),
             "aparelhos": len(lista_payload(payload, "aparelhos")),
         }
-        print(f"[MercadoPhone] Payload insuficiente para criar OS (descartada): {resumo}")
+        logger.warning("mercadophone_payload_insuficiente", extra={"resumo": resumo})
         raise ValueError("Payload da OS sem dados suficientes para criar registro.")
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
@@ -800,7 +813,7 @@ def sincronizar_mercado_phone(conectar, config, helpers):
     Gunicorn ja estiver sincronizando, retorna sem tocar na API nem no banco em vez de
     competir com ele."""
     if not adquirir_lock_sync_mercado_phone(conectar):
-        print("[MercadoPhone] Sincronização ignorada: lock ocupado por outro worker.")
+        logger.info("mercadophone_sync_ignorada_lock_ocupado")
         return {"ok": True, "importadas": 0, "ignoradas": 0, "inicializada": True, "lock_ocupado": True}
     try:
         return _sincronizar_mercado_phone_sem_lock(conectar, config, helpers)
@@ -896,10 +909,14 @@ def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
                     importadas += 1
             except ValueError as exc:
                 ignoradas += 1
-                print(f"[MercadoPhone] OS ignorada ({external_id}): {exc}")
+                logger.warning("mercadophone_os_ignorada", extra={"codigo_externo": external_id, "erro": str(exc)})
             except Exception as exc:
                 ignoradas += 1
-                print(f"[MercadoPhone] Erro ao processar OS {external_id}: {type(exc).__name__}: {exc}")
+                logger.error(
+                    "mercadophone_erro_ao_processar_os",
+                    extra={"codigo_externo": external_id, "erro": f"{type(exc).__name__}: {exc}"},
+                    exc_info=True,
+                )
 
         definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
         definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -985,11 +1002,16 @@ def loop_sincronizacao_mercado_phone(conectar, config, helpers):
             if config["sync_enabled"] and config["api_token"]:
                 resultado = sincronizar_mercado_phone(conectar, config, helpers)
                 if resultado.get("importadas") > 0 or resultado.get("ignoradas") > 0:
-                    print(f"[MercadoPhone] Sincronização: importadas={resultado.get('importadas')}, atualizadas={resultado.get('ignoradas')}")
+                    logger.info(
+                        "mercadophone_sync_resumo",
+                        extra={"importadas": resultado.get("importadas"), "atualizadas": resultado.get("ignoradas")},
+                    )
         except urllib_error.URLError as exc:
-            print(f"[MercadoPhone] Falha de rede na sincronizacao: {type(exc).__name__}: {exc}")
+            logger.warning("mercadophone_sync_falha_rede", extra={"erro": f"{type(exc).__name__}: {exc}"})
         except Exception as exc:
-            print(f"[MercadoPhone] Falha inesperada na sincronizacao: {type(exc).__name__}: {exc}")
+            logger.error(
+                "mercadophone_sync_falha_inesperada", extra={"erro": f"{type(exc).__name__}: {exc}"}, exc_info=True
+            )
         time.sleep(max(30, config["sync_interval_seconds"]))
 
 
@@ -1169,17 +1191,28 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                 salvar_reparos_os(cursor2, os_id_local, reparo_ids)
                 conn2.commit()
                 atualizadas += 1
-                print(f"[MercadoPhone] Reprocessado OS local {os_id_local} (ext {id_externo_atual} → {id_externo_novo})")
+                logger.info(
+                    "mercadophone_os_local_reprocessada",
+                    extra={"os_id": os_id_local, "codigo_externo_antigo": id_externo_atual, "codigo_externo_novo": id_externo_novo},
+                )
             except Exception as exc:
                 conn2.rollback()
                 erros += 1
-                print(f"[MercadoPhone] Erro ao salvar OS local {os_id_local}: {type(exc).__name__}: {exc}")
+                logger.error(
+                    "mercadophone_erro_ao_salvar_os_local",
+                    extra={"os_id": os_id_local, "erro": f"{type(exc).__name__}: {exc}"},
+                    exc_info=True,
+                )
             finally:
                 conn2.close()
 
         except Exception as exc:
             erros += 1
-            print(f"[MercadoPhone] Erro ao reprocessar OS local {os_id_local}: {type(exc).__name__}: {exc}")
+            logger.error(
+                "mercadophone_erro_ao_reprocessar_os_local",
+                extra={"os_id": os_id_local, "erro": f"{type(exc).__name__}: {exc}"},
+                exc_info=True,
+            )
 
     return {"ok": True, "total": total, "atualizadas": atualizadas, "erros": erros}
 
@@ -1248,7 +1281,7 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
                 if esperas_lock_ocupado >= max_esperas_lock_ocupado:
                     break
                 espera = min(15, 3 * esperas_lock_ocupado)
-                print(f"[MercadoPhone] Reimportação: {ultima_falha}. Nova tentativa em {espera}s...")
+                logger.warning("mercadophone_reimportacao_retry", extra={"motivo": ultima_falha, "espera_s": espera})
                 time.sleep(espera)
                 continue
 
@@ -1268,7 +1301,7 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
 
         if tentativa < tentativas:
             espera = min(15, 3 * tentativa)
-            print(f"[MercadoPhone] Reimportação: {ultima_falha}. Nova tentativa em {espera}s...")
+            logger.warning("mercadophone_reimportacao_retry", extra={"motivo": ultima_falha, "espera_s": espera})
             time.sleep(espera)
 
     return {

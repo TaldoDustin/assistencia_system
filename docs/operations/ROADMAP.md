@@ -5,6 +5,16 @@
 **Versão atual:** 1.x (pós-deploy Render + Vercel)  
 **Horizonte:** 4 fases / ~8 sprints
 
+> ⚠️ **Aviso de desatualização e reconciliação de terminologia (2026-07-25):** este documento não é
+> atualizado desde 2026-07-06 — antecede Sprint 3, Clientes, Produtos, Unidades Serializadas, os
+> incidentes INC-001/INC-002 e a maior parte do trabalho comercial. As "Fase 1–4" abaixo são um eixo
+> **diferente e mais estreito** (sprints de engenharia, congelado no planejamento de julho) do que as
+> **6 Fases estratégicas** (Fase 0–5) agora definidas em `docs/company/RELEASE_STRATEGY.md` — não são a
+> mesma numeração nem o mesmo escopo (ex.: "Fase 1" aqui é a estabilização do MVP inicial, já concluída
+> há semanas; "Fase 1" em `RELEASE_STRATEGY.md` é a Release 1.0 comercial, ainda não alcançada). Para o
+> estado real atual do projeto, ver `docs/operations/PROJECT_STATUS.md`. Este documento precisa de uma
+> atualização completa — não feita ainda, fora do escopo desta reconciliação.
+
 ---
 
 ## Visão Geral

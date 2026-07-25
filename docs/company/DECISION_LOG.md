@@ -5,7 +5,7 @@ e a escolha entre elas (`docs/engineering/adr/`). **Decision Log é executivo** 
 produto/negócio, o motivo e o impacto, em ordem cronológica, para que ninguém precise reconstruir "por
 que decidimos isso" a partir de conversas antigas.
 
-**Última revisão:** 2026-07-20
+**Última revisão:** 2026-07-25
 
 **Regra de escrita:** toda entrada cita a fonte onde a decisão foi originalmente registrada (a maioria já
 está documentada em outro lugar — este log não substitui esses documentos, indexa-os cronologicamente
@@ -167,6 +167,25 @@ de OS por empresa precisa ser uma sequência própria (ex.: `numero_os` com cont
 o `id INTEGER PRIMARY KEY AUTOINCREMENT` global nem um número de integração externa). Não implementado
 agora — só registrado como requisito para quando ADR-005 for decidida.
 **Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-22, no acompanhamento do Hotfix H-003.
+
+## 2026-07-25 — Adoção das 6 Fases estratégicas; Financeiro básico entra na Release 1.0
+
+**Decisão:** adotado um horizonte de 6 Fases (0–5: Estabilização, Release 1.0, Multiempresa,
+Escalabilidade, Automação, Inteligência) como a camada de propósito de negócio acima do versionamento
+técnico já existente (0.8/0.9/1.0/2.0). Resolvida a pendência registrada em 2026-07-21: Financeiro
+básico (caixa, contas, despesas, receitas) entra na Fase 1 / versão 1.0, não fica adiado para a 2.0.
+**Motivo:** mudança de foco proposta pelo usuário (CTO) — de "próxima sprint" para "o que falta para o
+primeiro cliente pagante não cancelar no primeiro mês". Financeiro básico é parte do critério "cliente
+opera a empresa inteira sem depender de planilha paralela" que já justificava a Release 1.0.
+**Impacto:** `docs/company/RELEASE_STRATEGY.md` (nova seção "As 6 Fases estratégicas", resolve a
+pendência de Financeiro); `docs/operations/ROADMAP.md` recebeu aviso de desatualização/reconciliação de
+terminologia (sua numeração "Fase 1-4" é um eixo diferente, mais estreito, não deve ser confundida com
+as 6 Fases). Também registrada, não resolvida: tensão entre a ordem de Fase 2 (Multiempresa) e Fase 3
+(migração para Postgres) — os incidentes INC-001/INC-002 desta sprint técnica nasceram de limitações do
+SQLite com múltiplos processos, e Multiempresa aumentaria esse tipo de escrita concorrente antes da
+migração planejada para depois.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/company/RELEASE_STRATEGY.md` seção
+"As 6 Fases estratégicas".
 
 ## Documentos relacionados
 

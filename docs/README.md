@@ -43,7 +43,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/OPERATION_SYSTEM.md`](company/OPERATION_SYSTEM.md) — Como a loja funciona, ciclo completo (Fornecedor ao Pós-venda); a maioria dos blocos ainda `TODO`.
 - [`company/DECISION_LOG.md`](company/DECISION_LOG.md) — Histórico executivo de decisões de produto (distinto de ADR).
 - [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
-- [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Proposta de versionamento (1.0 a 2.0), decisão final pendente do Product Owner.
+- [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Versionamento decidido (0.8 a 2.0) e as 6 Fases estratégicas de longo prazo (Estabilização → Release 1.0 → Multiempresa → Escalabilidade → Automação → Inteligência).
 - [`company/CUSTOMER_FEEDBACK.md`](company/CUSTOMER_FEEDBACK.md) — Log de feedback de clientes (Cliente → Pedido → Discussão → Decisão → Sprint); evidência que orienta o backlog funcional.
 
 ---
@@ -97,7 +97,7 @@ Decisões técnicas importantes, com contexto e alternativas avaliadas:
 ## `operations/` — Estado Vivo de Execução
 
 - [`operations/PROJECT_STATUS.md`](operations/PROJECT_STATUS.md) — Score, cobertura, riscos, arquivos críticos. Atualizado a cada sprint.
-- [`operations/ROADMAP.md`](operations/ROADMAP.md) — Evolução planejada: fases, sprints, objetivos estratégicos.
+- [`operations/ROADMAP.md`](operations/ROADMAP.md) — Roadmap de sprints de engenharia. Desatualizado desde 2026-07-06 (ver aviso no topo do arquivo) — para o horizonte estratégico atual, ver `company/RELEASE_STRATEGY.md`.
 - [`operations/KNOWN_ISSUES.md`](operations/KNOWN_ISSUES.md) — Bugs e issues conhecidos. Nunca apagar — apenas mover para Resolvidos.
 - [`operations/CHANGELOG.md`](operations/CHANGELOG.md) — Histórico de versões e mudanças (formato Keep a Changelog).
 

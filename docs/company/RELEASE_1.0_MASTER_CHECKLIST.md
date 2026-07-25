@@ -45,13 +45,18 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 |---|---|---|
 | Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~40% |
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~44% |
-| Segurança e Compliance | 🟡 | ~75% |
+| Segurança e Compliance | 🟡 | ~55% |
 | Observabilidade | 🔴 | ~3% |
 | Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~2% |
 
 ```
-Release 1.0:  ███████░░░░░░░░░░░░░  ~33%
+Release 1.0:  ██████░░░░░░░░░░░░░░  ~29%
 ```
+
+**Correção (2026-07-25):** a revisão anterior desta tabela havia posto Segurança e Compliance em ~75%
+olhando só para o item "Segurança revisada" (que de fato ficou ✅). A área tem 2 itens — o outro,
+"LGPD", segue ❌ não iniciado — então a média da área é ~55%, não ~75%. Visão geral recalculada de
+~33% para ~29%.
 
 Maiores blocos de trabalho pela % (não pela quantidade de itens): **Operação** e **Observabilidade**
 estão praticamente do zero — nenhum dos dois tem código/documento nenhum ainda, diferente de
@@ -123,14 +128,14 @@ item abaixo.
 
 ### Segurança e Compliance
 
-- [ ] **Segurança revisada** — permissões, SQL injection, uploads, autenticação
-  Estado: 🟡 Sprint Segurança 1.0 (2026-07-25) fechou praticamente tudo: SQL Injection/File
-  Inclusion/SSRF confirmados falsos positivos; fallback hardcoded do `FLASK_SECRET_KEY` corrigido
-  (falha no boot fora de dev local); gap de autorização em OS/Estoque corrigido (perfil obrigatório);
-  todos os P1 corrigidos (CSP, X-Frame-Options, Docker non-root, `persist-credentials`, gunicorn e
-  dependências JS atualizadas). **Falta 1 ação manual, P0**: rotacionar `FLASK_SECRET_KEY` em produção
-  no Render — o valor atual é o mesmo que vazou no histórico do Git, risco ativo até ser trocado. Sem
-  essa rotação, este item não pode virar ✅.
+- [x] **Segurança revisada** — permissões, SQL injection, uploads, autenticação
+  Estado: ✅ Sprint Segurança 1.0 concluída em 2026-07-25: SQL Injection/File Inclusion/SSRF
+  confirmados falsos positivos; `FLASK_SECRET_KEY` rotacionada em produção e fallback hardcoded
+  corrigido (falha no boot fora de dev local); gap de autorização em OS/Estoque corrigido (perfil
+  obrigatório); todos os P1 corrigidos e validados (CSP/X-Frame-Options, Docker non-root — testado com
+  `docker build`/`docker run` reais antes do merge, `persist-credentials`, gunicorn e dependências JS
+  atualizadas). Restam só 2 itens P3 (risco aceite/build-only, sem urgência) e um novo scan Aikido
+  planejado para confirmar o estado pós-sprint (não bloqueia este item).
   Link: `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/engineering/SECURITY.md`,
   `docs/engineering/DATA_DICTIONARY.md`
 

@@ -3,9 +3,11 @@
 Este documento define a política de segurança do Fluxoly Platform, com um checklist baseado no OWASP Top 10 adaptado à stack do projeto (Flask + SQLite + React).
 
 **Última revisão:** 2026-07-25  
-**Sprint Segurança 1.0:** executada 2026-07-25 — P0 e P1 corrigidos, exceto rotação manual de
-`FLASK_SECRET_KEY` (pendente, ver seção 8) — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o
-detalhamento completo (scan Aikido, triagem P0/P1, cada item validado no código antes de classificar)
+**Sprint Segurança 1.0:** concluída 2026-07-25 — todos os P0 e P1 corrigidos, incluindo rotação de
+`FLASK_SECRET_KEY` e validação real (`docker build`/`docker run`) do container non-root antes do merge
+em `main` — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o detalhamento completo (scan Aikido,
+triagem P0/P1, cada item validado no código antes de classificar). Próximo passo: novo scan Aikido para
+confirmar o estado pós-sprint
 
 ---
 
@@ -143,10 +145,10 @@ item a item, com o padrão seguro já em uso documentado.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Credenciais removidas do repositório | ❌ | Commit `832945c` remove o arquivo do working tree, mas **o valor de `FLASK_SECRET_KEY` continua no histórico do Git** (3 commits, `eefcfd2`→`252815a`) **e é confirmadamente o mesmo valor ainda em uso em produção hoje** (verificado pelo usuário/CTO, 2026-07-25) — risco ativo, não hipotético. Ação P0 imediata: rotacionar a chave em produção. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2 |
+| Credenciais removidas do repositório | ✅ | Commit `832945c` remove o arquivo do working tree. O valor histórico de `FLASK_SECRET_KEY` (3 commits, `eefcfd2`→`252815a`) continua recuperável do histórico do Git, mas deixou de ser um risco ativo: a chave em produção foi **rotacionada em 2026-07-25** (confirmado pelo usuário/CTO). Reescrever o histórico (BFG/filter-repo) segue opcional, sem urgência. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2 |
 | `.env` no `.gitignore` | ✅ | Verificar |
 | `.env.example` documenta todas as variáveis sem valores reais | ✅ | Criado em 2026-07-11 (T-10, fechado junto da Unidade 8 da Sprint 3) — 26 variáveis documentadas, nenhum valor real |
-| `FLASK_SECRET_KEY` forte em produção | ⚠️ | Variável está configurada em produção, mas é o mesmo valor vazado no histórico do Git (ver linha acima) — "forte" não é suficiente se o valor é público, ainda precisa ser rotacionada. Fallback hardcoded do código corrigido em 2026-07-25 — `app.py` agora falha no boot se a variável estiver ausente fora de dev local, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
+| `FLASK_SECRET_KEY` forte em produção | ✅ | Rotacionada em 2026-07-25 — não é mais o valor vazado no histórico do Git. Fallback hardcoded do código também corrigido: `app.py` falha no boot se a variável estiver ausente fora de dev local, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
 | Tokens de integração (MercadoPhone) via variável de ambiente | ✅ | `MERCADO_PHONE_API_TOKEN` |
 | Nenhum segredo em logs ou respostas de erro | ⚠️ | A verificar |
 

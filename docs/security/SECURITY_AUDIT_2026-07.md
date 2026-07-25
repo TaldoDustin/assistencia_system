@@ -1,9 +1,10 @@
 # SECURITY_AUDIT_2026-07.md — Triagem do relatório Aikido
 
-**Status:** Investigado — cada alerta validado no código (não corrigido às cegas). Item 2 (segredo
-vazado) **confirmado como risco ativo** em 2026-07-25 pelo usuário (CTO): o valor de `FLASK_SECRET_KEY`
-configurado em produção hoje é o mesmo que vazou no histórico do Git — rotação necessária, ver seção do
-item 2 abaixo. Demais correções aguardando decisão sobre a Sprint Segurança 1.0.
+**Status:** Sprint Segurança 1.0 concluída em 2026-07-25 — todos os P0/P1 corrigidos, incluindo a
+rotação de `FLASK_SECRET_KEY` em produção (usuário/CTO confirmou 2026-07-25) e o merge validado do
+Docker non-root em `main`. Cada alerta foi validado no código antes de corrigir (não corrigido às
+cegas). Restam apenas 2 itens P3 de baixa prioridade (15, 16 — build-only/risco aceite) e o próximo
+scan Aikido para confirmar o estado real pós-sprint (ver "Próximo passo").
 **Origem:** scan automatizado do Aikido rodado pelo usuário (CTO) em 2026-07-25 contra o repositório.
 **Investigado por:** Claude (Principal Engineer), 2026-07-25.
 **Regra seguida:** SAST (análise estática) gera falsos positivos com frequência — nenhum item abaixo foi
@@ -16,7 +17,7 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 | # | Item (relatório Aikido) | Severidade | Classificação | Ação |
 |---|---|---|---|---|
 | 1 | SQL Injection via concatenação de strings | 🔴 P0 | **Falso positivo** | Nenhuma — documentar o padrão seguro existente |
-| 2 | Segredo no histórico do Git (`.env`) | 🔴 P0 | **Confirmado, risco ativo** — usuário verificou em 2026-07-25 que o valor em produção é o mesmo que vazou | **Rotacionar `FLASK_SECRET_KEY` agora** |
+| 2 | Segredo no histórico do Git (`.env`) | 🔴 P0 | ✅ **Rotacionado em 2026-07-25** — usuário/CTO confirmou a troca da `FLASK_SECRET_KEY` em produção | Nenhuma — reescrever histórico do Git (BFG/filter-repo) segue opcional, sem urgência |
 | 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — `app.py` falha no boot (`RuntimeError`) se `FLASK_SECRET_KEY` não estiver definida fora de dev local | `hotfix/...` — 2 novos testes de subprocesso confirmando falha/sucesso do boot em cada cenário |
 | 4 | File Inclusion em `irflow_storage` | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 5 | SSRF | 🔴 P0 | **Falso positivo** | Nenhuma |
@@ -198,13 +199,19 @@ Todos verificados diretamente no código, sem ambiguidade. Branch
   Confirmado que o build do Vite (`frontend/dist/index.html`) não usa inline script/style, então a
   CSP (`script-src 'self'`) não quebra o `/app` servido pelo Flask. Testado em
   `tests/test_security_headers.py` (5 testes) e na suíte completa (499 testes).
-- **Docker root (item 12) — ✅ corrigido**: `Dockerfile` não tinha diretiva `USER` — container rodava
-  como root por padrão. Corrigido com um usuário de sistema (`appuser`) + `docker-entrypoint.sh`: o
-  entrypoint roda como root só o suficiente para corrigir a posse do disco persistente do Render em
-  `/data` (montado em runtime, fora do controle da imagem), depois troca para `appuser` via `gosu`
-  antes de executar o gunicorn. **Não validado com `docker build`/`docker run` neste ambiente** (sem
-  Docker disponível aqui, CI também não builda a imagem) — decisão explícita do usuário: testar
-  localmente antes do merge em `main` (não delegado à validação em produção no Render).
+- **Docker root (item 12) — ✅ corrigido e validado em 2026-07-25**: `Dockerfile` não tinha diretiva
+  `USER` — container rodava como root por padrão. Corrigido com um usuário de sistema (`appuser`) +
+  `docker-entrypoint.sh`: o entrypoint roda como root só o suficiente para corrigir a posse do disco
+  persistente do Render em `/data` (montado em runtime, fora do controle da imagem), depois troca para
+  `appuser` via `gosu` antes de executar o gunicorn. Confirmado que **produção usa Docker de fato**
+  (`DEPLOY.md`: Environment=Docker, Dockerfile Path=`Dockerfile`, disco `irflow_data` em `/data`) — não
+  era um cenário hipotético. Validado com `docker build` + `docker run` reais (via `colima`, instalado
+  para este fim): `docker build` sem erros; `/proc/1/status` e dos workers do gunicorn confirmam
+  `Uid: 999` (`appuser`), nunca root; `/data` e `/app` com posse `appuser:appuser`; testado dentro do
+  container: login, criar/editar OS, criar item de estoque, criar backup, restaurar backup via upload
+  (gera `pre-restore-*.db` automaticamente, dados íntegros depois), headers de segurança presentes nas
+  respostas reais, `/app` (frontend) responde 200, nenhum erro nos logs. Merge em `main` feito após essa
+  validação.
 - **`persist-credentials` (item 13) — ✅ corrigido**: `.github/workflows/ci.yml` usa
   `actions/checkout@v4` em 5 lugares; adicionado `persist-credentials: false` em todos — nenhum job
   precisa empurrar de volta ao repositório.
@@ -248,18 +255,21 @@ Sprint 3).
 
 ## Próximo passo
 
-1. ~~Confirmar `FLASK_SECRET_KEY` em produção~~ ✅ Feito 2026-07-25 — e revelou risco ativo: é o mesmo
-   valor vazado no histórico do Git.
-2. **Rotacionar `FLASK_SECRET_KEY` no Render** — ainda pendente, ação manual do usuário (fora do
-   alcance deste agente; sem acesso ao dashboard do Render). Passo a passo no item 2 acima.
+1. ~~Confirmar `FLASK_SECRET_KEY` em produção~~ ✅ Feito 2026-07-25 — revelou risco ativo (mesmo valor
+   vazado no histórico do Git).
+2. ~~Rotacionar `FLASK_SECRET_KEY` no Render~~ ✅ Feito 2026-07-25, confirmado pelo usuário/CTO.
 3. ~~Decidir se abre a "Sprint Segurança 1.0"~~ ✅ Aberta e executada 2026-07-25 — todos os itens P0 e
-   P1 corrigidos (ver tabela), exceto a rotação da chave (passo 2 acima, manual) e os dois itens P3
-   novos (15, 16 — risco aceite/build-only, sem urgência).
-4. Antes do merge de `security/sprint-1.0-p1-headers-docker-ci` em `main`: validar o `Dockerfile`
-   localmente com `docker build`/`docker run` (comandos no commit do item 12) — decisão explícita do
-   usuário de não delegar essa validação ao primeiro deploy real no Render.
-5. Este documento deveria refletir no `RELEASE_1.0_MASTER_CHECKLIST.md` (item "Segurança revisada") —
-   atualizar após o merge em `main`.
+   P1 corrigidos (ver tabela), restam só os dois itens P3 (15, 16 — risco aceite/build-only, sem
+   urgência).
+4. ~~Validar o Docker non-root localmente antes do merge~~ ✅ Feito 2026-07-25 — `docker build`/`docker
+   run` reais via `colima`, checklist completo (ver detalhe do item 12), branch mesclada em `main`
+   (`ebe710b`).
+5. ~~Refletir no `RELEASE_1.0_MASTER_CHECKLIST.md`~~ ✅ Feito — item "Segurança revisada" e visão
+   executiva atualizados.
+6. **Rodar um novo scan do Aikido** — próximo passo real. Objetivo (decisão do usuário/CTO): confirmar
+   o que a sprint realmente resolveu e identificar só os achados remanescentes, em vez de continuar
+   trabalhando sobre o relatório original (que agora mistura itens já corrigidos com o estado atual).
+   Ação do usuário — requer acesso à conta Aikido.
 
 ---
 

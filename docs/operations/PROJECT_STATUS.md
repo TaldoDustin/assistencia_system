@@ -5,40 +5,41 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-23  
-**Próxima revisão:** Decisão do usuário (CTO) sobre `INC-002` (rodar a consulta SQL de confirmação em produção, decidir sobre `UNIQUE INDEX` e sobre a migração arquitetural para worker/cron dedicado) e sobre o próximo passo de `INC-001` (corrigir as 4 rotas de checklist já confirmadas / rodar instrumentação em ambiente real / escalar mais o teste local) — ver abaixo. Ambos à frente de KIs e do Épico Vendas, por decisão explícita do usuário (CTO): 🟠 INC-002 → 🔴 INC-001 → 🟡 Épico Vendas
+**Última revisão:** 2026-07-24  
+**Próxima revisão:** Decisão do usuário (CTO) sobre o próximo passo de `INC-001` (corrigir as 4 rotas de checklist já confirmadas / rodar instrumentação em ambiente real / escalar mais o teste local) — ver abaixo. À frente de KIs e do Épico Vendas, por decisão explícita do usuário (CTO): 🔴 INC-001 → 🟡 C1.3.5 (Unidades Serializadas) → 🟡 Épico Vendas
 
 ---
 
-## 🟠 INC-002 — Ordens de Serviço duplicadas após sincronização com Mercado Phone (P0, mecanismo corrigido, confirmação de duplicatas existentes em produção pendente)
+## ✅ INC-002 — Ordens de Serviço duplicadas após sincronização com Mercado Phone (RESOLVIDO)
 
 **Ver `docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md` para o relatório completo.**
 
 Reportado pelo usuário (CTO) em 2026-07-23 — OS "1072" (número externo do Mercado Phone,
-`id_externo_integracao`, exibido como `#MP-1072` desde o KI-021 resolvido ontem) aparentemente
-duplicada. Não existe coluna `numero_os` no schema.
+`id_externo_integracao`) aparentemente duplicada. Causa estrutural: a thread de sincronização do
+Mercado Phone iniciava uma vez por processo do Gunicorn, sem coordenação entre processos — com
+`--workers 2` em produção, dois processos rodavam o sync ao mesmo tempo, gerando uma corrida clássica
+(TOCTOU) que duplicava OS, já que o schema não tinha `UNIQUE` em
+`(origem_integracao, id_externo_integracao)`. Mesma classe de bug já corrigida em KI-001 (rate
+limiting) para outro recurso.
 
-**Causa estrutural encontrada por leitura de código, alta confiança:** o schema não tem `UNIQUE` em
-`(origem_integracao, id_externo_integracao)`; o importador do Mercado Phone faz apenas um
-`SELECT`-antes-de-`INSERT` (seguro só com uma execução por vez); e a thread de sincronização
-(`iniciar_sync_mercadophone_se_habilitado()`, `app.py:1754`) iniciava **uma vez por processo do
-Gunicorn**, guardada só por uma flag em memória — com `--workers 2` em produção (`Dockerfile`, sem
-`--preload`), **dois processos independentes rodavam o sync ao mesmo tempo, sem coordenação**, criando
-uma corrida clássica (TOCTOU) que podia duplicar a OS. Mesma classe de bug já identificada e corrigida
-para outro recurso em KI-001 (rate limiting movido para SQLite por causa do `--workers 2`) — nunca
-aplicada a este fluxo até agora. Também é candidato a causa de INC-001 (transação longa e concorrente
-por processo — ver documento).
+**Resolução completa em 3 etapas:**
+1. **Lock cross-processo** (`irflow_mercadophone.py`, lease de 90s via tabela já existente) — elimina o
+   mecanismo que gera novas duplicatas.
+2. **Confirmado e limpo em produção**: 3 pares duplicados encontrados (`id_externo_integracao` 1083,
+   1093, 832). Dois eram duplicatas idênticas sem filhos (limpeza direta); um (832) tinha as duas linhas
+   editadas de forma divergente após a duplicação — peça consumida duas vezes do estoque, reparo extra,
+   checklist próprio em cada uma — exigiu decisão humana sobre qual linha refletia a realidade antes de
+   remover a outra. 3 linhas + filhos órfãos removidos, verificado `[]` na consulta pós-limpeza.
+3. **`UNIQUE INDEX`** em `(origem_integracao, id_externo_integracao)` (`app.py::criar_tabelas()`) —
+   proteção definitiva no banco, independente do lock, aplicada automaticamente no próximo deploy.
 
-**Corrigido:** lock cross-processo em `irflow_mercadophone.py` (lease de 300s via `integracao_sync_estado`,
-tabela já existente, sem mudança de schema) — hotfix em `hotfix/mercado-phone-sync-lock-cross-processo`,
-por decisão explícita do usuário. Elimina o mecanismo que gera *novas* duplicatas. 5 novos testes
-(485 no total, incluindo uma corrida real entre threads), `ruff check .` limpo, zero regressão.
+9 novos testes no total (`test_inc002_mercado_phone_sync_lock.py`, `test_inc002_unique_index_os_mercado_phone.py`),
+489 no total do projeto, `ruff check .` limpo, zero regressão em cada etapa.
 
-**Não confirmado ainda / pendente:** se já existem linhas duplicadas em produção de antes da correção
-(consulta SQL pronta no documento, aguardando o usuário rodar); se a duplicidade aparece na listagem de
-Ordens ou só no Dashboard (resposta do usuário pendente); `UNIQUE INDEX` deliberadamente **não**
-adicionado ainda (só depois de resolver duplicatas pré-existentes, senão a migração falha); migração
-para worker/cron dedicado registrada como melhoria futura, não decidida.
+Achado ainda em aberto (não confirmado, registrado em INC-001): `sincronizar_mercado_phone()` mantinha
+uma única transação aberta por todo o ciclo de sync, rodando em 2 processos concorrentes — candidato
+mais forte para a causa de INC-001 do que qualquer coisa testada até agora ali. Migração arquitetural
+para worker/cron dedicado (em vez de lock) registrada como melhoria futura, não decidida, requer ADR.
 
 ---
 

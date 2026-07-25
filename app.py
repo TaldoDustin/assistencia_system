@@ -702,6 +702,21 @@ def criar_tabelas():
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os ADD COLUMN id_externo_integracao TEXT")
 
+            # INC-002 (docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md): sem
+            # essa restricao, duas OS podiam ser importadas com o mesmo id_externo_integracao
+            # (achado: sync do Mercado Phone rodando em mais de um worker do Gunicorn ao mesmo
+            # tempo, sem coordenacao). O lock cross-processo (irflow_mercadophone.py) corrige o
+            # mecanismo mais provavel do bug; este indice e a garantia definitiva no banco,
+            # valendo contra qualquer outro caminho futuro de escrita (bug humano, script,
+            # nova integracao). SQLite trata cada NULL como distinto em indices UNIQUE, entao
+            # OS nativas (origem_integracao/id_externo_integracao ambos NULL) nao sao afetadas.
+            cursor.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_os_origem_id_externo
+                ON os (origem_integracao, id_externo_integracao)
+                """
+            )
+
             with contextlib.suppress(sqlite3.OperationalError):
                 # Aditiva, nullable, sem backfill (CLIENTES.md) -- OS existentes
                 # continuam com `cliente` (texto) e nada mais.

@@ -1,16 +1,19 @@
 # INC-002 — Ordens de Serviço duplicadas após sincronização com Mercado Phone
 
-**Status:** Mecanismo corrigido (lock cross-processo) — impede novas duplicatas a partir de agora;
-**confirmação de que já existem linhas duplicadas em produção (Cenário 1) ainda pendente**, e nenhuma
-duplicata pré-existente foi limpa (fora de escopo desta correção)
+**Status:** Resolvido — mecanismo corrigido (lock cross-processo), duplicatas confirmadas e limpas em
+produção, `UNIQUE INDEX` como proteção definitiva aplicado (via deploy). Migração arquitetural para
+worker/cron dedicado segue como melhoria futura não decidida.
 **Severidade:** P0 (crítico) — integridade de dados
-**Impacto:** Alto — se confirmado, contamina dashboard, faturamento, contagem de aparelhos, relatórios;
-risco futuro de vender/garantir/movimentar estoque contra a OS errada
-**Ambientes:** Produção (suspeita); estrutura do bug existia também em qualquer ambiente com sync do
-Mercado Phone habilitado e mais de um processo/worker
+**Impacto:** Alto — confirmado: 3 OS duplicadas em produção, uma delas (832) com edições divergentes
+(peça consumida duas vezes, reparo extra, checklist duplicado) — não só contagem incorreta no dashboard
+**Ambientes:** Produção (confirmado)
 **Reportado por:** Usuário (CTO), 2026-07-23 — observou OS "1072" aparecendo duas vezes
 **Investigado por:** Claude (Principal Engineer), 2026-07-23
-**Corrigido por:** Claude (Principal Engineer), 2026-07-23 — branch `hotfix/mercado-phone-sync-lock-cross-processo`
+**Corrigido por:** Claude (Principal Engineer), 2026-07-23/24 — branches
+`hotfix/mercado-phone-sync-lock-cross-processo`, `hotfix/mercado-phone-sync-lock-ajustes-revisao`,
+`fix/os-unique-index-mercado-phone-inc002`
+**Duplicatas limpas em produção por:** Usuário (CTO), 2026-07-24, com script preparado e verificado por
+Claude
 
 ---
 
@@ -199,42 +202,89 @@ aqui como pista para quando INC-001 voltar a ser investigado.
 
 ---
 
-## O que falta confirmar (limite desta investigação)
+## Confirmação em produção (2026-07-24)
 
-1. **Pergunta do usuário, ainda sem resposta:** a duplicidade aparece na tela de Ordens (listagem) ou só
-   no Dashboard? Se só no Dashboard, a hipótese de JOIN/COUNT indevido (Cenário 2) precisa ser
-   investigada em paralelo — não foi descartada nesta sessão.
-2. **Confirmação direta no banco de produção:** esta investigação não teve acesso a produção. O achado
-   acima é uma causa estrutural **plausível e suficiente** por leitura de código, mas não foi confirmado
-   consultando o banco real para ver se `SELECT id FROM os WHERE id_externo_integracao='1072'` retorna
-   de fato duas linhas.
-3. **Se o Dashboard usa `COUNT(DISTINCT ordens.id)` ou `COUNT(*)` com JOIN** — não verificado nesta
-   sessão; relevante mesmo se Cenário 1 for confirmado, porque os dois problemas podem coexistir.
+Consulta rodada pelo usuário (CTO) direto no banco de produção (`/data/database.db`, via Shell do
+Render — o container não tem o binário `sqlite3`, a consulta foi feita com o módulo `sqlite3` do
+Python, já disponível):
+
+```sql
+SELECT origem_integracao, id_externo_integracao, COUNT(*) AS total
+FROM os
+WHERE origem_integracao = 'mercado_phone'
+GROUP BY origem_integracao, id_externo_integracao
+HAVING COUNT(*) > 1;
+```
+
+**Cenário 1 confirmado.** 3 pares duplicados — `id_externo_integracao` 1083, 1093 e 832 (não o "1072"
+citado de memória originalmente, mas o mesmo padrão de bug). Nota: a pergunta sobre listagem vs.
+dashboard ficou sem resposta explícita, mas como os pares são registros reais no banco (não um efeito de
+JOIN), o Cenário 1 por si só já explica o sintoma — a hipótese de JOIN/COUNT indevido (Cenário 2) não
+precisou ser investigada.
+
+**Análise de cada par** (dados completos + registros filhos: `os_pecas`, `os_reparos`,
+`os_checklists`, `shopping_list`, `compras`, `audit_log`):
+
+| Par | Natureza | Decisão |
+|---|---|---|
+| 1083 (`876`/`877`) | Duplicata limpa — linhas idênticas em todos os campos, nenhum filho em nenhuma tabela | Mantido `876`, apagado `877` |
+| 1093 (`887`/`888`) | Duplicata limpa — idem | Mantido `887`, apagado `888` |
+| 832 (`528`/`529`) | **Não é duplicata limpa** — as duas linhas divergiram depois de criadas (tipo, valor, reparo extra, peça consumida diferente, checklist próprio em cada uma) | Usuário confirmou `529` (Upgrade, R$180, bateria+auricular) como a versão real; `528` apagado |
+
+O caso 832 é o achado mais importante desta etapa: a duplicação não ficou "parada" — alguém continuou
+trabalhando numa das duas linhas fantasmas (editou tipo/valor, adicionou reparo, consumiu peça própria,
+preencheu checklist próprio) como se fosse a OS real. Isso confirma que o impacto do bug vai além de
+contagem duplicada no dashboard — pode gerar baixa de estoque duplicada e histórico de reparo
+fragmentado entre duas linhas.
+
+Limpeza executada em produção (script Python transferido em base64 por causa de limitação de paste no
+terminal web do Render, rodado com `BEGIN`/verificação humana do resultado antes de `COMMIT` — nenhuma
+alteração foi feita sem confirmação visual do "antes" e "depois"). Verificação pós-limpeza: consulta de
+duplicatas retornou `[]`.
 
 ---
 
-## Próximo passo (aguardando usuário)
+## Correção aplicada — UNIQUE INDEX (proteção definitiva)
 
-O lock cross-processo (acima) já elimina o mecanismo que gera *novas* duplicatas. Pendente:
+Decisão do usuário (CTO): manter a ordem original — só criar o índice depois de confirmar e limpar as
+duplicatas existentes (feito acima).
 
-1. Resposta à pergunta do sintoma (listagem vs. dashboard) — ainda não descarta a hipótese de
-   JOIN/COUNT indevido (Cenário 2), que pode coexistir com o Cenário 1.
-2. Rodar no banco de produção:
-   ```sql
-   SELECT origem_integracao, id_externo_integracao, COUNT(*) AS total
-   FROM os
-   WHERE origem_integracao = 'mercado_phone'
-   GROUP BY origem_integracao, id_externo_integracao
-   HAVING COUNT(*) > 1;
-   ```
-   Se retornar linhas, Cenário 1 confirmado — e cada grupo encontrado precisa de uma decisão de
-   qual registro manter (provavelmente o mais antigo/`id` menor) antes de qualquer limpeza.
-3. Só depois de resolver duplicatas existentes (se houver): adicionar `UNIQUE INDEX` em
-   `(origem_integracao, id_externo_integracao)` como cinto de segurança definitivo no schema — mudança
-   de schema, requer plano e aprovação separados (`CLAUDE.md`).
-4. Migração arquitetural futura (registrada, não decidida): mover a sincronização para um Render Cron
-   Job ou Background Worker dedicado, para que só exista um processo sincronizando por natureza, em vez
-   de depender de um lock. Requer ADR (mudança de estratégia de deploy).
+`app.py::criar_tabelas()` — adicionado
+`CREATE UNIQUE INDEX IF NOT EXISTS idx_os_origem_id_externo ON os (origem_integracao, id_externo_integracao)`,
+no mesmo padrão de todas as outras migrações aditivas do projeto (roda automaticamente a cada boot,
+idempotente). Diferente do `DELETE` de limpeza, **não precisou de execução manual em produção** — é uma
+mudança de código normal, aplicada sozinha no próximo deploy/restart dos workers.
+
+SQLite trata cada `NULL` como distinto num índice `UNIQUE` (comportamento padrão do SQL), então OS
+nativas (criadas direto no app, sem integração — `origem_integracao`/`id_externo_integracao` ambos
+`NULL`) nunca conflitam entre si; o índice só passa a valer quando ambos os campos têm valor real,
+exatamente o caso do Mercado Phone hoje e de qualquer integração futura.
+
+Validado localmente: OS nativas continuam inserindo livremente; uma segunda OS com o mesmo
+`(origem_integracao, id_externo_integracao)` de uma já existente é rejeitada com
+`sqlite3.IntegrityError: UNIQUE constraint failed`. 3 novos testes
+(`tests/test_inc002_unique_index_os_mercado_phone.py`, 489 no total), `ruff check .` limpo, zero
+regressão.
+
+Com isso, mesmo que o lock cross-processo falhe por algum motivo não previsto (bug futuro, script manual,
+nova integração escrevendo direto na tabela), o banco em si impede a duplicata — a garantia deixa de
+depender só de disciplina de código.
+
+---
+
+## Status final
+
+| Etapa | Status |
+|---|---|
+| Confirmar causa estrutural (leitura de código) | ✅ |
+| Corrigir o mecanismo (lock cross-processo) | ✅ |
+| Confirmar duplicatas em produção | ✅ — 3 pares encontrados |
+| Limpar duplicatas existentes | ✅ — 3 linhas removidas, decisão registrada acima |
+| `UNIQUE INDEX` como proteção definitiva | ✅ — aplicado automaticamente no próximo deploy |
+| Migração arquitetural (worker/cron dedicado) | Não decidida — registrada como melhoria futura, requer ADR |
+
+INC-002 pronto para ser encerrado após o deploy da branch com o `UNIQUE INDEX` (ver
+`docs/operations/PROJECT_STATUS.md` para a decisão formal de fechamento).
 
 ---
 

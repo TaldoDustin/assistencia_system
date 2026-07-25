@@ -62,8 +62,8 @@ def _limpar_item(item_id):
 
 
 class TestCriarItemEstoque:
-    def test_criacao_valida_retorna_201_e_persiste_dados(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_criacao_valida_retorna_201_e_persiste_dados(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post(
             "/api/estoque",
@@ -78,9 +78,9 @@ class TestCriarItemEstoque:
         _limpar_item(item_id)
 
     def test_criacao_com_quantidade_inicial_registra_lote_e_movimentacao_entrada(
-        self, client, login_como, usuario_tecnico
+        self, client, login_como, usuario_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
 
         resp = client.post("/api/estoque", json={"descricao": "Bateria", "valor": 80.0, "quantidade": 3})
 
@@ -90,9 +90,9 @@ class TestCriarItemEstoque:
         _limpar_item(item_id)
 
     def test_criacao_com_quantidade_zero_nao_registra_lote_nem_movimentacao(
-        self, client, login_como, usuario_tecnico
+        self, client, login_como, usuario_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
 
         resp = client.post("/api/estoque", json={"descricao": "Peca Sem Estoque", "valor": 10.0, "quantidade": 0})
 
@@ -102,34 +102,34 @@ class TestCriarItemEstoque:
         assert _contar_movimentacoes(item_id) == 0
         _limpar_item(item_id)
 
-    def test_sem_descricao_retorna_400(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_sem_descricao_retorna_400(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
         resp = client.post("/api/estoque", json={"descricao": "", "valor": 10.0, "quantidade": 1})
         assert resp.status_code == 400
 
-    def test_valor_zero_retorna_400(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_valor_zero_retorna_400(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 0, "quantidade": 1})
         assert resp.status_code == 400
 
-    def test_valor_negativo_retorna_400(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_valor_negativo_retorna_400(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": -10, "quantidade": 1})
         assert resp.status_code == 400
 
-    def test_quantidade_negativa_retorna_400(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_quantidade_negativa_retorna_400(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": -1})
         assert resp.status_code == 400
 
-    def test_peca_duplicada_e_permitida(self, client, login_como, usuario_tecnico):
+    def test_peca_duplicada_e_permitida(self, client, login_como, usuario_estoque):
         """
         Não há constraint de unicidade em `estoque` (sku e a tripla
         modelo/tipo/qualidade têm apenas índices não-únicos — ver
         DATABASE.md). Cadastrar duas peças idênticas é aceito e produz duas
         linhas distintas.
         """
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         payload = {
             "descricao": "Tela Duplicada",
             "valor": 100.0,
@@ -148,8 +148,8 @@ class TestCriarItemEstoque:
         _limpar_item(id1)
         _limpar_item(id2)
 
-    def test_fornecedor_e_texto_livre_sem_validacao(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_fornecedor_e_texto_livre_sem_validacao(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post(
             "/api/estoque",
@@ -161,8 +161,8 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[6] == "Fornecedor Nunca Cadastrado Antes"
         _limpar_item(item_id)
 
-    def test_fornecedor_padrao_quando_omitido(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_fornecedor_padrao_quando_omitido(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": 1})
 
@@ -170,8 +170,8 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[6] == "Nao informado"
         _limpar_item(item_id)
 
-    def test_tipo_desconhecido_normaliza_para_outros(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_tipo_desconhecido_normaliza_para_outros(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post(
             "/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": 1, "tipo": "Categoria Inexistente"}
@@ -181,8 +181,8 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[4] == "Outros"
         _limpar_item(item_id)
 
-    def test_qualidade_desconhecida_normaliza_para_padrao(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_qualidade_desconhecida_normaliza_para_padrao(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post(
             "/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": 1, "qualidade": "Nivel Inexistente"}
@@ -192,13 +192,13 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[5] == "Padrao"
         _limpar_item(item_id)
 
-    def test_modelo_desconhecido_e_aceito_como_texto_livre(self, client, login_como, usuario_tecnico):
+    def test_modelo_desconhecido_e_aceito_como_texto_livre(self, client, login_como, usuario_estoque):
         """
         Diferente da rota legada POST /estoque/cadastro (que rejeita modelo
         fora da lista oficial de iPhones), a API aceita e armazena qualquer
         texto como modelo quando não reconhece um iPhone conhecido.
         """
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         modelo_desconhecido = "Peça Genérica Sem Modelo Oficial"
 
         resp = client.post(
@@ -210,8 +210,8 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[3] == modelo_desconhecido
         _limpar_item(item_id)
 
-    def test_quantidade_decimal_trunca_para_inteiro(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_quantidade_decimal_trunca_para_inteiro(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
 
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": 3.7})
 
@@ -220,8 +220,8 @@ class TestCriarItemEstoque:
         assert _obter_item(item_id)[2] == 3
         _limpar_item(item_id)
 
-    def test_quantidade_extremamente_alta_e_aceita_com_precisao(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
+    def test_quantidade_extremamente_alta_e_aceita_com_precisao(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
         quantidade_alta = 10**15
 
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": quantidade_alta})
@@ -246,8 +246,8 @@ class TestListarEstoque:
         resp = client.get("/api/estoque")
         assert resp.status_code == 401
 
-    def test_listar_inclui_item_criado(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_listar_inclui_item_criado(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(descricao=f"Item Listagem {uuid.uuid4().hex[:8]}")
 
         resp = client.get("/api/estoque")
@@ -256,8 +256,8 @@ class TestListarEstoque:
         ids = {i["id"] for i in resp.get_json()["itens"]}
         assert item_id in ids
 
-    def test_filtro_por_modelo(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_filtro_por_modelo(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"Marca {uuid.uuid4().hex[:8]}"
         item_alvo = criar_item_estoque(descricao=marcador, modelo="iPhone 15")
         item_outro = criar_item_estoque(descricao=marcador, modelo="iPhone 11")
@@ -268,8 +268,8 @@ class TestListarEstoque:
         assert item_alvo in ids
         assert item_outro not in ids
 
-    def test_filtro_por_tipo(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_filtro_por_tipo(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"Marca {uuid.uuid4().hex[:8]}"
         item_alvo = criar_item_estoque(descricao=marcador, tipo="Bateria")
         item_outro = criar_item_estoque(descricao=marcador, tipo="Tela")
@@ -280,8 +280,8 @@ class TestListarEstoque:
         assert item_alvo in ids
         assert item_outro not in ids
 
-    def test_filtro_por_qualidade(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_filtro_por_qualidade(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"Marca {uuid.uuid4().hex[:8]}"
         item_alvo = criar_item_estoque(descricao=marcador, qualidade="Original")
         item_outro = criar_item_estoque(descricao=marcador, qualidade="Paralelo")
@@ -292,8 +292,8 @@ class TestListarEstoque:
         assert item_alvo in ids
         assert item_outro not in ids
 
-    def test_filtro_texto_busca_por_descricao(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_filtro_texto_busca_por_descricao(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"BuscaUnica{uuid.uuid4().hex[:8]}"
         item_alvo = criar_item_estoque(descricao=marcador)
 
@@ -302,8 +302,8 @@ class TestListarEstoque:
         ids = {i["id"] for i in resp.get_json()["itens"]}
         assert item_alvo in ids
 
-    def test_itens_zerados_ficam_ocultos_por_padrao(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_itens_zerados_ficam_ocultos_por_padrao(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"Marca {uuid.uuid4().hex[:8]}"
         item_zerado = criar_item_estoque(descricao=marcador, quantidade=0)
 
@@ -312,8 +312,8 @@ class TestListarEstoque:
         ids = {i["id"] for i in resp.get_json()["itens"]}
         assert item_zerado not in ids
 
-    def test_include_zerados_mostra_itens_sem_estoque(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_include_zerados_mostra_itens_sem_estoque(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         marcador = f"Marca {uuid.uuid4().hex[:8]}"
         item_zerado = criar_item_estoque(descricao=marcador, quantidade=0)
 
@@ -322,8 +322,8 @@ class TestListarEstoque:
         ids = {i["id"] for i in resp.get_json()["itens"]}
         assert item_zerado in ids
 
-    def test_payload_inclui_totais_agregados(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_payload_inclui_totais_agregados(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         criar_item_estoque(quantidade=2, valor=10.0)
 
         body = client.get("/api/estoque").get_json()

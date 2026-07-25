@@ -153,6 +153,24 @@ class TestCriarUsuario:
 
         _remover_usuario(novo_id)
 
+    def test_criar_usuario_com_perfil_estoque_e_aceito(self, client, login_como, usuario_admin):
+        """Sprint Segurança 1.0 (2026-07-25): perfil "estoque" adicionado — ver
+        docs/security/SECURITY_AUDIT_2026-07.md e irflow_core.py::PERFIS_OPCOES."""
+        login_como(client, usuario_admin)
+        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
+
+        resp = client.post(
+            "/api/usuarios",
+            json={"nome": "Estoque Teste", "usuario": login_novo, "senha": "senha_123", "perfil": "estoque"},
+        )
+
+        assert resp.status_code == 201
+        novo_id = resp.get_json()["id"]
+        row = _buscar_usuario_no_banco(novo_id)
+        assert row[4] == "estoque"
+
+        _remover_usuario(novo_id)
+
     def test_tecnico_nao_pode_criar_usuario(self, client, login_como, usuario_tecnico):
         login_como(client, usuario_tecnico)
         login_novo = f"novo_{uuid.uuid4().hex[:8]}"

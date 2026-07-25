@@ -192,6 +192,14 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Segurança revisada" atualizado com o resultado da auditoria
 - Nenhuma correção de código aplicada nesta sessão — investigação e classificação apenas, aguardando decisão do usuário sobre abrir a Sprint Segurança 1.0
 
+### Adicionado (2026-07-25 — Sprint Segurança 1.0: perfil `estoque` e permissões de OS/Estoque)
+- `irflow_core.py::PERFIS_OPCOES` — fonte única dos perfis válidos (`admin`/`tecnico`/`vendedor`/`estoque`, novo), substituindo tuplas duplicadas em `irflow_blueprints_api.py` (2 ocorrências) e `irflow_blueprints_auth.py` (2 ocorrências)
+- Rotas de mutação de OS (`POST/PUT/DELETE /api/ordens`, `PATCH /api/ordens/<id>/status`) agora exigem perfil `admin` ou `tecnico`; rotas de mutação de Estoque (`POST/PUT/DELETE /api/estoque`) exigem `admin` ou `estoque` — antes qualquer perfil autenticado tinha acesso (achado já documentado em `DATA_DICTIONARY.md` desde 2026-07-10, corrigido agora via `docs/security/SECURITY_AUDIT_2026-07.md` item 14, decisão do usuário/CTO)
+- `frontend/src/pages/Users.jsx` — novo perfil `estoque` na tela de gestão de usuários (dropdown + cor de exibição), validado visualmente via Playwright
+- `docs/product/BUSINESS_RULES.md` BR-030 (nova regra); BR-003 corrigida (`ROUTE_PERMISSIONS` não cobre `/api/*`, achado anterior estava impreciso)
+- `docs/engineering/DATA_DICTIONARY.md`, `DATABASE.md`, `docs/company/PRODUCT_REQUIREMENTS.md`, `docs/company/DECISION_LOG.md` atualizados
+- Testes que caracterizavam o comportamento antigo (`test_tecnico_pode_excluir_item_de_estoque`, `test_vendedor_pode_excluir_item_de_estoque`, `test_vendedor_pode_excluir_qualquer_os`) reescritos para confirmar 403; novos testes cobrindo o acesso correto de `admin`/`estoque`. 494 testes no total, `ruff check .` limpo, zero regressão
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

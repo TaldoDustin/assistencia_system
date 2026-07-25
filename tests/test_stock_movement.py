@@ -70,9 +70,9 @@ def _payload_base(item_id, **overrides):
 
 class TestEntradaEstoque:
     def test_ajuste_positivo_registra_movimentacao_entrada(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=2)
 
         resp = client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=5))
@@ -81,8 +81,8 @@ class TestEntradaEstoque:
         assert _saldo(item_id) == 5
         assert _movimentacoes_do_item(item_id)[-1] == ("entrada", 3)
 
-    def test_ajuste_positivo_cria_novo_lote(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_ajuste_positivo_cria_novo_lote(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=1)
         lotes_antes = len(_lotes_do_item(item_id))
 
@@ -98,9 +98,9 @@ class TestEntradaEstoque:
 
 class TestSaidaEstoque:
     def test_ajuste_negativo_registra_movimentacao_saida_correta(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=5)
 
         resp = client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=2))
@@ -109,8 +109,8 @@ class TestSaidaEstoque:
         assert _saldo(item_id) == 2
         assert _movimentacoes_do_item(item_id)[-1] == ("saida", 3)
 
-    def test_ajuste_negativo_consome_lotes_em_ordem_fifo(self, client, login_como, usuario_tecnico, criar_item_estoque):
-        login_como(client, usuario_tecnico)
+    def test_ajuste_negativo_consome_lotes_em_ordem_fifo(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=0)
         client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=2))  # lote 1: +2
         client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=5))  # lote 2: +3
@@ -122,9 +122,9 @@ class TestSaidaEstoque:
         assert lotes[1][1] == 3
 
     def test_quantidade_muito_negativa_nunca_deixa_saldo_abaixo_de_zero(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=3)
 
         resp = client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=-100))
@@ -133,10 +133,10 @@ class TestSaidaEstoque:
         assert _saldo(item_id) == 0
 
     def test_quantidade_muito_negativa_registra_saida_igual_ao_saldo_real(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
         """Regressão do hotfix 584c501 — saida registrada deve refletir o saldo real consumido, não o valor bruto enviado."""
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=3)
 
         client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=-100))
@@ -151,9 +151,9 @@ class TestSaidaEstoque:
 
 class TestSaldoFinal:
     def test_saldo_final_apos_sequencia_de_entradas_e_saidas(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=10)
 
         client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, quantidade=15))  # +5
@@ -165,9 +165,9 @@ class TestSaldoFinal:
         assert tipos == ["entrada", "saida", "entrada"]
 
     def test_ajuste_para_o_mesmo_valor_nao_gera_movimentacao(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         item_id = criar_item_estoque(quantidade=7)
         total_antes = len(_movimentacoes_do_item(item_id))
 
@@ -187,9 +187,9 @@ class TestHistoricoMovimentacoesGlobal:
         assert resp.status_code == 401
 
     def test_resposta_tem_formato_esperado_e_respeita_limite(
-        self, client, login_como, usuario_tecnico, criar_item_estoque
+        self, client, login_como, usuario_estoque, criar_item_estoque
     ):
-        login_como(client, usuario_tecnico)
+        login_como(client, usuario_estoque)
         criar_item_estoque(quantidade=1)  # garante ao menos 1 movimentacao no sistema
 
         resp = client.get("/api/estoque/movimentacoes")

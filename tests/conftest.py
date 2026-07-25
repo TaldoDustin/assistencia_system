@@ -100,6 +100,13 @@ def usuario_vendedor():
 
 
 @pytest.fixture
+def usuario_estoque():
+    dados = _criar_usuario("Estoque Teste", perfil="estoque", ativo=1)
+    yield dados
+    _remover_usuario(dados["id"])
+
+
+@pytest.fixture
 def usuario_inativo():
     dados = _criar_usuario("Usuario Inativo", perfil="tecnico", ativo=0)
     yield dados

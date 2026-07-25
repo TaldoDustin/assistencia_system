@@ -153,9 +153,13 @@ Product Owner.
 
 ### Estoque
 
-`TODO` — mesma situação de Financeiro: não existe como perfil de usuário distinto no código hoje (Estoque
-é um domínio de dados, `docs/engineering/DOMAIN_MODEL.md` 1.4, não um perfil de login); persona
-operacional ainda não escrita.
+**Atualização 2026-07-25:** o perfil `estoque` agora existe no código (`admin`/`tecnico`/`vendedor`/
+`estoque` — `irflow_core.py::PERFIS_OPCOES`), criado como parte da Sprint Segurança 1.0 para restringir
+mutação de itens de Estoque a `admin`/`estoque` (antes, qualquer perfil autenticado podia alterar
+estoque — ver `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/product/BUSINESS_RULES.md` BR-030).
+`TODO` — a persona operacional completa (objetivo, responsabilidades, dores, expectativas de quem usa
+esse perfil no dia a dia) ainda não foi escrita; o perfil resolve uma lacuna de segurança, não substitui
+a pesquisa de produto pendente.
 
 ### Administrador
 

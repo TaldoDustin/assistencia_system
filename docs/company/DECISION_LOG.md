@@ -208,6 +208,26 @@ da Fase 2 (Infraestrutura) estar pronta, não só da decisão de negócio já pe
 "Decisão: Infraestrutura SaaS antes de Multiempresa" e "Decisão: Financeiro dividido em mínimo (1.0) e
 avançado (2.x)".
 
+## 2026-07-25 — Novo perfil `estoque`; OS e Estoque restritos por perfil na API
+
+**Decisão:** triagem de um scan de segurança (Aikido) encontrou que as rotas de mutação de OS e Estoque
+na API aceitavam qualquer perfil autenticado (achado já registrado em `docs/engineering/DATA_DICTIONARY.md`
+desde 2026-07-10, nunca corrigido até agora). Decidido: mutação de OS exige `admin`/`tecnico`; mutação
+de Estoque exige `admin`/`estoque` — perfil novo, criado nesta decisão (antes só existiam
+`admin`/`tecnico`/`vendedor`). `vendedor` perdeu acesso de mutação a ambos os domínios.
+**Motivo:** parte da Sprint Segurança 1.0 (resposta ao scan Aikido) — reduzir superfície de autorização
+antes do primeiro cliente pagante (Release 1.0). A criação do perfil `estoque` também resolve uma
+lacuna já registrada em `docs/company/PRODUCT_REQUIREMENTS.md` ("Estoque como perfil de usuário" — TODO
+desde a escrita original das personas operacionais).
+**Impacto:** `irflow_core.py` (`PERFIS_OPCOES`), `irflow_blueprints_api.py` (7 rotas de mutação de
+OS/Estoque + validação de perfil em `criar_usuario`/`atualizar_usuario`), `irflow_blueprints_auth.py`
+(mesma validação nas views legadas), `frontend/src/pages/Users.jsx` (novo perfil na tela de usuários).
+`docs/product/BUSINESS_RULES.md` BR-030 (nova), BR-003 (corrigida — `ROUTE_PERMISSIONS` não cobre
+`/api/*`). Persona operacional completa do perfil Estoque segue `TODO` em
+`docs/company/PRODUCT_REQUIREMENTS.md` — esta decisão resolve a lacuna de segurança, não substitui a
+pesquisa de produto.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/security/SECURITY_AUDIT_2026-07.md`.
+
 ## Documentos relacionados
 
 - `docs/engineering/ARCHITECTURE_DECISIONS.md` — decisões arquiteturais (ADR), complementar a este log

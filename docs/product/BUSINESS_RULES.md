@@ -5,7 +5,7 @@ a regra em si e de onde ela vem. Antes deste documento, essas regras estavam esp
 `docs/product/features/VENDAS.md`, comportamento implícito do código, e conversas — cada uma reconstruída
 do zero sempre que alguém precisava confirmar "isso já é uma regra ou é só o que o código faz hoje?".
 
-**Última revisão:** 2026-07-10
+**Última revisão:** 2026-07-25
 **Regra de escrita:** toda entrada tem status e fonte. Nenhuma regra aqui foi inventada — ou vem do
 código real (lido linha a linha, citado com arquivo/função), ou de uma decisão já registrada em
 `VENDAS.md`/`BRAND_IDENTITY.md`, ou de input direto do Product Owner nesta conversa.
@@ -30,9 +30,12 @@ Um usuário não pode desativar nem excluir a própria conta enquanto está loga
 *Fonte: `docs/engineering/DATABASE.md` tabela `usuarios`; `tests/test_users.py`.*
 
 **BR-003 — ✅ Implementado**
-Perfis (`admin`, `tecnico`, `vendedor`) são checados por lista explícita de perfis permitidos por rota
-(`ROUTE_PERMISSIONS`) — não existe hierarquia entre perfis.
-*Fonte: `docs/engineering/ARCHITECTURE.md` seção 4.*
+Perfis (`admin`, `tecnico`, `vendedor`, `estoque` desde 2026-07-25) não têm hierarquia entre eles — cada
+rota checa a lista explícita de perfis permitidos. **Correção de registro (2026-07-25):**
+`ROUTE_PERMISSIONS` (`app.py`) só cobre as views legadas server-rendered — bypassa explicitamente toda
+rota `/api/*`, que é o que o frontend React realmente usa. Rotas de mutação de OS/Estoque na API checam
+perfil individualmente dentro de cada view (ver BR-030), não via `ROUTE_PERMISSIONS`.
+*Fonte: `docs/engineering/ARCHITECTURE.md` seção 4; `docs/security/SECURITY_AUDIT_2026-07.md`.*
 
 ---
 
@@ -243,6 +246,20 @@ confirmada, para não inflar o número de "especificadas" com algo ainda não de
 Recomendação: formalizar essas 3 candidatas em `VENDAS.md` "Decisões já tomadas" (não aqui) na próxima
 revisão do spec de Vendas — este documento reflete o que já foi decidido em outro lugar, não decide por
 conta própria.
+
+---
+
+## Segurança e Permissões
+
+**BR-030 — ✅ Implementado (2026-07-25)**
+Mutação de OS (`POST/PUT/DELETE /api/ordens`, `PATCH /api/ordens/<id>/status`) exige perfil `admin` ou
+`tecnico`. Mutação de Estoque (`POST/PUT/DELETE /api/estoque`) exige perfil `admin` ou `estoque`
+(perfil novo, criado junto desta regra). Antes, ambas aceitavam qualquer perfil autenticado — achado da
+Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis operam cada domínio.
+*Fonte: `docs/security/SECURITY_AUDIT_2026-07.md`; `irflow_blueprints_api.py` (`criar_ordem`,
+`atualizar_ordem`, `deletar_ordem`, `atualizar_status_os`, `criar_estoque`, `atualizar_estoque`,
+`deletar_estoque`); `tests/test_stock_security.py::TestPermissaoPorPerfil`,
+`tests/test_os_deletion_security.py::TestExcluirOrdem::test_vendedor_nao_pode_excluir_os`.*
 
 ---
 

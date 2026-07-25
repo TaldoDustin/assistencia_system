@@ -39,7 +39,7 @@ Autenticação e perfis de acesso.
 | `nome` | TEXT | NOT NULL | Nome de exibição |
 | `usuario` | TEXT | UNIQUE NOT NULL | Login (usado para autenticação) |
 | `senha_hash` | TEXT | NOT NULL | Hash Werkzeug (`generate_password_hash`) |
-| `perfil` | TEXT | NOT NULL DEFAULT `'tecnico'` | `admin` \| `tecnico` \| `vendedor` |
+| `perfil` | TEXT | NOT NULL DEFAULT `'tecnico'` | `admin` \| `tecnico` \| `vendedor` \| `estoque` (desde 2026-07-25, `irflow_core.py::PERFIS_OPCOES`) |
 | `ativo` | INTEGER | NOT NULL DEFAULT `1` | `0` desativa o login mesmo com senha correta |
 
 **Regras de negócio:**

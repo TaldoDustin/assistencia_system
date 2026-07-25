@@ -62,6 +62,7 @@ def create_api_blueprint(deps):
     status_os_opcoes = deps["status_os_opcoes"]
     os_tipos_opcoes = deps["os_tipos_opcoes"]
     garantia_reparo_dias_padrao = deps["garantia_reparo_dias_padrao"]
+    perfis_opcoes = deps["perfis_opcoes"]
     categorias_custos = deps["categorias_custos"]
     reparos_padrao = deps["reparos_padrao"]
     produtos_categorias = deps["produtos_categorias"]
@@ -1488,6 +1489,8 @@ def create_api_blueprint(deps):
     def criar_ordem():
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
 
         body = safe_json(request)
 
@@ -1573,6 +1576,8 @@ def create_api_blueprint(deps):
     def atualizar_ordem(os_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
 
         body = safe_json(request)
 
@@ -1675,6 +1680,8 @@ def create_api_blueprint(deps):
     def deletar_ordem(os_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
 
         conn = conectar()
         cursor = conn.cursor()
@@ -1720,6 +1727,8 @@ def create_api_blueprint(deps):
     def atualizar_status_os(os_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
 
         body = safe_json(request)
         status = normalizar_status_os(body.get("status") or "", status_padrao="")
@@ -2002,6 +2011,8 @@ def create_api_blueprint(deps):
     def criar_estoque():
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "estoque"):
+            return err("Permissão negada.", 403)
 
         body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
@@ -2062,6 +2073,8 @@ def create_api_blueprint(deps):
     def atualizar_estoque(item_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "estoque"):
+            return err("Permissão negada.", 403)
 
         body = safe_json(request)
         descricao = (body.get("descricao") or "").strip()
@@ -2158,6 +2171,8 @@ def create_api_blueprint(deps):
     def deletar_estoque(item_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "estoque"):
+            return err("Permissão negada.", 403)
 
         conn = conectar()
         cursor = conn.cursor()
@@ -2670,7 +2685,7 @@ def create_api_blueprint(deps):
 
         if not nome or not usuario_txt or not senha_txt:
             return err("Preencha nome, usuário e senha.")
-        if perfil not in ("admin", "tecnico", "vendedor"):
+        if perfil not in perfis_opcoes:
             perfil = "tecnico"
 
         conn = conectar()
@@ -2701,7 +2716,7 @@ def create_api_blueprint(deps):
         senha_nova = (body.get("senha_nova") or "").strip()
         ativo = bool(body.get("ativo", True))
 
-        if perfil not in ("admin", "tecnico", "vendedor"):
+        if perfil not in perfis_opcoes:
             perfil = "tecnico"
         if uid == session.get("usuario_id") and not ativo:
             return err("Você não pode desativar sua própria conta.")

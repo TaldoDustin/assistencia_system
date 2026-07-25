@@ -28,6 +28,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from irflow_core import (
     GARANTIA_REPARO_DIAS_PADRAO,
     OS_TIPOS_OPCOES,
+    PERFIS_OPCOES,
     STATUS_AGUARDANDO_PECA,
     STATUS_CANCELADO,
     STATUS_EM_ANDAMENTO,
@@ -1557,6 +1558,7 @@ app.register_blueprint(
             "resolver_ip_cliente": resolver_ip_cliente,
             "limite_excedido": limite_excedido,
             "registrar_tentativa": registrar_tentativa,
+            "perfis_opcoes": PERFIS_OPCOES,
         }
     )
 )
@@ -1612,6 +1614,7 @@ app.register_blueprint(
             "status_os_opcoes": STATUS_OS_OPCOES,
             "os_tipos_opcoes": OS_TIPOS_OPCOES,
             "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
+            "perfis_opcoes": PERFIS_OPCOES,
             "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
             "reparos_padrao": REPAROS_PADRAO,
             "produtos_categorias": PRODUTOS_CATEGORIAS,

@@ -4,17 +4,20 @@ Complementa `docs/engineering/DATABASE.md` (schema, tipos, índices) com a camad
 cria, altera, exclui e vê cada dado, de onde ele vem e para onde vai. `DATABASE.md` continua sendo a
 fonte de verdade para tipo/constraint SQL — este documento não duplica isso, referencia.
 
-**Última revisão:** 2026-07-10
+**Última revisão:** 2026-07-25
 **Fonte:** leitura direta do código (`irflow_blueprints_api.py`, `irflow_os.py`, `app.py`) — cada
 afirmação de "quem pode" é verificada na rota real, não assumida a partir do nome do perfil.
 
-**Achado importante desta revisão:** a maioria das rotas de mutação da API (`OS`, `Estoque`) checa apenas
-`usuario_logado()` — **qualquer perfil autenticado** (`admin`, `tecnico` ou `vendedor`) pode criar, editar
-ou excluir uma OS ou um item de estoque hoje. Não há restrição por perfil nessas rotas, diferente de
-`Usuários` (admin-only) e `Shopping List` (`admin`/`tecnico`/`comprador`). Isso é relevante para qualquer
-decisão futura de permissão por tela (ver `docs/company/VISION.md` Valores — princípio de interface por
-perfil) e para o próprio `docs/company/PRODUCT_REQUIREMENTS.md` (dor da persona: "funcionário vender
-abaixo do preço permitido" — hoje não há controle de permissão que impeça isso no nível de dado).
+**Correção de registro (2026-07-25 — Sprint Segurança 1.0, `docs/security/SECURITY_AUDIT_2026-07.md`):**
+o achado abaixo (revisão de 2026-07-10) motivou uma correção — rotas de mutação de OS agora exigem
+perfil `admin`/`tecnico`; rotas de mutação de Estoque exigem `admin`/`estoque` (perfil novo). Texto
+original preservado abaixo como registro do estado anterior:
+
+~~a maioria das rotas de mutação da API (`OS`, `Estoque`) checa apenas `usuario_logado()` — qualquer
+perfil autenticado (`admin`, `tecnico` ou `vendedor`) pode criar, editar ou excluir uma OS ou um item de
+estoque hoje. Não há restrição por perfil nessas rotas, diferente de `Usuários` (admin-only) e
+`Shopping List` (`admin`/`tecnico`/`comprador`).~~ Ver `docs/product/BUSINESS_RULES.md` BR-030 para a
+regra atual.
 
 ---
 
@@ -32,15 +35,15 @@ abaixo do preço permitido" — hoje não há controle de permissão que impeça
 | `nome` | TEXT | Sim | Sim | Nome de exibição |
 | `usuario` | TEXT | Sim | Sim | `UNIQUE` — login |
 | `senha_hash` | TEXT | Sim | Sim (via troca de senha) | **Nunca retornado** em nenhuma resposta de API — verificado em `listar_usuarios` (só retorna `id/nome/usuario/perfil/ativo`) |
-| `perfil` | TEXT | Sim | Sim | `admin`\|`tecnico`\|`vendedor` — sem hierarquia (BR-003) |
+| `perfil` | TEXT | Sim | Sim | `admin`\|`tecnico`\|`vendedor`\|`estoque` — sem hierarquia (BR-003); fonte única `irflow_core.py::PERFIS_OPCOES` |
 | `ativo` | INTEGER | Sim | Sim | Usuário não pode alterar o próprio (`ativo`/exclusão bloqueados enquanto logado — BR-002) |
 
 ---
 
 ## `os` — Ordens de Serviço
 
-**Quem cria/altera/exclui:** qualquer perfil autenticado (`usuario_logado()`) — **sem restrição por
-perfil** (ver achado no topo do documento).
+**Quem cria/altera/exclui:** perfil `admin` ou `tecnico` (desde 2026-07-25, BR-030 — antes era qualquer
+perfil autenticado, ver achado no topo do documento).
 **Quem vê:** qualquer perfil autenticado.
 **Origem:** formulário de nova OS (frontend) ou importação via integração MercadoPhone
 (`origem_integracao='mercado_phone'`).
@@ -71,7 +74,8 @@ perfil** (ver achado no topo do documento).
 
 ## `estoque`
 
-**Quem cria/altera/exclui:** qualquer perfil autenticado — **sem restrição por perfil**.
+**Quem cria/altera/exclui:** perfil `admin` ou `estoque` (perfil novo, desde 2026-07-25, BR-030 — antes
+era qualquer perfil autenticado, ver achado no topo do documento).
 **Quem vê:** qualquer perfil autenticado.
 **Origem:** cadastro manual ou devolução automática de peça (BR-006, cria lote de retorno).
 **Destino:** `os_pecas` (consumo), `shopping_list` (reposição sugerida), relatórios.

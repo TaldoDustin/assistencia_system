@@ -3,12 +3,14 @@ Testes de exclusão e segurança de Ordens de Serviço via API JSON (Sprint 2.4)
 
 Escopo: DELETE /api/ordens/<id>, resiliência de entrada em POST/PUT/PATCH.
 
-Achado relevante: DELETE /api/ordens/<id> não tem nenhuma restrição por
-perfil (qualquer usuário autenticado — admin, tecnico ou vendedor — pode
-excluir qualquer OS, inclusive Finalizada) e não retorna 404 para id
-inexistente (responde 200 ok silenciosamente, mesmo padrão já visto em
-/api/usuarios na Sprint 2.3). Estes testes caracterizam esse comportamento
-tal como ele é hoje — não é uma regra que esta sprint deva alterar.
+Achado histórico (Sprint 2.4, resolvido em 2026-07-25 — Sprint Segurança 1.0,
+docs/security/SECURITY_AUDIT_2026-07.md): DELETE /api/ordens/<id> não tinha
+nenhuma restrição por perfil. Corrigido: rotas de mutação de OS
+(POST/PUT/DELETE /api/ordens*, PATCH .../status) agora exigem perfil admin
+ou tecnico — vendedor não tem mais acesso, ver
+TestExcluirOrdem::test_vendedor_nao_pode_excluir_os. Não retornar 404 para
+id inexistente (responde 200 ok silenciosamente) continua como está, mesmo
+padrão já visto em /api/usuarios na Sprint 2.3 — não alterado por esta sprint.
 """
 
 import app as _app
@@ -103,7 +105,6 @@ class TestExcluirOrdem:
         assert _os_existe(os_id)
 
     def test_tecnico_pode_excluir_qualquer_os(self, client, login_como, usuario_tecnico, criar_os):
-        """Caracterização: não há restrição por perfil para excluir OS (diferente de /api/usuarios)."""
         login_como(client, usuario_tecnico)
         os_id = criar_os()
 
@@ -112,14 +113,15 @@ class TestExcluirOrdem:
         assert resp.status_code == 200
         assert not _os_existe(os_id)
 
-    def test_vendedor_pode_excluir_qualquer_os(self, client, login_como, usuario_vendedor, criar_os):
+    def test_vendedor_nao_pode_excluir_os(self, client, login_como, usuario_vendedor, criar_os):
+        """Sprint Segurança 1.0 (2026-07-25): vendedor perdeu acesso a mutação de OS."""
         login_como(client, usuario_vendedor)
         os_id = criar_os()
 
         resp = client.delete(f"/api/ordens/{os_id}")
 
-        assert resp.status_code == 200
-        assert not _os_existe(os_id)
+        assert resp.status_code == 403
+        assert _os_existe(os_id)
 
 
 # ============================================================================

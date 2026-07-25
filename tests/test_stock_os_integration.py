@@ -287,10 +287,11 @@ class TestCompatibilidade:
         assert _saldo(peca) == 1
 
     def test_atualizar_modelo_da_peca_via_put_muda_compatibilidade_futura(
-        self, client, login_como, usuario_tecnico, reparo_padrao_id, criar_item_estoque
+        self, client, login_como, usuario_admin, reparo_padrao_id, criar_item_estoque
     ):
         """Editar o modelo de uma peça (PUT /api/estoque/<id>) muda o resultado de modelo_compativel() em consumos futuros."""
-        login_como(client, usuario_tecnico)
+        # admin: unico perfil com acesso a OS (admin/tecnico) e Estoque (admin/estoque) ao mesmo tempo
+        login_como(client, usuario_admin)
         peca = criar_item_estoque(modelo="iPhone 8", quantidade=2)
 
         bloqueado = client.post("/api/ordens", json=_payload_os(reparo_padrao_id, modelo="iPhone 13", pecas_ids=[peca]))

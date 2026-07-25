@@ -21,6 +21,7 @@ def create_auth_blueprint(deps: dict):
     resolver_ip_cliente = deps["resolver_ip_cliente"]
     limite_excedido = deps["limite_excedido"]
     registrar_tentativa = deps["registrar_tentativa"]
+    perfis_opcoes = deps["perfis_opcoes"]
 
     auth_views = Blueprint("auth_views", __name__)
 
@@ -93,7 +94,7 @@ def create_auth_blueprint(deps: dict):
             flash("Preencha todos os campos.", "danger")
             return redirect(url_for("auth_views.usuarios"))
 
-        if perfil not in ("admin", "tecnico", "vendedor"):
+        if perfil not in perfis_opcoes:
             perfil = "tecnico"
 
         conn = conectar()
@@ -119,7 +120,7 @@ def create_auth_blueprint(deps: dict):
         senha_nova = (request.form.get("senha_nova") or "").strip()
         ativo = 1 if request.form.get("ativo") else 0
 
-        if perfil not in ("admin", "tecnico", "vendedor"):
+        if perfil not in perfis_opcoes:
             perfil = "tecnico"
 
         conn = conectar()

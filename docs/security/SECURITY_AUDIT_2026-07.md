@@ -28,6 +28,7 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 | 11 | Clickjacking (`X-Frame-Options`/`frame-ancestors`) | 🟠 P1 | **Confirmado** | Mesmo middleware do item 10 |
 | 12 | Container Docker roda como root | 🟠 P1 | **Confirmado** | Adicionar `USER` não-root no `Dockerfile` |
 | 13 | `actions/checkout` sem `persist-credentials: false` | 🟠 P1 | **Confirmado** | Adicionar aos 5 usos em `ci.yml` |
+| 14 | *(achado relacionado, proposto pelo usuário/CTO durante a revisão)* Rotas de mutação de OS/Estoque na API sem restrição por perfil | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — já era achado documentado em `DATA_DICTIONARY.md` desde 2026-07-10, nunca corrigido | OS exige `admin`/`tecnico`; Estoque exige `admin`/`estoque` (perfil novo) — ver `docs/product/BUSINESS_RULES.md` BR-030 |
 | 14 | SymlinkPlugin (webpack) | 🟢 P3 | **Dependência de build, não de runtime** | Atualizar quando fizer `npm update` geral |
 
 ---
@@ -152,6 +153,35 @@ call sites), nunca uma variável vinda de request. Nenhum dado de entrada do usu
 chamada.
 
 **Conclusão:** sem vetor de SSRF — a URL de destino é inteiramente controlada pelo servidor.
+
+---
+
+### 14. Mutação de OS/Estoque sem restrição por perfil — Confirmado e corrigido
+
+**Não estava no relatório do Aikido — proposto pelo usuário (CTO) durante a revisão desta auditoria,
+retomando um achado já documentado em `docs/engineering/DATA_DICTIONARY.md` desde 2026-07-10 e nunca
+corrigido.**
+
+**Achado:** `POST/PUT/DELETE /api/ordens*` e `POST/PUT/DELETE /api/estoque*` checavam só
+`usuario_logado()` — qualquer perfil autenticado (`admin`, `tecnico` ou `vendedor`) podia criar, editar
+ou excluir qualquer OS ou item de estoque. `ROUTE_PERMISSIONS` (`app.py`) não cobre essas rotas —
+bypassa explicitamente todo `/api/*`, só se aplica às views legadas server-rendered.
+
+**Decisão do usuário:** OS restrita a `admin`/`tecnico`; Estoque restrita a `admin`/`estoque` — perfil
+novo, criado nesta correção (resolve também um `TODO` já registrado em
+`docs/company/PRODUCT_REQUIREMENTS.md` sobre "Estoque como perfil de usuário"). `vendedor` perdeu acesso
+de mutação a ambos os domínios.
+
+**Corrigido em 2026-07-25:** checagem de perfil adicionada nas 7 rotas de mutação
+(`irflow_blueprints_api.py`); `PERFIS_OPCOES` centralizado em `irflow_core.py`; validação de perfil na
+criação/edição de usuário (`criar_usuario`/`atualizar_usuario`/views legadas) usa a mesma fonte central.
+Frontend (`Users.jsx`) atualizado com o novo perfil. Testes existentes que caracterizavam o
+comportamento antigo (`test_tecnico_pode_excluir_item_de_estoque`,
+`test_vendedor_pode_excluir_item_de_estoque`, `test_vendedor_pode_excluir_qualquer_os`) reescritos para
+confirmar a negação (403); novos testes cobrindo `admin`/`estoque` tendo acesso.
+
+Ver `docs/product/BUSINESS_RULES.md` BR-030 e `docs/company/DECISION_LOG.md` (entrada 2026-07-25) para o
+registro completo.
 
 ---
 

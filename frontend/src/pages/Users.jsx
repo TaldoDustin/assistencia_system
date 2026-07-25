@@ -16,7 +16,9 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
-const PERFIS = ["admin", "tecnico", "vendedor"];
+// Sprint Segurança 1.0 (2026-07-25): "estoque" adicionado — ver
+// docs/security/SECURITY_AUDIT_2026-07.md e irflow_core.py::PERFIS_OPCOES.
+const PERFIS = ["admin", "tecnico", "vendedor", "estoque"];
 
 const EMPTY_FORM = { nome: "", usuario: "", senha: "", perfil: "tecnico", ativo: true };
 
@@ -95,7 +97,7 @@ export default function Users() {
     }
   };
 
-  const perfilColor = { admin: "text-primary", tecnico: "text-blue-400", vendedor: "text-emerald-400" };
+  const perfilColor = { admin: "text-primary", tecnico: "text-blue-400", vendedor: "text-emerald-400", estoque: "text-amber-400" };
 
   return (
     <div className="space-y-5">

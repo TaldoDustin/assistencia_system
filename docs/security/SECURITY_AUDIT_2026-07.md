@@ -46,10 +46,10 @@ Rodado pelo usuário/CTO depois do merge de todos os P0/P1 do 1º scan. Compara�
 | Gunicorn | Item 6 (revisitado) | **Confirmado — 2ª CVE distinta da 1ª** | ✅ **Corrigido em 2026-07-25** — `22.0.0` → `26.0.0` |
 | react-router | Item 7 (revisitado) | Sem mudança desde o 1º scan | Mantido: **não aplicável** (client-side, CVE remanescente é de modo RSC/servidor) |
 | Docker Root | Item 12 | **Provável cache do scanner** | Já corrigido e validado com `docker build`/`docker run` reais antes do 1º scan terminar — ver evidência abaixo |
-| immer | Item 8 | **Provável cache do scanner** | `npm audit` local não mostra nenhuma vulnerabilidade em `immer` hoje (10.2.0/11.1.4, ambos abaixo do latest 11.1.15 mas sem CVE conhecida) |
+| immer | Item 8 | **Não reproduzido neste momento** | `npm audit` local não reproduz nenhuma vulnerabilidade em `immer` hoje (10.2.0/11.1.4, ambos abaixo do latest 11.1.15 mas sem CVE conhecida). Não tratar como falso positivo definitivo — reavaliar se a base de vulnerabilidades do Aikido divergir do `npm audit` de novo, ou se uma CVE nova para essas versões for publicada |
 | SSRF MercadoPhone | Item 5 | Sem mudança | Mantido: **falso positivo** (mesmo código, já investigado) |
 | Secreto no Git | Item 2 | Sem mudança de classificação, só de status | ✅ Já estava confirmado+rotacionado antes deste 2º scan; o Aikido agora descreve como "segredo em arquivo excluído" — reflete corretamente que o arquivo não existe mais no working tree |
-| enhanced-resolve | Novo item, mesma classe do item 15 (SymlinkPlugin) | **Provável cache do scanner** | `npm audit` local não mostra vulnerabilidade; instalado `5.20.1`, latest `5.24.3` — sem CVE conhecida na diferença |
+| enhanced-resolve | Novo item, mesma classe do item 15 (SymlinkPlugin) | **Não reproduzido neste momento** | `npm audit` local não reproduz vulnerabilidade; instalado `5.20.1`, latest `5.24.3` — sem CVE conhecida na diferença. Mesma ressalva do item acima: não é um falso positivo confirmado, é ausência de reprodução com as ferramentas disponíveis agora |
 | File Inclusion | Item 4 | Sem mudança | Mantido: **falso positivo** (mesmo código, já investigado) |
 
 ### 17. SQL Injection em `irflow_os.py::carregar_os_com_relacoes` — achado real, corrigido preventivamente

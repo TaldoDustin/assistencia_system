@@ -216,7 +216,8 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - 2º scan Aikido rodado pelo usuário pós-sprint: confirmou o essencial resolvido. Achados novos triados com a mesma disciplina do 1º scan (`docs/security/SECURITY_AUDIT_2026-07.md`, seção "Segundo scan Aikido"):
   - `irflow_os.py::carregar_os_com_relacoes` — parâmetro `order_by` interpolado via f-string sem validação dentro da função; não explorável hoje (os 2 únicos chamadores sempre passam o mesmo literal fixo), mas corrigido preventivamente com whitelist (`_ORDENACOES_OS`, mesmo padrão de `irflow_unidades_serializadas_repository.py`). 3 novos testes em `tests/test_os_order_by_whitelist.py`
   - `gunicorn` `22.0.0` → `26.0.0` — 2ª CVE distinta da 1ª (CVE-2024-6827, contrabando de requisição TE.CL, corrigida na 23.0.0+); confirmado sem breaking change relevante (projeto não usa o worker `eventlet` removido na 26.0.0)
-  - Docker root, `immer`, `enhanced-resolve` — o scan ainda mostrava esses itens; investigado e classificado como cache/lag do scanner, não regressão real (evidência por item no audit doc)
+  - Docker root — o scan ainda mostrava esse item; já corrigido e validado com `docker build`/`docker run` reais antes desse 2º scan, provável cache/lag do scanner (evidência no audit doc)
+  - `immer`, `enhanced-resolve` — `npm audit` local não reproduz vulnerabilidade nas versões instaladas; classificado como "não reproduzido neste momento", não como falso positivo definitivo — reavaliar se surgir CVE nova ou se a base do Aikido divergir de novo
 - 502 testes no total, `ruff check .` limpo, zero regressão
 
 ### Em progresso

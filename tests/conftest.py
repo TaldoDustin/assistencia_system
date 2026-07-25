@@ -8,6 +8,10 @@ _tmp_dir = tempfile.mkdtemp()
 os.environ["IR_FLOW_DATA_DIR"] = _tmp_dir
 os.environ["IR_FLOW_ENABLE_BACKGROUND_JOBS"] = "0"
 os.environ["MERCADO_PHONE_SYNC_ENABLED"] = "0"
+# IR_FLOW_DATA_DIR acima liga IS_SERVER_RUNTIME em app.py, que agora exige
+# FLASK_SECRET_KEY (SECURITY_AUDIT_2026-07.md item 3) -- valor fixo só para teste,
+# nunca usado fora deste processo.
+os.environ.setdefault("FLASK_SECRET_KEY", "chave-de-teste-nao-usar-em-producao")
 
 import pytest  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402

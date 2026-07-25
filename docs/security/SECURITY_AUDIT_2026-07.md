@@ -17,7 +17,7 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 |---|---|---|---|---|
 | 1 | SQL Injection via concatenação de strings | 🔴 P0 | **Falso positivo** | Nenhuma — documentar o padrão seguro existente |
 | 2 | Segredo no histórico do Git (`.env`) | 🔴 P0 | **Confirmado, risco ativo** — usuário verificou em 2026-07-25 que o valor em produção é o mesmo que vazou | **Rotacionar `FLASK_SECRET_KEY` agora** |
-| 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | **Confirmado no código; risco de exploração descartado** — usuário verificou que a variável está configurada em produção, então o fallback nunca é usado hoje | Corrigir mesmo assim (defesa em profundidade): falhar no boot se ausente, em vez de depender de configuração manual sem verificação |
+| 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — `app.py` falha no boot (`RuntimeError`) se `FLASK_SECRET_KEY` não estiver definida fora de dev local | `hotfix/...` — 2 novos testes de subprocesso confirmando falha/sucesso do boot em cada cenário |
 | 4 | File Inclusion em `irflow_storage` | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 5 | SSRF | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 6 | Gunicorn — 3 vulnerabilidades (contrabando de requisição HTTP) | 🟠 P1 | **Confirmado** | Atualizar para `>=22` |

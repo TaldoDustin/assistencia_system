@@ -226,7 +226,19 @@ try:
 except Exception:
     CORS = None
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
+
+# SECURITY_AUDIT_2026-07.md item 3: antes, um deploy sem FLASK_SECRET_KEY configurada
+# iniciava silenciosamente com um valor hardcoded e publico ("ir-flow-dev-key"),
+# permitindo forjar cookies de sessao. Falha no boot fora de dev local em vez de
+# usar esse fallback -- em dev local (sem IR_FLOW_DATA_DIR/RENDER/FLY), o fallback
+# continua liberado por conveniencia, documentado em .env.example.
+_flask_secret_key_env = os.environ.get("FLASK_SECRET_KEY")
+if not _flask_secret_key_env and IS_SERVER_RUNTIME:
+    raise RuntimeError(
+        "FLASK_SECRET_KEY obrigatoria fora de desenvolvimento local. "
+        'Gere uma com: python -c "import secrets; print(secrets.token_hex(32))"'
+    )
+app.secret_key = _flask_secret_key_env or "ir-flow-dev-key"
 
 # Cookies de sessão: em produção cross-site (Vercel -> Render), o navegador
 # exige SameSite=None + Secure para enviar cookie com credentials: include.

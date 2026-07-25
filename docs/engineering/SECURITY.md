@@ -25,7 +25,7 @@ de P0/P1, cada item validado no código antes de classificar)
 |------|--------|-----------|
 | Senhas armazenadas com hash seguro (Werkzeug) | ✅ | `generate_password_hash` / `check_password_hash` |
 | Salt único por senha | ✅ | Werkzeug gera automaticamente |
-| `FLASK_SECRET_KEY` forte e única por ambiente | ⚠️ | Default inseguro em dev — documentado no `.env.example` |
+| `FLASK_SECRET_KEY` forte e única por ambiente | ⚠️ | Fallback hardcoded corrigido em 2026-07-25 (falha no boot fora de dev local), mas ver seção 8 — valor em uso em produção ainda não foi rotacionado |
 | Sessão invalidada completamente no logout | ⚠️ | `session.clear()` — validar que não há cookie residual |
 | Rate limiting em `/api/auth/login` | ✅ | KI-001 resolvido — 5 tentativas/minuto por identificador (`irflow_rate_limit.py`, tabela `login_attempts`, contador em SQLite em vez de memória — ver nota abaixo) |
 | Bloqueio após tentativas excessivas | ✅ | Mesma implementação acima — 429 na 6ª tentativa dentro da janela |
@@ -146,7 +146,7 @@ item a item, com o padrão seguro já em uso documentado.
 | Credenciais removidas do repositório | ❌ | Commit `832945c` remove o arquivo do working tree, mas **o valor de `FLASK_SECRET_KEY` continua no histórico do Git** (3 commits, `eefcfd2`→`252815a`) **e é confirmadamente o mesmo valor ainda em uso em produção hoje** (verificado pelo usuário/CTO, 2026-07-25) — risco ativo, não hipotético. Ação P0 imediata: rotacionar a chave em produção. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2 |
 | `.env` no `.gitignore` | ✅ | Verificar |
 | `.env.example` documenta todas as variáveis sem valores reais | ✅ | Criado em 2026-07-11 (T-10, fechado junto da Unidade 8 da Sprint 3) — 26 variáveis documentadas, nenhum valor real |
-| `FLASK_SECRET_KEY` forte em produção | ⚠️ | Variável está configurada em produção (verificado 2026-07-25 — o fallback hardcoded de `app.py:229` não está sendo usado hoje), mas é o mesmo valor vazado no histórico do Git (ver linha acima) — "forte" não é suficiente se o valor é público. Fallback hardcoded no código ainda é lacuna de robustez para a Sprint Segurança 1.0, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
+| `FLASK_SECRET_KEY` forte em produção | ⚠️ | Variável está configurada em produção, mas é o mesmo valor vazado no histórico do Git (ver linha acima) — "forte" não é suficiente se o valor é público, ainda precisa ser rotacionada. Fallback hardcoded do código corrigido em 2026-07-25 — `app.py` agora falha no boot se a variável estiver ausente fora de dev local, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
 | Tokens de integração (MercadoPhone) via variável de ambiente | ✅ | `MERCADO_PHONE_API_TOKEN` |
 | Nenhum segredo em logs ou respostas de erro | ⚠️ | A verificar |
 

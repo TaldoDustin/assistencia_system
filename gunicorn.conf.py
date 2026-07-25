@@ -21,6 +21,15 @@ timeout = 60
 accesslog = "-"
 errorlog = "-"
 
+# Gunicorn >=25 liga por padrão um socket de controle (gunicornc) em
+# $XDG_RUNTIME_DIR/gunicorn.ctl ou $HOME/.gunicorn/gunicorn.ctl -- neste
+# projeto o container roda como "appuser" (SECURITY_AUDIT_2026-07.md item
+# 12) cujo $HOME (/app) não é gravável por ele (só os arquivos dentro,
+# copiados com --chown, não o diretório em si), o que gerava um
+# "Permission denied" barulhento a cada boot. Não usamos gunicornc --
+# desabilitado em vez de redirecionar pra outro caminho.
+control_socket_disable = True
+
 
 def on_starting(server):
     """Roda uma vez no processo mestre, antes de qualquer worker subir.

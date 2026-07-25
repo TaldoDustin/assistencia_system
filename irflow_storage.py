@@ -10,6 +10,10 @@ import threading
 import time
 from datetime import datetime
 
+from irflow_logging import get_logger
+
+logger = get_logger("irflow.backup")
+
 
 def carregar_configuracoes_integracoes(integrations_config_path):
     padrao = {
@@ -127,7 +131,7 @@ def aplicar_retencao_backups_automaticos(backup_dir, google_drive_backup_dir, li
             try:
                 os.remove(caminho)
             except OSError as exc:
-                print(f"Falha ao remover backup antigo {caminho}: {exc}")
+                logger.warning("backup_retencao_falha_ao_remover", extra={"caminho": caminho, "erro": str(exc)})
 
 
 def executar_backup_diario_automatico(backup_dir, google_drive_backup_dir, conectar):
@@ -140,11 +144,11 @@ def executar_backup_diario_automatico(backup_dir, google_drive_backup_dir, conec
     try:
         info = criar_backup(backup_dir, google_drive_backup_dir, conectar, nome_arquivo=nome_arquivo)
         if info.get("erro_drive"):
-            print(f"Backup diario criado localmente, mas sem copia no Drive: {info['erro_drive']}")
+            logger.warning("backup_diario_sem_copia_no_drive", extra={"erro": info["erro_drive"]})
         aplicar_retencao_backups_automaticos(backup_dir, google_drive_backup_dir, limite=90)
         return info
     except Exception as exc:
-        print(f"Falha ao gerar backup automatico diario: {exc}")
+        logger.error("backup_diario_falhou", extra={"erro": str(exc)}, exc_info=True)
         return None
 
 
@@ -210,7 +214,7 @@ def iniciar_thread_backup_automatico(
                     backup_dir, google_drive_backup_dir, conectar
                 )
                 if info:
-                    print(f"[Backup] Arquivo criado: {info['nome']}")
+                    logger.info("backup_automatico_criado", extra={"arquivo": info["nome"]})
                     if email_remetente and email_senha_app and email_destino:
                         resultado = enviar_backup_email(
                             info["destino_local"],
@@ -219,11 +223,11 @@ def iniciar_thread_backup_automatico(
                             email_destino,
                         )
                         if resultado["ok"]:
-                            print(f"[Backup] E-mail enviado para {email_destino}")
+                            logger.info("backup_email_enviado", extra={"destino": email_destino})
                         else:
-                            print(f"[Backup] Falha ao enviar e-mail: {resultado['erro']}")
+                            logger.warning("backup_email_falhou", extra={"erro": resultado["erro"]})
             except Exception as exc:
-                print(f"[Backup] Erro inesperado na thread: {exc}")
+                logger.error("backup_thread_erro_inesperado", extra={"erro": str(exc)}, exc_info=True)
 
             time.sleep(intervalo_verificacao_segundos)
 

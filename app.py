@@ -1037,7 +1037,7 @@ def criar_admin_padrao():
             conn.commit()
     except Exception as exc:
         # Loga o erro mas não interrompe o boot
-        print(f"[WARN] Erro ao criar admin padrão: {exc}")
+        logger.warning("criar_admin_padrao_falhou", extra={"erro": str(exc)})
     finally:
         conn.close()
 
@@ -1138,12 +1138,14 @@ def autenticar_integracao_mercado_phone():
             candidatos.append(valor)
 
     if MERCADO_PHONE_WEBHOOK_TOKEN not in candidatos:
-        print(
-            "[MercadoPhone] Token webhook inválido. "
-            f"esperado={_mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN)} "
-            f"candidatos={[ _mascarar_token(c) for c in candidatos ]} "
-            f"headers={sorted(request.headers.keys())} "
-            f"query_keys={sorted(request.args.keys())}"
+        logger.warning(
+            "mercadophone_webhook_token_invalido",
+            extra={
+                "esperado": _mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN),
+                "candidatos": [_mascarar_token(c) for c in candidatos],
+                "headers": sorted(request.headers.keys()),
+                "query_keys": sorted(request.args.keys()),
+            },
         )
         abort(401)
 

@@ -1,7 +1,7 @@
 # SPRINT OBSERVABILIDADE — Logs estruturados, correlation ID, health checks, métricas, Sentry
 
-**Status:** EM ANDAMENTO
-**Período:** 25/07/2026 – (em andamento)
+**Status:** CONCLUÍDA
+**Período:** 25/07/2026 – 25/07/2026
 **Tipo:** Infraestrutura
 
 ---
@@ -35,23 +35,23 @@ Depois da Sprint Segurança 1.0 (encerrada 2026-07-25, ver `docs/security/SECURI
 
 | Entrega | Tipo | Status |
 |---------|------|--------|
-| `irflow_logging.py` + logging JSON configurado | feat | Planejado |
-| Correlation ID por request + log de acesso | feat | Planejado |
-| `/health` e `/ready` | feat | Planejado |
-| `/metrics` (Prometheus multiprocess) | feat | Planejado |
-| Sentry (gated por `SENTRY_DSN`) | feat | Planejado |
-| Migração dos `print()` críticos (`app.py`, `irflow_storage.py`, `irflow_mercadophone.py`) | refactor | Planejado |
+| `irflow_logging.py` + logging JSON configurado | feat | Concluído |
+| Correlation ID por request + log de acesso | feat | Concluído |
+| `/health` e `/ready` | feat | Concluído |
+| `/metrics` (Prometheus multiprocess) | feat | Concluído |
+| Sentry (gated por `SENTRY_DSN`) | feat | Concluído |
+| Migração dos `print()` críticos (`app.py`, `irflow_storage.py`, `irflow_mercadophone.py`) | refactor | Concluído |
 
 ---
 
 ## Critérios de Aceitação
 
-- [ ] Toda resposta HTTP carrega `X-Request-Id`; um valor enviado pelo cliente é validado antes de ser ecoado
-- [ ] `/health` sempre 200 sem autenticação; `/ready` reflete o estado real do banco (503 se inacessível)
-- [ ] `/metrics` expõe contagem e duração de requests, corretos entre os 2 workers do Gunicorn (modo multiprocess), protegido por token em produção
-- [ ] Sentry inicializa só quando `SENTRY_DSN` está definida; nenhum PII de cliente enviado (`send_default_pii=False`)
-- [ ] Logs de backup e sincronização Mercado Phone saem em JSON estruturado, não mais `print()`
-- [ ] Suíte completa (502+ testes) passando, `ruff check .` limpo
+- [x] Toda resposta HTTP carrega `X-Request-Id`; um valor enviado pelo cliente é validado antes de ser ecoado
+- [x] `/health` sempre 200 sem autenticação; `/ready` reflete o estado real do banco (503 se inacessível)
+- [x] `/metrics` expõe contagem e duração de requests, corretos entre os 2 workers do Gunicorn (modo multiprocess), protegido por token em produção — validado com `docker build`/`docker run` reais, 20 requests distribuídos entre os 2 workers agregados corretamente
+- [x] Sentry inicializa só quando `SENTRY_DSN` está definida; nenhum PII de cliente enviado (`send_default_pii=False`)
+- [x] Logs de backup e sincronização Mercado Phone saem em JSON estruturado, não mais `print()`
+- [x] Suíte completa (526 testes) passando, `ruff check .` limpo
 
 ---
 
@@ -85,26 +85,51 @@ Depois da Sprint Segurança 1.0 (encerrada 2026-07-25, ver `docs/security/SECURI
 
 ## Definition of Done
 
-- [ ] Todos os critérios de aceitação atingidos
-- [ ] Testes obrigatórios passando
-- [ ] `ruff check .` limpo
-- [ ] `CHANGELOG.md` atualizado
-- [ ] `PROJECT_STATUS.md` atualizado
-- [ ] `KNOWN_ISSUES.md` atualizado (KI-006 parcialmente endereçado — alerta agora existe via Sentry/log, falta notificação visível na UI)
-- [ ] `ROADMAP.md` — Sprint 3 original tinha "logs estruturados"/"Sentry" como critério nunca marcado; referenciar esta sprint como o fechamento real
-- [ ] Nenhum commit sem padrão Conventional Commits
+- [x] Todos os critérios de aceitação atingidos
+- [x] Testes obrigatórios passando
+- [x] `ruff check .` limpo
+- [x] `CHANGELOG.md` atualizado
+- [x] `PROJECT_STATUS.md` atualizado
+- [x] `KNOWN_ISSUES.md` atualizado (KI-006 parcialmente endereçado — alerta agora existe via Sentry/log, falta notificação visível na UI)
+- [x] `ROADMAP.md` — nota adicionada referenciando esta sprint como o fechamento real dos critérios de observabilidade da Sprint 3 original
+- [x] Nenhum commit sem padrão Conventional Commits
 
 ---
 
-## Retrospectiva (preencher ao concluir)
+## Retrospectiva
 
 ### O que funcionou bem
 
+- Planejamento em modo plano antes de implementar: 3 perguntas de escopo (conta Sentry, estratégia de
+  métricas multiprocess, extensão da migração de `print()`) evitaram decisões erradas caras — em
+  especial a escolha de `/metrics` real com modo multiprocess em vez de uma solução mais simples que
+  teria reproduzido a mesma classe de bug de INC-001/INC-002/rate limiting.
+- Validação real com Docker (via `colima`, já instalado da Sprint Segurança 1.0) encontrou um bug
+  genuíno que a leitura de código sozinha não pegaria: o socket de controle do Gunicorn ≥25 falhando
+  por permissão no container non-root. Reforça o padrão já estabelecido nesta sprint anterior — não
+  confiar só em leitura de código para mudanças de infraestrutura.
+- Escopo da migração de `print()` (só os 22 com sinal operacional real, não os 243) evitou uma mudança
+  desproporcional em arquivos sem relação com observabilidade de produção.
+
 ### O que poderia ter sido melhor
 
+- O bug do socket de controle do Gunicorn só apareceu na validação Docker, depois de todos os
+  componentes já implementados — poderia ter sido antecipado revisando o changelog do Gunicorn 26.0.0
+  mais a fundo durante a Sprint Segurança 1.0 (quando a versão foi atualizada de 22 para 26).
+
 ### Lições aprendidas para a próxima sprint
+
+- Ao atualizar uma dependência de infraestrutura (Gunicorn, neste caso) para uma versão com vários
+  majors de diferença, vale revisar o changelog completo entre as versões, não só procurar pela CVE que
+  motivou a atualização — features novas habilitadas por padrão (como o socket de controle) podem
+  interagir mal com decisões de arquitetura já tomadas (aqui, o container non-root).
+- Para a Sprint Performance proposta pelo usuário (próxima): logs estruturados e `/metrics` já existem
+  agora, então o diagnóstico de `database is locked`/INC-001 pode se apoiar neles desde o início, em vez
+  de precisar de instrumentação ad-hoc como na investigação original do INC-001.
 
 ### Dívida técnica gerada (se houver)
 
 | ID | Descrição | Prioridade |
 |----|-----------|-----------|
+| TD-01 | `/metrics` fica pronto mas sem nenhum Prometheus/Grafana real consumindo — decisão deliberada de não provisionar infraestrutura de monitoramento externa nesta sprint | Baixa |
+| TD-02 | Sentry integrado mas inativo (`SENTRY_DSN` vazia) até o usuário criar a conta — sem alertas reais em produção até essa ação manual | Média |

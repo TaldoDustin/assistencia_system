@@ -1,7 +1,9 @@
 # SECURITY_AUDIT_2026-07.md — Triagem do relatório Aikido
 
-**Status:** Investigado — cada alerta validado no código (não corrigido às cegas). Correção ainda não
-iniciada, aguardando decisão do usuário (CTO) sobre a Sprint Segurança 1.0.
+**Status:** Investigado — cada alerta validado no código (não corrigido às cegas). Item 2 (segredo
+vazado) **confirmado como risco ativo** em 2026-07-25 pelo usuário (CTO): o valor de `FLASK_SECRET_KEY`
+configurado em produção hoje é o mesmo que vazou no histórico do Git — rotação necessária, ver seção do
+item 2 abaixo. Demais correções aguardando decisão sobre a Sprint Segurança 1.0.
 **Origem:** scan automatizado do Aikido rodado pelo usuário (CTO) em 2026-07-25 contra o repositório.
 **Investigado por:** Claude (Principal Engineer), 2026-07-25.
 **Regra seguida:** SAST (análise estática) gera falsos positivos com frequência — nenhum item abaixo foi
@@ -14,8 +16,8 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 | # | Item (relatório Aikido) | Severidade | Classificação | Ação |
 |---|---|---|---|---|
 | 1 | SQL Injection via concatenação de strings | 🔴 P0 | **Falso positivo** | Nenhuma — documentar o padrão seguro existente |
-| 2 | Segredo no histórico do Git (`.env`) | 🔴 P0 | **Confirmado** | Rotacionar `FLASK_SECRET_KEY` |
-| 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | **Confirmado** | Remover fallback hardcoded; falhar no boot se ausente |
+| 2 | Segredo no histórico do Git (`.env`) | 🔴 P0 | **Confirmado, risco ativo** — usuário verificou em 2026-07-25 que o valor em produção é o mesmo que vazou | **Rotacionar `FLASK_SECRET_KEY` agora** |
+| 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | **Confirmado no código; risco de exploração descartado** — usuário verificou que a variável está configurada em produção, então o fallback nunca é usado hoje | Corrigir mesmo assim (defesa em profundidade): falhar no boot se ausente, em vez de depender de configuração manual sem verificação |
 | 4 | File Inclusion em `irflow_storage` | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 5 | SSRF | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 6 | Gunicorn — 3 vulnerabilidades (contrabando de requisição HTTP) | 🟠 P1 | **Confirmado** | Atualizar para `>=22` |
@@ -60,7 +62,7 @@ típico de SAST antes da investigação.
 **Conclusão:** nenhuma injeção de SQL explorável encontrada. Fecha a ação pendente desde 2026-07-06 em
 `docs/engineering/SECURITY.md` seção 3 ("Ação Sprint 3: Grep em todo o backend por f-strings").
 
-### 2. Segredo no histórico do Git — Confirmado
+### 2. Segredo no histórico do Git — Confirmado, risco ativo (verificado 2026-07-25)
 
 **Metodologia:** `git log --diff-filter=A -- .env` e `git show <commit>:.env` nos 3 commits onde o
 arquivo existiu.
@@ -77,16 +79,29 @@ tinha valor sensível não-vazio nos 3 commits.
 mesmo usado em produção hoje, alguém com esse valor pode forjar um cookie de sessão válido para
 qualquer usuário, inclusive admin, sem precisar de senha.
 
-**Ação necessária (usuário — só o CTO tem acesso ao painel do Render):**
-1. Confirmar o valor atual de `FLASK_SECRET_KEY` em produção (Render).
-2. Gerar uma chave nova (`python -c "import secrets; print(secrets.token_hex(32))"`, já documentado em
-   `.env.example`).
-3. Atualizar a variável de ambiente no Render.
-4. Isso invalida todas as sessões ativas (esperado e aceitável — força novo login).
-5. Reescrever o histórico do Git (`git filter-repo` ou BFG) é opcional depois da rotação — o valor
-   vazado já estará morto, mas a limpeza de histórico ainda é boa prática de higiene, sem urgência.
+**Verificado em 2026-07-25 (usuário/CTO): é o mesmo valor de sempre — nunca foi rotacionado desde que o
+`.env` foi removido do repositório.** Risco confirmado como ativo, não hipotético — rotação é P0
+imediato, não pode esperar a Sprint Segurança 1.0.
 
-### 3. Fallback inseguro de `FLASK_SECRET_KEY` no código atual — Confirmado (achado independente)
+**Ação necessária (usuário — só o CTO tem acesso ao painel do Render):**
+1. ~~Confirmar o valor atual de `FLASK_SECRET_KEY` em produção (Render).~~ ✅ Feito 2026-07-25 —
+   confirmado que é o mesmo valor vazado.
+2. Gerar uma chave nova **localmente, no seu terminal** (não colar o valor gerado de volta nesta
+   conversa — evita que o novo segredo fique registrado em qualquer histórico de chat):
+   ```bash
+   python3 -c "import secrets; print(secrets.token_hex(32))"
+   ```
+3. Colar o valor gerado diretamente no painel do Render (variável `FLASK_SECRET_KEY`), sem compartilhar
+   em nenhum outro lugar.
+4. Isso invalida todas as sessões ativas (esperado e aceitável — força novo login de todo mundo,
+   inclusive você).
+5. Repetir o mesmo processo no ambiente local (`.env`, se você usa um) para manter consistência — não é
+   obrigatório ter o mesmo valor local e produção, mas evita confusão.
+6. Reescrever o histórico do Git (`git filter-repo` ou BFG) é opcional depois da rotação — o valor
+   vazado já estará morto, mas a limpeza de histórico ainda é boa prática de higiene, sem urgência.
+7. Depois de rotacionar, atualizar este documento marcando o item como resolvido.
+
+### 3. Fallback inseguro de `FLASK_SECRET_KEY` no código atual — Confirmado no código, não explorado hoje
 
 **Não estava no relatório do Aikido — encontrado ao investigar o item 2.**
 
@@ -96,19 +111,14 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")
 ```
 
 Esse fallback já era um item conhecido e documentado como `⚠️` em `docs/engineering/SECURITY.md` seção 1
-("Default inseguro em dev") desde 2026-07-06, mas nunca verificado em produção. **É mais grave que o
-vazamento histórico do item 2**: não depende de ninguém vasculhar commits antigos — o valor
-`"ir-flow-dev-key"` está visível agora mesmo no código-fonte público do repositório. Se
-`FLASK_SECRET_KEY` não estiver configurada em produção, o Flask usa esse valor previsível para assinar
-sessões.
+("Default inseguro em dev") desde 2026-07-06, mas nunca verificado em produção até agora.
 
-**Ação necessária:**
-1. Confirmar (usuário, painel do Render) que `FLASK_SECRET_KEY` está de fato configurada em produção —
-   prioridade imediata, independente do resto desta auditoria.
-2. Correção de código recomendada (Sprint Segurança 1.0, não feita nesta investigação): remover o
-   fallback hardcoded e falhar no boot (`raise RuntimeError(...)`) se a variável não estiver definida
-   fora do modo de desenvolvimento local — hoje o sistema inicia silenciosamente com o valor inseguro,
-   sem nenhum aviso.
+**Verificado em 2026-07-25 (usuário/CTO): a variável está configurada em produção**, então este
+fallback nunca é acionado hoje — não é um risco ativo. Continua sendo uma lacuna de robustez: o sistema
+inicia silenciosamente com um valor previsível se a variável um dia deixar de estar configurada (ex.:
+novo ambiente, erro de configuração), sem nenhum aviso ou erro. Correção recomendada para a Sprint
+Segurança 1.0, não urgente: remover o fallback hardcoded e falhar no boot (`raise RuntimeError(...)`)
+se a variável não estiver definida fora do modo de desenvolvimento local.
 
 ### 4. File Inclusion em `irflow_storage` — Falso positivo
 
@@ -182,9 +192,11 @@ Sprint 3).
 
 ## Próximo passo (aguardando decisão do usuário)
 
-1. **Imediato, independente do resto:** confirmar `FLASK_SECRET_KEY` em produção (item 3 acima).
-2. Decidir se abre a "Sprint Segurança 1.0" sugerida (zerar P0 confirmados + todos os P1) antes de
-   continuar o Épico Vendas/Fase 1.
+1. ~~Confirmar `FLASK_SECRET_KEY` em produção~~ ✅ Feito 2026-07-25 — e revelou risco ativo: é o mesmo
+   valor vazado no histórico do Git. **Rotação é P0 imediato** (item 2, passo a passo acima) — não
+   precisa esperar a Sprint Segurança 1.0.
+2. Decidir se abre a "Sprint Segurança 1.0" sugerida (P1 confirmados + fallback do item 3, defesa em
+   profundidade) antes de continuar o Épico Vendas/Fase 1.
 3. Este documento deveria refletir no `RELEASE_1.0_MASTER_CHECKLIST.md` (item "Segurança revisada") —
    feito nesta sessão, ver commit correspondente.
 

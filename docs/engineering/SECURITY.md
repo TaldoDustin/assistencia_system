@@ -143,10 +143,10 @@ item a item, com o padrão seguro já em uso documentado.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Credenciais removidas do repositório | ⚠️ | Commit `832945c` remove o arquivo do working tree, mas **o valor de `FLASK_SECRET_KEY` continua no histórico do Git** (3 commits, `eefcfd2`→`252815a`) — confirmado 2026-07-25, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2. Ação: rotacionar a chave em produção |
+| Credenciais removidas do repositório | ❌ | Commit `832945c` remove o arquivo do working tree, mas **o valor de `FLASK_SECRET_KEY` continua no histórico do Git** (3 commits, `eefcfd2`→`252815a`) **e é confirmadamente o mesmo valor ainda em uso em produção hoje** (verificado pelo usuário/CTO, 2026-07-25) — risco ativo, não hipotético. Ação P0 imediata: rotacionar a chave em produção. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2 |
 | `.env` no `.gitignore` | ✅ | Verificar |
 | `.env.example` documenta todas as variáveis sem valores reais | ✅ | Criado em 2026-07-11 (T-10, fechado junto da Unidade 8 da Sprint 3) — 26 variáveis documentadas, nenhum valor real |
-| `FLASK_SECRET_KEY` forte em produção | ❌ | **Escalado de `⚠️` para `❌` em 2026-07-25**: `app.py:229` usa `os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")` — fallback hardcoded e público se a variável não estiver setada, sem nenhum aviso no boot. Confirmar imediatamente se está configurada em produção (Render); correção de código recomendada: falhar no boot em vez de usar o fallback fora de dev local. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
+| `FLASK_SECRET_KEY` forte em produção | ⚠️ | Variável está configurada em produção (verificado 2026-07-25 — o fallback hardcoded de `app.py:229` não está sendo usado hoje), mas é o mesmo valor vazado no histórico do Git (ver linha acima) — "forte" não é suficiente se o valor é público. Fallback hardcoded no código ainda é lacuna de robustez para a Sprint Segurança 1.0, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
 | Tokens de integração (MercadoPhone) via variável de ambiente | ✅ | `MERCADO_PHONE_API_TOKEN` |
 | Nenhum segredo em logs ou respostas de erro | ⚠️ | A verificar |
 

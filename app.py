@@ -25,6 +25,11 @@ from datetime import datetime, timedelta
 from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session, g
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# ============================================================================
+# IMPORTS DE OBSERVABILIDADE (Sprint Observabilidade)
+# ============================================================================
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest, multiprocess
+
 from irflow_logging import configurar_logging, get_logger
 
 # ============================================================================
@@ -382,6 +387,24 @@ def _security_headers(response):
 # linha) vaze para dentro da linha de log JSON.
 _REQUEST_ID_VALIDO = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
+# Labels usam request.url_rule.rule (ex. "/api/ordens/<int:os_id>"), nunca
+# request.path -- caso contrário cada OS/id vira uma série temporal nova
+# (cardinalidade sem limite). Em modo multiprocess (PROMETHEUS_MULTIPROC_DIR
+# setada, só acontece dentro do container -- ver Dockerfile/gunicorn.conf.py)
+# o prometheus_client detecta a env var por conta própria e faz cada Counter/
+# Histogram gravar num arquivo mmap compartilhado por worker; a agregação
+# entre workers só acontece na leitura, em /metrics (ver metrics_endpoint).
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total de requisições HTTP recebidas",
+    ["method", "route", "status"],
+)
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "http_request_duration_seconds",
+    "Duração das requisições HTTP em segundos",
+    ["method", "route"],
+)
+
 
 @app.before_request
 def _iniciar_request_id():
@@ -410,6 +433,11 @@ def _logar_acesso(response):
             "usuario_id": session.get("usuario_id"),
         },
     )
+
+    HTTP_REQUESTS_TOTAL.labels(method=request.method, route=rota, status=response.status_code).inc()
+    if duracao_ms is not None:
+        HTTP_REQUEST_DURATION_SECONDS.labels(method=request.method, route=rota).observe(duracao_ms / 1000)
+
     return response
 
 
@@ -1790,6 +1818,39 @@ def ready_check():
         logger.error("readiness_check_failed", extra={"erro": str(exc)})
         return jsonify({"status": "unavailable"}), 503
     return jsonify({"status": "ok"}), 200
+
+
+def _metrics_autorizado():
+    # Fora de IS_SERVER_RUNTIME (dev local, testes) libera sem token, pra
+    # facilitar curl local. Em produção, exige METRICS_TOKEN configurada e
+    # correspondente -- se a variável não estiver setada, nega por padrão
+    # (mais seguro do que deixar aberto por omissão de configuração).
+    if not IS_SERVER_RUNTIME:
+        return True
+    token_esperado = os.environ.get("METRICS_TOKEN", "")
+    if not token_esperado:
+        return False
+    return request.headers.get("X-Metrics-Token", "") == token_esperado
+
+
+@app.route("/metrics")
+def metrics_endpoint():
+    """Métricas Prometheus. Em modo multiprocess (container com --workers 2,
+    ver Dockerfile/gunicorn.conf.py), agrega os dados de todos os workers a
+    partir dos arquivos em PROMETHEUS_MULTIPROC_DIR -- sem isso, cada worker
+    reportaria só a própria fatia do tráfego."""
+    if not _metrics_autorizado():
+        return jsonify({"erro": "Não autorizado."}), 401
+
+    multiproc_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    if multiproc_dir:
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+        payload = generate_latest(registry)
+    else:
+        payload = generate_latest()
+
+    return payload, 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
 
 # ============================================================================

@@ -8,18 +8,20 @@ Ampliado em 2026-07-25 com as 6 Fases estratégicas (visão de longo prazo, alé
 
 ---
 
-## As 6 Fases estratégicas (visão de longo prazo, 2026-07-25)
+## As 6 Fases estratégicas (visão de longo prazo)
 
-Proposta do usuário (CTO), adotada nesta data. Reorganiza o horizonte completo da Fluxoly — desde a
-estabilização atual até inteligência de negócio — em 6 fases, cada uma com um objetivo de negócio único.
-**Diferente do versionamento abaixo** (que é sobre *o quê sai em cada release*), as Fases respondem *por
-que* essa sequência existe — é a camada de propósito acima das versões.
+Proposta do usuário (CTO) em 2026-07-25, **corrigida no mesmo dia** após revisão (ver
+`docs/company/DECISION_LOG.md` para as duas entradas — a proposta original e a correção — e o motivo de
+cada mudança). Reorganiza o horizonte completo da Fluxoly — desde a estabilização atual até inteligência
+de negócio — em 6 fases, cada uma com um objetivo de negócio único. **Diferente do versionamento abaixo**
+(que é sobre *o quê sai em cada release*), as Fases respondem *por que* essa sequência existe — é a
+camada de propósito acima das versões.
 
 ```
 Fase 0 — Estabilização da Plataforma     (agora)
 Fase 1 — Release 1.0 (primeiro cliente)
-Fase 2 — Multiempresa
-Fase 3 — Escalabilidade
+Fase 2 — Infraestrutura SaaS
+Fase 3 — Multiempresa
 Fase 4 — Automação
 Fase 5 — Inteligência
 ```
@@ -27,32 +29,33 @@ Fase 5 — Inteligência
 | Fase | Objetivo de negócio | Mapeamento no versionamento abaixo |
 |---|---|---|
 | **0 — Estabilização** | "Nenhum bug crítico conhecido." Bugs (INC-001, INC-002 — ver `docs/operations/INCIDENTS/`), auditoria (permissões, SQL injection, uploads, autenticação), performance (índices, queries, paginação, cache), observabilidade (logs, métricas, monitorização) | Não é uma versão — é o gate contínuo antes de qualquer release sair. Trabalho já em andamento nesta sprint técnica |
-| **1 — Release 1.0** | "O cliente consegue operar a empresa inteira usando somente a Fluxoly." Assistência (OS, peças, estoque, garantias, histórico), Comercial (produtos, vendas, clientes, unidades serializadas, IMEI), **Financeiro** (caixa, contas, despesas, receitas), Dashboards, Relatórios, Configurações | Cobre as versões **0.9 (Commercial Preview)** e **1.0 (Commercial Release)** abaixo — a Fase 1 é o destino, 0.9/1.0 são os incrementos até lá |
-| **2 — Multiempresa** | "Primeiros clientes reais." Isolamento por `empresa_id`, planos (Starter/Professional/Enterprise), licenças, assinatura, trial, cancelamento | Era a parte "Multiempresa" da versão **2.0 (Escala)** abaixo — agora quebrada em fase própria. **Bloqueada por decisão pendente em `ADR-005.md`** (alternativas técnicas já avaliadas, decisão de negócio ainda não tomada) |
-| **3 — Escalabilidade** | "100 empresas simultâneas." PostgreSQL (fim do SQLite), Redis (cache/sessões/locks/rate limit), separação de workers (API/Worker/Scheduler), filas (Mercado Phone/e-mail/WhatsApp/backups), CDN, backup automático versionado, monitorização (Sentry/Grafana/Prometheus) | Não existia como fase própria antes — estava implícita dentro da "2.0 Escala". Quebrada em fase própria por ser trabalho de infraestrutura, não de produto |
+| **1 — Release 1.0** | "O cliente consegue operar a empresa inteira usando somente a Fluxoly." Assistência (OS, peças, estoque, garantias, histórico), Comercial (produtos, vendas, clientes, unidades serializadas, IMEI), **Financeiro mínimo** (caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples), Dashboards, Relatórios, Configurações | Cobre as versões **0.9 (Commercial Preview)** e **1.0 (Commercial Release)** abaixo — a Fase 1 é o destino, 0.9/1.0 são os incrementos até lá |
+| **2 — Infraestrutura SaaS** | "Elimina a classe de problema de concorrência antes de multiplicá-la." PostgreSQL (fim do SQLite), Redis (cache/sessões/locks/rate limit), separação de workers (API/Worker/Scheduler), filas (Mercado Phone/e-mail/WhatsApp/backups), observabilidade (Sentry/Grafana/Prometheus), backup automático versionado, CI/CD completo | Não existia como fase própria antes — estava implícita dentro da "2.0 Escala". **Adiantada para antes de Multiempresa** (decisão de 2026-07-25, corrigindo a ordem original) |
+| **3 — Multiempresa** | "Primeiros clientes reais — agora sobre infraestrutura pronta." Isolamento por `empresa_id`, planos (Starter/Professional/Enterprise), licenças, assinatura, billing, trial, cancelamento | Era a parte "Multiempresa" da versão **2.0 (Escala)** abaixo. **Bloqueada por decisão pendente em `ADR-005.md`** (alternativas técnicas já avaliadas, decisão de negócio ainda não tomada) e agora também depende da Fase 2 estar pronta |
 | **4 — Automação** | "Eliminar trabalho manual." WhatsApp, e-mail (garantias/orçamentos/cobranças), integração Mercado Livre, Nota Fiscal, APIs | Era a parte "CRM/WhatsApp" da versão **2.0 (Escala)** abaixo |
 | **5 — Inteligência** | IA respondendo perguntas de negócio (lucro, top vendedores, atraso por técnico, sugestão de compra, retenção), alertas e previsões | Novo — pilar "Inteligência" já existe em `BRAND_IDENTITY.md` seção 2, mas nunca tinha uma fase própria de execução |
 
-### Decisão resolvida nesta data: Financeiro entra na 1.0
+### Decisão: Infraestrutura SaaS antes de Multiempresa
 
-A seção "Em aberto" abaixo (versão original de 2026-07-21) deixava em aberto se Financeiro/Caixa entrava
-na 1.0 ou ficava inteiramente na 2.0. **Resolvido em 2026-07-25**: Financeiro básico (caixa, contas,
-despesas, receitas) entra na Fase 1 / versão 1.0 — é parte do critério "o cliente consegue operar a
-empresa inteira sem depender de planilha paralela" que já justificava a Commercial Release desde a
-reconciliação original. "Financeiro avançado" (o que exatamente isso significa ainda não está definido)
-permanece na 2.0/Fase 2+. Ver `docs/company/DECISION_LOG.md` para o registro executivo desta decisão.
+A proposta original de 2026-07-25 tinha Multiempresa como Fase 2 e Infraestrutura (Postgres/Redis) como
+Fase 3. **Invertida no mesmo dia**, por decisão do usuário (CTO): os dois incidentes fechados na sprint
+técnica de estabilização (INC-001 `database is locked`, INC-002 OS duplicada — ver
+`docs/operations/INCIDENTS/`) nasceram de limitações do SQLite com múltiplos processos escrevendo
+concorrentemente, e exigiram um lock manual porque não existe coordenação nativa entre processos no
+SQLite. Com poucos clientes hoje (1–4), não compensa investir meses em Multiempresa sobre uma base ainda
+em SQLite — construir isolamento por `empresa_id` aumentaria exatamente esse tipo de escrita concorrente
+antes da migração que eliminaria o problema pela raiz. Infraestrutura primeiro: elimina definitivamente
+essa classe de problema, prepara o sistema para crescer, e deixa o desenvolvimento de Multiempresa mais
+limpo quando chegar sua vez.
 
-### Tensão em aberto: ordem de Fase 2 (Multiempresa) vs. Fase 3 (Postgres/Redis)
+### Decisão: Financeiro dividido em mínimo (1.0) e avançado (2.x)
 
-Registrada em 2026-07-25, não resolvida — decisão do usuário quando a Fase 2 se aproximar. Os dois
-incidentes resolvidos na sprint técnica de estabilização (INC-001 `database is locked`, INC-002 OS
-duplicada) nasceram de limitações do SQLite com múltiplos processos (workers do Gunicorn) escrevendo
-concorrentemente — a correção de INC-002 precisou de um lock manual porque não existe coordenação nativa
-entre processos no SQLite. Multiempresa (Fase 2) aumenta a escrita concorrente e adiciona isolamento por
-`empresa_id` — construir isso sobre SQLite antes da migração para Postgres (Fase 3) arrisca reproduzir a
-mesma classe de problema em maior escala, exigindo mais soluções manuais que seriam descartadas ao migrar
-depois. Vale avaliar, quando a Fase 2 for planejada em detalhe, se Postgres deveria vir *durante* ou
-*antes* dela, não estritamente depois.
+A proposta original de 2026-07-25 colocava Financeiro inteiro na Fase 1 / versão 1.0. **Corrigida no
+mesmo dia**: só o **mínimo** necessário para o lojista abandonar a planilha entra na 1.0 — caixa,
+entradas, saídas, contas a pagar, contas a receber, fluxo de caixa simples. O **avançado** (DRE, centros
+de custo, conciliação bancária, múltiplas contas, indicadores financeiros, projeções) fica na versão
+2.x, junto do restante da "2.0 Escala". Motivo: permite lançar a 1.0 mais cedo sem perder qualidade no
+essencial.
 
 ---
 
@@ -104,17 +107,20 @@ migração") nem Financeiro.
 
 Primeira versão oficialmente comercial da Fluxoly, pronta para os primeiros clientes pagantes. Fecha o
 que a 0.9 deixou em aberto no fluxo de venda (Garantias/Trocas sobre uma unidade vendida, conforme o
-ciclo de vida completo já desenhado no ADR-007) e o mínimo de Financeiro/Caixa necessário para o
-lojista operar sem depender de planilha paralela. Financeiro básico (caixa, contas, despesas, receitas)
-entra nesta versão — decidido em 2026-07-25, ver seção "As 6 Fases estratégicas" acima. "Financeiro
-avançado" fica na 2.0.
+ciclo de vida completo já desenhado no ADR-007) e o **Financeiro mínimo** necessário para o lojista
+abandonar a planilha paralela: caixa, entradas, saídas, contas a pagar, contas a receber, fluxo de caixa
+simples (decidido em 2026-07-25, ver seção "As 6 Fases estratégicas" acima). Financeiro avançado fica
+na 2.x.
 
-### Fluxoly 2.0 — Escala
+### Fluxoly 2.0+ — Escala
 
-Épicos do backlog: **Multiempresa** (P3, bloqueado por decisão pendente em `ADR-005.md`), **CRM**,
-**WhatsApp** (pilar "Relacionamento", depende de Clientes maduro), **Financeiro avançado**, e itens sem
-backlog/spec/ADR hoje (API pública, Marketplace, app mobile nativo) — registrados só para não perder o
-fio, não como compromisso.
+Ordem revisada em 2026-07-25 (ver "As 6 Fases estratégicas" acima): **Infraestrutura SaaS** (PostgreSQL,
+Redis, workers, filas, observabilidade, CI/CD) vem antes de **Multiempresa** (P3, bloqueado por decisão
+pendente em `ADR-005.md`) dentro desta faixa de versão — não depois, como na proposta original. Também
+nesta faixa: **CRM**, **WhatsApp** (pilar "Relacionamento", depende de Clientes maduro), **Financeiro
+avançado** (DRE, centros de custo, conciliação bancária, múltiplas contas, indicadores, projeções), e
+itens sem backlog/spec/ADR hoje (API pública, Marketplace, app mobile nativo) — registrados só para não
+perder o fio, não como compromisso.
 
 ---
 
@@ -125,7 +131,6 @@ fio, não como compromisso.
   Candidato a ser resolvido pelo `RELEASE_1.0_MASTER_CHECKLIST.md` planejado (ainda não criado).
 - Se alguma versão deve ser dividida (ex.: Venda MVP sair sozinha na 0.9 antes de Unidades Serializadas
   ter tela completa).
-- Ordem de Fase 2 (Multiempresa) vs. Fase 3 (Postgres/Redis) — ver seção "As 6 Fases estratégicas" acima.
 
 ---
 
@@ -135,10 +140,11 @@ fio, não como compromisso.
   revisado em 2026-07-20, anterior a Produtos/Clientes ganharem tela e à migração `unidades_serializadas`
   — vale conferir contra `docs/operations/PROJECT_STATUS.md` antes de assumir o status de cada épico)
 - `docs/company/DECISION_LOG.md` — decisão de desacoplar Vendas de Caixa/Financeiro (2026-07-09); decisão
-  de adotar as 6 Fases e resolver Financeiro na 1.0 (2026-07-25)
+  de adotar as 6 Fases, com a correção de ordem (Infraestrutura antes de Multiempresa) e divisão do
+  Financeiro (mínimo/avançado) no mesmo dia (2026-07-25)
 - `docs/operations/ROADMAP.md` — roadmap de engenharia (sprints técnicas), eixo separado e hoje
   desatualizado (ver aviso no topo daquele documento)
-- `docs/engineering/adr/ADR-005.md` — decisão pendente que bloqueia Multiempresa (Fase 2 / 2.0)
+- `docs/engineering/adr/ADR-005.md` — decisão pendente que bloqueia Multiempresa (Fase 3 / 2.0+)
 - `docs/engineering/adr/ADR-007.md` — ciclo de vida de `unidades_serializadas` que fundamenta o escopo
   de Garantias/Trocas citado na versão 1.0 acima
 - `docs/company/BRAND_IDENTITY.md` seção 2 — os 6 pilares macrossistêmicos que fundamentam as Fases 1-5

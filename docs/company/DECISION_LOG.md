@@ -187,6 +187,27 @@ migração planejada para depois.
 **Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/company/RELEASE_STRATEGY.md` seção
 "As 6 Fases estratégicas".
 
+## 2026-07-25 — Correção same-day: Infraestrutura SaaS antes de Multiempresa; Financeiro dividido em mínimo/avançado
+
+**Decisão:** revisão da entrada anterior (mesmo dia), antes de consolidar como estratégia oficial. Duas
+mudanças: (1) Fase 2 e Fase 3 invertidas — **Infraestrutura SaaS** (PostgreSQL, Redis, workers, filas,
+observabilidade, backup, CI/CD) passa a vir **antes** de **Multiempresa**, não depois; (2) Financeiro na
+Release 1.0 deixa de ser "básico" genérico e passa a ser explicitamente **mínimo** (caixa, entradas,
+saídas, contas a pagar/receber, fluxo de caixa simples) — o restante (DRE, centros de custo, conciliação
+bancária, múltiplas contas, indicadores, projeções) vai para "Financeiro avançado" na versão 2.x.
+**Motivo:** a tensão registrada como "não resolvida" na entrada anterior foi resolvida no mesmo dia —
+os incidentes INC-001 (`database is locked`) e INC-002 (OS duplicada) nasceram de limitações do SQLite
+com múltiplos processos escrevendo concorrentemente. Com poucos clientes hoje (1-4), não compensa
+investir meses em Multiempresa sobre uma base ainda em SQLite: isolamento por `empresa_id` aumentaria
+exatamente esse tipo de escrita concorrente antes da migração que eliminaria o problema pela raiz.
+Financeiro dividido para permitir lançar a 1.0 mais cedo sem perder qualidade no essencial.
+**Impacto:** `docs/company/RELEASE_STRATEGY.md` — seção "As 6 Fases estratégicas" reescrita com a nova
+ordem e o Financeiro dividido; `docs/engineering/adr/ADR-005.md` (Multiempresa) passa a depender também
+da Fase 2 (Infraestrutura) estar pronta, não só da decisão de negócio já pendente lá.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/company/RELEASE_STRATEGY.md` seções
+"Decisão: Infraestrutura SaaS antes de Multiempresa" e "Decisão: Financeiro dividido em mínimo (1.0) e
+avançado (2.x)".
+
 ## Documentos relacionados
 
 - `docs/engineering/ARCHITECTURE_DECISIONS.md` — decisões arquiteturais (ADR), complementar a este log

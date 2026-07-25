@@ -126,9 +126,8 @@ perder o fio, não como compromisso.
 
 ## Em aberto — decidir antes de fechar o escopo de cada versão
 
-- Critério de "pronto para lançar" por versão — hoje não existe um Definition of Done comercial
-  (diferente do Definition of Done técnico já existente por sprint em `docs/operations/ROADMAP.md`).
-  Candidato a ser resolvido pelo `RELEASE_1.0_MASTER_CHECKLIST.md` planejado (ainda não criado).
+- ~~Critério de "pronto para lançar" por versão~~ — resolvido em 2026-07-25 por
+  `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` (checklist de certificação da Release 1.0).
 - Se alguma versão deve ser dividida (ex.: Venda MVP sair sozinha na 0.9 antes de Unidades Serializadas
   ter tela completa).
 
@@ -136,6 +135,10 @@ perder o fio, não como compromisso.
 
 ## Documentos relacionados
 
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — checklist de certificação da Release 1.0 (o que
+  precisa estar pronto antes do primeiro cliente pagante) e a tabela dos "3 níveis de planejamento"
+  (Visão / Releases / Sprints) que explica como este documento se relaciona com `PRODUCT_BACKLOG.md` e
+  `ROADMAP.md`
 - `docs/product/PRODUCT_BACKLOG.md` — fonte dos épicos e prioridades usados nesta proposta (nota:
   revisado em 2026-07-20, anterior a Produtos/Clientes ganharem tela e à migração `unidades_serializadas`
   — vale conferir contra `docs/operations/PROJECT_STATUS.md` antes de assumir o status de cada épico)

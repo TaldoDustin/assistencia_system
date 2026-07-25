@@ -20,16 +20,17 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 | 3 | *(achado relacionado, fora do relatório Aikido)* Fallback inseguro de `FLASK_SECRET_KEY` no código atual | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — `app.py` falha no boot (`RuntimeError`) se `FLASK_SECRET_KEY` não estiver definida fora de dev local | `hotfix/...` — 2 novos testes de subprocesso confirmando falha/sucesso do boot em cada cenário |
 | 4 | File Inclusion em `irflow_storage` | 🔴 P0 | **Falso positivo** | Nenhuma |
 | 5 | SSRF | 🔴 P0 | **Falso positivo** | Nenhuma |
-| 6 | Gunicorn — 3 vulnerabilidades (contrabando de requisição HTTP) | 🟠 P1 | **Confirmado** | Atualizar para `>=22` |
-| 7 | react-router — 7 vulnerabilidades | 🟠 P1 | **Dependência vulnerável, exploração não confirmada** | Atualizar via `npm update`/`npm audit fix` |
-| 8 | immer — Poluição de Protótipo | 🟠 P1 | **Dependência vulnerável, exploração não confirmada** | Atualizar (dependência transitiva) |
-| 9 | DOMPurify — inconsistência em `CUSTOM_ELEMENT_HANDLING` | 🟠 P1 | **Não aplicável** | Projeto não usa `CUSTOM_ELEMENT_HANDLING` nem Web Components — ver detalhe |
-| 10 | CSP ausente | 🟠 P1 | **Confirmado** | Adicionar middleware de headers |
-| 11 | Clickjacking (`X-Frame-Options`/`frame-ancestors`) | 🟠 P1 | **Confirmado** | Mesmo middleware do item 10 |
-| 12 | Container Docker roda como root | 🟠 P1 | **Confirmado** | Adicionar `USER` não-root no `Dockerfile` |
-| 13 | `actions/checkout` sem `persist-credentials: false` | 🟠 P1 | **Confirmado** | Adicionar aos 5 usos em `ci.yml` |
+| 6 | Gunicorn — 3 vulnerabilidades (contrabando de requisição HTTP) | 🟠 P1 | ✅ **Corrigido em 2026-07-25** — `21.2.0` → `22.0.0` | `requirements.txt` fixa `gunicorn>=22,<23`; testado (suite completa + boot manual via gunicorn) |
+| 7 | react-router — 7 vulnerabilidades | 🟠 P1 | **Não aplicável (majoritariamente) / sem correção não-regressiva disponível para o restante** | Ver detalhe — projeto usa `BrowserRouter` client-side, não o modo servidor/RSC visado pelas CVEs restantes |
+| 8 | immer — Poluição de Protótipo | 🟠 P1 | ✅ **Corrigido em 2026-07-25** — resolvido via `npm audit fix` (sem `--force`), dentro do range já aceito por `package.json` | Nenhuma ação adicional — `frontend/package-lock.json` atualizado |
+| 9 | DOMPurify — inconsistência em `CUSTOM_ELEMENT_HANDLING` | 🟠 P1 | **Não aplicável**, mas ✅ **atualizado em 2026-07-25** por higiene via `npm audit fix` | Projeto não usa `CUSTOM_ELEMENT_HANDLING` nem Web Components — ver detalhe |
+| 10 | CSP ausente | 🟠 P1 | ✅ **Corrigido em 2026-07-25** | Middleware `@app.after_request` em `app.py` (`_security_headers`); testado em `tests/test_security_headers.py` |
+| 11 | Clickjacking (`X-Frame-Options`/`frame-ancestors`) | 🟠 P1 | ✅ **Corrigido em 2026-07-25** | Mesmo middleware do item 10 |
+| 12 | Container Docker roda como root | 🟠 P1 | ✅ **Corrigido em 2026-07-25** | `Dockerfile` + `docker-entrypoint.sh`: roda como `appuser`, exceto o instante inicial (como root) para corrigir a posse de `/data` — ver detalhe |
+| 13 | `actions/checkout` sem `persist-credentials: false` | 🟠 P1 | ✅ **Corrigido em 2026-07-25** | Adicionado aos 5 usos em `ci.yml` |
 | 14 | *(achado relacionado, proposto pelo usuário/CTO durante a revisão)* Rotas de mutação de OS/Estoque na API sem restrição por perfil | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — já era achado documentado em `DATA_DICTIONARY.md` desde 2026-07-10, nunca corrigido | OS exige `admin`/`tecnico`; Estoque exige `admin`/`estoque` (perfil novo) — ver `docs/product/BUSINESS_RULES.md` BR-030 |
-| 14 | SymlinkPlugin (webpack) | 🟢 P3 | **Dependência de build, não de runtime** | Atualizar quando fizer `npm update` geral |
+| 15 | SymlinkPlugin (webpack) | 🟢 P3 | **Dependência de build, não de runtime** | Atualizar quando fizer `npm update` geral |
+| 16 | *(achado relacionado, encontrado durante a Sprint Segurança 1.0)* `brace-expansion` (ReDoS) — via `eslint`/`minimatch` | 🟢 P3 | **Risco aceite** | Ver detalhe — devDependency de lint, não roda em produção nem processa entrada de usuário; correção exigiria bump major do `eslint` (9→10) |
 
 ---
 
@@ -185,28 +186,53 @@ registro completo.
 
 ---
 
-## P1 — Confirmados, correção simples (Sprint Segurança 1.0)
+## P1 — Corrigidos em 2026-07-25 (Sprint Segurança 1.0)
 
-Todos verificados diretamente no código, sem ambiguidade:
+Todos verificados diretamente no código, sem ambiguidade. Branch
+`security/sprint-1.0-p1-headers-docker-ci`, commits atômicos por item.
 
-- **CSP ausente / Clickjacking**: nenhum header de segurança (`Content-Security-Policy`,
-  `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`) configurado em nenhuma resposta —
-  já documentado como `❌` em `docs/engineering/SECURITY.md` seção 6 desde 2026-07-06, nunca corrigido.
-- **Docker root**: `Dockerfile` não tem diretiva `USER` — container roda como root por padrão.
-- **`persist-credentials`**: `.github/workflows/ci.yml` usa `actions/checkout@v4` em 5 lugares, nenhum
-  com `persist-credentials: false`.
-- **Gunicorn**: versão instalada `21.2.0` (confirmado via `pip show`); `requirements.txt` fixa
-  `gunicorn>=21,<22` — nunca vai puxar a correção (CVE-2024-1135, contrabando de requisição via
-  `Transfer-Encoding`, corrigido na 22.0.0). Precisa mudar o pin, não só rodar `pip install -U`.
-- **react-router-dom** (`^7.14.0`) e **immer** (dependência transitiva, `^10.1.1`/`^11.0.0` conforme o
-  pacote que a puxa): não investigado CVE-a-CVE nesta sessão (sem acesso a base de CVE ao vivo neste
-  ambiente) — tratar como "atualizar e rodar a suíte de testes", não como confirmação de exploração real.
-- **DOMPurify — não aplicável**: o achado é específico de projetos que usam
-  `CUSTOM_ELEMENT_HANDLING`/Web Components customizados combinados com o hook `afterSanitizeElements`
-  como camada de segurança. Verificado: `grep -r "CUSTOM_ELEMENT_HANDLING\|customElements.define"
-  frontend/src` não retornou nenhuma ocorrência — o projeto não usa esse recurso do DOMPurify.
-  Atualizar mesmo assim por higiene (é dependência transitiva do `html2canvas` ou similar), mas sem
-  urgência de exploração.
+- **CSP ausente / Clickjacking (itens 10, 11) — ✅ corrigido**: nenhum header de segurança
+  (`Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`)
+  configurado em nenhuma resposta — já documentado como `❌` em `docs/engineering/SECURITY.md`
+  seção 6 desde 2026-07-06. Corrigido via `@app.after_request` (`_security_headers` em `app.py`).
+  Confirmado que o build do Vite (`frontend/dist/index.html`) não usa inline script/style, então a
+  CSP (`script-src 'self'`) não quebra o `/app` servido pelo Flask. Testado em
+  `tests/test_security_headers.py` (5 testes) e na suíte completa (499 testes).
+- **Docker root (item 12) — ✅ corrigido**: `Dockerfile` não tinha diretiva `USER` — container rodava
+  como root por padrão. Corrigido com um usuário de sistema (`appuser`) + `docker-entrypoint.sh`: o
+  entrypoint roda como root só o suficiente para corrigir a posse do disco persistente do Render em
+  `/data` (montado em runtime, fora do controle da imagem), depois troca para `appuser` via `gosu`
+  antes de executar o gunicorn. **Não validado com `docker build`/`docker run` neste ambiente** (sem
+  Docker disponível aqui, CI também não builda a imagem) — decisão explícita do usuário: testar
+  localmente antes do merge em `main` (não delegado à validação em produção no Render).
+- **`persist-credentials` (item 13) — ✅ corrigido**: `.github/workflows/ci.yml` usa
+  `actions/checkout@v4` em 5 lugares; adicionado `persist-credentials: false` em todos — nenhum job
+  precisa empurrar de volta ao repositório.
+- **Gunicorn (item 6) — ✅ corrigido**: versão instalada era `21.2.0` (confirmado via `pip show`);
+  `requirements.txt` fixava `gunicorn>=21,<22` — nunca puxaria a correção (CVE-2024-1135, contrabando
+  de requisição via `Transfer-Encoding`, corrigido na 22.0.0). Pin alterado para `>=22,<23`; testado
+  (suíte completa + smoke test manual: `gunicorn app:app --bind ... ` + `GET /api/constantes` → 200).
+- **immer / DOMPurify / js-yaml / postcss / vite (itens 8, 9) — ✅ atualizado**: `npm audit fix` (sem
+  `--force`) resolveu todos dentro dos ranges já aceitos por `package.json` — só
+  `frontend/package-lock.json` mudou, nenhuma dependência direta precisou de bump manual. DOMPurify
+  continua **não aplicável** de qualquer forma: `grep -r "CUSTOM_ELEMENT_HANDLING\|customElements.define"
+  frontend/src` não retorna nenhuma ocorrência — o projeto não usa esse recurso do DOMPurify;
+  atualizado por higiene, não por exploração real.
+- **react-router-dom (item 7) — decisão: não forçar downgrade**: a versão instalada já era a mais
+  recente (`7.18.1`, dentro do range `^7.14.0`). Após `npm audit fix` sem `--force`, restou uma única
+  CVE ("RSC Mode CSRF Bypass Allows Action Execution Before 400 Response", GHSA-qwww-vcr4-c8h2) —
+  afeta o modo servidor/RSC (React Server Components) do React Router. Este projeto usa
+  `<BrowserRouter>` em modo puramente client-side (`frontend/src/App.jsx`), sem
+  `react-router.config.ts`, sem rotas `.server.*`, sem RSC — **não aplicável**. A única correção que o
+  `npm audit fix --force` oferece é um downgrade para `7.11.0`, que seria regressão (perde 7 versões
+  de correções e features) sem ganho real de segurança para este modo de uso. Reavaliar quando o React
+  Router publicar uma correção para a linha 7.18.x, ou se o projeto adotar modo servidor no futuro.
+- **`brace-expansion` / ReDoS via `eslint`→`minimatch` (achado novo, item 16) — risco aceite**:
+  encontrado ao rodar `npm audit` durante este item, não estava no relatório Aikido original. É
+  devDependency de lint (não roda em produção, não processa entrada de usuário — só os próprios
+  caminhos de arquivo do projeto durante `npm run lint`/CI). Corrigir exigiria `npm audit fix --force`,
+  que faria bump major do `eslint` (9 → 10), risco desproporcional ao ganho para este item nesta
+  sprint. Registrado aqui para não se perder; revisar na próxima atualização geral de devDependencies.
 
 ---
 
@@ -220,15 +246,20 @@ Sprint 3).
 
 ---
 
-## Próximo passo (aguardando decisão do usuário)
+## Próximo passo
 
 1. ~~Confirmar `FLASK_SECRET_KEY` em produção~~ ✅ Feito 2026-07-25 — e revelou risco ativo: é o mesmo
-   valor vazado no histórico do Git. **Rotação é P0 imediato** (item 2, passo a passo acima) — não
-   precisa esperar a Sprint Segurança 1.0.
-2. Decidir se abre a "Sprint Segurança 1.0" sugerida (P1 confirmados + fallback do item 3, defesa em
-   profundidade) antes de continuar o Épico Vendas/Fase 1.
-3. Este documento deveria refletir no `RELEASE_1.0_MASTER_CHECKLIST.md` (item "Segurança revisada") —
-   feito nesta sessão, ver commit correspondente.
+   valor vazado no histórico do Git.
+2. **Rotacionar `FLASK_SECRET_KEY` no Render** — ainda pendente, ação manual do usuário (fora do
+   alcance deste agente; sem acesso ao dashboard do Render). Passo a passo no item 2 acima.
+3. ~~Decidir se abre a "Sprint Segurança 1.0"~~ ✅ Aberta e executada 2026-07-25 — todos os itens P0 e
+   P1 corrigidos (ver tabela), exceto a rotação da chave (passo 2 acima, manual) e os dois itens P3
+   novos (15, 16 — risco aceite/build-only, sem urgência).
+4. Antes do merge de `security/sprint-1.0-p1-headers-docker-ci` em `main`: validar o `Dockerfile`
+   localmente com `docker build`/`docker run` (comandos no commit do item 12) — decisão explícita do
+   usuário de não delegar essa validação ao primeiro deploy real no Render.
+5. Este documento deveria refletir no `RELEASE_1.0_MASTER_CHECKLIST.md` (item "Segurança revisada") —
+   atualizar após o merge em `main`.
 
 ---
 

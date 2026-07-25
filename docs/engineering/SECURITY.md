@@ -3,9 +3,9 @@
 Este documento define a política de segurança do Fluxoly Platform, com um checklist baseado no OWASP Top 10 adaptado à stack do projeto (Flask + SQLite + React).
 
 **Última revisão:** 2026-07-25  
-**Próxima auditoria:** Sprint Segurança 1.0 (proposta, não iniciada) — ver
-`docs/security/SECURITY_AUDIT_2026-07.md` para a auditoria mais recente (scan Aikido, triagem completa
-de P0/P1, cada item validado no código antes de classificar)
+**Sprint Segurança 1.0:** executada 2026-07-25 — P0 e P1 corrigidos, exceto rotação manual de
+`FLASK_SECRET_KEY` (pendente, ver seção 8) — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o
+detalhamento completo (scan Aikido, triagem P0/P1, cada item validado no código antes de classificar)
 
 ---
 
@@ -112,10 +112,10 @@ item a item, com o padrão seguro já em uso documentado.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| `X-Content-Type-Options: nosniff` | ❌ | Header ausente — confirmado de novo em 2026-07-25 (scan Aikido) |
-| `X-Frame-Options: DENY` | ❌ | Header ausente — mesma confirmação |
-| `Referrer-Policy: strict-origin-when-cross-origin` | ❌ | Header ausente |
-| `Content-Security-Policy` | ❌ | Header ausente |
+| `X-Content-Type-Options: nosniff` | ✅ | `@app.after_request` (`_security_headers`, `app.py`) — corrigido 2026-07-25, Sprint Segurança 1.0 |
+| `X-Frame-Options: DENY` | ✅ | Mesmo middleware |
+| `Referrer-Policy: strict-origin-when-cross-origin` | ✅ | Mesmo middleware |
+| `Content-Security-Policy` | ✅ | Mesmo middleware — `frame-ancestors 'none'` cobre clickjacking em navegadores modernos |
 | CORS restrito a origens conhecidas (`IR_FLOW_CORS_ORIGINS`) | ✅ | Configurado via variável de ambiente |
 | CORS nunca `*` em produção | ✅ | Documentado no ENGINEERING_GUIDE |
 
@@ -183,13 +183,13 @@ pendente.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Dependências de produção atualizadas | ❌ | Scan Aikido 2026-07-25 confirmou: `gunicorn` preso em `>=21,<22` (nunca pega a correção de CVE-2024-1135, contrabando de requisição HTTP — instalado 21.2.0); `react-router-dom`, `immer`, DOMPurify (transitiva) também flagados — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
+| Dependências de produção atualizadas | ✅ | Corrigido 2026-07-25, Sprint Segurança 1.0: `gunicorn` `21.2.0` → `22.0.0` (pin `>=22,<23`, corrige CVE-2024-1135); `immer`/DOMPurify/`js-yaml`/`postcss`/`vite` atualizados via `npm audit fix`. `react-router-dom` mantido em `7.18.1` (já a mais recente) — CVE remanescente não aplicável a este projeto (client-side, sem RSC), ver `docs/security/SECURITY_AUDIT_2026-07.md` item 7 |
 | Auditoria de vulnerabilidades conhecidas | ⚠️ | Ainda sem `safety check`/`npm audit` automatizado no CI, mas auditoria manual pontual feita via Aikido em 2026-07-25 |
 | Sem dependências não utilizadas | ⚠️ | Verificar manualmente |
 
-**Ação:** Adicionar `safety check` e `npm audit` ao pipeline de CI (pendente desde Sprint 2). Curto
-prazo: atualizar `gunicorn` para `>=22` e rodar `npm update` nas dependências flagadas — candidatos à
-Sprint Segurança 1.0.
+**Ação:** Adicionar `safety check` e `npm audit` ao pipeline de CI (pendente desde Sprint 2) — ainda
+não feito. `brace-expansion` (ReDoS em `eslint`/`minimatch`, devDependency) registrado como risco
+aceite, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 16.
 
 ---
 

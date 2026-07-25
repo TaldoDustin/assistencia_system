@@ -9,18 +9,23 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 import contextlib
 import functools
 import os
+import re
 import shutil
 import sqlite3
 import sys
 import threading
+import time
+import uuid
 import webbrowser
 from datetime import datetime, timedelta
 
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session
+from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session, g
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from irflow_logging import configurar_logging, get_logger
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
@@ -222,6 +227,10 @@ MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", 
 # ============================================================================
 # BOOTSTRAP FLASK
 # ============================================================================
+# Configurado antes de qualquer outra coisa poder logar durante o boot.
+configurar_logging()
+logger = get_logger("app")
+
 try:
     from flask_cors import CORS
 except Exception:
@@ -361,6 +370,46 @@ def _security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
+# ============================================================================
+# CORRELATION ID + LOG DE ACESSO POR REQUEST (Sprint Observabilidade)
+# ============================================================================
+# Alfanumérico + hífen, até 64 chars — aceita o formato usual de UUID/ULID.
+# Um X-Request-Id de cliente fora desse formato é descartado (gera um novo),
+# nunca repassado como veio: evita que um valor hostil (ex. com quebra de
+# linha) vaze para dentro da linha de log JSON.
+_REQUEST_ID_VALIDO = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+@app.before_request
+def _iniciar_request_id():
+    recebido = (request.headers.get("X-Request-Id") or "").strip()
+    g.request_id = recebido if _REQUEST_ID_VALIDO.match(recebido) else str(uuid.uuid4())
+    g._inicio_request = time.monotonic()
+
+
+@app.after_request
+def _logar_acesso(response):
+    response.headers["X-Request-Id"] = getattr(g, "request_id", "") or str(uuid.uuid4())
+
+    duracao_ms = None
+    inicio = getattr(g, "_inicio_request", None)
+    if inicio is not None:
+        duracao_ms = round((time.monotonic() - inicio) * 1000, 2)
+
+    rota = request.url_rule.rule if request.url_rule else request.path
+    logger.info(
+        "request",
+        extra={
+            "http_method": request.method,
+            "http_route": rota,
+            "http_status": response.status_code,
+            "duration_ms": duracao_ms,
+            "usuario_id": session.get("usuario_id"),
+        },
+    )
     return response
 
 
@@ -1535,7 +1584,16 @@ def verificar_autenticacao():
         return
 
     # Rotas estáticas e API — autenticação gerenciada pela própria API
-    if endpoint in ("static", "serve_react", "serve_react_assets"):
+    # "health_check"/"ready_check"/"metrics_endpoint": probes de infraestrutura
+    # (Render, Prometheus) não autenticam — Sprint Observabilidade.
+    if endpoint in (
+        "static",
+        "serve_react",
+        "serve_react_assets",
+        "health_check",
+        "ready_check",
+        "metrics_endpoint",
+    ):
         return
 
     # Expiração de sessão por inatividade — roda para TODA rota autenticada,
@@ -1704,6 +1762,35 @@ app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conec
 from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
 
 app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# HEALTH CHECKS (Sprint Observabilidade) — sem autenticação, usados por
+# probes de infraestrutura (Render, load balancer). Não usam a convenção
+# ok()/err() das blueprints de domínio de propósito — são infraestrutura,
+# não API de negócio.
+# ============================================================================
+
+
+@app.route("/health")
+def health_check():
+    """Liveness — processo está de pé. Não checa nenhuma dependência externa."""
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/ready")
+def ready_check():
+    """Readiness — banco de dados está acessível."""
+    try:
+        conn = conectar()
+        try:
+            conn.execute("SELECT 1")
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.error("readiness_check_failed", extra={"erro": str(exc)})
+        return jsonify({"status": "unavailable"}), 503
+    return jsonify({"status": "ok"}), 200
+
 
 # ============================================================================
 # SERVE REACT SPA — catch-all para todas as rotas não-API

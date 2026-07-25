@@ -45,12 +45,12 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 |---|---|---|
 | Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~40% |
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~44% |
-| Segurança e Compliance | 🔴 | ~28% |
+| Segurança e Compliance | 🟡 | ~75% |
 | Observabilidade | 🔴 | ~3% |
 | Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~2% |
 
 ```
-Release 1.0:  █████░░░░░░░░░░░░░░░  ~25%
+Release 1.0:  ███████░░░░░░░░░░░░░  ~33%
 ```
 
 Maiores blocos de trabalho pela % (não pela quantidade de itens): **Operação** e **Observabilidade**
@@ -65,9 +65,9 @@ item abaixo.
 ### Produto
 
 - [ ] **Assistência completa** — OS, peças, estoque, garantias, histórico
-  Estado: 🟡 Em produção há meses (OS, Estoque, Garantias, Lista de Compras), mas com dívida conhecida:
-  rotas de mutação de OS/Estoque aceitam qualquer perfil autenticado sem restrição
-  (`docs/engineering/DATA_DICTIONARY.md`), e KI-005 (paginação ausente em `GET /api/ordens`) segue aberto.
+  Estado: 🟡 Em produção há meses (OS, Estoque, Garantias, Lista de Compras). Dívida de autorização
+  (rotas de mutação de OS/Estoque sem restrição por perfil) corrigida em 2026-07-25 (Sprint Segurança
+  1.0). Segue aberto: KI-005 (paginação ausente em `GET /api/ordens`).
   Link: `docs/engineering/DOMAIN_MODEL.md`, `docs/operations/KNOWN_ISSUES.md` (KI-005)
 
 - [ ] **Comercial completo** — produtos, vendas, clientes, unidades serializadas, IMEI
@@ -124,12 +124,13 @@ item abaixo.
 ### Segurança e Compliance
 
 - [ ] **Segurança revisada** — permissões, SQL injection, uploads, autenticação
-  Estado: 🟡 Auditoria de SQL Injection concluída em 2026-07-25 (falso positivo — código já seguro,
-  ver `SECURITY_AUDIT_2026-07.md`). Mas: 2 achados P0 confirmados no mesmo scan — segredo
-  (`FLASK_SECRET_KEY`) vazado no histórico do Git + fallback hardcoded inseguro no código atual, ainda
-  não corrigidos; gap de autorização já documentado (rotas de OS/Estoque aceitam qualquer perfil
-  autenticado — `DATA_DICTIONARY.md`); vários P1 confirmados (CSP ausente, Docker root, dependências
-  desatualizadas) também pendentes.
+  Estado: 🟡 Sprint Segurança 1.0 (2026-07-25) fechou praticamente tudo: SQL Injection/File
+  Inclusion/SSRF confirmados falsos positivos; fallback hardcoded do `FLASK_SECRET_KEY` corrigido
+  (falha no boot fora de dev local); gap de autorização em OS/Estoque corrigido (perfil obrigatório);
+  todos os P1 corrigidos (CSP, X-Frame-Options, Docker non-root, `persist-credentials`, gunicorn e
+  dependências JS atualizadas). **Falta 1 ação manual, P0**: rotacionar `FLASK_SECRET_KEY` em produção
+  no Render — o valor atual é o mesmo que vazou no histórico do Git, risco ativo até ser trocado. Sem
+  essa rotação, este item não pode virar ✅.
   Link: `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/engineering/SECURITY.md`,
   `docs/engineering/DATA_DICTIONARY.md`
 

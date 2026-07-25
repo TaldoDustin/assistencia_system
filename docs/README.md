@@ -96,6 +96,15 @@ Decisões técnicas importantes, com contexto e alternativas avaliadas:
 
 ---
 
+## `security/` — Auditorias Pontuais
+
+Distinto de `engineering/SECURITY.md` (política de segurança permanente, checklist OWASP): esta pasta
+guarda auditorias de um momento específico, disparadas por evento (scan de ferramenta, revisão externa).
+
+- [`security/SECURITY_AUDIT_2026-07.md`](security/SECURITY_AUDIT_2026-07.md) — Triagem do scan Aikido de 2026-07-25: cada alerta validado no código antes de classificar (3 falsos positivos, 2 P0 confirmados, vários P1 confirmados).
+
+---
+
 ## `operations/` — Estado Vivo de Execução
 
 - [`operations/PROJECT_STATUS.md`](operations/PROJECT_STATUS.md) — Score, cobertura, riscos, arquivos críticos. Atualizado a cada sprint.

@@ -186,6 +186,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — adicionada visão executiva (% por área, barra de progresso geral ~25%), derivada das próprias seções do checklist (sem categorização nova), com metodologia explícita (média simples ❌≈0-15%/🟡≈30-70%/✅=100%, não pesada por esforço). Adicionado guardrail explícito contra o documento virar um segundo backlog
 - `docs/company/GO_LIVE_PLAN.md` — plano de execução para colocar o primeiro cliente em produção, deliberadamente separado do master checklist ("como fazemos" vs. "estamos prontos"). Documenta que o sistema não tem multiempresa/`empresa_id` hoje — onboarding de cliente novo significa provisionar deployment próprio, não criar registro dentro do sistema atual. Rascunho nunca executado — marcado com os gaps conhecidos (critério de rollback não definido, nenhum dry-run feito)
 
+### Adicionado (2026-07-25 — SECURITY_AUDIT_2026-07)
+- `docs/security/SECURITY_AUDIT_2026-07.md` — triagem completa do scan Aikido rodado pelo usuário (CTO). Cada alerta validado no código antes de classificar (regra explícita: SAST gera falsos positivos, não corrigir às cegas). Resultado: SQL Injection, File Inclusion (`irflow_storage`) e SSRF confirmados como **falsos positivos** (evidência documentada por item); segredo `FLASK_SECRET_KEY` no histórico do Git **confirmado**, com achado adicional fora do relatório original — fallback hardcoded inseguro em `app.py:229`, mais grave que o vazamento histórico pois está visível no código atual; Gunicorn (`21.2.0`, preso em `<22`, CVE-2024-1135), CSP/X-Frame-Options ausentes, Docker rodando como root, e `actions/checkout` sem `persist-credentials: false` confirmados como P1. DOMPurify avaliado como não aplicável (projeto não usa `CUSTOM_ELEMENT_HANDLING`). Fecha a ação pendente desde 2026-07-06 em `docs/engineering/SECURITY.md` seção 3
+- `docs/engineering/SECURITY.md` atualizado nas seções 3 (SQL Injection, agora ✅), 6 (headers HTTP), 8 (segredos — `FLASK_SECRET_KEY` escalado de ⚠️ para ❌) e 11 (dependências) para refletir os achados
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Segurança revisada" atualizado com o resultado da auditoria
+- Nenhuma correção de código aplicada nesta sessão — investigação e classificação apenas, aguardando decisão do usuário sobre abrir a Sprint Segurança 1.0
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

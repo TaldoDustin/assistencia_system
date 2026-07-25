@@ -124,11 +124,14 @@ item abaixo.
 ### Segurança e Compliance
 
 - [ ] **Segurança revisada** — permissões, SQL injection, uploads, autenticação
-  Estado: 🟡 Rate limiting, expiração de sessão, recuperação de senha entregues (Sprint 3). Mas: gap de
-  autorização já documentado (rotas de OS/Estoque aceitam qualquer perfil autenticado —
-  `DATA_DICTIONARY.md`); nenhuma auditoria formal de SQL injection/upload documentada como concluída
-  nesta sessão ou anterior.
-  Link: `docs/engineering/SECURITY.md`, `docs/engineering/DATA_DICTIONARY.md`
+  Estado: 🟡 Auditoria de SQL Injection concluída em 2026-07-25 (falso positivo — código já seguro,
+  ver `SECURITY_AUDIT_2026-07.md`). Mas: 2 achados P0 confirmados no mesmo scan — segredo
+  (`FLASK_SECRET_KEY`) vazado no histórico do Git + fallback hardcoded inseguro no código atual, ainda
+  não corrigidos; gap de autorização já documentado (rotas de OS/Estoque aceitam qualquer perfil
+  autenticado — `DATA_DICTIONARY.md`); vários P1 confirmados (CSP ausente, Docker root, dependências
+  desatualizadas) também pendentes.
+  Link: `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/engineering/SECURITY.md`,
+  `docs/engineering/DATA_DICTIONARY.md`
 
 - [ ] **LGPD**
   Estado: ❌ Não iniciado — nenhum documento sobre LGPD existe no projeto hoje (confirmado, busca sem

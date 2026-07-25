@@ -2,8 +2,10 @@
 
 Este documento define a política de segurança do Fluxoly Platform, com um checklist baseado no OWASP Top 10 adaptado à stack do projeto (Flask + SQLite + React).
 
-**Última revisão:** 2026-07-06  
-**Próxima auditoria:** Início da Sprint 3
+**Última revisão:** 2026-07-25  
+**Próxima auditoria:** Sprint Segurança 1.0 (proposta, não iniciada) — ver
+`docs/security/SECURITY_AUDIT_2026-07.md` para a auditoria mais recente (scan Aikido, triagem completa
+de P0/P1, cada item validado no código antes de classificar)
 
 ---
 
@@ -67,8 +69,8 @@ em andamento no momento do deploy.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Queries usam parâmetros `?` (nunca f-strings ou concatenação) | ⚠️ | Padrão seguido nos módulos recentes — auditoria do legado pendente |
-| Nenhum input do usuário é interpolado diretamente em SQL | ⚠️ | A auditar em `irflow_blueprints_api.py` (130KB) |
+| Queries usam parâmetros `?` (nunca f-strings ou concatenação) | ✅ | Auditado 2026-07-25 — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
+| Nenhum input do usuário é interpolado diretamente em SQL | ✅ | Todas as 11 ocorrências de f-string em `.execute()` do backend inteiro (incluindo `irflow_blueprints_api.py`) verificadas linha a linha — só fragmentos fixos/whitelists são interpolados, valores do usuário sempre via `?` |
 
 **Regra obrigatória:**
 ```python
@@ -79,7 +81,9 @@ cursor.execute(f"SELECT * FROM os WHERE cliente = '{nome}'")
 cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 ```
 
-**Ação Sprint 3:** Grep em todo o backend por f-strings em `cursor.execute`.
+**Auditoria concluída em 2026-07-25** (disparada por scan Aikido do usuário/CTO), fechando esta ação
+pendente desde 2026-07-06 — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o detalhamento completo,
+item a item, com o padrão seguro já em uso documentado.
 
 ---
 
@@ -108,14 +112,15 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| `X-Content-Type-Options: nosniff` | ❌ | Header ausente |
-| `X-Frame-Options: DENY` | ❌ | Header ausente |
+| `X-Content-Type-Options: nosniff` | ❌ | Header ausente — confirmado de novo em 2026-07-25 (scan Aikido) |
+| `X-Frame-Options: DENY` | ❌ | Header ausente — mesma confirmação |
 | `Referrer-Policy: strict-origin-when-cross-origin` | ❌ | Header ausente |
 | `Content-Security-Policy` | ❌ | Header ausente |
 | CORS restrito a origens conhecidas (`IR_FLOW_CORS_ORIGINS`) | ✅ | Configurado via variável de ambiente |
 | CORS nunca `*` em produção | ✅ | Documentado no ENGINEERING_GUIDE |
 
-**Ação Sprint 3:** Adicionar headers de segurança via middleware Flask em `app.py`.
+**Ação:** Adicionar headers de segurança via middleware Flask em `app.py` — item P1 confirmado em
+`docs/security/SECURITY_AUDIT_2026-07.md`, candidato à Sprint Segurança 1.0.
 
 ---
 
@@ -138,10 +143,10 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Credenciais removidas do repositório | ✅ | Commit `832945c` |
+| Credenciais removidas do repositório | ⚠️ | Commit `832945c` remove o arquivo do working tree, mas **o valor de `FLASK_SECRET_KEY` continua no histórico do Git** (3 commits, `eefcfd2`→`252815a`) — confirmado 2026-07-25, ver `docs/security/SECURITY_AUDIT_2026-07.md` item 2. Ação: rotacionar a chave em produção |
 | `.env` no `.gitignore` | ✅ | Verificar |
 | `.env.example` documenta todas as variáveis sem valores reais | ✅ | Criado em 2026-07-11 (T-10, fechado junto da Unidade 8 da Sprint 3) — 26 variáveis documentadas, nenhum valor real |
-| `FLASK_SECRET_KEY` forte em produção | ⚠️ | Responsabilidade do operador — documentar |
+| `FLASK_SECRET_KEY` forte em produção | ❌ | **Escalado de `⚠️` para `❌` em 2026-07-25**: `app.py:229` usa `os.environ.get("FLASK_SECRET_KEY", "ir-flow-dev-key")` — fallback hardcoded e público se a variável não estiver setada, sem nenhum aviso no boot. Confirmar imediatamente se está configurada em produção (Render); correção de código recomendada: falhar no boot em vez de usar o fallback fora de dev local. Ver `docs/security/SECURITY_AUDIT_2026-07.md` item 3 |
 | Tokens de integração (MercadoPhone) via variável de ambiente | ✅ | `MERCADO_PHONE_API_TOKEN` |
 | Nenhum segredo em logs ou respostas de erro | ⚠️ | A verificar |
 
@@ -178,11 +183,13 @@ pendente.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Dependências de produção atualizadas | ⚠️ | Sem processo automatizado de verificação |
-| Auditoria de vulnerabilidades conhecidas | ❌ | Sem `safety check` ou `npm audit` no CI |
+| Dependências de produção atualizadas | ❌ | Scan Aikido 2026-07-25 confirmou: `gunicorn` preso em `>=21,<22` (nunca pega a correção de CVE-2024-1135, contrabando de requisição HTTP — instalado 21.2.0); `react-router-dom`, `immer`, DOMPurify (transitiva) também flagados — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
+| Auditoria de vulnerabilidades conhecidas | ⚠️ | Ainda sem `safety check`/`npm audit` automatizado no CI, mas auditoria manual pontual feita via Aikido em 2026-07-25 |
 | Sem dependências não utilizadas | ⚠️ | Verificar manualmente |
 
-**Ação Sprint 2:** Adicionar `safety check` e `npm audit` ao pipeline de CI.
+**Ação:** Adicionar `safety check` e `npm audit` ao pipeline de CI (pendente desde Sprint 2). Curto
+prazo: atualizar `gunicorn` para `>=22` e rodar `npm update` nas dependências flagadas — candidatos à
+Sprint Segurança 1.0.
 
 ---
 

@@ -5,9 +5,10 @@ Este documento define a política de segurança do Fluxoly Platform, com um chec
 **Última revisão:** 2026-07-25  
 **Sprint Segurança 1.0:** concluída 2026-07-25 — todos os P0 e P1 corrigidos, incluindo rotação de
 `FLASK_SECRET_KEY` e validação real (`docker build`/`docker run`) do container non-root antes do merge
-em `main` — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o detalhamento completo (scan Aikido,
-triagem P0/P1, cada item validado no código antes de classificar). Próximo passo: novo scan Aikido para
-confirmar o estado pós-sprint
+em `main`. **2º scan Aikido pós-sprint (mesmo dia):** confirmou o essencial resolvido — só achados
+novos: hardening preventivo de SQL em `irflow_os.py` (não explorável, corrigido) e 2ª CVE distinta do
+gunicorn (`26.0.0`) — ver `docs/security/SECURITY_AUDIT_2026-07.md` para o detalhamento completo de
+ambos os scans, cada item validado no código antes de classificar
 
 ---
 
@@ -185,7 +186,7 @@ pendente.
 
 | Item | Status | Observação |
 |------|--------|-----------|
-| Dependências de produção atualizadas | ✅ | Corrigido 2026-07-25, Sprint Segurança 1.0: `gunicorn` `21.2.0` → `22.0.0` (pin `>=22,<23`, corrige CVE-2024-1135); `immer`/DOMPurify/`js-yaml`/`postcss`/`vite` atualizados via `npm audit fix`. `react-router-dom` mantido em `7.18.1` (já a mais recente) — CVE remanescente não aplicável a este projeto (client-side, sem RSC), ver `docs/security/SECURITY_AUDIT_2026-07.md` item 7 |
+| Dependências de produção atualizadas | ✅ | Sprint Segurança 1.0 (2026-07-25): `gunicorn` `21.2.0` → `22.0.0` → `26.0.0` (2ª rodada corrigiu uma 2ª CVE distinta, request smuggling TE.CL CVE-2024-6827, só fechada na 23.0.0+; sem breaking change relevante — projeto não usa o worker `eventlet` removido na 26.0.0); `immer`/DOMPurify/`js-yaml`/`postcss`/`vite` atualizados via `npm audit fix`. `react-router-dom` mantido em `7.18.1` (já a mais recente) — CVE remanescente não aplicável a este projeto (client-side, sem RSC), ver `docs/security/SECURITY_AUDIT_2026-07.md` item 7 |
 | Auditoria de vulnerabilidades conhecidas | ⚠️ | Ainda sem `safety check`/`npm audit` automatizado no CI, mas auditoria manual pontual feita via Aikido em 2026-07-25 |
 | Sem dependências não utilizadas | ⚠️ | Verificar manualmente |
 

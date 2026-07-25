@@ -143,7 +143,20 @@ def obter_reparos_por_os(cursor):
     return mapa
 
 
+# Whitelist do fragmento SQL interpolado abaixo (achado da 2a triagem Aikido,
+# docs/security/SECURITY_AUDIT_2026-07.md) -- hoje todo chamador passa o
+# mesmo literal fixo "os.id DESC", nunca algo vindo do cliente direto no SQL.
+# Mesmo assim, `order_by` era interpolado sem validacao dentro da funcao --
+# corrigido para nao depender de todo chamador presente e futuro fazer isso
+# certo sozinho.
+_ORDENACOES_OS = {
+    "os.id DESC": "os.id DESC",
+    "os.id ASC": "os.id ASC",
+}
+
+
 def carregar_os_com_relacoes(cursor, order_by="os.id DESC"):
+    order_by_sql = _ORDENACOES_OS.get(order_by, _ORDENACOES_OS["os.id DESC"])
     cursor.execute(
         f"""
         SELECT
@@ -166,7 +179,7 @@ def carregar_os_com_relacoes(cursor, order_by="os.id DESC"):
             COALESCE(os.origem_integracao, ''),
             COALESCE(os.id_externo_integracao, '')
         FROM os
-        ORDER BY {order_by}
+        ORDER BY {order_by_sql}
         """
     )
     dados = cursor.fetchall()

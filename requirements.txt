@@ -2,3 +2,4 @@ flask>=3.0,<4
 gunicorn>=26,<27
 flask-cors>=4.0,<5
 prometheus-client>=0.20,<1
+sentry-sdk[flask]>=2.60,<3

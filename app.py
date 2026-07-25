@@ -236,6 +236,27 @@ MERCADO_PHONE_SYNC_START_DATE = os.environ.get("MERCADO_PHONE_SYNC_START_DATE", 
 configurar_logging()
 logger = get_logger("app")
 
+# Sentry (Sprint Observabilidade) -- só inicializa com SENTRY_DSN definida.
+# Vazia por padrão: usuário ainda não tem conta Sentry, vai criar depois e
+# só colar o DSN no Render (mesmo padrão de integração opcional já usado
+# pelo Mercado Phone). send_default_pii=False é deliberado -- o sistema
+# lida com dado real de cliente (nome, IMEI), não pode vazar em
+# breadcrumb/payload de erro. traces_sample_rate=0 -- só captura de erro,
+# sem tracing de performance (evita overhead/custo sem necessidade
+# confirmada; pode ser revisto depois se fizer sentido).
+_sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        send_default_pii=False,
+        traces_sample_rate=0,
+    )
+    logger.info("sentry_inicializado")
+
 try:
     from flask_cors import CORS
 except Exception:

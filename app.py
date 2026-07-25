@@ -334,6 +334,36 @@ def _cors_fallback_headers(response):
 
     return response
 
+
+# SECURITY_AUDIT_2026-07.md itens 10 (CSP ausente) e 11 (sem protecao contra
+# clickjacking). O build do Vite (frontend/dist) nao usa inline script/style
+# no documento -- confirmado em frontend/dist/index.html -- entao script-src
+# 'self' nao quebra o /app servido localmente. frame-ancestors 'none' +
+# X-Frame-Options: DENY sao redundantes de proposito (CSP para navegadores
+# modernos, X-Frame-Options como fallback legado); nenhuma rota deste
+# projeto precisa ser incorporada em iframe de terceiros.
+_CSP_HEADER_VALUE = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
+)
+
+
+@app.after_request
+def _security_headers(response):
+    response.headers.setdefault("Content-Security-Policy", _CSP_HEADER_VALUE)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
 # FUNÇÕES AUXILIARES - CARREGAMENTO DE DADOS
 # ============================================================================
 carregar_tabelas_preco = functools.partial(carregar_tabelas_preco_arquivo, PRICE_TABLES_PATH)

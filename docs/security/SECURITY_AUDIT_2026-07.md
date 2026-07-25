@@ -1,11 +1,12 @@
 # SECURITY_AUDIT_2026-07.md — Triagem do relatório Aikido
 
-**Status:** Sprint Segurança 1.0 concluída em 2026-07-25 — todos os P0/P1 corrigidos, incluindo a
-rotação de `FLASK_SECRET_KEY` em produção (usuário/CTO confirmou 2026-07-25) e o merge validado do
-Docker non-root em `main`. Cada alerta foi validado no código antes de corrigir (não corrigido às
-cegas). Restam apenas 2 itens P3 de baixa prioridade (15, 16 — build-only/risco aceite) e o próximo
-scan Aikido para confirmar o estado real pós-sprint (ver "Próximo passo").
-**Origem:** scan automatizado do Aikido rodado pelo usuário (CTO) em 2026-07-25 contra o repositório.
+**Status:** Sprint Segurança 1.0 concluída em 2026-07-25 (P0/P1 do 1º scan). **2º scan Aikido rodado no
+mesmo dia, pós-sprint** — triado abaixo em "Segundo scan Aikido". Resultado: só 1 achado novo real
+(hardening preventivo de SQL, não explorável hoje — item 17), 1 dependência com CVE genuína adicional
+(gunicorn, 2ª vulnerabilidade distinta da 1ª — item 6 revisitado), e vários itens que já estavam
+corrigidos no 1º scan mas o Aikido ainda mostrava (Docker root, segredo no Git) — provável cache/lag do
+scanner, não regressão real, ver evidência por item.
+**Origem:** scans automatizados do Aikido rodados pelo usuário (CTO) em 2026-07-25 contra o repositório.
 **Investigado por:** Claude (Principal Engineer), 2026-07-25.
 **Regra seguida:** SAST (análise estática) gera falsos positivos com frequência — nenhum item abaixo foi
 classificado sem antes ler o código real envolvido. Ver metodologia de cada item.
@@ -32,6 +33,72 @@ classificado sem antes ler o código real envolvido. Ver metodologia de cada ite
 | 14 | *(achado relacionado, proposto pelo usuário/CTO durante a revisão)* Rotas de mutação de OS/Estoque na API sem restrição por perfil | 🔴 P0 | ✅ **Corrigido em 2026-07-25** — já era achado documentado em `DATA_DICTIONARY.md` desde 2026-07-10, nunca corrigido | OS exige `admin`/`tecnico`; Estoque exige `admin`/`estoque` (perfil novo) — ver `docs/product/BUSINESS_RULES.md` BR-030 |
 | 15 | SymlinkPlugin (webpack) | 🟢 P3 | **Dependência de build, não de runtime** | Atualizar quando fizer `npm update` geral |
 | 16 | *(achado relacionado, encontrado durante a Sprint Segurança 1.0)* `brace-expansion` (ReDoS) — via `eslint`/`minimatch` | 🟢 P3 | **Risco aceite** | Ver detalhe — devDependency de lint, não roda em produção nem processa entrada de usuário; correção exigiria bump major do `eslint` (9→10) |
+
+---
+
+## Segundo scan Aikido (2026-07-25) — pós Sprint Segurança 1.0
+
+Rodado pelo usuário/CTO depois do merge de todos os P0/P1 do 1º scan. Comparação item a item:
+
+| Item do 2º scan | Mapeia para | Classificação | Ação |
+|---|---|---|---|
+| SQL Injection (`irflow_os.py`) | Novo — não estava no 1º scan | ✅ **Achado real, mas não explorável hoje — corrigido preventivamente em 2026-07-25** | Ver item 17 abaixo |
+| Gunicorn | Item 6 (revisitado) | **Confirmado — 2ª CVE distinta da 1ª** | ✅ **Corrigido em 2026-07-25** — `22.0.0` → `26.0.0` |
+| react-router | Item 7 (revisitado) | Sem mudança desde o 1º scan | Mantido: **não aplicável** (client-side, CVE remanescente é de modo RSC/servidor) |
+| Docker Root | Item 12 | **Provável cache do scanner** | Já corrigido e validado com `docker build`/`docker run` reais antes do 1º scan terminar — ver evidência abaixo |
+| immer | Item 8 | **Provável cache do scanner** | `npm audit` local não mostra nenhuma vulnerabilidade em `immer` hoje (10.2.0/11.1.4, ambos abaixo do latest 11.1.15 mas sem CVE conhecida) |
+| SSRF MercadoPhone | Item 5 | Sem mudança | Mantido: **falso positivo** (mesmo código, já investigado) |
+| Secreto no Git | Item 2 | Sem mudança de classificação, só de status | ✅ Já estava confirmado+rotacionado antes deste 2º scan; o Aikido agora descreve como "segredo em arquivo excluído" — reflete corretamente que o arquivo não existe mais no working tree |
+| enhanced-resolve | Novo item, mesma classe do item 15 (SymlinkPlugin) | **Provável cache do scanner** | `npm audit` local não mostra vulnerabilidade; instalado `5.20.1`, latest `5.24.3` — sem CVE conhecida na diferença |
+| File Inclusion | Item 4 | Sem mudança | Mantido: **falso positivo** (mesmo código, já investigado) |
+
+### 17. SQL Injection em `irflow_os.py::carregar_os_com_relacoes` — achado real, corrigido preventivamente
+
+**Metodologia:** localizadas as 2 ocorrências de f-string dentro de `.execute(...)` em `irflow_os.py`
+(`grep`), cada uma lida linha a linha, seguindo a mesma régua pedida pelo usuário: "se for concatenação
+de valor do usuário, é real; se for parametrizado, é falso positivo".
+
+**Achado 1 — `validar_reparo_ids` (linha ~88-92): falso positivo.**
+```python
+placeholders = ",".join("?" for _ in reparo_ids)
+cursor.execute(f"SELECT id FROM reparos WHERE id IN ({placeholders})", reparo_ids)
+```
+O f-string só gera a **quantidade** de `?` (um por item de `reparo_ids`), nunca os valores em si — os
+valores reais são passados via `reparo_ids` como parâmetros vinculados. Padrão seguro padrão para
+cláusulas `IN (...)` de tamanho dinâmico.
+
+**Achado 2 — `carregar_os_com_relacoes` (linha ~146-169): real, mas não explorável hoje.**
+```python
+def carregar_os_com_relacoes(cursor, order_by="os.id DESC"):
+    cursor.execute(f"""... ORDER BY {order_by} ...""")
+```
+Diferente do achado 1: aqui `order_by` era interpolado **sem nenhuma validação dentro da função** —
+diferente do padrão seguro já usado em `irflow_unidades_serializadas_repository.py`
+(`_ORDENACOES.get(sort, ...)`, um dicionário whitelist). `grep -rn "carregar_os_com_relacoes"` em todo
+o projeto encontra só 2 chamadores, ambos em `irflow_blueprints_api.py`, e **ambos passam sempre o
+mesmo literal fixo** `order_by="os.id DESC"` — nunca algo vindo de `request.args` ou de qualquer
+entrada do usuário. Não há caminho de exploração hoje.
+
+**Por que corrigir mesmo assim:** a função em si não se protegia — dependia de todo chamador presente
+e futuro lembrar de nunca passar entrada do usuário direto. Um chamador futuro (ex.: adicionar
+ordenação configurável na tela de OS) poderia reintroduzir o problema sem que ninguém percebesse, já
+que a função aceitaria qualquer string sem validar.
+
+**Correção:** whitelist `_ORDENACOES_OS` (mesmo padrão do módulo de Unidades Serializadas) — valores
+fora da whitelist caem no default `"os.id DESC"` em vez de serem interpolados. 3 novos testes em
+`tests/test_os_order_by_whitelist.py`, incluindo um com payload malicioso (`"os.id; DROP TABLE os; --"`)
+confirmando que a tabela `os` continua intacta depois da chamada.
+
+### Docker Root — por que o 2º scan ainda mostra isso (item 12)
+
+O usuário já suspeitava cache do scanner antes de eu confirmar. Evidência: o `Dockerfile` atual (desde
+o merge `ebe710b`, antes deste 2º scan) tem usuário `appuser` + `docker-entrypoint.sh` com `gosu`, e foi
+**validado rodando de verdade** (`docker build`/`docker run` via `colima`) — `/proc/1/status` do
+processo do gunicorn mostrando `Uid: 999` (`appuser`), não root. SAST/SCA de container geralmente olha
+só a última instrução `USER`/ausência dela no `Dockerfile` de forma estática, e pode não interpretar
+corretamente o padrão "entrypoint troca de privilégio em runtime via `gosu`" — ou o scan rodou antes do
+Aikido reindexar o commit mais recente. De qualquer forma, o comportamento real do container (validado
+neste ambiente, não só lido no `Dockerfile`) é a fonte de verdade aqui, não o alerta estático.
 
 ---
 
@@ -266,10 +333,16 @@ Sprint 3).
    (`ebe710b`).
 5. ~~Refletir no `RELEASE_1.0_MASTER_CHECKLIST.md`~~ ✅ Feito — item "Segurança revisada" e visão
    executiva atualizados.
-6. **Rodar um novo scan do Aikido** — próximo passo real. Objetivo (decisão do usuário/CTO): confirmar
-   o que a sprint realmente resolveu e identificar só os achados remanescentes, em vez de continuar
-   trabalhando sobre o relatório original (que agora mistura itens já corrigidos com o estado atual).
-   Ação do usuário — requer acesso à conta Aikido.
+6. ~~Rodar um novo scan do Aikido~~ ✅ Feito 2026-07-25 pelo usuário/CTO — ver "Segundo scan Aikido"
+   acima. Confirmou que a sprint resolveu o essencial; achados novos: 1 hardening preventivo de SQL
+   (item 17, corrigido) e uma 2ª CVE de gunicorn distinta da 1ª (corrigido, `26.0.0`). Vários itens que
+   o scan ainda mostrava (Docker root, immer, enhanced-resolve) foram confirmados como cache/lag do
+   scanner, não regressão real (evidência por item na seção acima).
+7. Se ainda não estiver: mesclar `security/sprint-1.0-aikido-rescan` em `main` (itens 17 + gunicorn
+   26.0.0), rodar suíte + lint pós-merge, seguindo o mesmo ritmo das branches anteriores desta sprint.
+8. Depois disso, próxima prioridade é do usuário (CTO): abrir uma "Sprint Observabilidade" (logs
+   estruturados/JSON, correlation ID, `/health`, monitorização tipo Sentry, métricas básicas de
+   resposta/erros 5xx) — não decidida/agendada ainda, só registrada aqui como intenção declarada.
 
 ---
 

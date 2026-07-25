@@ -210,6 +210,15 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/engineering/SECURITY.md` atualizados refletindo os itens corrigidos; novo achado `brace-expansion`/ReDoS (devDependency de lint) registrado como risco aceite (item 16)
 - Pendente: rotação de `FLASK_SECRET_KEY` em produção (item 2 — ação manual do usuário no Render, fora do alcance deste agente)
 
+### Corrigido (2026-07-25 — Sprint Segurança 1.0: fechamento e 2º scan Aikido)
+- `FLASK_SECRET_KEY` rotacionada em produção no Render pelo usuário/CTO — item 2 fechado
+- Docker non-root validado com `docker build`/`docker run` reais (instalado `colima` + `docker` CLI para isso, sem `docker` disponível neste ambiente antes): usuário real do processo do gunicorn confirmado `appuser` (uid 999) via `/proc/*/status`, nunca root; posse de `/data`/`/app` corretas; testado dentro do container: login, criar/editar OS, criar item de estoque, criar backup, restaurar backup, headers de segurança presentes, frontend (`/app`) responde 200, zero erros nos logs. Branch `security/sprint-1.0-p1-headers-docker-ci` mesclada em `main` (`ebe710b`)
+- 2º scan Aikido rodado pelo usuário pós-sprint: confirmou o essencial resolvido. Achados novos triados com a mesma disciplina do 1º scan (`docs/security/SECURITY_AUDIT_2026-07.md`, seção "Segundo scan Aikido"):
+  - `irflow_os.py::carregar_os_com_relacoes` — parâmetro `order_by` interpolado via f-string sem validação dentro da função; não explorável hoje (os 2 únicos chamadores sempre passam o mesmo literal fixo), mas corrigido preventivamente com whitelist (`_ORDENACOES_OS`, mesmo padrão de `irflow_unidades_serializadas_repository.py`). 3 novos testes em `tests/test_os_order_by_whitelist.py`
+  - `gunicorn` `22.0.0` → `26.0.0` — 2ª CVE distinta da 1ª (CVE-2024-6827, contrabando de requisição TE.CL, corrigida na 23.0.0+); confirmado sem breaking change relevante (projeto não usa o worker `eventlet` removido na 26.0.0)
+  - Docker root, `immer`, `enhanced-resolve` — o scan ainda mostrava esses itens; investigado e classificado como cache/lag do scanner, não regressão real (evidência por item no audit doc)
+- 502 testes no total, `ruff check .` limpo, zero regressão
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

@@ -45,6 +45,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`company/NON_FUNCTIONAL_REQUIREMENTS.md`](company/NON_FUNCTIONAL_REQUIREMENTS.md) — Capacidade, desempenho, disponibilidade, backup — formulário, majoritariamente `TODO`.
 - [`company/RELEASE_STRATEGY.md`](company/RELEASE_STRATEGY.md) — Versionamento decidido (0.8 a 2.0) e as 6 Fases estratégicas de longo prazo (Estabilização → Release 1.0 → Infraestrutura SaaS → Multiempresa → Automação → Inteligência).
 - [`company/RELEASE_1.0_MASTER_CHECKLIST.md`](company/RELEASE_1.0_MASTER_CHECKLIST.md) — Checklist de certificação: o que precisa estar `[x]` antes do primeiro cliente pagante.
+- [`company/GO_LIVE_PLAN.md`](company/GO_LIVE_PLAN.md) — Plano de execução para colocar o primeiro cliente em produção (diferente do checklist: "como fazemos", não "estamos prontos").
 - [`company/CUSTOMER_FEEDBACK.md`](company/CUSTOMER_FEEDBACK.md) — Log de feedback de clientes (Cliente → Pedido → Discussão → Decisão → Sprint); evidência que orienta o backlog funcional.
 
 ---

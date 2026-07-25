@@ -182,6 +182,10 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — checklist de certificação para o primeiro cliente pagante (Produto, Confiabilidade, Segurança/Compliance, Observabilidade, Operação). Cada item verificado contra o estado real do código/docs antes de publicar, não copiado do exemplo dado — vários gaps confirmados por busca direta: sem Financeiro (nenhuma tela/rota), sem teste automatizado de restore de backup, sem logging estruturado, sem Sentry/monitorização, sem doc de deploy/rollback, sem manual do usuário, sem LGPD. Inclui a tabela dos "3 níveis de planejamento" (Visão/Releases/Sprints) sugerida pelo usuário (CTO) para separar `RELEASE_STRATEGY.md`, `PRODUCT_BACKLOG.md` e `ROADMAP.md` por propósito
 - `docs/product/PRODUCT_BACKLOG.md` — nova coluna "Item do Release 1.0" ligando cada épico ao item do master checklist que ele avança
 
+### Adicionado (2026-07-25 — visão executiva e plano de go-live)
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — adicionada visão executiva (% por área, barra de progresso geral ~25%), derivada das próprias seções do checklist (sem categorização nova), com metodologia explícita (média simples ❌≈0-15%/🟡≈30-70%/✅=100%, não pesada por esforço). Adicionado guardrail explícito contra o documento virar um segundo backlog
+- `docs/company/GO_LIVE_PLAN.md` — plano de execução para colocar o primeiro cliente em produção, deliberadamente separado do master checklist ("como fazemos" vs. "estamos prontos"). Documenta que o sistema não tem multiempresa/`empresa_id` hoje — onboarding de cliente novo significa provisionar deployment próprio, não criar registro dentro do sistema atual. Rascunho nunca executado — marcado com os gaps conhecidos (critério de rollback não definido, nenhum dry-run feito)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

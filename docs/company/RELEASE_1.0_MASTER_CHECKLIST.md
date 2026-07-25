@@ -10,6 +10,12 @@ checklist?"* — se não, questionar se deve entrar no escopo agora.
 Cada item tem: objetivo, critério de aceitação, estado verificado (não aspiracional), e link para onde
 o trabalho real acontece.
 
+**Guardrail (usuário/CTO, 2026-07-25):** este documento não deve virar um segundo backlog. A regra é
+`backlog → trabalho`, `roadmap → sequência`, `checklist → certificação`. Todo item aqui deve poder
+terminar só em `[ ] Não atende` / `[x] Atende` — sem histórias, tarefas ou subtarefas de implementação
+dentro deste arquivo. Trabalho de implementação vive em `docs/product/PRODUCT_BACKLOG.md`; passos de
+execução operacional (ex.: implantação de cliente) vivem em `docs/company/GO_LIVE_PLAN.md`, não aqui.
+
 ---
 
 ## Os 3 níveis de planejamento (para não confundir os documentos entre si)
@@ -24,6 +30,33 @@ Sugestão do usuário (CTO), 2026-07-25 — separa por que existe cada documento
 
 Este documento (`RELEASE_1.0_MASTER_CHECKLIST.md`) é transversal aos 3 — é o critério de aceitação da
 Fase 1 / versão 1.0, não um nível novo de planejamento.
+
+---
+
+## Visão executiva — quanto falta
+
+Sugestão do usuário (CTO), 2026-07-25. **Método:** cada item do checklist abaixo tem um estado
+(❌/🟡/✅); a % por área é a média simples desses estados, usando ❌≈0-15%, 🟡≈30-70% (conforme o quão
+parcial, com base na descrição real do item), ✅=100%. **É uma leitura executiva rápida, não uma métrica
+de esforço/pontos de história** — não pesa por dificuldade nem por quantos itens tem cada área. As áreas
+abaixo são as mesmas seções do checklist detalhado, não uma categorização nova.
+
+| Área | Status | % |
+|---|---|---|
+| Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~40% |
+| Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~44% |
+| Segurança e Compliance | 🔴 | ~28% |
+| Observabilidade | 🔴 | ~3% |
+| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~2% |
+
+```
+Release 1.0:  █████░░░░░░░░░░░░░░░  ~25%
+```
+
+Maiores blocos de trabalho pela % (não pela quantidade de itens): **Operação** e **Observabilidade**
+estão praticamente do zero — nenhum dos dois tem código/documento nenhum ainda, diferente de
+**Produto**/**Confiabilidade**, onde já existe base real, só falta completar. Ver detalhamento item a
+item abaixo.
 
 ---
 
@@ -154,6 +187,9 @@ Fase 1 / versão 1.0, não um nível novo de planejamento.
 ## Documentos relacionados
 
 - `docs/company/RELEASE_STRATEGY.md` — as 6 Fases estratégicas e o versionamento 0.8-2.0
+- `docs/company/GO_LIVE_PLAN.md` — plano de execução para colocar o primeiro cliente em produção
+  (diferente deste documento: responde "como fazemos", não "estamos prontos"). Pré-requisito: este
+  checklist 100% concluído
 - `docs/product/PRODUCT_BACKLOG.md` — fila de épicos priorizados, cada um deveria referenciar o item
   deste checklist que ele avança
 - `docs/operations/PROJECT_STATUS.md` — estado vivo do projeto, atualizado a cada sprint

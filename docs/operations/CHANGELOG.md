@@ -200,6 +200,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/engineering/DATA_DICTIONARY.md`, `DATABASE.md`, `docs/company/PRODUCT_REQUIREMENTS.md`, `docs/company/DECISION_LOG.md` atualizados
 - Testes que caracterizavam o comportamento antigo (`test_tecnico_pode_excluir_item_de_estoque`, `test_vendedor_pode_excluir_item_de_estoque`, `test_vendedor_pode_excluir_qualquer_os`) reescritos para confirmar 403; novos testes cobrindo o acesso correto de `admin`/`estoque`. 494 testes no total, `ruff check .` limpo, zero regressão
 
+### Corrigido (2026-07-25 — Sprint Segurança 1.0: itens P1)
+- `app.py` — headers de segurança (`Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) aplicados a todas as respostas via `@app.after_request`; nenhuma existia antes (`SECURITY_AUDIT_2026-07.md` itens 10, 11). 5 novos testes em `tests/test_security_headers.py`
+- `Dockerfile` + novo `docker-entrypoint.sh` — container não roda mais como root; usuário de sistema `appuser` + entrypoint que ajusta a posse do disco `/data` do Render em runtime antes de trocar de privilégio via `gosu` (item 12). Não validado com `docker build`/`docker run` neste ambiente (sem Docker disponível) — validação local pendente antes do merge em `main`, por decisão explícita do usuário
+- `.github/workflows/ci.yml` — `persist-credentials: false` adicionado aos 5 usos de `actions/checkout@v4` (item 13)
+- `requirements.txt` — `gunicorn` `>=21,<22` → `>=22,<23` (`21.2.0` → `22.0.0`, corrige CVE-2024-1135); testado via suíte completa e smoke test manual do boot (item 6)
+- `frontend/package-lock.json` — `npm audit fix` (sem `--force`) atualiza `immer`, DOMPurify, `js-yaml`, `postcss`, `vite` dentro dos ranges já aceitos por `package.json` (itens 8, 9)
+- `react-router-dom` mantido em `7.18.1` — decisão explícita de não fazer downgrade para `7.11.0` (única correção oferecida pelo `npm audit fix --force`): a CVE remanescente é de modo servidor/RSC, não aplicável a este projeto (`BrowserRouter` client-side); ver `SECURITY_AUDIT_2026-07.md` item 7
+- `docs/security/SECURITY_AUDIT_2026-07.md`, `docs/engineering/SECURITY.md` atualizados refletindo os itens corrigidos; novo achado `brace-expansion`/ReDoS (devDependency de lint) registrado como risco aceite (item 16)
+- Pendente: rotação de `FLASK_SECRET_KEY` em produção (item 2 — ação manual do usuário no Render, fora do alcance deste agente)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

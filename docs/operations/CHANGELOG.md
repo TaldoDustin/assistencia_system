@@ -232,6 +232,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - 30 novos testes (`test_logging_json.py`, `test_health_ready.py`, `test_request_id.py`, `test_metrics.py`, `test_sentry_init.py`). 526 testes no total, `ruff check .` limpo, zero regressão
 - `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` — plano e retrospectiva completos
 
+### Segurança (2026-07-26 — Auditoria AppSec, Fase 1: API endpoints/banco — CSRF)
+- Removidas por completo as rotas legadas de escrita vulneráveis a CSRF (KI-022): `irflow_blueprints_orders.py`, `irflow_blueprints_inventory.py`, `irflow_blueprints_admin.py` deletados; `irflow_blueprints_auth.py` perdeu as views de gestão de usuário (`/usuarios/novo|editar|deletar` — o pior caso, permitia criar conta admin via CSRF); `irflow_blueprints_main.py::backup()` perdeu a lógica de escrita (POST), redundante com `POST /api/backup/criar` já usado pelo frontend. Causa raiz: `SESSION_COOKIE_SAMESITE="None"` em produção (necessário para o deploy cross-origin Vercel/Render) envia o cookie de sessão em requisições cross-site, e o projeto nunca teve `flask-wtf`/`CSRFProtect` — só uma config `WTF_CSRF_ENABLED=False` sem efeito nenhum em `tests/conftest.py`. Todo redirecionamento GET dessas rotas continua idêntico via `LEGACY_REACT_REDIRECTS` (independente da view function existir). 514 testes (queda esperada — testes de funcionalidade removida), `ruff check .` limpo
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

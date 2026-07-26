@@ -45,7 +45,6 @@ from irflow_core import (
     STATUS_EM_ANDAMENTO,
     STATUS_FINALIZADO,
     STATUS_OS_OPCOES,
-    STATUS_OS_VALIDOS,
     calcular_faturamento_os,
     calcular_lucro_os,
     coletar_status_opcoes,
@@ -67,7 +66,6 @@ from irflow_os import (
     consumir_peca_da_os,
     devolver_pecas_da_os,
     extrair_reparo_ids,
-    ler_valores_financeiros_form,
     modelo_compativel,
     obter_ou_criar_reparo,
     obter_reparos_por_os,
@@ -99,9 +97,6 @@ from irflow_storage import (
 # IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
 # ============================================================================
 from irflow_blueprints_main import create_main_blueprint
-from irflow_blueprints_orders import create_orders_blueprint
-from irflow_blueprints_inventory import create_inventory_blueprint
-from irflow_blueprints_admin import create_admin_blueprint
 from irflow_price_tables import (
     carregar_tabelas_preco as carregar_tabelas_preco_arquivo,
     salvar_tabelas_preco as salvar_tabelas_preco_arquivo,
@@ -1288,7 +1283,7 @@ def obter_alertas_sistema(limit=8):
                 "nivel": "critico" if qtd == 0 else "atencao",
                 "titulo": "Estoque baixo",
                 "mensagem": f"{descricao or 'Peca'} ({status_txt})",
-                "link": url_for("inventory_views.estoque"),
+                "link": "/app/estoque",
             }
         )
 
@@ -1314,7 +1309,7 @@ def obter_alertas_sistema(limit=8):
                     "nivel": "info",
                     "titulo": "OS em aberto ha muito tempo",
                     "mensagem": f"OS #{os_id} - {cliente or 'Sem cliente'} ({dias} dias)",
-                    "link": url_for("order_views.ordens"),
+                    "link": "/app/ordens",
                 }
             )
 
@@ -1436,7 +1431,6 @@ sincronizar_reparos_padrao()
 app.register_blueprint(
     create_main_blueprint(
         {
-            "conectar": conectar,
             "carregar_os_com_relacoes": carregar_os_com_relacoes,
             "texto_reparos_os": texto_reparos_os,
             "normalizar_status_os": normalizar_status_os,
@@ -1461,75 +1455,6 @@ app.register_blueprint(
             "status_cancelado_const": STATUS_CANCELADO,
             "parse_data_ymd": parse_data_ymd,
             "backup_dir": BACKUP_DIR,
-            "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
-            "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
-            "criar_backup": criar_backup,
-            "enviar_backup_email": enviar_backup_email,
-            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
-            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
-            "backup_email_destino": BACKUP_EMAIL_DESTINO,
-        }
-    )
-)
-
-app.register_blueprint(
-    create_orders_blueprint(
-        {
-            "conectar": conectar,
-            "texto_reparos_os": texto_reparos_os,
-            "normalizar_status_os": normalizar_status_os,
-            "status_finalizado_const": STATUS_FINALIZADO,
-            "status_cancelado_const": STATUS_CANCELADO,
-            "status_em_andamento_const": STATUS_EM_ANDAMENTO,
-            "status_os_validos": STATUS_OS_VALIDOS,
-            "status_aberto": status_aberto,
-            "coletar_status_opcoes": coletar_status_opcoes,
-            "calcular_faturamento_os": calcular_faturamento_os,
-            "calcular_lucro_os": calcular_lucro_os,
-            "carregar_os_com_relacoes": carregar_os_com_relacoes,
-            "extrair_reparo_ids": extrair_reparo_ids,
-            "validar_reparo_ids": validar_reparo_ids,
-            "vendedor_valido": vendedor_valido,
-            "ler_valores_financeiros_form": ler_valores_financeiros_form,
-            "salvar_reparos_os": salvar_reparos_os,
-            "modelo_compativel": modelo_compativel,
-            "consumir_peca_da_os": consumir_peca_da_os,
-            "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
-            "devolver_pecas_da_os": devolver_pecas_da_os,
-            "registrar_movimentacao": registrar_movimentacao,
-            "obter_reparos_por_os": obter_reparos_por_os,
-            "modelo_para_os": modelo_para_os,
-            "normalizar_imei": normalizar_imei,
-            "carregar_tabelas_preco": carregar_tabelas_preco,
-            "iphone_models": IPHONE_MODELS,
-            "iphone_colors": IPHONE_COLORS,
-            "vendedores": VENDEDORES,
-            "tecnicos": TECNICOS,
-            "status_os_opcoes": STATUS_OS_OPCOES,
-        }
-    )
-)
-
-app.register_blueprint(
-    create_inventory_blueprint(
-        {
-            "conectar": conectar,
-            "normalizar_modelo_iphone": normalizar_modelo_iphone,
-            "registrar_movimentacao": registrar_movimentacao,
-            "iphone_models": IPHONE_MODELS,
-        }
-    )
-)
-
-app.register_blueprint(
-    create_admin_blueprint(
-        {
-            "conectar": conectar,
-            "listar_custos_operacionais": listar_custos_operacionais,
-            "categorias_custos_operacionais": CATEGORIAS_CUSTOS_OPERACIONAIS,
-            "carregar_tabelas_preco": carregar_tabelas_preco,
-            "salvar_tabelas_preco": salvar_tabelas_preco,
-            "iphone_models": IPHONE_MODELS,
         }
     )
 )
@@ -1554,47 +1479,14 @@ ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
     "main_views.index": None,
     "main_views.kanban": None,
     "main_views.garantias": None,
-    "order_views.ordens": None,
-    "order_views.nova": None,
-    "order_views.editar": None,
-    "order_views.atualizar_status": None,
-    "order_views.deletar": None,
-    "order_views.autocomplete_clientes": None,
-    "order_views.api_buscar_pecas": None,
-    "order_views.api_remover_peca": None,
-    "order_views.api_adicionar_peca": None,
-    "inventory_views.estoque": None,
-    "inventory_views.cadastro_peca": ["admin", "tecnico"],
-    "inventory_views.editar_item_estoque": ["admin", "tecnico"],
-    "inventory_views.deletar_item_estoque": ["admin"],
     # Somente admin
     "main_views.relatorios": ["admin"],
     "main_views.backup": ["admin"],
     "main_views.backup_download": ["admin"],
-    "admin_views.custos_operacionais": ["admin"],
-    "admin_views.salvar_custo": ["admin"],
-    "admin_views.deletar_custo": ["admin"],
-    "admin_views.cadastrar_custo_operacional": ["admin"],
-    "admin_views.excluir_custo_operacional": ["admin"],
-    "admin_views.reparos": ["admin"],
-    "admin_views.salvar_reparo": ["admin"],
-    "admin_views.deletar_reparo": ["admin"],
-    "admin_views.editar_reparo": ["admin"],
-    "admin_views.tabelas_preco": ["admin"],
-    "admin_views.salvar_tabelas_preco": ["admin"],
-    "admin_views.excluir_tabelas_preco": ["admin"],
-    "admin_views.salvar_entrada_tabela": ["admin"],
-    "admin_views.excluir_entrada_tabela": ["admin"],
     "main_views.relatorio_pdf_ir_phones": ["admin"],
     "main_views.relatorio_pdf_tecnicos": ["admin"],
-    "auth_views.usuarios": ["admin"],
-    "auth_views.novo_usuario": ["admin"],
-    "auth_views.editar_usuario": ["admin"],
-    "auth_views.deletar_usuario": ["admin"],
     # Webhook (autenticação própria por token)
     "receber_os_mercado_phone": [],
-    "sync_os_mercado_phone": [],
-    "status_sync_mercado_phone": [],
 }
 
 

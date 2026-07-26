@@ -7,7 +7,6 @@ Nao cobre estoque, ordens de servico ou lista de compras.
 
 import uuid
 
-import app as _app
 
 # Fixtures de usuario (client, usuario_admin, usuario_tecnico, usuario_inativo, ...)
 # vivem em tests/conftest.py — compartilhadas por toda a suite (Sprint 2.3).
@@ -187,65 +186,8 @@ class TestLegacyLogout:
 # ============================================================================
 # Controle de acesso por perfil — usuarios autenticados
 # ============================================================================
-
-
-class TestControleDeAcessoPorPerfil:
-    """
-    POST /usuarios/novo exige perfil admin (ROUTE_PERMISSIONS em app.py).
-    Ao contrario das rotas GET legadas (interceptadas por LEGACY_REACT_REDIRECTS antes
-    da checagem de sessao), POST nao entra nesse redirecionamento — exercita o
-    before_request de autenticacao/autorizacao de fato.
-    """
-
-    def test_sem_sessao_redireciona_para_login(self, client):
-        resp = client.post(
-            "/usuarios/novo",
-            data={"nome": "Novo", "usuario": f"novo_{uuid.uuid4().hex[:8]}", "senha": "x", "perfil": "tecnico"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app/login"
-
-    def test_usuario_nao_admin_recebe_acesso_negado(self, client, usuario_tecnico):
-        client.post(
-            "/login",
-            data={"usuario": usuario_tecnico["usuario"], "senha": usuario_tecnico["senha"]},
-        )
-        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
-
-        resp = client.post(
-            "/usuarios/novo",
-            data={"nome": "Novo", "usuario": login_novo, "senha": "x", "perfil": "tecnico"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT id FROM usuarios WHERE usuario = ?", (login_novo,)).fetchone()
-        finally:
-            conn.close()
-        assert row is None
-
-    def test_usuario_admin_pode_criar_novo_usuario(self, client, usuario_admin):
-        client.post(
-            "/login",
-            data={"usuario": usuario_admin["usuario"], "senha": usuario_admin["senha"]},
-        )
-        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
-
-        resp = client.post(
-            "/usuarios/novo",
-            data={"nome": "Novo", "usuario": login_novo, "senha": "x", "perfil": "tecnico"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/usuarios"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT id FROM usuarios WHERE usuario = ?", (login_novo,)).fetchone()
-            assert row is not None
-        finally:
-            conn.execute("DELETE FROM usuarios WHERE usuario = ?", (login_novo,))
-            conn.commit()
-            conn.close()
+#
+# TestControleDeAcessoPorPerfil (POST /usuarios/novo legado) foi removida:
+# a rota em si foi removida por vulnerabilidade de CSRF (sem protecao alguma,
+# permitia criar usuario admin via form cross-site) — ver KNOWN_ISSUES.md.
+# Cobertura equivalente para /api/usuarios em test_users.py.

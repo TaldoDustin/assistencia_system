@@ -72,12 +72,19 @@ dependências injetadas (`create_*_blueprint(deps: dict)`):
 
 | Blueprint | Prefixo/escopo | Conteúdo |
 |-----------|----------------|----------|
-| `irflow_blueprints_auth.py` (`auth_views`) | `/login`, `/logout`, `/usuarios/*` | Autenticação legada (formulário) e CRUD de usuários (admin) |
-| `irflow_blueprints_api.py` (`api`, prefixo `/api`) | `/api/*` | API JSON completa consumida pelo React — auth (`/api/auth/*`), OS, estoque, shopping list, relatórios, integrações, admin. ~3100 linhas, ~80+ endpoints (ver KI-003/TD-01) |
-| `irflow_blueprints_main.py` (`main_views`) | `/`, `/kanban`, `/garantias`, `/relatorios`, `/backup` | Views legadas server-rendered |
-| `irflow_blueprints_orders.py` (`order_views`) | `/ordens*`, `/nova`, `/editar/*` | Views legadas de Ordens de Serviço |
-| `irflow_blueprints_inventory.py` (`inventory_views`) | `/estoque*` | Views legadas de estoque |
-| `irflow_blueprints_admin.py` (`admin_views`) | `/custos-operacionais`, `/reparos`, `/tabelas-preco` | Views legadas administrativas |
+| `irflow_blueprints_auth.py` (`auth_views`) | `/login`, `/logout` | Autenticação legada (formulário) — só login/logout |
+| `irflow_blueprints_api.py` (`api`, prefixo `/api`) | `/api/*` | API JSON completa consumida pelo React — auth (`/api/auth/*`), OS, estoque, shopping list, relatórios, integrações, admin, usuários (`/api/usuarios`). ~3100 linhas, ~80+ endpoints (ver KI-003/TD-01) |
+| `irflow_blueprints_main.py` (`main_views`) | `/`, `/kanban`, `/garantias`, `/relatorios`, `/backup` | Views legadas GET-only (redirecionam para o SPA) + geração de PDF de relatório + download de backup |
+
+**Removidos em 2026-07-26 (vulnerabilidade de CSRF — ver KNOWN_ISSUES.md):**
+`irflow_blueprints_orders.py` (`order_views`), `irflow_blueprints_inventory.py` (`inventory_views`) e
+`irflow_blueprints_admin.py` (`admin_views`) faziam mutações reais (criar/editar/excluir OS, estoque,
+custos, reparos, tabelas de preço) via formulário HTML sem proteção CSRF. `auth_views` perdeu as views
+de gestão de usuário (`/usuarios/novo|editar|deletar`) pelo mesmo motivo — `/usuarios/novo` aceitando
+`perfil=admin` era o pior caso (CSRF permitia criar conta admin controlada pelo atacante).
+`main_views.backup` perdeu a lógica de escrita (POST — criar backup/enviar e-mail), redundante com
+`POST /api/backup/criar`. Todo o comportamento de redirect GET dessas rotas continua idêntico via
+`LEGACY_REACT_REDIRECTS`, que não depende da existência da view function.
 
 **Padrão de injeção de dependências:** cada `create_*_blueprint` recebe um dicionário `deps` com
 funções e constantes definidas em `app.py`. Isso evita imports circulares e centraliza a composição
@@ -90,9 +97,9 @@ em `app.py` (ver ENGINEERING_GUIDE.md seção 1 — Dependency Inversion).
 O sistema está em transição de server-rendered (Flask + Jinja, hoje reduzido a redirecionamentos)
 para uma SPA React consumindo API JSON. Estado atual:
 
-- **Rotas legadas** (`auth_views`, `main_views`, `order_views`, `inventory_views`, `admin_views`):
-  autenticam via `session` (cookie assinado) e são protegidas pelo `before_request` global em
-  `app.py` (`verificar_autenticacao`), que consulta `ROUTE_PERMISSIONS`.
+- **Rotas legadas** (`auth_views`, `main_views` — só login/logout e GET-only desde 2026-07-26, ver
+  seção 2.3): autenticam via `session` (cookie assinado) e são protegidas pelo `before_request` global
+  em `app.py` (`verificar_autenticacao`), que consulta `ROUTE_PERMISSIONS`.
 - **API JSON** (`/api/*`): autenticação própria por endpoint (`usuario_logado()` dentro do próprio
   blueprint), **não** passa pelo `ROUTE_PERMISSIONS` — o `before_request` ignora explicitamente
   qualquer endpoint que comece com `api.`.

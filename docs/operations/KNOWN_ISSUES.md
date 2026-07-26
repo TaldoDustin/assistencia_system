@@ -623,6 +623,54 @@ Responsável:
 
 ---
 
+## ~~KI-025~~ — RESOLVIDO
+
+Descrição:
+As rotas legadas de escrita baseadas em formulário HTML (`irflow_blueprints_orders.py`,
+`irflow_blueprints_inventory.py`, `irflow_blueprints_admin.py`, e as views de gestão de usuário em
+`irflow_blueprints_auth.py`/`POST /usuarios/novo|editar|deletar`) faziam mutações reais no banco
+(criar/editar/excluir OS, estoque, custos, reparos, tabelas de preço, usuários) protegidas só por
+cookie de sessão — sem nenhum token CSRF. Em produção, `SESSION_COOKIE_SAMESITE = "None"` (`app.py`,
+necessário porque frontend/backend são origens diferentes — Vercel/Render) faz o cookie ser enviado em
+requisições cross-site. `flask-wtf` nunca esteve instalado, não havia `CSRFProtect` em lugar nenhum, e
+`tests/conftest.py` chegou a ter uma config `WTF_CSRF_ENABLED = False` sem efeito nenhum (evidência de
+que alguém assumiu uma proteção que nunca existiu). Achado durante a Fase 1 (API endpoints/banco) de uma
+auditoria de segurança pedida pelo usuário (CTO).
+
+Impacto:
+Crítico. Uma página maliciosa com um `<form>` auto-submit para `POST /usuarios/novo` (`perfil=admin`),
+visitada por um admin autenticado, criava uma conta admin controlada pelo atacante — tomada de conta
+completa. Mesma classe de ataque contra `/deletar/<id>` (OS), `/estoque/deletar/<id>`,
+`/custos-operacionais`, `/backup` (criar backup/disparar e-mail), etc.
+
+Status:
+Resolvido em 2026-07-26. Removidas por completo as rotas de escrita vulneráveis, em vez de adicionar
+Flask-WTF para proteger uma superfície já confirmada sem uso real: `irflow_blueprints_orders.py`,
+`irflow_blueprints_inventory.py` e `irflow_blueprints_admin.py` deletados por inteiro;
+`irflow_blueprints_auth.py` perdeu as views de gestão de usuário (mantidos só `login`/`logout`);
+`irflow_blueprints_main.py::backup()` perdeu a lógica de escrita (POST), virando GET-only. Confirmado
+antes de remover: o frontend React usa exclusivamente os equivalentes JSON em `/api/*`
+(`frontend/src/api/client.js`, grep sem nenhuma chamada às rotas removidas); não existe pasta
+`templates/` no repositório (os `render_template()` no fim dessas views eram código morto
+inalcançável); todo redirecionamento GET dessas rotas continua idêntico via
+`LEGACY_REACT_REDIRECTS`/`destino_react_legado()`, que roda no `before_request` antes da resolução de
+rota e não depende da view function existir. `POST /api/backup/criar` já existe e já é o que o
+frontend usa. Testes das rotas removidas (`test_auth.py::TestControleDeAcessoPorPerfil`,
+`test_permissions.py::TestPermissoesEditarUsuarioLegado`/`TestPermissoesDeletarUsuarioLegado`,
+`test_session_inactivity.py::TestInatividadeSessaoViewLegada`) removidos — cobertura equivalente já
+existe em `test_users.py` (`/api/usuarios`) e `TestInatividadeSessaoApi`. 514 testes passando (queda em
+relação à contagem anterior é esperada — testes de funcionalidade removida, não regressão),
+`ruff check .` limpo.
+
+Sprint prevista:
+Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (CTO), corrigido via branch
+`fix/csrf-rotas-legadas-escrita`.
+
+Responsável:
+—
+
+---
+
 ## ~~KI-022~~ — RESOLVIDO
 
 Descrição:

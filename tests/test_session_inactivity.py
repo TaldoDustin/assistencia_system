@@ -65,33 +65,15 @@ class TestInatividadeSessaoApi:
         assert resp.status_code == 200
 
 
-class TestInatividadeSessaoViewLegada:
-    # GET/HEAD para paths legados conhecidos (ex.: /kanban) são interceptados por
-    # destino_react_legado() e redirecionam para /app/* ANTES de qualquer checagem
-    # de autenticação — não servem para testar expiração. /atualizar_status é
-    # POST-only (order_views, ROUTE_PERMISSIONS None = qualquer logado), então
-    # passa pela checagem de inatividade normalmente.
-
-    def test_view_legada_redireciona_para_login_apos_expirar(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
-        with client.session_transaction() as sess:
-            sess["_ultima_atividade"] = (datetime.now() - timedelta(minutes=31)).isoformat()
-
-        resp = client.post("/atualizar_status", data={})
-
-        assert resp.status_code == 302
-        assert "/app/login" in resp.headers["Location"]
-
-    def test_view_legada_dentro_da_janela_nao_redireciona(self, client, login_como, usuario_tecnico):
-        login_como(client, usuario_tecnico)
-        with client.session_transaction() as sess:
-            sess["_ultima_atividade"] = (datetime.now() - timedelta(minutes=5)).isoformat()
-
-        resp = client.post("/atualizar_status", data={})
-
-        # Passa pela autenticação e chega na view, que rejeita o payload vazio
-        # (400) — o ponto do teste é que NÃO houve redirect para /app/login.
-        assert resp.status_code == 400
+# TestInatividadeSessaoViewLegada foi removida: usava POST /atualizar_status
+# (order_views) como a única rota legada POST-only, "qualquer logado", que não
+# era interceptada pelo redirect GET — essa rota foi removida por
+# vulnerabilidade de CSRF (ver KNOWN_ISSUES.md). Não sobrou nenhuma rota legada
+# equivalente (todas as restantes em main_views são GET-only, já interceptadas
+# por destino_react_legado() antes da checagem de inatividade rodar). A
+# cobertura do mecanismo em si (verificar_autenticacao/sessao_ainda_ativa)
+# continua completa via TestInatividadeSessaoApi acima, que já cobre o mesmo
+# before_request compartilhado entre /api/* e views legadas.
 
 
 class TestSessaoAindaAtivaUnitario:

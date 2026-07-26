@@ -232,6 +232,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - 30 novos testes (`test_logging_json.py`, `test_health_ready.py`, `test_request_id.py`, `test_metrics.py`, `test_sentry_init.py`). 526 testes no total, `ruff check .` limpo, zero regressão
 - `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` — plano e retrospectiva completos
 
+### Segurança (2026-07-26 — Auditoria AppSec, Fase 1: integração MercadoPhone)
+- `POST /api/integracoes/mercadophone/{sincronizar,reprocessar,reimportar}` (KI-022) exigiam só sessão ativa, qualquer perfil — `/reimportar` apaga e reimporta em massa todas as OS de origem MercadoPhone, mesmo efeito de um `DELETE /api/ordens` em massa, mas por um caminho que ficou fora da restrição a `admin`/`tecnico` já aplicada a `/api/ordens*` na Sprint Segurança 1.0. Corrigido com a mesma checagem de perfil já usada em `criar_ordem`/`atualizar_ordem`/`deletar_ordem`. Módulo não tinha nenhum teste de autorização antes — 4 novos testes (`tests/test_mercadophone_permissions.py`). 529 testes, `ruff check .` limpo
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

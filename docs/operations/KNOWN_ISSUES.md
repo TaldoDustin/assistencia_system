@@ -620,3 +620,40 @@ Fora de sprint — pedido direto do usuário (CTO), prioridade por bloqueio oper
 
 Responsável:
 —
+
+---
+
+## ~~KI-022~~ — RESOLVIDO
+
+Descrição:
+`POST /api/integracoes/mercadophone/{sincronizar,reprocessar,reimportar}` (`irflow_blueprints_api.py`)
+só checavam `usuario_logado()` — qualquer perfil autenticado, inclusive `vendedor`, podia disparar essas
+operações. O mais grave era `/reimportar` → `reimportar_todas_os_mercado_phone()`
+(`irflow_mercadophone.py:1220-1255`): apaga **todas** as OS com `origem_integracao='mercado_phone'` (mais
+`os_reparos`/`integracao_os_vistas` relacionados) e reimporta do zero — mesmo efeito de um
+`DELETE /api/ordens` em massa, mas por um caminho de código que ficou fora da restrição já aplicada a
+`/api/ordens*` em 2026-07-25 (`docs/security/SECURITY_AUDIT_2026-07.md` item 14). `/sincronizar` e
+`/reprocessar` sobrescrevem campos de OS existentes a partir da API externa — mesma categoria, sem
+deletar. Achado durante auditoria de segurança pedida pelo usuário (CTO), Fase 1 (integração
+MercadoPhone).
+
+Impacto:
+Alto. Qualquer perfil autenticado (inclusive `vendedor`, que segundo os documentos de produto não
+deveria ter acesso administrativo a Estoque/OS) podia apagar e reimportar em massa as OS de origem
+MercadoPhone, ou sobrescrever campos existentes a partir da API externa, sem nenhuma confirmação de
+perfil.
+
+Status:
+Resolvido em 2026-07-26. Adicionada a mesma checagem já usada em `criar_ordem`/`atualizar_ordem`/
+`deletar_ordem` (`session.get("usuario_perfil") not in ("admin", "tecnico")` → 403) aos 3 endpoints de
+mutação. Endpoints de status (GET, só leitura) e `salvar_config_mercadophone` (já exigia `admin`) não
+alterados. Módulo não tinha nenhum teste de autorização antes (R-07) — 4 novos testes em
+`tests/test_mercadophone_permissions.py` (sem sessão, `vendedor`, `tecnico`, `admin` × 3 endpoints).
+529 testes no total, `ruff check .` limpo.
+
+Sprint prevista:
+Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (CTO), corrigido via branch
+`fix/mercadophone-mutacao-em-massa-permissao`.
+
+Responsável:
+—

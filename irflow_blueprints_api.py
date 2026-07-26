@@ -2964,6 +2964,8 @@ def create_api_blueprint(deps):
     def sincronizar_mercadophone():
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
         try:
             _, mp_cfg = _carregar_config_mercadophone()
             status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
@@ -2983,6 +2985,8 @@ def create_api_blueprint(deps):
             return ("", 204)
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
         try:
             _, mp_cfg = _carregar_config_mercadophone()
             status_cfg = _atualizar_runtime_mercadophone(mp_cfg)
@@ -3020,6 +3024,8 @@ def create_api_blueprint(deps):
             return ("", 204)
         if not usuario_logado():
             return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "tecnico"):
+            return err("Permissão negada.", 403)
         try:
             _, mp_cfg = _carregar_config_mercadophone()
             status_cfg = _atualizar_runtime_mercadophone(mp_cfg)

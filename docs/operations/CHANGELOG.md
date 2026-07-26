@@ -232,10 +232,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - 30 novos testes (`test_logging_json.py`, `test_health_ready.py`, `test_request_id.py`, `test_metrics.py`, `test_sentry_init.py`). 526 testes no total, `ruff check .` limpo, zero regressão
 - `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` — plano e retrospectiva completos
 
+### Segurança (2026-07-26 — Auditoria AppSec, Fase 1: integração MercadoPhone)
+- `POST /api/integracoes/mercadophone/{sincronizar,reprocessar,reimportar}` (KI-022) exigiam só sessão ativa, qualquer perfil — `/reimportar` apaga e reimporta em massa todas as OS de origem MercadoPhone, mesmo efeito de um `DELETE /api/ordens` em massa, mas por um caminho que ficou fora da restrição a `admin`/`tecnico` já aplicada a `/api/ordens*` na Sprint Segurança 1.0. Corrigido com a mesma checagem de perfil já usada em `criar_ordem`/`atualizar_ordem`/`deletar_ordem`. Módulo não tinha nenhum teste de autorização antes — 4 novos testes (`tests/test_mercadophone_permissions.py`). 529 testes, `ruff check .` limpo
+
 ### Segurança (2026-07-26 — Auditoria AppSec, Fase 1: Auth/Middleware)
 - `app.py`: `autenticar_integracao_mercado_phone()` tinha um early-return quando `MERCADO_PHONE_WEBHOOK_TOKEN` estava vazio, deixando `POST /api/integracoes/mercadophone/os` aberto sem autenticação nesse caso (fail-open) — `.env.example`/`DEPLOY.md` chegavam a documentar isso como aceitável em dev. Corrigido para negar por padrão (fail secure) quando o token não está configurado; comparação do token trocada de `in`/`==` para `hmac.compare_digest` (constant-time). Produção já tinha a variável configurada com valor forte (confirmado com o CTO) — não foi um incidente ativo. 3 novos testes (`tests/test_mercadophone_webhook_auth.py`)
 - `app.py`: `verificar_autenticacao()` usava `ROUTE_PERMISSIONS.get(endpoint)`, que não distinguia "endpoint cadastrado com `None`" (qualquer perfil logado) de "endpoint ausente do dict" — um endpoint legado novo sem entrada correspondente ficava liberado por padrão em vez de negado. Corrigido com um sentinel que nega por padrão endpoints ausentes. Confirmadas 6 entradas mortas já existentes no dict (`sync_os_mercado_phone`, `status_sync_mercado_phone`, `order_views.autocomplete_clientes`/`api_buscar_pecas`/`api_remover_peca`/`api_adicionar_peca`) apontando para funções que não existem mais — evidência de que o dict já divergia do código real; nenhum endpoint ativo hoje foi afetado (verificado um a um). 3 novos testes (`tests/test_route_permissions_fail_secure.py`)
-- 6 novos testes no total sobre a base já existente (526 → 532), `ruff check app.py` limpo
+- 6 novos testes sobre a base já existente (529 → 535), `ruff check app.py` limpo
 
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions

@@ -657,3 +657,64 @@ Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (
 
 Responsável:
 —
+
+---
+
+## ~~KI-023~~ — RESOLVIDO
+
+Descrição:
+`app.py`, `autenticar_integracao_mercado_phone()` (autenticação do webhook `POST
+/api/integracoes/mercadophone/os`): quando `MERCADO_PHONE_WEBHOOK_TOKEN` não está configurada, a função
+tinha um early-return que pulava toda a validação — o endpoint ficava aberto sem autenticação alguma.
+`.env.example`/`DEPLOY.md` chegavam a documentar esse comportamento como aceitável em dev local. Achado
+durante a Fase 1 (Auth/Middleware) de uma auditoria de segurança pedida pelo usuário (CTO).
+
+Impacto:
+Alto (potencial). Se a variável estivesse vazia em produção, qualquer requisição não autenticada poderia
+injetar Ordens de Serviço falsas na tabela `os` real via webhook público. Confirmado com o usuário (CTO)
+que a variável está configurada com valor forte em produção hoje — não houve exploração ativa.
+
+Status:
+Resolvido em 2026-07-26. Removido o early-return: sem token configurado, nenhum candidato corresponde e a
+rota rejeita com 401 por padrão (fail secure). Comparação do token trocada de `in`/`==` para
+`hmac.compare_digest` (constant-time), fechando também um timing side-channel teórico (CWE-208)
+encontrado na mesma função. `.env.example`/`DEPLOY.md` atualizados para marcar a variável como
+obrigatória. 3 testes novos (`tests/test_mercadophone_webhook_auth.py`).
+
+Sprint prevista:
+Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (CTO), corrigido via branch
+`fix/mercadophone-webhook-fail-secure`.
+
+Responsável:
+—
+
+---
+
+## ~~KI-024~~ — RESOLVIDO
+
+Descrição:
+`app.py`, `verificar_autenticacao()`: `ROUTE_PERMISSIONS.get(endpoint)` retorna `None` tanto para uma
+entrada explícita `None` no dict (qualquer perfil logado) quanto para uma chave ausente — um endpoint
+legado novo adicionado sem entrada correspondente em `ROUTE_PERMISSIONS` ficava liberado por padrão para
+qualquer usuário autenticado, em vez de negado. Achado durante a mesma auditoria de segurança do KI-023.
+Confirmadas 6 entradas já mortas no dict (`sync_os_mercado_phone`, `status_sync_mercado_phone`,
+`order_views.autocomplete_clientes`/`api_buscar_pecas`/`api_remover_peca`/`api_adicionar_peca`) apontando
+para funções que não existem mais em nenhum blueprint — prova de que o dict já divergia do código real.
+
+Impacto:
+Médio (arquitetural, não exploit ativo). Verificado manualmente que todos os endpoints hoje registrados em
+`main_views`/`order_views`/`inventory_views`/`admin_views`/`auth_views` estão cobertos no dict — nenhum
+endpoint real está sendo liberado indevidamente hoje. O risco era o padrão de falha silenciosa no futuro.
+
+Status:
+Resolvido em 2026-07-26. Adicionado um sentinel em `verificar_autenticacao()` para distinguir os dois
+casos — endpoint ausente do dict agora é negado por padrão (fail secure). As 6 entradas mortas
+permanecem no dict sem efeito (limpeza fica para um `chore:` separado, não misturado com a correção de
+segurança). 3 testes novos (`tests/test_route_permissions_fail_secure.py`).
+
+Sprint prevista:
+Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (CTO), corrigido via branch
+`fix/mercadophone-webhook-fail-secure`.
+
+Responsável:
+—

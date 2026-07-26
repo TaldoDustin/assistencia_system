@@ -8,6 +8,7 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # ============================================================================
 import contextlib
 import functools
+import hmac
 import os
 import re
 import shutil
@@ -1088,9 +1089,12 @@ MERCADO_PHONE_HELPERS = {
 
 
 def autenticar_integracao_mercado_phone():
-    """Valida token de autenticação do webhook Mercado Phone."""
-    if not MERCADO_PHONE_WEBHOOK_TOKEN:
-        return
+    """Valida token de autenticação do webhook Mercado Phone.
+
+    Sem MERCADO_PHONE_WEBHOOK_TOKEN configurado, nenhum candidato pode
+    corresponder — a rota fica bloqueada por padrão (fail secure) em vez de
+    aberta sem autenticação.
+    """
 
     def _mascarar_token(valor):
         texto = texto_limpo(valor)
@@ -1137,7 +1141,8 @@ def autenticar_integracao_mercado_phone():
         if valor:
             candidatos.append(valor)
 
-    if MERCADO_PHONE_WEBHOOK_TOKEN not in candidatos:
+    autenticado = any(hmac.compare_digest(MERCADO_PHONE_WEBHOOK_TOKEN, candidato) for candidato in candidatos)
+    if not autenticado:
         logger.warning(
             "mercadophone_webhook_token_invalido",
             extra={
@@ -1535,6 +1540,11 @@ app.register_blueprint(
 
 # Perfis disponíveis: admin, tecnico, vendedor
 # None = qualquer perfil logado
+# Sentinel usado só para distinguir "endpoint não cadastrado aqui" (nega por
+# padrão) de "cadastrado com valor None" (qualquer perfil logado) — ver uso em
+# verificar_autenticacao().
+_ENDPOINT_SEM_ENTRADA = object()
+
 ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
     # Acesso livre (não requer login)
     "auth_views.login": [],
@@ -1665,7 +1675,13 @@ def verificar_autenticacao():
     if request.path.startswith("/api/"):
         return
 
-    perms = ROUTE_PERMISSIONS.get(endpoint)
+    perms = ROUTE_PERMISSIONS.get(endpoint, _ENDPOINT_SEM_ENTRADA)
+    if perms is _ENDPOINT_SEM_ENTRADA:
+        # Endpoint legado sem entrada em ROUTE_PERMISSIONS — nega por padrão
+        # (fail secure) em vez de liberar para qualquer usuário logado, que é
+        # o que `None` (chave presente) significa nesta tabela.
+        flash("Você não tem permissão para acessar esta página.", "danger")
+        return redirect("/app")
     if perms == []:
         # Acesso livre
         return

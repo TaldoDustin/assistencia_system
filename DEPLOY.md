@@ -20,7 +20,7 @@
 ### 4. Variáveis de ambiente
 Adicione as variáveis necessárias em **Environment > Add Environment Variable**:
 - `FLASK_SECRET_KEY` (obrigatório)
-- `MERCADO_PHONE_WEBHOOK_TOKEN` (opcional)
+- `MERCADO_PHONE_WEBHOOK_TOKEN` (obrigatório para o webhook de importação de OS funcionar — sem ele, toda requisição é rejeitada com 401)
 - `MERCADO_PHONE_API_TOKEN` (opcional)
 - `MERCADO_PHONE_SYNC_ENABLED=1` (opcional)
 - `MERCADO_PHONE_SYNC_INTERVAL_SECONDS=180` (opcional)

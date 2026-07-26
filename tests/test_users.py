@@ -3,8 +3,8 @@ Testes de CRUD de usuarios via API JSON (Sprint 2.3).
 
 Escopo: /api/usuarios (listar, criar, editar, excluir) — a superficie consumida
 pelo frontend React (ver ARCHITECTURE.md). As rotas legadas equivalentes
-(/usuarios/novo, /usuarios/editar, /usuarios/deletar) ja tem cobertura de
-controle de acesso em test_auth.py::TestControleDeAcessoPorPerfil.
+(/usuarios/novo, /usuarios/editar, /usuarios/deletar) foram removidas por
+vulnerabilidade de CSRF — ver KNOWN_ISSUES.md.
 
 Estes testes caracterizam o comportamento atualmente aceito pela aplicacao,
 nao um comportamento desejado — nao adicionam nem alteram nenhuma regra de

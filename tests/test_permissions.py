@@ -48,8 +48,11 @@ def _remover_os(os_id):
 
 
 # ============================================================================
-# Rotas legadas admin-only — /usuarios, /usuarios/editar, /usuarios/deletar
-# (/usuarios/novo ja tem cobertura de tecnico em test_auth.py)
+# Rotas legadas admin-only — /usuarios (listagem, GET-only)
+#
+# /usuarios/novo, /usuarios/editar, /usuarios/deletar (POST, formulario) foram
+# removidas por vulnerabilidade de CSRF — ver KNOWN_ISSUES.md. Cobertura
+# equivalente para /api/usuarios em test_users.py.
 # ============================================================================
 
 
@@ -85,99 +88,6 @@ class TestPermissoesListagemLegada:
 
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/app/usuarios"
-
-
-class TestPermissoesEditarUsuarioLegado:
-    def test_sem_sessao_redireciona_para_login(self, client, usuario_tecnico):
-        resp = client.post(
-            f"/usuarios/editar/{usuario_tecnico['id']}",
-            data={"nome": "Tentativa", "perfil": "tecnico", "ativo": "on"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app/login"
-
-    def test_vendedor_recebe_acesso_negado_e_nao_altera_dados(self, client, usuario_vendedor, usuario_tecnico):
-        _login_legado(client, usuario_vendedor)
-
-        resp = client.post(
-            f"/usuarios/editar/{usuario_tecnico['id']}",
-            data={"nome": "Nao Deveria Mudar", "perfil": "admin", "ativo": "on"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT nome, perfil FROM usuarios WHERE id = ?", (usuario_tecnico["id"],)).fetchone()
-        finally:
-            conn.close()
-        assert row[0] == usuario_tecnico["nome"]
-        assert row[1] == "tecnico"
-
-    def test_admin_edita_com_sucesso(self, client, usuario_admin, usuario_tecnico):
-        _login_legado(client, usuario_admin)
-
-        resp = client.post(
-            f"/usuarios/editar/{usuario_tecnico['id']}",
-            data={"nome": "Editado Pelo Admin", "perfil": "tecnico", "ativo": "on"},
-        )
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/usuarios"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT nome FROM usuarios WHERE id = ?", (usuario_tecnico["id"],)).fetchone()
-        finally:
-            conn.close()
-        assert row[0] == "Editado Pelo Admin"
-
-
-class TestPermissoesDeletarUsuarioLegado:
-    def test_sem_sessao_redireciona_para_login(self, client, usuario_tecnico):
-        resp = client.post(f"/usuarios/deletar/{usuario_tecnico['id']}")
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app/login"
-
-    def test_tecnico_recebe_acesso_negado_e_nao_remove(self, client, usuario_tecnico, usuario_vendedor):
-        _login_legado(client, usuario_tecnico)
-
-        resp = client.post(f"/usuarios/deletar/{usuario_vendedor['id']}")
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/app"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT id FROM usuarios WHERE id = ?", (usuario_vendedor["id"],)).fetchone()
-        finally:
-            conn.close()
-        assert row is not None
-
-    def test_admin_remove_com_sucesso(self, client, usuario_admin):
-        conn = _app.conectar()
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo) VALUES (?, ?, ?, ?, ?)",
-                ("Descartavel", f"descartavel_{uuid.uuid4().hex[:8]}", "hash", "tecnico", 1),
-            )
-            conn.commit()
-            uid = cursor.lastrowid
-        finally:
-            conn.close()
-
-        _login_legado(client, usuario_admin)
-        resp = client.post(f"/usuarios/deletar/{uid}")
-
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/usuarios"
-        conn = _app.conectar()
-        try:
-            row = conn.execute("SELECT id FROM usuarios WHERE id = ?", (uid,)).fetchone()
-        finally:
-            conn.close()
-        assert row is None
 
 
 # ============================================================================

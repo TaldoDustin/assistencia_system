@@ -178,11 +178,11 @@ separado hoje está registrado como está — ver seção 3.
 | Tabela(s) | `unidades_serializadas`; lê (não escreve) `estoque.requer_imei` e `produtos.requer_rastreio_unidade` |
 | Lógica | `irflow_unidades_serializadas_service.py` — segunda aplicação da convenção `controller → service → repository` (depois de Clientes, seção 1.12) |
 | HTTP | `irflow_unidades_serializadas_controller.py` (`unidades_serializadas_api`, prefixo `/api/unidades-serializadas`) |
-| Frontend | Nenhum ainda — fundação de backend apenas |
+| Frontend | `frontend/src/pages/UnidadesSerializadas.jsx` (rota `/unidades-serializadas`, C1.3.1-C1.3.4) |
 | Testes | `tests/test_unidades_serializadas.py` (~27 casos), `tests/test_migration_unidades_serializadas.py` (migração) |
 | Depende de | Estoque (leitura de `requer_imei`), Produtos (leitura de `requer_rastreio_unidade`), `irflow_audit.py` (auditoria de create/status_change) |
-| Dependido por | Futuramente Vendas (reserva de IMEI, `docs/product/features/VENDAS.md` BR-017) |
-| Observação | Schema já modela `reservado`/`vendido` (para quando Vendas existir), mas nenhum endpoint desta sprint produz ou aceita esses estados — só `disponivel ↔ em_reparo` e `em_reparo/devolvido → disponivel` são alcançáveis (`TRANSICOES_VALIDAS` no service). Formato de IMEI não validado ainda (`TODO` em `IMEI.md`). Princípio da Responsabilidade de Transição (ADR-007) — cada domínio futuro (Vendas, Garantias) só transiciona os estados que lhe pertencem |
+| Dependido por | Vendas (`marcar_como_vendida`, ver seção 1.15); futuramente Garantias/Troca |
+| Observação | **Agregado raiz do domínio Comercial (`ADR-009`, 2026-07-27)** — uma linha representa o ativo físico pela vida toda, nunca uma linha nova por revenda/garantia/troca. `ADR-009` decide o modelo-alvo (estado físico × situação comercial em eixos separados, `origem_tipo` substituindo a checagem binária de origem, cancelamento/garantia como eventos de processo, não estado da unidade) para as próximas fases do épico Vendas — **implementação ainda no modelo anterior**: `status` continua enum único (`disponivel`/`em_reparo`/`devolvido` alcançáveis via `TRANSICOES_VALIDAS`; `vendido` só via `marcar_como_vendida`, exclusiva de Vendas). Migração para os dois eixos fica para quando cancelamento/garantia forem implementados. Formato de IMEI não validado ainda (`TODO` em `IMEI.md`). Princípio da Responsabilidade de Transição (ADR-007, estendido por ADR-009) — cada domínio futuro só transiciona os estados que lhe pertencem |
 
 ### 1.14 Produtos (catálogo comercial)
 
@@ -210,7 +210,7 @@ separado hoje está registrado como está — ver seção 3.
 | Testes | `tests/test_vendas.py` (21 casos, incluindo corrida real com threads) |
 | Depende de | Clientes (validação de `cliente_id`), Unidades Serializadas (validação + transição para `vendido` via `marcar_como_vendida`, exclusiva deste domínio por ADR-007), `irflow_audit.py` |
 | Dependido por | Nenhum domínio ainda (Garantias/Financeiro, quando existirem, provavelmente consumirão `vendas.id`) |
-| Observação | `marcar_como_vendida` (`irflow_unidades_serializadas_service.py`) é deliberadamente separada de `transicionar_status`/`TRANSICOES_VALIDAS` — evita que o endpoint genérico `PATCH /api/unidades-serializadas/<id>/status` aceite `{"status": "vendido"}` sem uma `venda` real por trás. `UNIQUE` em `vendas_itens.unidade_serializada_id` é a proteção de banco contra a mesma unidade em duas vendas, mesmo sob concorrência real |
+| Observação | `marcar_como_vendida` (`irflow_unidades_serializadas_service.py`) é deliberadamente separada de `transicionar_status`/`TRANSICOES_VALIDAS` — evita que o endpoint genérico `PATCH /api/unidades-serializadas/<id>/status` aceite `{"status": "vendido"}` sem uma `venda` real por trás. `UNIQUE` em `vendas_itens.unidade_serializada_id` é a proteção de banco contra a mesma unidade em duas vendas — mantida por ora; `ADR-009` propõe um índice único parcial (`WHERE ativo=1` ou equivalente) como candidato para quando cancelamento (V1.2) for implementado, decisão ainda em aberto. Roadmap das próximas fases (histórico → cancelamento → desconto → comissão → garantia/troca → reserva → financeiro mínimo → documentos) e o modelo de estado-alvo (estado físico × situação comercial da unidade, venda com máquina de estados própria) definidos em `ADR-009` — reserva manual precede desconto/aprovação (mesmo mecanismo: unidade `reservada`) |
 
 ---
 

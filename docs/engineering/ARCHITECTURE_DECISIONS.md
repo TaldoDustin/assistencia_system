@@ -19,6 +19,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-006](adr/ADR-006.md) | Reorganização de `docs/` por audiência e adoção da marca Fluxoly | Aceita | 2026-07-10 |
 | [ADR-007](adr/ADR-007.md) | Consolidação de rastreamento por IMEI entre Estoque e Produtos — nova tabela `unidades_serializadas` | Aceita | 2026-07-21 |
 | [ADR-008](adr/ADR-008.md) | Rebranding técnico incremental — novos módulos nascem como `fluxoly_*`, legado `irflow_*` inalterado | Aceita | 2026-07-27 |
+| [ADR-009](adr/ADR-009.md) | Unidade Serializada como agregado raiz do domínio Comercial — estado físico × situação comercial, `origem_tipo`, eventos de processo separados de estado | Aceita | 2026-07-27 |
 
 ---
 

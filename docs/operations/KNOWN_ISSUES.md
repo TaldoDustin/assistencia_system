@@ -768,3 +768,72 @@ Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (
 
 Responsável:
 —
+
+---
+
+## ~~KI-026~~ — RESOLVIDO (causa 3); mitigado (governança, ver TD-13)
+
+Descrição:
+O workflow `CI` (`.github/workflows/ci.yml`) não registrava nenhum sucesso em `main` até esta revisão —
+confirmado via `gh api repos/.../actions/workflows/ci.yml/runs?branch=main` (campo `total_count`
+autoritativo da API, não a listagem client-side de `gh run list`, que trunca por paginação): **84 de 84
+execuções em `main` terminaram em falha** (`status=failure`, `status=success` retorna `total_count: 0`),
+do primeiro run (2026-07-07) até o mais recente antes desta revisão (2026-07-27). Considerando todas as
+branches do repositório (não só `main`), o total sobe para 105 runs, também 0 sucessos — número usado
+por engano como "105/105 em `main`" numa versão anterior desta entrada, corrigido nesta revisão. A causa
+raiz mudou ao longo do tempo, sempre no mesmo job (`Frontend Quality`, que roda `npm ci` + `npm run
+lint`):
+
+1. **2026-07-07 a ~2026-07-20:** `ruff check .` vermelho (KI-017, já documentado e resolvido — mas o
+   job `Frontend Quality`/ESLint nunca foi mencionado nessa investigação, então ninguém percebeu que ele
+   também estava vermelho o tempo todo).
+2. **~2026-07-23 a ~2026-07-26:** o próprio `npm ci` falhava antes de chegar a rodar o ESLint —
+   `frontend/package-lock.json` fora de sincronia com `frontend/package.json` (`npm error Missing:
+   @emnapi/core@1.9.2`, `@emnapi/runtime@1.9.2`, `@emnapi/wasi-threads@1.2.1` — dependências opcionais
+   nativas do motor Oxide do Tailwind CSS v4, `@tailwindcss/vite`/`tailwindcss` em `package.json`).
+   `npm ci` é estrito e falha nessa divergência; rodar `npm install` localmente (que atualiza o
+   lockfile silenciosamente) mascarava o problema sem ninguém perceber.
+3. **~2026-07-26 até esta revisão (2026-07-27):** `npm ci` passa, mas `npm run lint` falha de verdade —
+   4 erros pré-existentes, não relacionados a nenhuma sprint recente: `Compras.jsx:20`
+   (`react-hooks/set-state-in-effect`), `Compras.jsx:28`, `ShoppingModal.jsx:46`,
+   `ServicesChartCard.jsx:38`, `TechnicianProfitChartCard.jsx:48` (`no-unused-vars`). Mais 2 warnings
+   não bloqueantes (`react-hooks/exhaustive-deps` em `ShoppingList.jsx`/`Stock.jsx`).
+
+Achado ao investigar o CI da branch `feat/vendas-historico-detalhe` (Sprint Vendas 1.1): o commit WIP
+dessa branch falhava no `Frontend Quality` por um erro próprio (corrigido nesta sprint, ver
+`PROJECT_STATUS.md`), o que levou a verificar se `main` também estava afetado — estava, e por um motivo
+diferente e mais antigo, não introduzido por essa branch.
+
+Impacto:
+Alto (processo, não funcional em produção — nenhuma das três causas envolve regra de negócio ou dado). O
+job `Frontend Build` depende de `Frontend Quality` (`needs: frontend`) e nunca chega a rodar enquanto ela
+falhar — ou seja, **o build do frontend não é verificado pelo CI há pelo menos 20 dias**, apesar de
+`PROJECT_STATUS.md` descrever o CI como saudável (`ruff check .` → 0 erros é verdade, mas cobre só o job
+`Lint`/Ruff — backend). `Backend Tests`/`Coverage`/`Lint` (Ruff) não são afetados e continuam passando
+normalmente em cada run — só o gate de qualidade do frontend está sistematicamente quebrado.
+
+Status:
+**Causa 3 (ESLint) resolvida em 2026-07-27, Sprint Infra 1.1** — branch `chore/frontend-eslint-cleanup`
+a partir de `main` (regra de mudança única do `CLAUDE.md` preservada: só os 4 arquivos com erro, nenhuma
+mudança de comportamento), mergeada em `main`. Primeiro sucesso do workflow `CI` identificado nas
+execuções verificadas (`total_count` da API, run `30313428268`, commit `a86cc62`). Causas 1 (Ruff) e 2
+(`npm ci`) já eram história — nenhuma das três reproduz mais.
+
+**Achado relacionado, mais grave (2026-07-27, mesma investigação):** o motivo de 84/84 falhas nunca terem
+travado um merge é que `main` **não tinha nenhuma proteção de branch configurada** — confirmado via
+`gh api repos/.../branches/main/protection` retornando `404 Branch not protected` (não "sem status check
+obrigatório": não existia objeto de proteção nenhum — sem revisão obrigatória, sem status check
+obrigatório, sem bloqueio de force-push a nível de GitHub). O CI existia e rodava, mas nunca funcionou
+como gate — qualquer PR/push podia mergear em `main` independente do resultado. **Mitigado em
+2026-07-27**, mesma sessão, imediatamente após confirmar `main` verde: proteção ativada via `gh api`
+exigindo os 5 status checks (`Lint`, `Backend Tests`, `Frontend Quality`, `Frontend Build`, `Coverage
+Report`), `strict: true`, bloqueio de force-push/deleção. `enforce_admins` deixado em `false`
+deliberadamente — não quebra o fluxo atual de merge local + push direto do usuário (CTO, único mantenedor
+hoje); ver TD-13 para o endurecimento completo quando a equipe crescer. Ver R-10/R-11 em
+`PROJECT_STATUS.md`.
+
+Sprint prevista:
+Sprint Infra 1.1 — concluída em 2026-07-27.
+
+Responsável:
+—

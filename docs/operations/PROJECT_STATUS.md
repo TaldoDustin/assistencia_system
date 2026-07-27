@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → 🟡 Sprint Vendas 1.1 — Histórico + Detalhe (branch `feat/vendas-historico-detalhe`, pronta, aguardando merge) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
 
 ---
 
@@ -90,7 +90,7 @@ observação, não decidida por suspeita.
 | Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint). **Correção de registro (2026-07-27, Sprint Infra 1.1):** o workflow `CI` como um todo não registrava nenhum sucesso em `main` até esta revisão — 84/84 runs falharam entre 2026-07-07 e 2026-07-27 (`total_count` da API), sempre no job `Frontend Quality` (ESLint), por 3 causas diferentes ao longo do tempo (KI-026). Corrigido na mesma sessão (branch `chore/frontend-eslint-cleanup`, mergeada) — primeiro sucesso do workflow identificado nas execuções verificadas (commit `a86cc62`). `main` também não tinha proteção de branch configurada (`404 Branch not protected`); ativada logo após confirmar o run verde, exigindo os 5 status checks (`enforce_admins: false`, ver R-10/R-11/TD-13) |
 | Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 570 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
@@ -373,6 +373,25 @@ editável) e `observacoes` em `vendas_itens`/`vendas`; frontend `frontend/src/pa
 testes, `ruff check .` limpo. Próximo passo do roadmap comercial: fluxo completo de Vendas (desconto/
 comissão/garantia/troca), condicionado a decisões do Product Owner.
 
+**Sprint Infra 1.1 — CI Verde (CONCLUÍDA em 2026-07-27):** achado ao investigar por que o CI da branch
+`feat/vendas-historico-detalhe` (Sprint Vendas 1.1) falhava — o workflow `CI` como um todo não registrava
+nenhum sucesso em `main` até então (84/84 runs falhos confirmados via `total_count` da API, 2026-07-07 a
+2026-07-27), sempre no job `Frontend Quality` (ESLint), por 3 causas diferentes ao longo do tempo (Ruff
+vermelho até ~07-20; `npm ci` quebrado por lockfile fora de sincronia ~07-23 a ~07-26; 4 erros reais de
+ESLint desde então, em arquivos sem relação com nenhuma sprint recente — `Compras.jsx`,
+`ShoppingModal.jsx`, `ServicesChartCard.jsx`, `TechnicianProfitChartCard.jsx`). Registrado como KI-026,
+R-10, R-11. Achado mais grave levantado pelo usuário (CTO) na revisão: o motivo de 84 falhas seguidas
+nunca terem bloqueado merge é que `main` não tinha **nenhuma** proteção de branch configurada
+(`404 Branch not protected`) — não era só "CI não é obrigatório", o gate nunca existiu. Escopo da sprint,
+deliberadamente pequeno (sugestão do usuário): corrigir os 4 erros (`chore/frontend-eslint-cleanup`,
+zero mudança de comportamento), confirmar `npm ci`/build/lint limpos, mergear, aguardar o CI de `main`
+confirmar verde, só então ativar a proteção de branch via `gh api` (5 status checks obrigatórios,
+`strict: true`, força-push/deleção bloqueados). Primeiro sucesso do workflow `CI` identificado nas
+execuções verificadas (commit `a86cc62`). `enforce_admins` deixado em `false` deliberadamente — não
+quebra o fluxo atual de merge local + push direto do único mantenedor; endurecimento completo
+(`enforce_admins: true`, `CODEOWNERS`, revisão obrigatória) registrado como TD-13, condicionado a
+crescimento da equipe. Nenhum código de produto tocado além dos 4 arquivos de lint.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -454,6 +473,7 @@ comissão/garantia/troca), condicionado a decisões do Product Owner.
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
 | ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
 | TD-12 | Nomenclatura legada `irflow_*`/`IR_FLOW_*` em código/infraestrutura, convivendo com módulos novos `fluxoly_*` desde ADR-008 (2026-07-27) — Épico de Rebranding Técnico completo (código legado + infra + variáveis de ambiente + repositório) não escopado nem agendado | Baixo (cosmético, sem risco funcional) | Baixa |
+| TD-13 | **Infra 1.2 — Endurecer Governança do Repositório.** Proteção de `main` ativada em 2026-07-27 (R-10/R-11) cobre só o mínimo (5 status checks obrigatórios, `enforce_admins: false`). Falta: `enforce_admins: true` (a proteção hoje não vale para push direto do próprio mantenedor), `CODEOWNERS`, revisão obrigatória (`required_pull_request_reviews`) com aprovação mínima. Sugerido pelo usuário (CTO) — decisão deliberada de não fazer agora para não quebrar o fluxo atual de merge local + push direto de um mantenedor único; faz sentido quando a equipe crescer além de uma pessoa | Médio (hoje mitigado por disciplina manual de um único mantenedor; escala mal com mais colaboradores) | Baixa (sem prazo — condicionado a crescimento da equipe) |
 
 ---
 
@@ -470,6 +490,8 @@ comissão/garantia/troca), condicionado a decisões do Product Owner.
 | R-07 | Módulo de integração MercadoPhone sem testes — qualquer mudança é risco| Alta         | Médio   | Script diagnose_mercadophone.py |
 | ~~R-08~~ | ~~`ruff check .` vermelho em `main` — job `Lint` bloqueava `backend`/`frontend` via `needs: lint` (KI-017)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-20)** — `ruff check .` → 0 erros, branch `chore/fix-ruff-lint-ki-017`, 6 commits atômicos |
 | R-09 | Produção real (Render + Vercel) está atrás de `main` — confirmado em 2026-07-22 consultando `GET /api/constantes` da produção real: ainda retorna só até "iPhone 16e" (sem a linha 17, sem `produtos`, sem `unidades_serializadas`) | Alta | Alto (percepção de bug onde não há — usuário reportou "hotfix não aplicado" quando na verdade é deploy pendente) | Nenhuma automática — deploy é acionado manualmente no dashboard Render/Vercel, decisão já registrada do CTO de acumular mudanças para um RC completo antes do próximo deploy |
+| ~~R-10~~ | ~~Workflow `CI` não registrava nenhum sucesso em `main` (84/84 runs falhos confirmados via `total_count` da API, 2026-07-07–2026-07-27) — job `Frontend Quality` (ESLint) vermelho por 3 causas diferentes ao longo do tempo, `Frontend Build` nunca rodava (KI-026)~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-27, Sprint Infra 1.1)** — 4 erros de ESLint corrigidos (`chore/frontend-eslint-cleanup`), primeiro sucesso do workflow identificado nas execuções verificadas |
+| ~~R-11~~ | ~~`main` não tinha proteção de branch configurada no GitHub — confirmado via `gh api repos/.../branches/main/protection` retornando `404 Branch not protected` (sem revisão obrigatória, sem status check obrigatório, sem bloqueio de force-push). O CI (R-10) nunca funcionou como gate de merge~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-27)** — proteção ativada via `gh api` exigindo os 5 status checks do CI, `strict: true`, força-push/deleção bloqueados. `enforce_admins: false` deliberado (preserva o fluxo atual de push direto do único mantenedor) — endurecimento completo (CODEOWNERS, revisão obrigatória, `enforce_admins: true`) registrado como TD-13, não decidido |
 
 ---
 

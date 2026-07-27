@@ -954,15 +954,19 @@ def criar_tabelas():
                 forma_pagamento TEXT NOT NULL,
                 valor_total REAL NOT NULL,
                 status TEXT NOT NULL DEFAULT 'concluida',
+                observacoes TEXT NOT NULL DEFAULT '',
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_cliente_id ON vendas (cliente_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_vendedor_id ON vendas (vendedor_id)")
 
-            # produto_nome/produto_sku são snapshot no momento da venda (não FK viva) --
-            # preserva o histórico mesmo se o cadastro de produto/estoque mudar depois,
-            # mesmo padrão já usado em os_pecas.peca_descricao/peca_fornecedor/peca_modelo.
+            # produto_nome/produto_sku/valor_tabela são snapshot no momento da venda (não
+            # FK viva) -- preserva o histórico mesmo se o cadastro de produto/estoque mudar
+            # depois, mesmo padrão já usado em os_pecas.peca_descricao/peca_fornecedor/
+            # peca_modelo. valor_tabela é o preço de catálogo no momento (nullable -- item
+            # pode não ter preço cadastrado); valor_unitario é o preço efetivo da venda,
+            # pode divergir de valor_tabela (negociação) -- nunca um sobrescreve o outro.
             # unidade_serializada_id é UNIQUE: nunca a mesma unidade em duas vendas -- o
             # verdadeiro guardião contra a corrida de duas vendas simultâneas do mesmo
             # aparelho, no nível do banco, não só na validação da aplicação.
@@ -975,6 +979,7 @@ def criar_tabelas():
                 produto_nome TEXT NOT NULL,
                 produto_sku TEXT,
                 quantidade INTEGER NOT NULL DEFAULT 1,
+                valor_tabela REAL,
                 valor_unitario REAL NOT NULL,
                 subtotal REAL NOT NULL,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))

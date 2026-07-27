@@ -71,13 +71,25 @@ def _unidade_com_origem_para_dict(row):
     (_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao,
      _produto_categoria, _produto_marca) = row[13:19]
     _estoque_sku, _produto_sku = row[19:21]
+    _estoque_valor, _produto_preco_venda, _produto_cor, _produto_capacidade = row[21:25]
     base["origem_tipo"] = "estoque" if base["estoque_id"] else ("produto" if base["produto_id"] else None)
     base["origem_label"] = _origem_label(_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao)
     base["produto_categoria"] = _produto_categoria
     base["produto_marca"] = _produto_marca
+    base["produto_cor"] = _produto_cor
+    base["produto_capacidade"] = _produto_capacidade
     # Snapshot para fluxoly_vendas_service.py (vendas_itens.produto_sku) -- SKU real,
     # nunca coagido/normalizado, mesmo campo já exposto por Estoque/Produtos.
     base["origem_sku"] = _estoque_sku or _produto_sku or ""
+    # Preço de catálogo (fluxoly_vendas_service.py, vendas_itens.valor_tabela) -- checagem
+    # explícita por None, não `or`: um preço 0 (embora incomum) é um valor real, não
+    # "ausente", e `or` trataria 0 como falsy e cairia incorretamente no fallback.
+    if _estoque_valor is not None:
+        base["preco_catalogo"] = _estoque_valor
+    elif _produto_preco_venda is not None:
+        base["preco_catalogo"] = _produto_preco_venda
+    else:
+        base["preco_catalogo"] = None
     return base
 
 

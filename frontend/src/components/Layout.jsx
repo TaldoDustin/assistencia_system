@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, ClipboardList, Package, ShoppingBag, Wrench, DollarSign,
   BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, UserCircle, HardDriveDownload,
-  ScanBarcode,
+  ScanBarcode, ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
@@ -16,6 +16,7 @@ const navItems = [
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },
   { path: "/clientes", label: "Clientes", icon: UserCircle },
+  { path: "/vendas", label: "Vendas", icon: ShoppingCart, perfis: ["admin", "vendedor"] },
   { path: "/produtos", label: "Produtos", icon: ShoppingBag },
   { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: ScanBarcode },
   { path: "/estoque", label: "Estoque", icon: Package },
@@ -41,7 +42,10 @@ function SidebarContent({ currentPath, user, onNavigate, onLogout }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItems.filter((item) => !item.adminOnly || user?.perfil === "admin").map(({ path, label, icon }) => {
+        {navItems
+          .filter((item) => !item.adminOnly || user?.perfil === "admin")
+          .filter((item) => !item.perfis || item.perfis.includes(user?.perfil))
+          .map(({ path, label, icon }) => {
           const isActive = path === "/" ? currentPath === "/" : currentPath.startsWith(path);
           return (
             <Link

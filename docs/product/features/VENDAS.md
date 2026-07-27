@@ -1,10 +1,11 @@
 # VENDAS.md — Feature Spec: Módulo de Vendas
 
-**Status:** Vendas MVP implementado (backend) em 2026-07-27 — ver seção "Vendas MVP — o que foi
-entregue" abaixo. O restante do fluxo completo desenhado neste documento (desconto/aprovação,
-comissão, garantia, troca/avaliação de usado, reserva com timeout) segue como especificação, não
-implementado — depende de decisões do Product Owner ainda pendentes (seção "O que ainda está em
-aberto").
+**Status:** Vendas MVP + Sprint 1.1 (Histórico + Detalhe) implementados em 2026-07-27 — ver seção "Vendas
+MVP — o que foi entregue" abaixo. V1.2 (Cancelamento) tem a discuss-phase concluída (seção "V1.2 —
+Cancelamento" abaixo) mas nenhum código escrito ainda. O restante do fluxo completo desenhado neste
+documento (desconto/aprovação, comissão, garantia, troca/avaliação de usado, reserva com timeout) segue
+como especificação, não implementado — depende de decisões do Product Owner ainda pendentes (seção "O que
+ainda está em aberto").
 **Épico:** Comercial (ver `docs/operations/ROADMAP.md` para o eixo de engenharia — este documento pertence ao eixo de produto, numeração própria a definir em `PRODUCT_BACKLOG.md`).
 **Atualizado em 2026-07-11** (Claude, a pedido do CTO): adicionadas as seções "Modelo de dados",
 "Wireframes conceituais" e "Dependências", que faltavam no rascunho original. Nenhuma decisão da seção
@@ -12,6 +13,8 @@ aberto").
 **Atualizado em 2026-07-27** (Claude, a pedido do CTO): seção "Vendas MVP — o que foi entregue"
 adicionada; "Modelo de dados" corrigido para refletir o schema real implementado (difere do proposto
 originalmente em dois pontos, ver nota na própria seção).
+**Atualizado em 2026-07-27** (Claude, discuss-phase com o CTO, após `ADR-009`): seção "V1.2 —
+Cancelamento" adicionada — regras de negócio fechadas (BR-031 a BR-036), nenhum código escrito.
 
 ---
 
@@ -191,6 +194,69 @@ do produto for reajustado depois. Não adicionado agora porque ficaria `NULL` se
 
 ---
 
+## V1.2 — Cancelamento (discuss-phase concluída em 2026-07-27; não implementado)
+
+Antes de qualquer plano técnico, as regras de negócio de cancelamento foram fechadas em conversa direta
+com o usuário (CTO), motivadas por `docs/engineering/adr/ADR-009.md` ter deixado deliberadamente em
+aberto o mecanismo de unicidade de `vendas_itens.unidade_serializada_id` para "quando V1.2 for de fato
+implementada". Nenhum código escrito ainda — este bloco é a especificação, `BR-031` a `BR-036`
+(`docs/product/BUSINESS_RULES.md`) são as regras formais derivadas dela.
+
+**Escopo da migração de schema (decisão explícita, não um recuo de `ADR-009`):** `ADR-009` define o
+modelo-alvo de longo prazo (Estado Operacional do Ativo × Situação Comercial em eixos separados), mas não
+exige que essa migração aconteça nesta sprint — uma ADR pode definir o destino arquitetural sem obrigar
+toda fase subsequente a implementá-lo de imediato (mesmo padrão já usado no rebranding `ADR-008`: módulos
+novos nascem `fluxoly_*`, os existentes não foram renomeados até fazer sentido). V1.2 mantém o enum único
+`unidades_serializadas.status` — cancelar uma venda devolve a unidade para `disponivel`, mesma mecânica já
+usada em `devolvido → disponivel` (Assistência) — através de uma função de domínio dedicada
+(`liberar_unidade_para_venda`, a implementar), nunca por atribuição direta de `status` espalhada pelo
+código, para que a futura migração para os dois eixos troque só essa função, não dezenas de call sites. A
+migração real fica para quando Garantia/Troca precisarem de fato da ortogonalidade (`em_reparo` E
+`vendido` simultaneamente) — não antes.
+
+**Mecanismo do `UNIQUE`:** a regra de domínio está fechada — *"uma Unidade Serializada pode aparecer em
+várias vendas ao longo da vida, mas só uma pode estar vigente ao mesmo tempo"* — mas a implementação
+exata (coluna `ativo`, `cancelado_em IS NULL`, um campo de status no item, ou outra abordagem) fica para o
+plano técnico, considerando também cancelamento parcial futuro (múltiplos itens por venda) e a eventual
+integração com Garantia/Financeiro. A regra de negócio vive no `service` (valida, executa a transação);
+a constraint do banco é a última linha de defesa contra corrida concorrente, nunca a representação
+primária da regra.
+
+**`cancelada` vs. `estornada`:** V1.2 implementa só `cancelada` — decisão comercial/operacional (cliente
+desistiu, erro de lançamento, IMEI incorreto, venda duplicada, pagamento não concluído, produto
+indisponível), sem nenhuma reversão financeira, já que Vendas MVP não tem caixa formal (`VENDAS.md`
+"Decisões já tomadas": "V1 registra pagamento simples, sem caixa formal"). `estornada` (também prevista na
+máquina de estados `criada → reservada → concluida → cancelada → estornada` de `ADR-009`) só existe
+quando há algo financeiro real para reverter (PIX devolvido, cartão cancelado) — implementada junto do
+Épico Financeiro, não antes.
+
+**Quem pode cancelar:** `admin` cancela qualquer venda; `vendedor` só cancela vendas que ele mesmo
+realizou; `tecnico` e demais perfis não podem. Sem limite de tempo nesta fase — a segurança vem de perfil
++ motivo obrigatório + auditoria, não de janela temporal. Uma janela (ex.: só no mesmo dia) pode virar
+configuração por loja no futuro, quando a plataforma tiver múltiplos clientes com políticas diferentes —
+não decidida nem implementada agora, para não transformar uma política operacional variável em regra fixa
+do sistema.
+
+**Motivo obrigatório:** lista fechada (`cliente_desistiu` \| `erro_lancamento` \| `imei_incorreto` \|
+`venda_duplicada` \| `pagamento_nao_concluido` \| `produto_indisponivel` \| `outro`), rejeitada se fora da
+lista — mesmo padrão de `categoria`/`condicao` em Produtos (BR-027), nunca normalizada. Quando `outro`,
+uma descrição complementar (`observacao_cancelamento`) é obrigatória. Habilita métricas por motivo de
+cancelamento sem parsing de texto (pilar de Inteligência, `BRAND_IDENTITY.md` seção 2).
+
+**Princípio da Imutabilidade da Venda:** uma venda representa um fato histórico — cancelada é estado
+terminal, nunca retorna a `concluida` ("reativação" não existe). Uma nova negociação sobre a mesma unidade
+sempre gera uma venda nova, nunca reabre a cancelada. Preserva quando/por quê/quem cancelou e por quanto
+tempo a venda original ficou concluída, sem perder essa informação numa reversão.
+
+**Histórico (Sprint Vendas 1.1, já implementada):** a listagem (`GET /api/vendas`) deve mostrar vendas
+canceladas por padrão, identificadas por badge de status — histórico nunca esconde fatos por padrão. O
+filtro por `status`, já implementado no backend, permite restringir a visualização quando necessário.
+Ajuste de frontend pendente (`Historico()` em `Vendas.jsx` ainda não tem badge de status nem filtro de
+status na UI — só os filtros de forma de pagamento/data/ordenação da Sprint Vendas 1.1); a implementação
+completa fica para quando V1.2 for construída.
+
+---
+
 ## Modelo de dados (implementado — difere do proposto originalmente)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`
@@ -363,5 +429,6 @@ tempo médio de venda, número de vendas com troca, taxa de aprovação de desco
 - `docs/engineering/DOMAIN_MODEL.md` — domínios existentes hoje (1.3 OS, 1.4 Estoque) e lacunas estruturais (Cliente, Financeiro) citadas nas decisões acima
 - `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas obrigatória para o novo domínio Vendas quando for implementado
 - `docs/operations/ROADMAP.md` — roadmap de engenharia (eixo separado deste documento)
-- `docs/product/BUSINESS_RULES.md` — BR-017 a BR-022, regras extraídas das decisões deste documento
+- `docs/product/BUSINESS_RULES.md` — BR-017 a BR-022 (fluxo original), BR-031 a BR-036 (V1.2 — Cancelamento)
 - `docs/company/OPERATION_SYSTEM.md` — blocos Venda/Troca/Reserva/Garantia posicionam este spec no ciclo completo da loja
+- `docs/engineering/adr/ADR-009.md` — modelo de domínio da Unidade Serializada (eixos, `origem_tipo`, mecanismo do `UNIQUE`) que a seção "V1.2 — Cancelamento" fecha

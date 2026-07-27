@@ -2,10 +2,11 @@
 
 **Status:** Parcialmente corrigido — `POST /api/auth/login` e as 4 rotas de checklist corrigidas via
 hotfix isolado (4 rotas de shopping-list reclassificadas como risco estrutural, não vazamento
-confirmado); instrumentação de runtime pronta, reprodução local por carga (2 rodadas, até 120
-threads/60s) não confirmou a causa raiz — aguardando decisão do usuário sobre os próximos vetores
-(instrumentação em ambiente real / transação do MercadoPhone). **INC-001 continua aberto** — esta
-correção elimina um vetor confirmado, não a causa raiz (ver nota ao final da seção da correção).
+confirmado); instrumentação transparente de runtime pronta (não mergeada ainda), reprodução local por
+carga (2 rodadas, até 120 threads/60s) não confirmou a causa raiz. **Próximo passo: deploy +
+observação em produção** antes de decidir sobre a transação do MercadoPhone (ver "Próximo passo"
+abaixo). **INC-001 continua aberto** — as correções aplicadas eliminam vetores confirmados, não a
+causa raiz.
 **Severidade:** P0 (crítico)
 **Impacto:** Alto — afeta operações de escrita centrais (criar/editar OS, cadastrar/alterar estoque)
 **Ambientes:** Produção, Desenvolvimento
@@ -14,6 +15,8 @@ correção elimina um vetor confirmado, não a causa raiz (ver nota ao final da 
 **Hotfixes aplicados (Claude, Principal Engineer):**
 - 2026-07-23 — login, branch `hotfix/conexao-login-database-locked`
 - 2026-07-27 — rotas de checklist, branch `fix/checklist-conexao-database-locked`
+**Instrumentação pronta (Claude, Principal Engineer):**
+- 2026-07-27 — conexões transparente, branch `chore/inc-001-instrumentacao-transparente`
 
 ---
 
@@ -269,7 +272,79 @@ agora — não confirmado, mas prioritário para a próxima rodada de investiga�
 
 ---
 
-## Próximo passo — aguardando decisão do usuário
+## Critérios de aceitação — instrumentação de conexões (Branch C, 2026-07-27)
+
+Definidos antes da implementação, para que a instrumentação nunca deixe de ser uma ferramenta de
+diagnóstico e passe a ser, mesmo sem intenção, uma alteração estrutural. Se qualquer critério deixar
+de ser verdadeiro, a implementação deve ser revista antes de prosseguir.
+
+**Objetivo:** descobrir a causa do INC-001 sem alterar comportamento do sistema.
+
+| # | Critério |
+|---|---|
+| C-1 | Desligada por padrão (`IR_FLOW_DEBUG_CONN_TRACE=1` para ligar) |
+| C-2 | Zero alteração funcional — mesmo resultado de qualquer rota, ligada ou desligada |
+| C-3 | Zero impacto quando desativada (mesmo código executado hoje) |
+| C-4 | Overhead mínimo quando ativada |
+| C-5 | Não grava dado sensível — só metadados (id de conexão, rota, thread, duração); nunca corpo de request, senha, token, IMEI, etc. |
+| C-6 | Não altera resposta HTTP |
+| C-7 | Não altera transação (commit/rollback/timeout/retry inalterados) |
+| C-8 | Não altera concorrência |
+| C-9 | Totalmente removível — vive inteiramente dentro de `conectar()`/da factory da conexão, nunca nas rotas; remover a flag/o wrapper não exige tocar em nenhuma rota |
+
+**Requisito de transparência (decorrente de C-2/C-9):** o wrapper de conexão deve delegar qualquer
+atributo ou método não explicitamente instrumentado à conexão real (`__getattr__`/`__setattr__`) —
+deve se comportar de forma indistinguível de um `sqlite3.Connection` normal para quem o usa, mesmo
+para uso futuro ainda não escrito hoje.
+
+**Pipeline de logging:** a instrumentação usa o logger estruturado já existente
+(`irflow_logging.py::get_logger`, JSON + `request_id` de correlação, Sprint Observabilidade) via
+`extra={...}` — nunca `print()` nem um sistema de log paralelo. Confirmado antes de implementar que
+`irflow_logging.py` já serializa automaticamente qualquer campo `extra` (não precisou de nenhuma
+alteração nesse arquivo).
+
+---
+
+## Implementação — instrumentação transparente (Branch C, 2026-07-27)
+
+Branch `chore/inc-001-instrumentacao-transparente`, a partir de `main` — **substitui** a branch
+`chore/inc-001-instrumentacao-conexoes` (2026-07-23, nunca mergeada), reescrita para atender aos
+critérios C-1 a C-9 acima. A branch antiga permanece no repositório sem uso; pode ser removida.
+
+`_ConexaoRastreada` (`app.py`, dentro de `conectar()`) loga `OPEN`/`COMMIT`/`ROLLBACK`/`CLOSE` via o
+logger estruturado (`extra={"inc001_connection_id", "inc001_route", "inc001_thread_name",
+"inc001_thread_ident", "inc001_opened_at", "inc001_closed_at", "inc001_elapsed_ms",
+"inc001_close_called"}`) e, via `weakref.finalize`, avisa com os últimos 5 frames da stack de
+abertura (não a stack inteira) se uma conexão for coletada pelo GC sem `close()` explícito.
+`__getattr__`/`__setattr__` delegam à conexão real qualquer atributo/método não explicitamente
+instrumentado (só `commit`/`rollback`/`close` têm lógica própria) — validado que isso cobre 100% do
+uso real de `conn` em produção hoje (109× `close`, 88× `cursor`, 56× `commit`, 30× `rollback`, 6×
+`execute`, nenhum `with conn:`/`row_factory`/`isinstance`) e que atributos futuros ainda não
+escritos continuam funcionando por delegação automática. A thread de sincronização do MercadoPhone
+foi nomeada `mercadophone-sync` (`app.py`, `iniciar_sync_mercadophone_se_habilitado`) — puramente
+cosmético, identifica no log qual candidato gerou cada conexão sem alterar a lógica de sincronização.
+
+**Testes** (`tests/test_inc001_conn_trace_instrumentation.py`, 8 casos): desligada devolve
+`sqlite3.Connection` normal (C-1/C-3); ligada devolve o wrapper e delega cursor/execute/commit/
+rollback/atributo arbitrário (`row_factory`) à conexão real, prova de transparência (C-2/C-9); 100
+conexões abertas e fechadas corretamente não geram nenhum aviso (zero falso positivo); uma conexão
+não fechada gera o aviso com os campos esperados e a stack resumida contendo o teste que a abriu;
+2000 ciclos completos (open/cursor/execute/commit/close) em menos de 15s (C-4, sanity, não
+benchmark).
+
+**Validação:** suíte completa com a flag desligada (padrão) — 541 testes, `ruff check .` limpo. Suíte
+completa rodada também com `IR_FLOW_DEBUG_CONN_TRACE=1` no processo inteiro — 540/541 (a única falha
+é o próprio teste que verifica que a flag fica desligada por padrão, inválido sob essa condição
+forçada; nenhuma outra regressão) — confirma que a instrumentação ligada não quebra nenhum fluxo real
+do sistema. Log JSON de exemplo capturado nessa validação:
+
+```json
+{"level": "INFO", "logger": "app", "message": "INC-001: conexão fechada", "inc001_connection_id": 325, "inc001_route": "MainThread", "inc001_thread_name": "MainThread", "inc001_thread_ident": 8286887296, "inc001_opened_at": "2026-07-27T13:35:15.017220+00:00", "inc001_closed_at": "2026-07-27T13:35:15.017765+00:00", "inc001_elapsed_ms": 0.545, "inc001_close_called": true}
+```
+
+---
+
+## Próximo passo — aguardando deploy e observação
 
 `POST /api/auth/login` e as 4 rotas de checklist permanecem corrigidas (ver "Correção aplicada" e
 "Correção aplicada — 4 rotas de checklist" acima) — mantidas independente do resultado da investigação,
@@ -279,17 +354,37 @@ A reprodução local por carga não confirmou a causa raiz (ver seção anterior
 
 1. ~~Corrigir as 4 rotas de checklist agora~~ — **feito em 2026-07-27**, branch
    `fix/checklist-conexao-database-locked`.
-2. **Rodar a instrumentação num ambiente real** (dev/staging com uso real ao longo de dias, não só um
-   teste de carga sintético de 2 minutos) — I/O de produção (disco de rede, latência) e padrões de uso
-   real podem gerar a contenção sustentada que o teste local não conseguiu simular.
-3. **Escalar ainda mais o teste local** (mais threads, mais duração, ou simular disco lento) —
-   risco de retorno decrescente; já foram 2 rodadas (40 e 120 threads) sem resultado.
-4. **Reduzir a transação de `sincronizar_mercado_phone()`** (candidato mais realista, ver seção
-   "Instrumentação dinâmica..." acima) — requer investigação de atomicidade antes de alterar, já
-   apontada como próximo passo.
+2. ~~Rodar a instrumentação num ambiente real~~ — **instrumentação pronta em 2026-07-27**, branch
+   `chore/inc-001-instrumentacao-transparente` (ver "Implementação — instrumentação transparente"
+   acima); falta o deploy.
+3. **Escalar ainda mais o teste local** — descartado por ora; retorno decrescente já observado (2
+   rodadas, 40 e 120 threads, sem resultado), preferível recolher evidência real de produção primeiro.
+4. **Reduzir a transação de `sincronizar_mercado_phone()`** — decisão explícita do usuário (CTO,
+   2026-07-27): **não decidir ainda**. A Branch B só é justificada com evidência real da
+   instrumentação em produção, não por suspeita — ver sequência abaixo.
 
-Branch `chore/inc-001-instrumentacao-conexoes` permanece pronta e não mergeada, aguardando qual dessas
-opções o usuário quer seguir.
+**Sequência decidida (2026-07-27):**
+
+```
+Branch C (instrumentação) — pronta, aguardando merge
+        ↓
+Deploy em produção
+        ↓
+Ativar instrumentação (IR_FLOW_DEBUG_CONN_TRACE=1)
+        ↓
+Observar uso normal (não é preciso ficar ligada indefinidamente — é ferramenta de
+diagnóstico, não permanente)
+        ↓
+Se ocorrer o erro → analisar os logs (rota, thread, connection_id, stack de abertura)
+        ↓
+Desativar a instrumentação
+        ↓
+Branch B (transação do MercadoPhone) — apenas se a evidência apontar para lá
+```
+
+Decisão explícita: não assumir que `sincronizar_mercado_phone()` é a causa antes de ter evidência de
+runtime. Se a instrumentação mostrar que o vazamento não se repete, ou apontar outra origem, a Branch B
+não deve ser feita "por suspeita".
 
 ---
 

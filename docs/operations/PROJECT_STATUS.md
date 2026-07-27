@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-24  
-**Próxima revisão:** Decisão do usuário (CTO) sobre o próximo passo de `INC-001` (corrigir as 4 rotas de checklist já confirmadas / rodar instrumentação em ambiente real / escalar mais o teste local) — ver abaixo. À frente de KIs e do Épico Vendas, por decisão explícita do usuário (CTO): 🔴 INC-001 → 🟡 C1.3.5 (Unidades Serializadas) → 🟡 Épico Vendas
+**Última revisão:** 2026-07-27  
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → 🟡 Épico Vendas (próximo)
 
 ---
 
@@ -43,7 +43,7 @@ para worker/cron dedicado (em vez de lock) registrada como melhoria futura, não
 
 ---
 
-## 🟠 INC-001 — `database is locked` (P0, `/api/auth/login` corrigido, causa raiz não confirmada em runtime)
+## 🟡 INC-001 — `database is locked` (P0, vetores confirmados corrigidos, causa raiz não confirmada em runtime)
 
 **Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo.**
 
@@ -56,24 +56,30 @@ dentro das 4 rotas de OS/Estoque (auditoria/movimentação abrindo `conectar()` 
 
 Após releitura completa (não só grep) das rotas candidatas: as 4 rotas de `/api/shopping-list*`
 reclassificadas de "sem proteção" para **risco estrutural, não vazamento confirmado** (fecham a conexão
-em todo caminho, via padrão não idiomático — `except` amplo + `close()` manual). As 4 rotas de checklist
-(`GET/POST .../checklist`, `GET/POST /api/checklist/<token>` — a última pública, sem login) seguem como
-**risco confirmado por leitura de código** — nenhuma tem qualquer `try/except`.
+em todo caminho, via padrão não idiomático — `except` amplo + `close()` manual).
 
-**Corrigido:** `POST /api/auth/login` — hotfix isolado em `hotfix/conexao-login-database-locked`, mantido
-independente do resultado da investigação. Provado por teste automatizado. 480 testes, `ruff check .`
-limpo, zero regressão.
+**Corrigido (2026-07-23):** `POST /api/auth/login` — hotfix isolado em
+`hotfix/conexao-login-database-locked`, mantido independente do resultado da investigação. Provado por
+teste automatizado. 480 testes, `ruff check .` limpo, zero regressão.
 
-**Instrumentação dinâmica construída e validada** (branch `chore/inc-001-instrumentacao-conexoes`, não
-mergeada — gated por env var, zero impacto desligada): detecta corretamente uma conexão vazada em teste
-isolado. Duas rodadas de reprodução por carga local (`gunicorn --workers 2`, igual produção; 40 threads/
-45s e depois 120 threads/60s concentradas num único registro, ~16 mil escritas no total) **não
-reproduziram** o erro nem o aviso de vazamento — resultado negativo, causa raiz segue não confirmada em
-runtime.
+**Corrigido (2026-07-27):** as 4 rotas de checklist (`GET/POST /api/ordens/<id>/checklist[/token]`,
+`GET/POST /api/checklist/<token>` — as duas últimas públicas, sem login), único risco confirmado por
+leitura de código que ainda restava — mesmo padrão do hotfix de login, branch
+`fix/checklist-conexao-database-locked`, mergeada em `main`. 533 testes, `ruff check .` limpo.
 
-**Aguardando decisão do usuário (CTO) — prioridade número 1 do projeto:** corrigir as 4 rotas de
-checklist agora (risco já confirmado por código, independente de reprodução) vs. rodar a instrumentação
-num ambiente real com uso ao longo do tempo vs. escalar ainda mais o teste local.
+**Instrumentação transparente pronta e mergeada (2026-07-27):** `_ConexaoRastreada` (`app.py`), gated
+por `IR_FLOW_DEBUG_CONN_TRACE`, zero impacto desligada, delega tudo que não instrumenta à conexão real
+(`__getattr__`/`__setattr__`) — critérios de aceitação C-1 a C-9 documentados. Branch
+`chore/inc-001-instrumentacao-transparente`, mergeada em `main` (substitui a branch anterior
+`chore/inc-001-instrumentacao-conexoes`, que usava `print()` e nunca foi mergeada). 541 testes,
+`ruff check .` limpo. Duas rodadas de reprodução por carga local (antes desta branch) **não
+reproduziram** o erro — causa raiz segue não confirmada em runtime.
+
+**Aguardando (ação do usuário, fora do alcance desta sessão):** deploy em produção — recomendado em duas
+etapas (deploy com a flag desligada, validar saúde do sistema, só depois ligar
+`IR_FLOW_DEBUG_CONN_TRACE=1` e redeployar) — seguido de alguns dias de observação real. A Branch B
+(reduzir a transação de `sincronizar_mercado_phone()`) fica **condicionada à evidência** coletada nessa
+observação, não decidida por suspeita.
 
 ---
 
@@ -85,7 +91,7 @@ num ambiente real com uso ao longo do tempo vs. escalar ainda mais o teste local
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
-| Cobertura de testes| 50% global, 526 testes (ver Cobertura de Testes) |
+| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 549 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Nova — Sprint Observabilidade (2026-07-25): logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry gated por `SENTRY_DSN` (ainda vazia — conta não criada) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` |
@@ -334,6 +340,18 @@ nunca buscando da API; prazo de garantia (90 dias) hardcoded 2x no mesmo arquivo
 diferente (autorização, não referência de UI), risco desproporcional a um chore, candidato a sprint
 própria. 478 testes, `ruff check .` limpo, validado manualmente com os dropdowns de Status/Tipo em
 `/ordens`.
+
+**Sprint Comercial 1.3.5 — Rastreabilidade Individual de Itens de Estoque (CONCLUÍDA em 2026-07-27, ver
+`docs/operations/SPRINTS/SPRINT_COMERCIAL_1.3.5.md`):** fecha o KI-020 — `POST`/`PUT /api/estoque`
+passam a ler/gravar `requer_imei` (já existia no schema, sem caminho de escrita) e `GET /api/estoque`
+passa a expô-lo; checkbox correspondente em `Stock.jsx`. Sem esse fechamento, o caminho "unidade
+serializada com origem em Estoque" (`irflow_unidades_serializadas_service.py`) era inutilizável em
+produção — só funcionava semeando o banco diretamente. Nome da coluna mantido por compatibilidade
+(`requer_imei`); conceito documentado como rastreabilidade individual do item, não IMEI
+especificamente. 8 novos testes (549 no total), incluindo o fluxo completo via API real (criar item
+rastreável → criar unidade serializada com sucesso) e a confirmação de que a ausência da flag continua
+rejeitando a criação (regressão). `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos.
+Próximo passo do roadmap comercial: Épico Vendas.
 
 ### Escopo previsto
 

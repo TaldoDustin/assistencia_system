@@ -554,34 +554,36 @@ Responsável:
 
 ---
 
-## KI-020
+## ~~KI-020~~ — RESOLVIDO
 
 Descrição:
 `POST /api/estoque` (`criar_estoque`) e `PUT /api/estoque/<id>` (`atualizar_estoque`), em
-`irflow_blueprints_api.py`, nunca leem `body.get("requer_imei")` — a coluna `estoque.requer_imei`
-(existe desde a Sprint 3 Unidade 6, `DEFAULT 0`) não faz parte do `INSERT`/`UPDATE` de nenhuma das duas
-rotas. Por comparação, o domínio `produtos` tem o campo equivalente (`requer_rastreio_unidade`)
-totalmente cabeado em `irflow_produtos_controller.py`/`_service.py`/`_repository.py` — a assimetria é
-só do lado Estoque.
+`irflow_blueprints_api.py`, nunca liam `body.get("requer_imei")` — a coluna `estoque.requer_imei`
+(existe desde a Sprint 3 Unidade 6, `DEFAULT 0`) não fazia parte do `INSERT`/`UPDATE` de nenhuma das
+duas rotas. Por comparação, o domínio `produtos` tem o campo equivalente (`requer_rastreio_unidade`)
+totalmente cabeado em `irflow_produtos_controller.py`/`_service.py`/`_repository.py` — a assimetria era
+só do lado Estoque. O nome da coluna é histórico (IMEI); o conceito é rastreabilidade individual do
+item (IMEI hoje, outros identificadores de série no futuro).
 
 Impacto:
-Médio/Alto (funcional, não de segurança). Não existe hoje **nenhum caminho via API/UI** para marcar um
-item de `estoque` como `requer_imei=1` — todo item criado nasce com o default `0` e nunca pode mudar.
-Na prática, isso torna o caminho "unidade serializada com origem em Estoque" (`irflow_
+Médio/Alto (funcional, não de segurança). Não existia **nenhum caminho via API/UI** para marcar um
+item de `estoque` como `requer_imei=1` — todo item criado nascia com o default `0` e nunca podia mudar.
+Na prática, isso tornava o caminho "unidade serializada com origem em Estoque" (`irflow_
 unidades_serializadas_service.py::criar_unidade`, parâmetro `estoque_id`) inutilizável em produção —
-só o caminho com origem em `produtos` funciona de ponta a ponta hoje. Achado ao semear dados de teste
-reais para a Sprint Comercial C1.3.1 (Tela Unidades Serializadas): setar `requer_imei` exigiu escrever
-direto no banco, contornando a API por completo — mesmo padrão de investigação já usado no RC da
-migração `unidades_serializadas` momentos antes.
+só o caminho com origem em `produtos` funcionava de ponta a ponta. Achado ao semear dados de teste
+reais para a Sprint Comercial C1.3.1 (Tela Unidades Serializadas): setar `requer_imei` exigia escrever
+direto no banco, contornando a API por completo.
 
 Status:
-Aberto — identificado em 2026-07-21. Não corrigido nesta sessão: seria mudar
-`irflow_blueprints_api.py` (arquivo de risco "Muito alto", `PROJECT_STATUS.md`), fora do escopo da
-tela de listagem (C1.3.1) que motivou a investigação — regra de mudança única do `CLAUDE.md`.
+Resolvido em 2026-07-27 (Sprint Comercial C1.3.5 — Rastreabilidade Individual de Itens de Estoque,
+branch `feat/estoque-requer-imei`). `listar_estoque()`/`criar_estoque()`/`atualizar_estoque()` passam a
+ler/gravar/expor `requer_imei`, mesmo padrão já usado em `produtos.requer_rastreio_unidade`.
+`frontend/src/pages/Stock.jsx` ganhou o checkbox correspondente. 8 novos testes, incluindo o fluxo
+completo via API (criar item rastreável → criar unidade serializada com sucesso) e a confirmação de que
+um item sem a flag continua rejeitado (regressão). Ver `docs/operations/SPRINTS/SPRINT_COMERCIAL_1.3.5.md`.
 
 Sprint prevista:
-Não definida — candidato natural para quando a Sprint Comercial C1.3 chegar em C1.3.4 (Alterações) ou
-C1.3.5 (Integração com Estoque), que já vão mexer nesse fluxo.
+Sprint Comercial C1.3.5 — concluída em 2026-07-27.
 
 Responsável:
 —

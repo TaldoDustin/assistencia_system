@@ -177,6 +177,60 @@ class TestSaldoFinal:
 
 
 # ============================================================================
+# requer_imei — rastreabilidade individual (IMEI/serial hoje, ver KI-020/C1.3.5)
+# ============================================================================
+
+
+def _requer_imei(item_id):
+    conn = _app.conectar()
+    try:
+        return conn.execute("SELECT requer_imei FROM estoque WHERE id=?", (item_id,)).fetchone()[0]
+    finally:
+        conn.close()
+
+
+class TestAtualizarRastreabilidadeIndividual:
+    def test_ligar_requer_imei_em_item_existente(self, client, login_como, usuario_estoque, criar_item_estoque):
+        login_como(client, usuario_estoque)
+        item_id = criar_item_estoque()
+        assert _requer_imei(item_id) == 0
+
+        resp = client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, requer_imei=True))
+
+        assert resp.status_code == 200
+        assert _requer_imei(item_id) == 1
+
+    def test_desligar_requer_imei_em_item_existente(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
+        resp_criar = client.post(
+            "/api/estoque", json={"descricao": "iPhone Usado", "valor": 2500, "quantidade": 1, "requer_imei": True}
+        )
+        item_id = resp_criar.get_json()["id"]
+        assert _requer_imei(item_id) == 1
+
+        resp = client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id, requer_imei=False))
+
+        assert resp.status_code == 200
+        assert _requer_imei(item_id) == 0
+
+    def test_omitir_requer_imei_na_edicao_desliga_a_flag(
+        self, client, login_como, usuario_estoque
+    ):
+        """Igual ao padrão de checkbox desmarcado em um form HTML: omitir o campo
+        no PUT é indistinguível de enviá-lo como false -- mesmo comportamento já
+        usado pelo restante da API (nenhum PATCH parcial nesta rota)."""
+        login_como(client, usuario_estoque)
+        resp_criar = client.post(
+            "/api/estoque", json={"descricao": "iPhone Usado", "valor": 2500, "quantidade": 1, "requer_imei": True}
+        )
+        item_id = resp_criar.get_json()["id"]
+
+        client.put(f"/api/estoque/{item_id}", json=_payload_base(item_id))
+
+        assert _requer_imei(item_id) == 0
+
+
+# ============================================================================
 # GET /api/estoque/movimentacoes — forma da resposta (sem depender de ordem global)
 # ============================================================================
 

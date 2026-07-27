@@ -29,6 +29,14 @@ def _obter_item(item_id):
         conn.close()
 
 
+def _obter_requer_imei(item_id):
+    conn = _app.conectar()
+    try:
+        return conn.execute("SELECT requer_imei FROM estoque WHERE id=?", (item_id,)).fetchone()[0]
+    finally:
+        conn.close()
+
+
 def _contar_lotes(item_id):
     conn = _app.conectar()
     try:
@@ -234,6 +242,57 @@ class TestCriarItemEstoque:
     def test_sem_sessao_retorna_401(self, client):
         resp = client.post("/api/estoque", json={"descricao": "Peca", "valor": 10, "quantidade": 1})
         assert resp.status_code == 401
+
+
+# ============================================================================
+# requer_imei — rastreabilidade individual (IMEI/serial hoje, ver KI-020/C1.3.5)
+# ============================================================================
+
+
+class TestRastreabilidadeIndividualEstoque:
+    """`requer_imei` é a flag que habilita rastreamento por unidade
+    (`unidades_serializadas.estoque_id`, ver `irflow_unidades_serializadas_service.py`).
+    O conceito é rastreabilidade individual do item -- hoje via IMEI/serial, o nome
+    da coluna é histórico (mantido por compatibilidade)."""
+
+    def test_criar_com_requer_imei_true_persiste_como_1(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
+
+        resp = client.post(
+            "/api/estoque",
+            json={"descricao": "iPhone 13 Seminovo", "valor": 3000, "quantidade": 1, "requer_imei": True},
+        )
+
+        assert resp.status_code == 201
+        item_id = resp.get_json()["id"]
+        assert _obter_requer_imei(item_id) == 1
+        _limpar_item(item_id)
+
+    def test_criar_sem_requer_imei_persiste_como_0(self, client, login_como, usuario_estoque):
+        """Regressão: payload igual ao usado antes desta feature existir continua
+        criando o item com requer_imei=0, sem exigir o campo novo."""
+        login_como(client, usuario_estoque)
+
+        resp = client.post("/api/estoque", json={"descricao": "Tela Generica", "valor": 50, "quantidade": 10})
+
+        assert resp.status_code == 201
+        item_id = resp.get_json()["id"]
+        assert _obter_requer_imei(item_id) == 0
+        _limpar_item(item_id)
+
+    def test_listar_expoe_requer_imei_como_booleano(self, client, login_como, usuario_estoque):
+        login_como(client, usuario_estoque)
+        resp_criar = client.post(
+            "/api/estoque",
+            json={"descricao": "Apple Watch Seminovo", "valor": 1500, "quantidade": 1, "requer_imei": True},
+        )
+        item_id = resp_criar.get_json()["id"]
+
+        resp = client.get("/api/estoque")
+
+        item = next(i for i in resp.get_json()["itens"] if i["id"] == item_id)
+        assert item["requer_imei"] is True
+        _limpar_item(item_id)
 
 
 # ============================================================================

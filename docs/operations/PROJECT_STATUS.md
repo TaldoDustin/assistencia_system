@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → 🟡 Sprint Vendas 1.1 — Histórico + Detalhe (branch `feat/vendas-historico-detalhe`, pronta, aguardando merge) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
 
 ---
 
@@ -91,7 +91,7 @@ observação, não decidida por suspeita.
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint). **Correção de registro (2026-07-27, Sprint Infra 1.1):** o workflow `CI` como um todo não registrava nenhum sucesso em `main` até esta revisão — 84/84 runs falharam entre 2026-07-07 e 2026-07-27 (`total_count` da API), sempre no job `Frontend Quality` (ESLint), por 3 causas diferentes ao longo do tempo (KI-026). Corrigido na mesma sessão (branch `chore/frontend-eslint-cleanup`, mergeada) — primeiro sucesso do workflow identificado nas execuções verificadas (commit `a86cc62`). `main` também não tinha proteção de branch configurada (`404 Branch not protected`); ativada logo após confirmar o run verde, exigindo os 5 status checks (`enforce_admins: false`, ver R-10/R-11/TD-13) |
-| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 570 testes (ver Cobertura de Testes) |
+| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 580 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Nova — Sprint Observabilidade (2026-07-25): logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry gated por `SENTRY_DSN` (ainda vazia — conta não criada) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` |
@@ -391,6 +391,20 @@ execuções verificadas (commit `a86cc62`). `enforce_admins` deixado em `false` 
 quebra o fluxo atual de merge local + push direto do único mantenedor; endurecimento completo
 (`enforce_admins: true`, `CODEOWNERS`, revisão obrigatória) registrado como TD-13, condicionado a
 crescimento da equipe. Nenhum código de produto tocado além dos 4 arquivos de lint.
+
+**Sprint Vendas 1.1 — Histórico + Detalhe de Vendas (CONCLUÍDA em 2026-07-27, branch
+`feat/vendas-historico-detalhe`, mergeada em `main`):** retomada de uma branch aberta por uma sessão
+anterior (commit WIP `6774016`) — backend (`GET /api/vendas` paginado/filtrável/ordenável, `GET
+/api/vendas/<id>` enriquecido com nomes de cliente/vendedor e IMEI) e a página `VendaDetalhe.jsx` já
+estavam prontos; pendências fechadas nesta sessão: abas "Nova Venda"/"Histórico" ligadas em `Vendas.jsx`
+(componente `Historico()` já existia, sem estar no fluxo de navegação), botão "Ver venda" da tela de
+sucesso passou a navegar para `/vendas/:id` em vez de buscar o detalhe inline, e `VendaDetalhe.jsx` teve
+um erro real de lint corrigido (`react-hooks/set-state-in-effect` — `setLoading(true)` direto no corpo do
+efeito; refeito com função nomeada `carregar()`, mesmo padrão já usado em `Historico()`) — achado que
+motivou a investigação da Sprint Infra 1.1 acima. 10 novos testes (31 no domínio, 580 no repositório),
+`ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos. Validado manualmente ponta a ponta
+com servidor real + banco isolado (nunca `database.db`) e navegador Chrome real: criação de venda, clique
+em "Ver venda" navegando corretamente para o detalhe, listagem/filtros/busca/paginação do histórico.
 
 ### Escopo previsto
 

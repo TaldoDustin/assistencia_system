@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Search, UserCircle, Smartphone, Check, Plus, Eye, Printer } from "lucide-react";
+import { Loader2, Search, UserCircle, Smartphone, Check, Plus, Eye, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { clientes as clientesApi, unidadesSerializadas as unidadesApi, vendas as vendasApi } from "@/api/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,197 @@ const ORIGEM_BADGE = {
   estoque: { label: "Estoque", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
   produto: { label: "Produto", className: "bg-purple-500/10 text-purple-300 border-purple-500/30" },
 };
+
+const SORT_OPTIONS = [
+  { value: "recente", label: "Mais recente" },
+  { value: "antigo", label: "Mais antigo" },
+];
+
+const PER_PAGE_HISTORICO = 20;
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const [data, hora] = value.split(" ");
+  const [ano, mes, dia] = (data || "").split("-");
+  const horaCurta = (hora || "").slice(0, 5);
+  return ano && mes && dia ? `${dia}/${mes}/${ano} ${horaCurta}`.trim() : value;
+}
+
+function Historico() {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [formaPagamentoFilter, setFormaPagamentoFilter] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [sort, setSort] = useState("recente");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const handleFormaPagamentoChange = (v) => { setFormaPagamentoFilter(v === "all" ? "" : v); setPage(1); };
+  const handleSortChange = (v) => { setSort(v); setPage(1); };
+  const handleDataInicioChange = (v) => { setDataInicio(v); setPage(1); };
+  const handleDataFimChange = (v) => { setDataFim(v); setPage(1); };
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function buscar() {
+      setLoading(true);
+      setErro(false);
+      const params = { page, per_page: PER_PAGE_HISTORICO, sort };
+      if (search) params.q = search;
+      if (formaPagamentoFilter) params.forma_pagamento = formaPagamentoFilter;
+      if (dataInicio) params.data_inicio = dataInicio;
+      if (dataFim) params.data_fim = dataFim;
+
+      try {
+        const res = await vendasApi.list(params);
+        if (!ativo) return;
+        if (res?.ok) {
+          setItems(res.items || []);
+          setTotal(res.total || 0);
+        } else {
+          setErro(true);
+          toast.error(res?.erro || "Erro ao carregar histórico de vendas");
+        }
+      } catch {
+        if (ativo) {
+          setErro(true);
+          toast.error("Erro ao carregar histórico de vendas");
+        }
+      } finally {
+        if (ativo) setLoading(false);
+      }
+    }
+
+    buscar();
+    return () => { ativo = false; };
+  }, [page, search, formaPagamentoFilter, dataInicio, dataFim, sort]);
+
+  const totalPaginas = Math.max(1, Math.ceil(total / PER_PAGE_HISTORICO));
+  const filtrosAtivos = Boolean(search || formaPagamentoFilter || dataInicio || dataFim);
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente, IMEI ou produto..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
+        <Select value={formaPagamentoFilter || "all"} onValueChange={handleFormaPagamentoChange}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Pagamento" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as formas</SelectItem>
+            {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Input type="date" value={dataInicio} onChange={(e) => handleDataInicioChange(e.target.value)} className="w-40" aria-label="Data inicial" />
+        <Input type="date" value={dataFim} onChange={(e) => handleDataFimChange(e.target.value)} className="w-40" aria-label="Data final" />
+
+        <Select value={sort} onValueChange={handleSortChange}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <div className="ml-auto flex items-center text-xs text-muted-foreground">
+          {total} {total === 1 ? "venda" : "vendas"} {filtrosAtivos ? "encontradas" : "no total"}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : erro ? (
+        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
+          Não foi possível carregar o histórico de vendas.
+        </div>
+      ) : items.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
+          {filtrosAtivos ? "Nenhuma venda corresponde à busca/filtros atuais." : "Nenhuma venda registrada ainda."}
+        </div>
+      ) : (
+        <>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor"].map((h) => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.map((item) => {
+                    const primeiroItem = item.itens_resumo?.[0];
+                    return (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-accent/30 transition-colors cursor-pointer"
+                        data-testid={`venda-row-${item.id}`}
+                        onClick={() => navigate(`/vendas/${item.id}`)}
+                      >
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(item.criado_em)}</td>
+                        <td className="px-4 py-3 font-medium text-card-foreground">{item.cliente_nome || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {primeiroItem ? (
+                            <>
+                              <p className="text-card-foreground">{primeiroItem.produto_nome}</p>
+                              <p className="text-xs font-mono">{primeiroItem.imei || "—"}</p>
+                            </>
+                          ) : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{item.vendedor_nome || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—"}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(item.valor_total)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "venda" : "vendas"}</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              </Button>
+              <Button variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => p + 1)}>
+                Próxima <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function useDebounced(value, delay = 300) {
   const [debounced, setDebounced] = useState(value);
@@ -46,7 +238,13 @@ const EMPTY_STATE = {
   observacoes: "",
 };
 
-export default function Vendas() {
+const TABS = [
+  { key: "nova", label: "Nova Venda" },
+  { key: "historico", label: "Histórico" },
+];
+
+function NovaVenda() {
+  const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_STATE);
   const [clienteResultados, setClienteResultados] = useState([]);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
@@ -54,8 +252,6 @@ export default function Vendas() {
   const [buscandoAparelho, setBuscandoAparelho] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [vendaConcluida, setVendaConcluida] = useState(null);
-  const [detalheVenda, setDetalheVenda] = useState(null);
-  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
 
   const clienteQueryDebounced = useDebounced(form.clienteQuery);
   const aparelhoQueryDebounced = useDebounced(form.aparelhoQuery);
@@ -110,21 +306,6 @@ export default function Vendas() {
   const novaVenda = () => {
     setForm(EMPTY_STATE);
     setVendaConcluida(null);
-    setDetalheVenda(null);
-  };
-
-  const verVenda = async () => {
-    if (!vendaConcluida) return;
-    setCarregandoDetalhe(true);
-    try {
-      const res = await vendasApi.get(vendaConcluida.id);
-      if (res?.ok) setDetalheVenda(res);
-      else toast.error(res?.erro || "Erro ao carregar venda");
-    } catch {
-      toast.error("Erro ao carregar venda");
-    } finally {
-      setCarregandoDetalhe(false);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -193,25 +374,13 @@ export default function Vendas() {
 
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <Button onClick={novaVenda}><Plus className="h-4 w-4 mr-2" />Nova venda</Button>
-            <Button variant="outline" onClick={verVenda} disabled={carregandoDetalhe}>
-              {carregandoDetalhe ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
-              Ver venda
+            <Button variant="outline" onClick={() => navigate(`/vendas/${vendaConcluida.id}`)}>
+              <Eye className="h-4 w-4 mr-2" />Ver venda
             </Button>
             <Button variant="outline" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
               <Printer className="h-4 w-4 mr-2" />Imprimir
             </Button>
           </div>
-
-          {detalheVenda && (
-            <div className="bg-secondary/40 rounded-lg p-4 text-left text-xs space-y-1 text-muted-foreground">
-              <p className="font-medium text-card-foreground mb-1">Registro no servidor</p>
-              {detalheVenda.itens.map((item) => (
-                <p key={item.id}>
-                  {item.produto_nome} ({item.produto_sku || "sem SKU"}) — preço de tabela {item.valor_tabela != null ? formatCurrency(item.valor_tabela) : "—"}, vendido por {formatCurrency(item.valor_unitario)}
-                </p>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     );
@@ -380,6 +549,32 @@ export default function Vendas() {
           </div>
         )}
       </form>
+    </div>
+  );
+}
+
+export default function Vendas() {
+  const [activeTab, setActiveTab] = useState("nova");
+
+  return (
+    <div className="space-y-5">
+      <div className="flex gap-1 bg-secondary p-1 rounded-lg w-fit">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === tab.key
+                ? "bg-card text-card-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "nova" ? <NovaVenda /> : <Historico />}
     </div>
   );
 }

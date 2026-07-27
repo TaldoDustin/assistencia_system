@@ -326,6 +326,10 @@ export const clientes = {
 
 // ── Vendas ───────────────────────────────────────────────────────────────────
 export const vendas = {
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/vendas${qs ? "?" + qs : ""}`);
+  },
   create: (data) => post("/vendas", data),
   get:    (id)   => get(`/vendas/${id}`),
 };

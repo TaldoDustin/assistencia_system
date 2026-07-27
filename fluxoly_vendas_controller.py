@@ -18,6 +18,8 @@ from flask import Blueprint, jsonify, request, session
 import fluxoly_vendas_service as service
 from irflow_validation import parse_float, parse_int, safe_json
 
+ORDENACOES_VALIDAS = {"recente", "antigo"}
+
 
 def create_vendas_blueprint(deps: dict):
     conectar = deps["conectar"]
@@ -39,6 +41,42 @@ def create_vendas_blueprint(deps: dict):
             payload.update(data if isinstance(data, dict) else {"data": data})
         payload.update(kwargs)
         return jsonify(payload)
+
+    @vendas_api.route("")
+    def listar_vendas():
+        """Histórico de vendas (Sprint Vendas 1.1) — só consulta, qualquer
+        usuário autenticado (mesmo padrão de listagem de Clientes/Produtos;
+        a restrição admin/vendedor vale para criar venda, não para ver o
+        histórico)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        termo = (request.args.get("q") or "").strip()
+        cliente_id = parse_int(request.args.get("cliente_id"), default=None)
+        vendedor_id = parse_int(request.args.get("vendedor_id"), default=None)
+        forma_pagamento = (request.args.get("forma_pagamento") or "").strip().lower() or None
+        status = (request.args.get("status") or "").strip() or None
+        data_inicio = (request.args.get("data_inicio") or "").strip() or None
+        data_fim = (request.args.get("data_fim") or "").strip() or None
+        # criado_em é timestamp completo ("YYYY-MM-DD HH:MM:SS"); um data_fim
+        # só com data (sem hora) precisa virar limite de fim de dia, senão a
+        # comparação lexicográfica exclui as vendas feitas depois da meia-noite
+        # do próprio dia (ex.: "2026-07-27" < "2026-07-27 14:32:10").
+        if data_fim and len(data_fim) == 10:
+            data_fim = f"{data_fim} 23:59:59"
+        sort = (request.args.get("sort") or "recente").strip()
+        if sort not in ORDENACOES_VALIDAS:
+            sort = "recente"
+        page = parse_int(request.args.get("page"), default=1)
+        per_page = parse_int(request.args.get("per_page"), default=20)
+        if page is None or per_page is None:
+            return err("Parâmetros page/per_page inválidos.")
+
+        resultado = service.listar_vendas(
+            conectar, cliente_id, vendedor_id, forma_pagamento, status,
+            data_inicio, data_fim, termo, sort, page, per_page,
+        )
+        return ok(**resultado)
 
     @vendas_api.route("", methods=["POST"])
     def criar_venda():

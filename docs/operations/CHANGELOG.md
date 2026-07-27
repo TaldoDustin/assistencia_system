@@ -270,6 +270,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - 4 erros de ESLint corrigidos (`chore/frontend-eslint-cleanup`, zero mudança de comportamento): `Compras.jsx` (`react-hooks/set-state-in-effect` + parâmetro não usado), `ShoppingModal.jsx`/`ServicesChartCard.jsx`/`TechnicianProfitChartCard.jsx` (`no-unused-vars`) — primeiro sucesso do workflow `CI` identificado nas execuções verificadas
 - Proteção de branch ativada em `main` via `gh api` (achado adicional, mais grave: `main` não tinha nenhuma proteção configurada, `404 Branch not protected` — o CI nunca funcionou como gate de merge, registrado como R-11): 5 status checks obrigatórios (`Lint`, `Backend Tests`, `Frontend Quality`, `Frontend Build`, `Coverage Report`), `strict: true`, força-push/deleção bloqueados. `enforce_admins: false` deliberado — endurecimento completo registrado como TD-13
 
+### Adicionado (2026-07-27 — Sprint Vendas 1.1, Histórico + Detalhe de Vendas)
+- `GET /api/vendas` (`fluxoly_vendas_controller.py`/`_service.py`/`_repository.py`): histórico paginado/filtrável (cliente, vendedor, forma de pagamento, status, intervalo de data) e ordenável (mais recente/mais antigo), com busca única por nome do cliente, IMEI ou nome do produto vendido. `GET /api/vendas/<id>` enriquecido com nome/telefone do cliente, nome do vendedor e IMEI do item via `LEFT JOIN` só para exibição — sem mudança de schema
+- `frontend/src/pages/VendaDetalhe.jsx` (rota `/vendas/:id`): tela de detalhe estilo recibo (cabeçalho, cliente/vendedor/pagamento, observações, itens com valor de tabela/vendido/desconto/total), estrutura pensada para ser reaproveitada pela futura feature de Imprimir (V1.8 do roadmap)
+- `frontend/src/pages/Vendas.jsx`: abas "Nova Venda"/"Histórico" (mesmo padrão de `Reports.jsx`); componente `Historico()` com busca, filtros, ordenação e paginação; botão "Ver venda" da tela de sucesso passa a navegar para `/vendas/:id` em vez de buscar o detalhe inline
+- 10 novos testes (`tests/test_vendas.py`, 31 no total do domínio). 580 testes no repositório, `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos. Validado manualmente ponta a ponta (servidor real + banco isolado, navegador dirigido via Chrome): criação de venda, navegação "Ver venda" → detalhe, listagem/filtros/busca/paginação do histórico
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

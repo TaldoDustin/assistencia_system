@@ -5,19 +5,21 @@ Regra de negócio pura do domínio Vendas MVP (docs/product/features/VENDAS.md)
 — não conhece Flask, `request` nem `jsonify` (ENGINEERING_GUIDE.md §3.1).
 Primeiro módulo a nascer com o prefixo `fluxoly_` (ADR-008).
 
-Escopo desta fatia (aprovado em conversa, 2026-07-27): venda de um único
-aparelho (unidade serializada) por vez, sem desconto/aprovação, comissão,
-garantia, troca ou reserva com timeout -- todos dependem de decisões de
-negócio ainda pendentes do Product Owner (VENDAS.md "O que ainda está em
-aberto"). `status` da venda é deliberadamente 'concluida', não 'paga' --
-venda e pagamento são conceitos diferentes, não misturados aqui.
+Modelo de domínio vigente para as próximas fases: `ADR-009` (Unidade
+Serializada como agregado raiz — Estado Operacional do Ativo × Situação
+Comercial em eixos separados, cancelamento/garantia como eventos de
+processo, não estado da unidade). Esta sprint (Vendas 1.1 — Histórico +
+Detalhe) é só consulta: nenhuma mudança de schema, nenhum cancelamento,
+desconto, comissão, garantia ou reserva implementados aqui.
 
 `valor_tabela` (preço de catálogo no momento da venda, de
 `unidades_serializadas_service.py::preco_catalogo`) e `valor_unitario`
 (preço efetivo, editável pelo vendedor) são guardados separados em
 `vendas_itens` -- nenhuma autorização de desconto nesta fatia (qualquer
 vendedor pode alterar o preço livremente), mas o schema já preserva os dois
-valores para relatórios futuros de desconto/margem sem migração.
+valores para relatórios futuros de desconto/margem sem migração. `desconto`
+exposto aqui é só a diferença calculada (`valor_tabela - valor_unitario`),
+não uma feature de desconto com aprovação -- essa é a V1.4 do roadmap.
 
 Sequência transacional de `iniciar_venda` (única transação, cliente -> venda
 -> item -> unidade -> auditoria -> commit): validações de leitura (cliente,
@@ -33,6 +35,7 @@ Depende de: `irflow_clientes_service.py` (validar cliente),
 """
 
 import sqlite3
+from collections import defaultdict
 
 import irflow_clientes_service as clientes_service
 import irflow_unidades_serializadas_service as unidades_service
@@ -41,6 +44,8 @@ from irflow_audit import registrar_log_auditoria
 import fluxoly_vendas_repository as repo
 
 FORMAS_PAGAMENTO_VALIDAS = {"pix", "cartao", "dinheiro", "transferencia"}
+PAGINA_PADRAO = 1
+POR_PAGINA_PADRAO = 20
 
 
 class VendaConflitoError(Exception):
@@ -60,10 +65,15 @@ def _venda_para_dict(row):
         "status": row[5],
         "observacoes": row[6] or "",
         "criado_em": row[7],
+        "cliente_nome": row[8] or "",
+        "cliente_telefone": row[9] or "",
+        "vendedor_nome": row[10] or "",
     }
 
 
 def _item_para_dict(row):
+    valor_tabela = row[7]
+    valor_unitario = row[8]
     return {
         "id": row[0],
         "venda_id": row[1],
@@ -72,10 +82,14 @@ def _item_para_dict(row):
         "produto_nome": row[4],
         "produto_sku": row[5] or "",
         "quantidade": row[6],
-        "valor_tabela": row[7],
-        "valor_unitario": row[8],
+        "valor_tabela": valor_tabela,
+        "valor_unitario": valor_unitario,
+        # Diferença calculada, não uma feature de desconto (essa é a V1.4) --
+        # None quando não há preço de tabela para comparar.
+        "desconto": round(valor_tabela - valor_unitario, 2) if valor_tabela is not None else None,
         "subtotal": row[9],
         "criado_em": row[10],
+        "imei": row[11] or "",
     }
 
 
@@ -174,3 +188,46 @@ def obter_venda_com_itens(conectar, venda_id):
     finally:
         conn.close()
     return _venda_para_dict(venda_row), [_item_para_dict(r) for r in itens_rows]
+
+
+def listar_vendas(
+    conectar, cliente_id=None, vendedor_id=None, forma_pagamento=None, status=None,
+    data_inicio=None, data_fim=None, termo="", sort="recente", page=None, per_page=None,
+):
+    """Histórico de vendas (Sprint Vendas 1.1) -- paginado, com um resumo dos
+    itens de cada venda (`itens_resumo`) para a listagem não precisar de uma
+    chamada por linha. `termo` busca por nome do cliente, IMEI ou nome do
+    produto vendido (ver `fluxoly_vendas_repository.py::_montar_filtros`)."""
+    page = page or PAGINA_PADRAO
+    per_page = per_page or POR_PAGINA_PADRAO
+    offset = (max(1, page) - 1) * per_page
+    termo = (termo or "").strip()
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        total = repo.contar_vendas(
+            cursor, cliente_id, vendedor_id, forma_pagamento, status, data_inicio, data_fim, termo
+        )
+        venda_rows = repo.buscar_paginado(
+            cursor, cliente_id, vendedor_id, forma_pagamento, status, data_inicio, data_fim,
+            termo, sort, per_page, offset,
+        )
+        vendas = [_venda_para_dict(r) for r in venda_rows]
+        itens_rows = repo.buscar_itens_por_vendas(cursor, [v["id"] for v in vendas])
+    finally:
+        conn.close()
+
+    itens_por_venda = defaultdict(list)
+    for row in itens_rows:
+        itens_por_venda[row[1]].append(_item_para_dict(row))
+
+    for venda in vendas:
+        venda["itens_resumo"] = itens_por_venda.get(venda["id"], [])
+
+    return {
+        "items": vendas,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+    }

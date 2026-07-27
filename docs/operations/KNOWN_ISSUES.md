@@ -771,10 +771,10 @@ Responsável:
 
 ---
 
-## KI-026
+## ~~KI-026~~ — RESOLVIDO (causa 3); mitigado (governança, ver TD-13)
 
 Descrição:
-O workflow `CI` (`.github/workflows/ci.yml`) **nunca concluiu com sucesso em `main`** desde que existe —
+O workflow `CI` (`.github/workflows/ci.yml`) não registrava nenhum sucesso em `main` até esta revisão —
 confirmado via `gh api repos/.../actions/workflows/ci.yml/runs?branch=main` (campo `total_count`
 autoritativo da API, não a listagem client-side de `gh run list`, que trunca por paginação): **84 de 84
 execuções em `main` terminaram em falha** (`status=failure`, `status=success` retorna `total_count: 0`),
@@ -813,24 +813,27 @@ falhar — ou seja, **o build do frontend não é verificado pelo CI há pelo me
 normalmente em cada run — só o gate de qualidade do frontend está sistematicamente quebrado.
 
 Status:
-Aberto — não corrigido nesta sessão por sair do escopo da Sprint Vendas 1.1 (arquivos de 4 domínios
-diferentes, sem relação com Vendas; misturar seria violar a regra de mudança única do `CLAUDE.md`).
-Nenhum dos achados individuais atende aos critérios objetivos de interrupção de
-`ENGINEERING_GUIDE.md` §11 (é lint estático, não comportamento de rota em produção) — registrado para
-correção em uma branch `chore:`/`fix:` própria.
+**Causa 3 (ESLint) resolvida em 2026-07-27, Sprint Infra 1.1** — branch `chore/frontend-eslint-cleanup`
+a partir de `main` (regra de mudança única do `CLAUDE.md` preservada: só os 4 arquivos com erro, nenhuma
+mudança de comportamento), mergeada em `main`. Primeiro sucesso do workflow `CI` identificado nas
+execuções verificadas (`total_count` da API, run `30313428268`, commit `a86cc62`). Causas 1 (Ruff) e 2
+(`npm ci`) já eram história — nenhuma das três reproduz mais.
 
 **Achado relacionado, mais grave (2026-07-27, mesma investigação):** o motivo de 84/84 falhas nunca terem
-travado um merge é que `main` **não tem nenhuma proteção de branch configurada** — confirmado via
+travado um merge é que `main` **não tinha nenhuma proteção de branch configurada** — confirmado via
 `gh api repos/.../branches/main/protection` retornando `404 Branch not protected` (não "sem status check
-obrigatório": não existe objeto de proteção nenhum — sem revisão obrigatória, sem status check
-obrigatório, sem bloqueio de force-push a nível de GitHub). O CI existe e roda, mas nunca funcionou como
-gate — qualquer PR/push podia mergear em `main` independente do resultado. Ver R-10/R-11 em
+obrigatório": não existia objeto de proteção nenhum — sem revisão obrigatória, sem status check
+obrigatório, sem bloqueio de force-push a nível de GitHub). O CI existia e rodava, mas nunca funcionou
+como gate — qualquer PR/push podia mergear em `main` independente do resultado. **Mitigado em
+2026-07-27**, mesma sessão, imediatamente após confirmar `main` verde: proteção ativada via `gh api`
+exigindo os 5 status checks (`Lint`, `Backend Tests`, `Frontend Quality`, `Frontend Build`, `Coverage
+Report`), `strict: true`, bloqueio de force-push/deleção. `enforce_admins` deixado em `false`
+deliberadamente — não quebra o fluxo atual de merge local + push direto do usuário (CTO, único mantenedor
+hoje); ver TD-13 para o endurecimento completo quando a equipe crescer. Ver R-10/R-11 em
 `PROJECT_STATUS.md`.
 
 Sprint prevista:
-Não definida — recomendado priorizar antes do próximo merge relevante em `main`, já que o CI não detecta
-regressão de build/lint do frontend desde ~2026-07-07 e não há proteção de branch que force esperar por
-ele.
+Sprint Infra 1.1 — concluída em 2026-07-27.
 
 Responsável:
 —

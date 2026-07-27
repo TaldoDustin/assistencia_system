@@ -301,6 +301,55 @@ class TestCriarUnidade:
         _limpar_produto(produto_id)
 
 
+class TestIntegracaoEstoqueViaApiC135:
+    """CA-5 (KI-020/C1.3.5): antes desta sprint, não existia nenhum caminho via API
+    para marcar um item de estoque como rastreável -- item_estoque era sempre
+    seedado direto no banco (`_criar_item_estoque`, requer_imei=1 hardcoded) nos
+    testes acima. Estes dois testes fecham o fluxo real ponta a ponta: criar o
+    item via POST /api/estoque (perfil estoque) e, com o mesmo item, criar a
+    unidade via POST /api/unidades-serializadas (perfil técnico)."""
+
+    def test_fluxo_completo_item_rastreavel_criado_via_api_permite_unidade(
+        self, client, login_como, usuario_estoque, usuario_tecnico
+    ):
+        login_como(client, usuario_estoque)
+        resp_item = client.post(
+            "/api/estoque",
+            json={"descricao": "iPhone 13 Seminovo", "valor": 3000, "quantidade": 1, "requer_imei": True},
+        )
+        assert resp_item.status_code == 201
+        estoque_id = resp_item.get_json()["id"]
+
+        login_como(client, usuario_tecnico)
+        resp_unidade = client.post(
+            "/api/unidades-serializadas", json={"estoque_id": estoque_id, "imei": "111222333444555"}
+        )
+
+        assert resp_unidade.status_code == 200
+        assert resp_unidade.get_json()["id"]
+        _limpar_item_estoque(estoque_id)
+
+    def test_item_criado_via_api_sem_marcar_rastreavel_continua_rejeitado(
+        self, client, login_como, usuario_estoque, usuario_tecnico
+    ):
+        """Regressão: o mesmo payload de sempre (sem requer_imei) continua
+        criando um item não-rastreável, e a criação de unidade a partir dele
+        continua rejeitada -- exatamente o comportamento anterior a esta sprint."""
+        login_como(client, usuario_estoque)
+        resp_item = client.post(
+            "/api/estoque", json={"descricao": "Tela Generica", "valor": 50, "quantidade": 10}
+        )
+        estoque_id = resp_item.get_json()["id"]
+
+        login_como(client, usuario_tecnico)
+        resp_unidade = client.post(
+            "/api/unidades-serializadas", json={"estoque_id": estoque_id, "imei": "555444333222111"}
+        )
+
+        assert resp_unidade.status_code == 400
+        _limpar_item_estoque(estoque_id)
+
+
 class TestTransicaoStatus:
     def test_sem_autenticacao_retorna_403(self, client):
         resp = client.patch("/api/unidades-serializadas/1/status", json={"status": "em_reparo"})

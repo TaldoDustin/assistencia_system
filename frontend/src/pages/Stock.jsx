@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   fornecedor: "",
   quantidade: "",
   data_compra: "",
+  requer_imei: false,
 };
 
 export default function Stock() {
@@ -102,6 +103,7 @@ export default function Stock() {
       fornecedor: item.fornecedor || "",
       quantidade: item.quantidade || "",
       data_compra: item.data_compra ? item.data_compra.split("T")[0] : "",
+      requer_imei: !!item.requer_imei,
     });
     setEditId(item.id);
     setDialogOpen(true);
@@ -448,6 +450,18 @@ export default function Stock() {
                 <div className="col-span-2 space-y-1.5">
                   <Label htmlFor="stock-data-compra">Data de Compra</Label>
                   <Input id="stock-data-compra" type="date" value={form.data_compra} onChange={(e) => setForm((p) => ({ ...p, data_compra: e.target.value }))} />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    id="stock-requer-imei"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-border"
+                    checked={form.requer_imei}
+                    onChange={(e) => setForm((p) => ({ ...p, requer_imei: e.target.checked }))}
+                  />
+                  <Label htmlFor="stock-requer-imei" className="cursor-pointer text-muted-foreground">
+                    Requer rastreabilidade (IMEI / Nº de série)
+                  </Label>
                 </div>
               </div>
               <DialogFooter className="mt-4">

@@ -1894,7 +1894,8 @@ def create_api_blueprint(deps):
                     WHERE m.estoque_id = estoque.id
                       AND m.tipo = 'saida'
                       AND m.data >= ?
-                ) AS consumo_90d
+                ) AS consumo_90d,
+                COALESCE(requer_imei, 0)
             FROM estoque {clause}
             ORDER BY id DESC
             """,
@@ -1920,6 +1921,9 @@ def create_api_blueprint(deps):
                 "consumo_30d": int(r[10] or 0),
                 "consumo_90d": int(r[11] or 0),
                 "status_estoque": status_item,
+                # Rastreabilidade individual (IMEI/serial hoje; outros identificadores no
+                # futuro -- ver KI-020/C1.3.5) do item, não apenas "IMEI" no sentido estrito.
+                "requer_imei": bool(r[12]),
             }
             itens.append(item)
 
@@ -2048,6 +2052,9 @@ def create_api_blueprint(deps):
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
         quantidade = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
+        # Rastreabilidade individual (IMEI/serial hoje -- ver KI-020/C1.3.5): flag manual
+        # indicando se este item exige rastreamento por unidade via unidades_serializadas.
+        requer_imei = 1 if body.get("requer_imei") else 0
 
         if not descricao or not validate_positive_number(valor) or quantidade is None or quantidade < 0:
             return err("Preencha descrição, valor e quantidade.")
@@ -2057,10 +2064,10 @@ def create_api_blueprint(deps):
         try:
             cursor.execute(
                 """
-                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, sku, tipo, qualidade)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, sku, tipo, qualidade, requer_imei)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
                 """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, sku, tipo, qualidade),
+                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, sku, tipo, qualidade, requer_imei),
             )
             novo_id = cursor.lastrowid
             if quantidade > 0:
@@ -2110,6 +2117,9 @@ def create_api_blueprint(deps):
         fornecedor = (body.get("fornecedor") or "Nao informado").strip()
         quantidade_nova = parse_int(body.get("quantidade"), default=0)
         data_compra = (body.get("data_compra") or "").strip() or datetime.now().strftime("%Y-%m-%d")
+        # Rastreabilidade individual (IMEI/serial hoje -- ver KI-020/C1.3.5): flag manual
+        # indicando se este item exige rastreamento por unidade via unidades_serializadas.
+        requer_imei = 1 if body.get("requer_imei") else 0
 
         if not descricao or not validate_positive_number(valor) or quantidade_nova is None:
             return err("Preencha descrição, valor e quantidade válidos.")
@@ -2131,10 +2141,10 @@ def create_api_blueprint(deps):
             cursor.execute(
                 """
                 UPDATE estoque
-                SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, sku=?, tipo=?, qualidade=?
+                SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, sku=?, tipo=?, qualidade=?, requer_imei=?
                 WHERE id=?
                 """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, sku, tipo, qualidade, item_id),
+                (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, sku, tipo, qualidade, requer_imei, item_id),
             )
             diff = max(0, quantidade_nova) - qtd_antiga
             if diff != 0:

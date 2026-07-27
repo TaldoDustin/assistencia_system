@@ -126,10 +126,17 @@ README        — um README.md curto (10-20 linhas) na pasta do domínio: o que 
 `domains/estoque/`, etc. — fora de escopo desta revisão), a convenção de nomes de arquivo é:
 
 ```
-irflow_<dominio>_controller.py    (ou blueprint dentro de irflow_blueprints_<dominio>.py, já existente)
-irflow_<dominio>_service.py
-irflow_<dominio>_repository.py
+fluxoly_<dominio>_controller.py    (ou blueprint dentro de fluxoly_blueprints_<dominio>.py)
+fluxoly_<dominio>_service.py
+fluxoly_<dominio>_repository.py
 ```
+
+**Prefixo `fluxoly_` vs. `irflow_` (ADR-008, 2026-07-27):** todo domínio **novo** a partir desta decisão
+nasce com o prefixo `fluxoly_` (nome da marca), não `irflow_` (nome legado). Domínios já existentes
+(`irflow_clientes_*.py`, `irflow_produtos_*.py`, `irflow_unidades_serializadas_*.py`, `irflow_os.py`,
+`irflow_blueprints_api.py`, etc.) **não são renomeados** por esta decisão — permanecem `irflow_*` até
+um futuro Épico de Rebranding Técnico (não escopado). A convenção de camadas acima (controller → service
+→ repository → tests → README) é a mesma para os dois prefixos — só o nome muda, nunca a estrutura.
 
 **Adendo — README de domínio sem pasta própria (registrado em 2026-07-11, primeira aplicação real desta
 seção):** o item "README" das camadas obrigatórias acima pressupõe uma pasta de domínio (`domains/vendas/README.md`),

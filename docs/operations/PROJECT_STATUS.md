@@ -433,6 +433,7 @@ Próximo passo do roadmap comercial: Épico Vendas.
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
 | ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
+| TD-12 | Nomenclatura legada `irflow_*`/`IR_FLOW_*` em código/infraestrutura, convivendo com módulos novos `fluxoly_*` desde ADR-008 (2026-07-27) — Épico de Rebranding Técnico completo (código legado + infra + variáveis de ambiente + repositório) não escopado nem agendado | Baixo (cosmético, sem risco funcional) | Baixa |
 
 ---
 

@@ -332,6 +332,12 @@ não fechada gera o aviso com os campos esperados e a stack resumida contendo o 
 2000 ciclos completos (open/cursor/execute/commit/close) em menos de 15s (C-4, sanity, não
 benchmark).
 
+**Backlog (não bloqueador):** o teste de transparência cobre a delegação de `row_factory`. Ficou como
+item futuro (não necessário para esta branch, sem uso real hoje confirmado por grep) testar
+explicitamente `text_factory` e `isolation_level` — atributos especiais do `sqlite3.Connection` que
+às vezes têm comportamento diferente de um atributo comum, e que `__setattr__`/`__getattr__` delegam
+sem tratamento especial.
+
 **Validação:** suíte completa com a flag desligada (padrão) — 541 testes, `ruff check .` limpo. Suíte
 completa rodada também com `IR_FLOW_DEBUG_CONN_TRACE=1` no processo inteiro — 540/541 (a única falha
 é o próprio teste que verifica que a flag fica desligada por padrão, inválido sob essa condição

@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 Cancelamento — discuss-phase concluída (2026-07-27, regras fechadas em `VENDAS.md`/`BUSINESS_RULES.md` BR-031 a BR-036, código pendente) → 🟡 plano técnico de V1.2 → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
 
 ---
 

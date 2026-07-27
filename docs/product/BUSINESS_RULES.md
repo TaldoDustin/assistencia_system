@@ -228,6 +228,53 @@ nome como texto solto" — isso será validado quando `VENDAS.md` for implementa
 *Fonte: `irflow_clientes_service.py` (BR-023, BR-024); `VENDAS.md` — "Critérios de aceite";
 `docs/engineering/DOMAIN_MODEL.md` seção 1.12.*
 
+### V1.2 — Cancelamento de venda (especificado em discuss-phase, 2026-07-27; não implementado)
+
+Fecha a candidata *"uma venda cancelada devolve o IMEI ao estoque"* (ver histórico abaixo) e as decisões
+correspondentes de `ADR-009` deixadas deliberadamente em aberto. Discuss-phase completa, sem código
+escrito — ver `VENDAS.md` seção "V1.2 — Cancelamento" para o relato completo do raciocínio.
+
+**BR-031 — 📋 Especificado**
+Cancelamento de venda concluída: `admin` pode cancelar qualquer venda; `vendedor` só pode cancelar vendas
+que ele mesmo realizou; `tecnico` e demais perfis não podem cancelar. Sem limite de tempo — segurança vem
+de perfil + motivo obrigatório + auditoria, não de janela temporal (janela pode virar configuração por
+loja no futuro, não decidida/implementada agora).
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
+
+**BR-032 — 📋 Especificado**
+Cancelamento exige motivo de lista fechada (`cliente_desistiu` \| `erro_lancamento` \| `imei_incorreto` \|
+`venda_duplicada` \| `pagamento_nao_concluido` \| `produto_indisponivel` \| `outro`), valor fora da lista
+rejeitado (mesmo padrão de `categoria`/`condicao` em Produtos, BR-027) — nunca normalizado. Quando
+`outro`, uma descrição complementar é obrigatória. Persistido em dois campos:
+`motivo_cancelamento` (lista fechada) + `observacao_cancelamento` (texto, condicional).
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
+
+**BR-033 — 📋 Especificado**
+Cancelar uma venda devolve a Unidade Serializada vendida para `disponivel` — mesma mecânica de
+`devolvido → disponivel` já usada em Assistência —, via função de domínio dedicada
+(`liberar_unidade_para_venda`), nunca por atribuição direta de `status` espalhada pelo código. Sem
+migração para os dois eixos do `ADR-009` (Estado Operacional × Situação Comercial) nesta fase — fica para
+quando Garantia/Troca exigirem a ortogonalidade de fato.
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento"; `docs/engineering/adr/ADR-009.md`.*
+
+**BR-034 — 📋 Especificado**
+Princípio da Imutabilidade da Venda: uma venda cancelada é estado terminal — nunca retorna a `concluida`
+("reativação" não existe). Uma nova negociação sobre a mesma unidade sempre gera uma venda nova, nunca
+reabre a cancelada.
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
+
+**BR-035 — 📋 Especificado**
+`cancelada` (V1.2) é evento comercial, sem nenhuma reversão financeira — Vendas MVP não tem caixa formal.
+`estornada` (também prevista na máquina de estados de `vendas.status`, `ADR-009`) só será implementada
+junto do Épico Financeiro, quando existir pagamento/caixa reais para reverter.
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento"; `docs/engineering/adr/ADR-009.md`.*
+
+**BR-036 — 📋 Especificado**
+A listagem de histórico de vendas (`GET /api/vendas`, Sprint Vendas 1.1) inclui vendas canceladas por
+padrão, identificadas por badge de status — nunca oculta por padrão. Filtro por `status` (já implementado
+no backend) permite restringir a visualização quando necessário.
+*Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
+
 ### Regras candidatas — exemplos citados nesta conversa (2026-07-10), pendentes de confirmação formal
 
 O Product Owner citou estes exemplos ao propor este documento. Onde já existe decisão formal em
@@ -240,12 +287,8 @@ confirmada, para não inflar o número de "especificadas" com algo ainda não de
   como regra de validação.
 - *"Uma reserva expira automaticamente"* — já coberto por BR-017.
 - *"Garantia nunca pode ser alterada após emitida"* — **candidata**, não está em `VENDAS.md` hoje.
-- *"Uma venda cancelada devolve o IMEI ao estoque"* — **candidata**, análoga a BR-010 (OS cancelada
-  devolve estoque) mas `VENDAS.md` não trata cancelamento de venda explicitamente ainda.
-
-Recomendação: formalizar essas 3 candidatas em `VENDAS.md` "Decisões já tomadas" (não aqui) na próxima
-revisão do spec de Vendas — este documento reflete o que já foi decidido em outro lugar, não decide por
-conta própria.
+- ~~*"Uma venda cancelada devolve o IMEI ao estoque"*~~ — **formalizada em 2026-07-27** como BR-033
+  (discuss-phase de V1.2 — Cancelamento).
 
 ---
 
@@ -265,7 +308,7 @@ Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis
 
 ## Documentos relacionados
 
-- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022)
+- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-036)
 - `docs/product/features/CLIENTES.md` — fonte das regras de Clientes (BR-023, BR-024)
 - `docs/engineering/DOMAIN_MODEL.md` — domínios e arquivos onde cada regra implementada vive
 - `docs/engineering/DATABASE.md` — schema citado nas regras de Estoque/Compras

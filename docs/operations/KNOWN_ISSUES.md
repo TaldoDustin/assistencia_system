@@ -768,3 +768,55 @@ Fora de sprint — achado durante auditoria de segurança pedida pelo usuário (
 
 Responsável:
 —
+
+---
+
+## KI-026
+
+Descrição:
+O workflow `CI` (`.github/workflows/ci.yml`) **nunca concluiu com sucesso em `main`** desde que existe —
+confirmado via `gh run list --workflow=ci.yml`: **105 de 105 execuções em `main` terminaram em falha**,
+do primeiro run (2026-07-07) até o mais recente antes desta revisão (2026-07-27). A causa raiz mudou ao
+longo do tempo, sempre no mesmo job (`Frontend Quality`, que roda `npm ci` + `npm run lint`):
+
+1. **2026-07-07 a ~2026-07-20:** `ruff check .` vermelho (KI-017, já documentado e resolvido — mas o
+   job `Frontend Quality`/ESLint nunca foi mencionado nessa investigação, então ninguém percebeu que ele
+   também estava vermelho o tempo todo).
+2. **~2026-07-23 a ~2026-07-26:** o próprio `npm ci` falhava antes de chegar a rodar o ESLint —
+   `frontend/package-lock.json` fora de sincronia com `frontend/package.json` (`npm error Missing:
+   @emnapi/core@1.9.2`, `@emnapi/runtime@1.9.2`, `@emnapi/wasi-threads@1.2.1` — dependências opcionais
+   nativas do motor Oxide do Tailwind CSS v4, `@tailwindcss/vite`/`tailwindcss` em `package.json`).
+   `npm ci` é estrito e falha nessa divergência; rodar `npm install` localmente (que atualiza o
+   lockfile silenciosamente) mascarava o problema sem ninguém perceber.
+3. **~2026-07-26 até esta revisão (2026-07-27):** `npm ci` passa, mas `npm run lint` falha de verdade —
+   4 erros pré-existentes, não relacionados a nenhuma sprint recente: `Compras.jsx:20`
+   (`react-hooks/set-state-in-effect`), `Compras.jsx:28`, `ShoppingModal.jsx:46`,
+   `ServicesChartCard.jsx:38`, `TechnicianProfitChartCard.jsx:48` (`no-unused-vars`). Mais 2 warnings
+   não bloqueantes (`react-hooks/exhaustive-deps` em `ShoppingList.jsx`/`Stock.jsx`).
+
+Achado ao investigar o CI da branch `feat/vendas-historico-detalhe` (Sprint Vendas 1.1): o commit WIP
+dessa branch falhava no `Frontend Quality` por um erro próprio (corrigido nesta sprint, ver
+`PROJECT_STATUS.md`), o que levou a verificar se `main` também estava afetado — estava, e por um motivo
+diferente e mais antigo, não introduzido por essa branch.
+
+Impacto:
+Alto (processo, não funcional em produção — nenhuma das três causas envolve regra de negócio ou dado). O
+job `Frontend Build` depende de `Frontend Quality` (`needs: frontend`) e nunca chega a rodar enquanto ela
+falhar — ou seja, **o build do frontend não é verificado pelo CI há pelo menos 20 dias**, apesar de
+`PROJECT_STATUS.md` descrever o CI como saudável (`ruff check .` → 0 erros é verdade, mas cobre só o job
+`Lint`/Ruff — backend). `Backend Tests`/`Coverage`/`Lint` (Ruff) não são afetados e continuam passando
+normalmente em cada run — só o gate de qualidade do frontend está sistematicamente quebrado.
+
+Status:
+Aberto — não corrigido nesta sessão por sair do escopo da Sprint Vendas 1.1 (arquivos de 4 domínios
+diferentes, sem relação com Vendas; misturar seria violar a regra de mudança única do `CLAUDE.md`).
+Nenhum dos achados individuais atende aos critérios objetivos de interrupção de
+`ENGINEERING_GUIDE.md` §11 (é lint estático, não comportamento de rota em produção) — registrado para
+correção em uma branch `chore:`/`fix:` própria.
+
+Sprint prevista:
+Não definida — recomendado priorizar antes do próximo merge relevante em `main`, já que o CI não detecta
+regressão de build/lint do frontend desde ~2026-07-07.
+
+Responsável:
+—

@@ -25,16 +25,19 @@ export default function KpiCard({ title, value, icon: Icon, isCurrency = true, c
       "group",
       colorMap[color] || colorMap.primary
     )}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1 space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-80">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-80 truncate">
             {title}
           </p>
-          <p className="text-3xl font-bold text-card-foreground tracking-tight group-hover:text-foreground transition-colors">
+          <p
+            className="text-2xl font-bold text-card-foreground tracking-tight group-hover:text-foreground transition-colors truncate"
+            title={isCurrency ? formatCurrency(value) : (value ?? "—")}
+          >
             {isCurrency ? formatCurrency(value) : (value ?? "—")}
           </p>
           {subtitle && (
-            <p className="text-xs text-muted-foreground mt-2 opacity-80">
+            <p className="text-xs text-muted-foreground mt-2 opacity-80 truncate">
               {subtitle}
             </p>
           )}

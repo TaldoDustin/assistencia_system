@@ -91,7 +91,7 @@ observação, não decidida por suspeita.
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
-| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 564 testes (ver Cobertura de Testes) |
+| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 565 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Nova — Sprint Observabilidade (2026-07-25): logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry gated por `SENTRY_DSN` (ainda vazia — conta não criada) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` |
@@ -365,7 +365,7 @@ em `vendas_itens.unidade_serializada_id` como proteção de banco contra a mesma
 `transicionar_status`/`TRANSICOES_VALIDAS` para não abrir uma porta lateral no endpoint genérico de
 status. Primeiro módulo a nascer com o prefixo `fluxoly_` (`fluxoly_vendas_controller.py`/`_service.py`/
 `_repository.py`, ver `ADR-008`) — substitui o stub `irflow_vendas_service.py`, removido nesta sprint.
-15 novos testes (564 no total), incluindo duas vendas concorrentes da mesma unidade via threads reais
+16 novos testes (565 no total), incluindo duas vendas concorrentes da mesma unidade via threads reais
 (exatamente uma sucede, rodado 5x para confirmar ausência de flakiness) e prova de rollback atômico em
 erro forçado. `ruff check .` limpo. Sem frontend ainda — API apenas. Próximo passo do roadmap comercial:
 fluxo completo de Vendas (desconto/comissão/garantia/troca), condicionado a decisões do Product Owner.

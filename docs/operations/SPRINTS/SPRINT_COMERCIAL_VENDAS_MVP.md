@@ -63,7 +63,7 @@ completo for implementado:
 | `irflow_unidades_serializadas_repository.py` | + `marcar_vendida`; SKU adicionado às colunas de origem |
 | `irflow_unidades_serializadas_service.py` | + `marcar_como_vendida`; `origem_sku` no dict de unidade |
 | `irflow_vendas_service.py` | Removido — stub substituído pelos módulos `fluxoly_vendas_*.py` reais |
-| `tests/test_vendas.py` | Novo — 15 casos |
+| `tests/test_vendas.py` | Novo — 16 casos |
 
 ## Sequência transacional (`iniciar_venda`)
 
@@ -79,7 +79,7 @@ completo for implementado:
 
 ## Testes
 
-15 casos (`tests/test_vendas.py`), incluindo:
+16 casos (`tests/test_vendas.py`), incluindo:
 
 - Criação válida — persiste `vendas`/`vendas_itens`, marca unidade `vendido`, snapshot correto
 - Permissões (`admin`/`vendedor` podem vender, `tecnico` não, sem sessão → 401)
@@ -90,7 +90,7 @@ completo for implementado:
 - `PATCH /api/unidades-serializadas/<id>/status` com `{"status": "vendido"}` continua rejeitado — prova
   de que a rota genérica não abriu a porta lateral
 
-Suíte completa: 564 testes (549 + 15), `ruff check .` limpo. Frontend não tocado nesta sprint — sem
+Suíte completa: 565 testes (549 + 16), `ruff check .` limpo. Frontend não tocado nesta sprint — sem
 mudança em `frontend/`.
 
 ## Riscos
@@ -107,7 +107,7 @@ com timeout, cancelamento de venda, frontend.
 
 - [x] Critérios de aceite atendidos (IMEI nunca vendido duas vezes; Cliente como entidade própria — ver
       `VENDAS.md` para o status de cada critério do spec completo)
-- [x] Testes obrigatórios passando, sem regressão (564 testes)
+- [x] Testes obrigatórios passando, sem regressão (565 testes)
 - [x] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRODUCT_BACKLOG.md`, `VENDAS.md`, `DATABASE.md`,
       `DOMAIN_MODEL.md` atualizados
 - [x] Commits seguem Conventional Commits

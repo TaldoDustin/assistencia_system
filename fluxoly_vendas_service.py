@@ -101,7 +101,12 @@ def iniciar_venda(conectar, usuario_id, cliente_id, unidade_serializada_id, form
             usuario_id,
             "create",
             depois={
+                # venda_id/vendedor_id já são entidade_id/usuario_id da própria linha de
+                # audit_log, mas repetidos aqui dentro do JSON para quem filtra/grepa o
+                # conteúdo de valor_novo diretamente, sem cruzar com as colunas de fora.
+                "venda_id": venda_id,
                 "cliente_id": cliente_id,
+                "vendedor_id": usuario_id,
                 "unidade_serializada_id": unidade_serializada_id,
                 "valor_total": valor_unitario,
             },

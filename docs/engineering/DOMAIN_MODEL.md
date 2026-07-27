@@ -207,7 +207,7 @@ separado hoje está registrado como está — ver seção 3.
 | Lógica | `fluxoly_vendas_service.py` — quarta aplicação da convenção `controller → service → repository`, primeira com o prefixo novo |
 | HTTP | `fluxoly_vendas_controller.py` (`vendas_api`, prefixo `/api/vendas`) — só `POST` (criar) e `GET /<id>` (consultar) |
 | Frontend | Nenhum ainda — fundação de backend apenas |
-| Testes | `tests/test_vendas.py` (15 casos, incluindo corrida real com threads) |
+| Testes | `tests/test_vendas.py` (16 casos, incluindo corrida real com threads) |
 | Depende de | Clientes (validação de `cliente_id`), Unidades Serializadas (validação + transição para `vendido` via `marcar_como_vendida`, exclusiva deste domínio por ADR-007), `irflow_audit.py` |
 | Dependido por | Nenhum domínio ainda (Garantias/Financeiro, quando existirem, provavelmente consumirão `vendas.id`) |
 | Observação | `marcar_como_vendida` (`irflow_unidades_serializadas_service.py`) é deliberadamente separada de `transicionar_status`/`TRANSICOES_VALIDAS` — evita que o endpoint genérico `PATCH /api/unidades-serializadas/<id>/status` aceite `{"status": "vendido"}` sem uma `venda` real por trás. `UNIQUE` em `vendas_itens.unidade_serializada_id` é a proteção de banco contra a mesma unidade em duas vendas, mesmo sob concorrência real |

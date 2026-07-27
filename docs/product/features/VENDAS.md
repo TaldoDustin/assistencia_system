@@ -173,6 +173,12 @@ retrabalho quando desconto/comissão/garantia/troca forem implementados):
 criada), troca/avaliação de usado, reserva com timeout, cancelamento de venda, telas de frontend (a
 API existe, sem tela ainda).
 
+**Backlog documentado, não implementado:** `vendas_itens` não guarda `custo`/`margem` no momento da
+venda (só `valor_unitario`/`subtotal`). Quando o cálculo de comissão sobre margem (BR-019) for
+implementado, provavelmente vale adicionar essas duas colunas como snapshot histórico — mesma lógica
+do snapshot de `produto_nome`/`produto_sku` — para a margem de uma venda passada não mudar se o custo
+do produto for reajustado depois. Não adicionado agora porque ficaria `NULL` sem nenhum consumidor.
+
 ---
 
 ## Modelo de dados (implementado — difere do proposto originalmente)

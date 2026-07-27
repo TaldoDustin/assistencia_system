@@ -20,6 +20,7 @@ import pytest
 
 import app as _app
 import fluxoly_vendas_repository as vendas_repo
+import irflow_unidades_serializadas_service as unidades_service
 
 SENHA_PADRAO = "senha_teste_123"
 
@@ -247,30 +248,59 @@ class TestCriarVenda:
             raise RuntimeError("falha simulada na criação do item")
 
         monkeypatch.setattr(vendas_repo, "inserir_item", _falha)
-
-        resp = None
         login_como(client, usuario_admin)
-        try:
-            resp = client.post("/api/vendas", json=_payload(cenario_venda))
-        finally:
-            pass
+
+        resp = client.post("/api/vendas", json=_payload(cenario_venda))
 
         assert resp.status_code in (400, 500)
         assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
 
         conn = _app.conectar()
         try:
-            total_vendas = conn.execute("SELECT COUNT(*) FROM vendas").fetchone()[0]
+            vendas_do_cliente = conn.execute(
+                "SELECT COUNT(*) FROM vendas WHERE cliente_id=?", (cenario_venda["cliente_id"],)
+            ).fetchone()[0]
             vendas_da_unidade = conn.execute(
                 "SELECT COUNT(*) FROM vendas_itens WHERE unidade_serializada_id=?",
                 (cenario_venda["unidade_id"],),
             ).fetchone()[0]
         finally:
             conn.close()
+        assert vendas_do_cliente == 0
         assert vendas_da_unidade == 0
-        # Não afirma total_vendas == 0 (outros testes podem ter criado vendas
-        # não relacionadas) -- só que nada desta unidade ficou órfão.
-        assert total_vendas >= 0
+
+    def test_erro_em_marcar_como_vendida_causa_rollback_sem_venda_orfa(
+        self, client, login_como, usuario_admin, cenario_venda, monkeypatch
+    ):
+        """Segunda variação da prova de atomicidade: a exceção ocorre no passo
+        seguinte da transação (INSERT venda e INSERT item já rodaram, sem
+        commit, quando a marcação da unidade falha) -- mesmo resultado, nada
+        persiste."""
+
+        def _falha(*args, **kwargs):
+            raise RuntimeError("falha simulada em marcar_como_vendida")
+
+        monkeypatch.setattr(unidades_service, "marcar_como_vendida", _falha)
+        login_como(client, usuario_admin)
+
+        resp = client.post("/api/vendas", json=_payload(cenario_venda))
+
+        assert resp.status_code in (400, 500)
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+        conn = _app.conectar()
+        try:
+            vendas_do_cliente = conn.execute(
+                "SELECT COUNT(*) FROM vendas WHERE cliente_id=?", (cenario_venda["cliente_id"],)
+            ).fetchone()[0]
+            vendas_da_unidade = conn.execute(
+                "SELECT COUNT(*) FROM vendas_itens WHERE unidade_serializada_id=?",
+                (cenario_venda["unidade_id"],),
+            ).fetchone()[0]
+        finally:
+            conn.close()
+        assert vendas_do_cliente == 0
+        assert vendas_da_unidade == 0
 
     def test_patch_status_generico_continua_rejeitando_vendido(
         self, client, login_como, usuario_admin, cenario_venda

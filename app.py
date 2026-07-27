@@ -16,9 +16,11 @@ import sqlite3
 import sys
 import threading
 import time
+import traceback
 import uuid
 import webbrowser
-from datetime import datetime, timedelta
+import weakref
+from datetime import UTC, datetime, timedelta
 
 # ============================================================================
 # IMPORTS FLASK
@@ -499,12 +501,148 @@ def _configurar_conexao_sqlite(conn, habilitar_wal=False):
 # FUNÇÕES DE DATABASE
 # ============================================================================
 
+# INC-001 (docs/operations/INCIDENTS/INC-001-database-is-locked.md) — instrumentação
+# temporária, estritamente observacional (ver critérios C-1 a C-9 no documento do
+# incidente), para reproduzir "database is locked" com evidência de runtime, não só
+# leitura de código. Desligada por padrão (IR_FLOW_DEBUG_CONN_TRACE=1 para ligar);
+# desligada, conectar() se comporta exatamente como antes, sem overhead algum. Vive
+# inteiramente dentro de conectar() (C-9) — nenhuma rota precisa saber que ela existe,
+# e removê-la não exige tocar em nenhuma rota. Remover assim que a causa raiz for
+# confirmada.
+_CONN_TRACE_ATIVO = os.environ.get("IR_FLOW_DEBUG_CONN_TRACE") == "1"
+_conn_trace_lock = threading.Lock()
+_conn_trace_contador = 0
+
+
+def _proximo_conn_trace_id():
+    global _conn_trace_contador
+    with _conn_trace_lock:
+        _conn_trace_contador += 1
+        return _conn_trace_contador
+
+
+def _conn_trace_rota_atual():
+    try:
+        if request:
+            return f"{request.method} {request.path}"
+    except RuntimeError:
+        pass
+    return threading.current_thread().name
+
+
+class _ConexaoRastreada:
+    """Envolve uma sqlite3.Connection real e loga OPEN/COMMIT/ROLLBACK/CLOSE (INC-001)
+    via o logger estruturado já existente (irflow_logging.py, extra={...} -- nunca
+    print() nem um pipeline de log paralelo).
+
+    Transparente por requisito (C-2/C-9): qualquer atributo ou método não
+    explicitamente instrumentado aqui (cursor(), execute(), row_factory, etc.) é
+    delegado à conexão real via __getattr__/__setattr__ -- este objeto deve se
+    comportar de forma indistinguível de um sqlite3.Connection normal para quem o
+    usa, inclusive para código futuro ainda não escrito hoje.
+    """
+
+    def __init__(self, conn_real):
+        self._conn = conn_real
+        self._id = _proximo_conn_trace_id()
+        self._rota = _conn_trace_rota_atual()
+        self._thread_name = threading.current_thread().name
+        self._thread_ident = threading.get_ident()
+        self._abertura_monotonic = time.monotonic()
+        self._aberta_em = datetime.now(UTC).isoformat()
+
+        # Últimos 5 frames antes desta chamada -- suficiente para identificar quem
+        # abriu a conexão sem despejar a stack inteira do processo no log.
+        stack_resumida = "".join(traceback.format_stack()[:-1][-5:])
+        conn_id, rota, thread_name, thread_ident = self._id, self._rota, self._thread_name, self._thread_ident
+
+        def _ao_coletar(_ref, conn_id=conn_id, rota=rota, thread_name=thread_name, thread_ident=thread_ident, stack=stack_resumida):
+            logger.warning(
+                "INC-001: conexão coletada pelo GC sem close() explícito",
+                extra={
+                    "inc001_connection_id": conn_id,
+                    "inc001_route": rota,
+                    "inc001_thread_name": thread_name,
+                    "inc001_thread_ident": thread_ident,
+                    "inc001_close_called": False,
+                    "inc001_stack": stack,
+                },
+            )
+
+        self._finalizer = weakref.finalize(self, _ao_coletar, None)
+
+        logger.info(
+            "INC-001: conexão aberta",
+            extra={
+                "inc001_connection_id": self._id,
+                "inc001_route": self._rota,
+                "inc001_thread_name": self._thread_name,
+                "inc001_thread_ident": self._thread_ident,
+                "inc001_opened_at": self._aberta_em,
+            },
+        )
+
+    def commit(self):
+        self._conn.commit()
+        logger.info(
+            "INC-001: conexão commit",
+            extra={
+                "inc001_connection_id": self._id,
+                "inc001_route": self._rota,
+                "inc001_thread_name": self._thread_name,
+            },
+        )
+
+    def rollback(self):
+        self._conn.rollback()
+        logger.info(
+            "INC-001: conexão rollback",
+            extra={
+                "inc001_connection_id": self._id,
+                "inc001_route": self._rota,
+                "inc001_thread_name": self._thread_name,
+            },
+        )
+
+    def close(self):
+        # Cancela o finalizer antes de fechar -- close() explícito não deve gerar o
+        # aviso de vazamento reservado para a coleta pelo GC.
+        self._finalizer.detach()
+        self._conn.close()
+        elapsed_ms = (time.monotonic() - self._abertura_monotonic) * 1000
+        logger.info(
+            "INC-001: conexão fechada",
+            extra={
+                "inc001_connection_id": self._id,
+                "inc001_route": self._rota,
+                "inc001_thread_name": self._thread_name,
+                "inc001_thread_ident": self._thread_ident,
+                "inc001_opened_at": self._aberta_em,
+                "inc001_closed_at": datetime.now(UTC).isoformat(),
+                "inc001_elapsed_ms": round(elapsed_ms, 3),
+                "inc001_close_called": True,
+            },
+        )
+
+    def __getattr__(self, nome):
+        # Só chamado quando o atributo não existe nesta classe (isto é, não é um
+        # dos métodos instrumentados acima) -- delega à conexão real.
+        return getattr(self._conn, nome)
+
+    def __setattr__(self, nome, valor):
+        if nome in ("_conn", "_id", "_rota", "_thread_name", "_thread_ident", "_abertura_monotonic", "_aberta_em", "_finalizer"):
+            object.__setattr__(self, nome, valor)
+        else:
+            setattr(self._conn, nome, valor)
+
 
 def conectar():
     """Cria conexão com banco de dados e garante schema."""
     criar_tabelas()
     conn = sqlite3.connect(DB_PATH, timeout=SQLITE_TIMEOUT_SECONDS)
     _configurar_conexao_sqlite(conn)
+    if _CONN_TRACE_ATIVO:
+        return _ConexaoRastreada(conn)
     return conn
 
 
@@ -1828,6 +1966,10 @@ def iniciar_sync_mercadophone_se_habilitado():
         target=loop_sincronizacao_mercado_phone,
         args=(conectar, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS),
         daemon=True,
+        # INC-001: nome explícito (era "Thread-N" genérico) -- identifica esta
+        # thread nos logs da instrumentação de conexões sem ambiguidade. Puramente
+        # cosmético, não altera nenhum comportamento de sincronização.
+        name="mercadophone-sync",
     )
     sync_thread.start()
     _MERCADO_PHONE_SYNC_THREAD_STARTED = True

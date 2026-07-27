@@ -24,12 +24,16 @@ _COLUNAS = (
 
 # Colunas + LEFT JOIN em estoque/produtos só para exibição (label de origem) —
 # não introduz filtro novo, mesma invariante de origem do resto do módulo.
+# estoque_sku/produto_sku adicionados para o snapshot de vendas_itens
+# (fluxoly_vendas_service.py) -- sempre no final, nunca inserir no meio (código
+# existente faz slicing posicional, ver _unidade_com_origem_para_dict).
 _COLUNAS_COM_ORIGEM = (
     "u.id, u.estoque_id, u.produto_id, u.lote_id, u.imei, u.status, u.reservado_por, "
     "u.reservado_ate, u.venda_id, u.saude_bateria, u.localizacao, u.criado_em, u.atualizado_em, "
     "e.modelo AS estoque_modelo, e.descricao AS estoque_descricao, "
     "p.modelo AS produto_modelo, p.descricao AS produto_descricao, "
-    "p.categoria AS produto_categoria, p.marca AS produto_marca"
+    "p.categoria AS produto_categoria, p.marca AS produto_marca, "
+    "e.sku AS estoque_sku, p.sku AS produto_sku"
 )
 _JOIN_ORIGEM = (
     "FROM unidades_serializadas u "
@@ -182,6 +186,23 @@ def atualizar_status(cursor, unidade_id, status):
         "UPDATE unidades_serializadas SET status = ?, atualizado_em = datetime('now') WHERE id = ?",
         (status, unidade_id),
     )
+
+
+def marcar_vendida(cursor, unidade_id, venda_id):
+    """Transição disponivel -> vendido, exclusiva do domínio Vendas (Princípio da
+    Responsabilidade de Transição, ADR-007) -- não exposta via `atualizar_status`
+    genérico nem via `TRANSICOES_VALIDAS` do serviço (ver
+    fluxoly_vendas_service.py). O `WHERE status = 'disponivel'` é uma segunda
+    camada de proteção contra corrida (compare-and-swap no nível do SQL), além
+    do índice UNIQUE em `vendas_itens.unidade_serializada_id`. Retorna o número
+    de linhas afetadas -- 0 significa que a unidade não estava mais disponível
+    (outra venda venceu a corrida ou o estado mudou)."""
+    cursor.execute(
+        "UPDATE unidades_serializadas SET status = 'vendido', venda_id = ?, "
+        "atualizado_em = datetime('now') WHERE id = ? AND status = 'disponivel'",
+        (venda_id, unidade_id),
+    )
+    return cursor.rowcount
 
 
 def atualizar_campos(cursor, unidade_id, localizacao, saude_bateria):

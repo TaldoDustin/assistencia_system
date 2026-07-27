@@ -70,10 +70,14 @@ def _unidade_com_origem_para_dict(row):
     base = _unidade_para_dict(row)
     (_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao,
      _produto_categoria, _produto_marca) = row[13:19]
+    _estoque_sku, _produto_sku = row[19:21]
     base["origem_tipo"] = "estoque" if base["estoque_id"] else ("produto" if base["produto_id"] else None)
     base["origem_label"] = _origem_label(_estoque_modelo, _estoque_descricao, _produto_modelo, _produto_descricao)
     base["produto_categoria"] = _produto_categoria
     base["produto_marca"] = _produto_marca
+    # Snapshot para fluxoly_vendas_service.py (vendas_itens.produto_sku) -- SKU real,
+    # nunca coagido/normalizado, mesmo campo já exposto por Estoque/Produtos.
+    base["origem_sku"] = _estoque_sku or _produto_sku or ""
     return base
 
 
@@ -235,6 +239,38 @@ def transicionar_status(conectar, usuario_id, unidade_id, novo_status):
     finally:
         conn.close()
 
+    return True, None
+
+
+def marcar_como_vendida(cursor, unidade_id, venda_id, usuario_id):
+    """Transição disponivel -> vendido, exclusiva do domínio Vendas (Princípio da
+    Responsabilidade de Transição, ADR-007). Recebe `cursor` (não `conectar`) --
+    exceção deliberada ao padrão do resto deste arquivo, porque precisa viver na
+    MESMA transação de `fluxoly_vendas_service.py::iniciar_venda` (cliente ->
+    venda -> item -> unidade -> commit único), mesmo motivo de `irflow_os.py`
+    já citado em `ENGINEERING_GUIDE.md` §3.1 para funções compartilhadas entre
+    domínios.
+
+    Deliberadamente SEPARADA de `transicionar_status`/`TRANSICOES_VALIDAS`: se
+    'vendido' fosse adicionado a `TRANSICOES_VALIDAS`, o endpoint genérico
+    `PATCH /api/unidades-serializadas/<id>/status` passaria a aceitar
+    `{"status": "vendido"}` de qualquer admin/tecnico, marcando uma unidade como
+    vendida sem nenhuma `venda`/`vendas_itens` por trás -- corromperia a
+    integridade que o índice UNIQUE de `vendas_itens.unidade_serializada_id`
+    protege. Retorna (sucesso, erro)."""
+    linhas = repo.marcar_vendida(cursor, unidade_id, venda_id)
+    if linhas == 0:
+        return False, "Unidade não está mais disponível."
+
+    registrar_log_auditoria(
+        cursor,
+        "unidade_serializada",
+        unidade_id,
+        usuario_id,
+        "status_change",
+        antes="disponivel",
+        depois="vendido",
+    )
     return True, None
 
 

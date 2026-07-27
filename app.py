@@ -940,6 +940,52 @@ def criar_tabelas():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_sku ON produtos (sku)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_ativo ON produtos (ativo)")
 
+            # Vendas MVP (docs/product/features/VENDAS.md) — fluxo básico: cliente + aparelho
+            # (unidade serializada) + pagamento simples, sem desconto/comissão/garantia/troca
+            # (dependem de decisões de negócio ainda pendentes do Product Owner, ver VENDAS.md
+            # "O que ainda está em aberto"). status='concluida' é deliberadamente distinto de um
+            # futuro conceito de status de pagamento (pago/pendente/estornado) — venda e
+            # pagamento são conceitos diferentes, não misturados aqui.
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vendas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente_id INTEGER NOT NULL,
+                vendedor_id INTEGER NOT NULL,
+                forma_pagamento TEXT NOT NULL,
+                valor_total REAL NOT NULL,
+                status TEXT NOT NULL DEFAULT 'concluida',
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_cliente_id ON vendas (cliente_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_vendedor_id ON vendas (vendedor_id)")
+
+            # produto_nome/produto_sku são snapshot no momento da venda (não FK viva) --
+            # preserva o histórico mesmo se o cadastro de produto/estoque mudar depois,
+            # mesmo padrão já usado em os_pecas.peca_descricao/peca_fornecedor/peca_modelo.
+            # unidade_serializada_id é UNIQUE: nunca a mesma unidade em duas vendas -- o
+            # verdadeiro guardião contra a corrida de duas vendas simultâneas do mesmo
+            # aparelho, no nível do banco, não só na validação da aplicação.
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vendas_itens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                venda_id INTEGER NOT NULL,
+                unidade_serializada_id INTEGER NOT NULL,
+                produto_id INTEGER,
+                produto_nome TEXT NOT NULL,
+                produto_sku TEXT,
+                quantidade INTEGER NOT NULL DEFAULT 1,
+                valor_unitario REAL NOT NULL,
+                subtotal REAL NOT NULL,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_itens_venda_id ON vendas_itens (venda_id)")
+            cursor.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_vendas_itens_unidade_serializada_id "
+                "ON vendas_itens (unidade_serializada_id)"
+            )
+
             # Add valor column if it doesn't exist
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")
@@ -1859,6 +1905,15 @@ app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conec
 from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
 
 app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
+
+# ============================================================================
+# REGISTRO DO BLUEPRINT DE VENDAS (Vendas MVP, 2026-07-27 — primeiro módulo a
+# nascer com o prefixo fluxoly_, ver docs/engineering/adr/ADR-008.md)
+# ============================================================================
+
+from fluxoly_vendas_controller import create_vendas_blueprint  # noqa: E402
+
+app.register_blueprint(create_vendas_blueprint({"conectar": conectar}))
 
 # ============================================================================
 # HEALTH CHECKS (Sprint Observabilidade) — sem autenticação, usados por

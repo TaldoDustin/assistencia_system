@@ -271,6 +271,50 @@ como tratar duplicados existentes) segue `TODO` — decisão de negócio pendent
 
 **Índices:** `idx_clientes_nome`, `idx_clientes_telefone`, `idx_clientes_cpf_cnpj`.
 
+### `vendas`
+
+Vendas MVP (2026-07-27, `docs/product/features/VENDAS.md`) — primeiro domínio a nascer com o prefixo
+`fluxoly_` (`fluxoly_vendas_controller.py`/`_service.py`/`_repository.py`, ADR-008). Escopo desta fatia:
+venda de um único aparelho (unidade serializada) por vez, sem desconto/comissão/garantia/troca/reserva
+com timeout — dependem de decisões de negócio ainda pendentes do Product Owner.
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `cliente_id` | INTEGER NOT NULL | FK lógica: `clientes.id` |
+| `vendedor_id` | INTEGER NOT NULL | FK lógica: `usuarios.id` — sempre o usuário da sessão, nunca escolhido no payload |
+| `forma_pagamento` | TEXT NOT NULL | `pix` \| `cartao` \| `dinheiro` \| `transferencia` |
+| `valor_total` | REAL NOT NULL | |
+| `status` | TEXT NOT NULL | `'concluida'` — único valor alcançável nesta fatia. Deliberadamente distinto de um futuro status de pagamento (pendente/pago/estornado) — venda e pagamento são conceitos diferentes |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índices:** `idx_vendas_cliente_id`, `idx_vendas_vendedor_id`.
+
+### `vendas_itens`
+
+Modelada como `Venda` + `ItemVenda` desde o início (decisão deliberada, mesmo com exatamente 1 item por
+venda nesta fatia) — evita partir a tabela quando a plataforma vender múltiplos itens na mesma operação
+(aparelho + acessórios).
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `venda_id` | INTEGER NOT NULL | FK lógica: `vendas.id` |
+| `unidade_serializada_id` | INTEGER NOT NULL | FK lógica: `unidades_serializadas.id` — obrigatório nesta fatia (só aparelhos rastreados por unidade são vendáveis hoje) |
+| `produto_id` | INTEGER | Denormalizado de `unidades_serializadas.produto_id`; `NULL` se a origem da unidade é Estoque |
+| `produto_nome` | TEXT NOT NULL | Snapshot no momento da venda — preserva o histórico mesmo se o cadastro do produto/estoque mudar depois |
+| `produto_sku` | TEXT | Snapshot, nullable |
+| `quantidade` | INTEGER NOT NULL | `1` — sempre 1 nesta fatia (unidade serializada não é fungível); existe para quando itens agregados/não serializados forem vendidos |
+| `valor_unitario` | REAL NOT NULL | |
+| `subtotal` | REAL NOT NULL | `valor_unitario * quantidade`, calculado no repository, nunca recebido do chamador |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índices:** `idx_vendas_itens_venda_id`, `idx_vendas_itens_unidade_serializada_id` (**`UNIQUE`** — a
+mesma unidade nunca pode aparecer em duas vendas, garantido pelo banco mesmo sob concorrência real; ver
+`fluxoly_vendas_service.py::iniciar_venda` e `irflow_unidades_serializadas_service.py::
+marcar_como_vendida`, que faz o `UPDATE ... WHERE status='disponivel'` como segunda camada de proteção
+contra a mesma corrida).
+
 ### `compras` — lista de compras (versão legada/simplificada)
 
 | Coluna | Tipo | Default |
@@ -443,6 +487,12 @@ usuarios ──< password_reset_tokens.usuario_id
 estoque ──< unidades_serializadas.estoque_id (Sprint P0.1, opcional desde ADR-007)
 produtos ──< unidades_serializadas.produto_id (ADR-007, opcional)
 estoque_lotes ──< unidades_serializadas.lote_id (opcional)
+
+clientes ──< vendas.cliente_id (Vendas MVP, 2026-07-27)
+usuarios ──< vendas.vendedor_id (Vendas MVP)
+vendas ──< vendas_itens.venda_id (Vendas MVP)
+unidades_serializadas ──< vendas_itens.unidade_serializada_id (Vendas MVP, UNIQUE — 1:1 efetivo, nunca a mesma unidade em duas vendas)
+produtos ──< vendas_itens.produto_id (Vendas MVP, denormalizado, opcional)
 ```
 
 `login_attempts` não tem relacionamento com `usuarios` — `identificador` é o IP resolvido do cliente, não

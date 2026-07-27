@@ -254,6 +254,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `frontend/src/pages/Stock.jsx`: checkbox "Requer rastreabilidade (IMEI / Nº de série)" no formulário de criar/editar item
 - 8 novos testes: criação/listagem/atualização da flag via API (`test_stock_creation_query.py`, `test_stock_movement.py`) e fluxo completo — item marcado como rastreável via API permite criar `unidade_serializada` a partir dele; item sem a flag continua rejeitado (regressão, `test_unidades_serializadas.py::TestIntegracaoEstoqueViaApiC135`). 549 testes, `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos
 
+### Adicionado (2026-07-27 — ADR-008, prefixo `fluxoly_` para módulos novos)
+- `docs/engineering/adr/ADR-008.md`: decisão de rebranding técnico incremental — a partir de agora, todo domínio novo nasce com o prefixo `fluxoly_` (nome da marca), não `irflow_` (legado). Módulos existentes não são renomeados; ficam para um futuro Épico de Rebranding Técnico, registrado como dívida técnica (TD-12, sem prazo). `ENGINEERING_GUIDE.md` §3.1 atualizado com a nota do novo prefixo. Nenhum código alterado — só documentação/decisão
+
+### Adicionado (2026-07-27 — Vendas MVP, primeiro fluxo comercial completo)
+- `fluxoly_vendas_controller.py`/`_service.py`/`_repository.py` (novo, primeiro módulo com o prefixo `fluxoly_`, ver ADR-008): `POST /api/vendas` e `GET /api/vendas/<id>`. Venda de um único aparelho (unidade serializada) por vez — sem desconto, comissão, garantia, troca ou reserva com timeout, deliberadamente independente das decisões de negócio ainda pendentes do Product Owner em `docs/product/features/VENDAS.md`
+- `app.py`: tabelas `vendas` e `vendas_itens` — modeladas como Venda + ItemVenda desde o início (mesmo com 1 item por venda nesta fatia, para não exigir refatoração estrutural quando vendas com múltiplos itens existirem); `status='concluida'` (não `'paga'` — venda e pagamento são conceitos diferentes); `vendas_itens.produto_nome`/`produto_sku` são snapshot no momento da venda; `UNIQUE` em `vendas_itens.unidade_serializada_id` garante no banco que a mesma unidade nunca aparece em duas vendas
+- `irflow_unidades_serializadas_repository.py`/`_service.py`: `marcar_como_vendida` (nova, recebe `cursor` para viver na mesma transação de `iniciar_venda`) — deliberadamente separada de `transicionar_status`/`TRANSICOES_VALIDAS` para o endpoint genérico `PATCH .../status` continuar rejeitando `{"status": "vendido"}`, evitando uma porta lateral para marcar unidade vendida sem nenhuma `venda` real por trás. SKU adicionado às colunas de origem para o snapshot de `vendas_itens`
+- Removido `irflow_vendas_service.py` (stub da Sprint 3 Unidade 7, nunca importado) — substituído pelos módulos reais
+- 15 novos testes (`tests/test_vendas.py`), incluindo duas vendas concorrentes da mesma unidade via threads reais (exatamente uma sucede, confirmado 5x sem flakiness) e prova de rollback atômico (erro forçado na criação do item não deixa venda órfã nem unidade vendida). 564 testes, `ruff check .` limpo. Sem frontend nesta sprint
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

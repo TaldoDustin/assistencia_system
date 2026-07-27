@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → 🟡 Épico Vendas (próximo)
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
 
 ---
 
@@ -91,7 +91,7 @@ observação, não decidida por suspeita.
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
 | CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint) |
-| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 549 testes (ver Cobertura de Testes) |
+| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 564 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Nova — Sprint Observabilidade (2026-07-25): logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry gated por `SENTRY_DSN` (ainda vazia — conta não criada) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` |
@@ -351,7 +351,24 @@ produção — só funcionava semeando o banco diretamente. Nome da coluna manti
 especificamente. 8 novos testes (549 no total), incluindo o fluxo completo via API real (criar item
 rastreável → criar unidade serializada com sucesso) e a confirmação de que a ausência da flag continua
 rejeitando a criação (regressão). `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos.
-Próximo passo do roadmap comercial: Épico Vendas.
+
+**Vendas MVP (CONCLUÍDA em 2026-07-27, ver `docs/operations/SPRINTS/SPRINT_COMERCIAL_VENDAS_MVP.md`):**
+primeiro fluxo comercial completo — venda de um único aparelho (unidade serializada) a um cliente, com
+pagamento simples registrado. Escopo deliberadamente independente das decisões de negócio ainda
+pendentes do Product Owner em `VENDAS.md` (timeout de reserva, % comissão, limite de desconto, prazo de
+garantia, critérios de avaliação de usado) — sem reserva com timeout (unidade vai direto
+`disponivel` → `vendido`), sem desconto/comissão/garantia/troca. Modelado como `vendas` + `vendas_itens`
+desde o início (mesmo com 1 item por venda nesta fatia), `status='concluida'` (não `'paga'` — venda e
+pagamento são conceitos diferentes), snapshot `produto_nome`/`produto_sku` em `vendas_itens`, `UNIQUE`
+em `vendas_itens.unidade_serializada_id` como proteção de banco contra a mesma unidade em duas vendas.
+`irflow_unidades_serializadas_service.py` ganhou `marcar_como_vendida`, deliberadamente separada de
+`transicionar_status`/`TRANSICOES_VALIDAS` para não abrir uma porta lateral no endpoint genérico de
+status. Primeiro módulo a nascer com o prefixo `fluxoly_` (`fluxoly_vendas_controller.py`/`_service.py`/
+`_repository.py`, ver `ADR-008`) — substitui o stub `irflow_vendas_service.py`, removido nesta sprint.
+15 novos testes (564 no total), incluindo duas vendas concorrentes da mesma unidade via threads reais
+(exatamente uma sucede, rodado 5x para confirmar ausência de flakiness) e prova de rollback atômico em
+erro forçado. `ruff check .` limpo. Sem frontend ainda — API apenas. Próximo passo do roadmap comercial:
+fluxo completo de Vendas (desconto/comissão/garantia/troca), condicionado a decisões do Product Owner.
 
 ### Escopo previsto
 

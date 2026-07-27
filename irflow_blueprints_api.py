@@ -1317,20 +1317,25 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
+        # INC-001: conexão sem try/except/finally — mesmo padrão do hotfix de auth_login.
         conn = conectar()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''), COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '') FROM os WHERE id=?",
-            (os_id,),
-        )
-        ordem = cursor.fetchone()
-        if not ordem:
-            conn.close()
-            return err("OS não encontrada.", 404)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''), COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '') FROM os WHERE id=?",
+                (os_id,),
+            )
+            ordem = cursor.fetchone()
+            if not ordem:
+                return err("OS não encontrada.", 404)
 
-        checklist = _garantir_checklist_os(cursor, os_id)
-        conn.commit()
-        conn.close()
+            checklist = _garantir_checklist_os(cursor, os_id)
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
 
         return ok(
             checklist=checklist,
@@ -1351,31 +1356,36 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
+        # INC-001: conexão sem try/except/finally — mesmo padrão do hotfix de auth_login.
         conn = conectar()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '') FROM os WHERE id=?",
-            (os_id,),
-        )
-        ordem = cursor.fetchone()
-        if not ordem:
-            conn.close()
-            return err("OS não encontrada.", 404)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, '') FROM os WHERE id=?",
+                (os_id,),
+            )
+            ordem = cursor.fetchone()
+            if not ordem:
+                return err("OS não encontrada.", 404)
 
-        checklist = _garantir_checklist_os(cursor, os_id)
-        token = checklist.get("access_token") or secrets.token_urlsafe(18)
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute(
-            """
-            UPDATE os_checklists
-            SET access_token=?, atualizado_em=?
-            WHERE os_id=?
-            """,
-            (token, agora, os_id),
-        )
-        conn.commit()
-        checklist = _buscar_checklist_por_os(cursor, os_id)
-        conn.close()
+            checklist = _garantir_checklist_os(cursor, os_id)
+            token = checklist.get("access_token") or secrets.token_urlsafe(18)
+            agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute(
+                """
+                UPDATE os_checklists
+                SET access_token=?, atualizado_em=?
+                WHERE os_id=?
+                """,
+                (token, agora, os_id),
+            )
+            conn.commit()
+            checklist = _buscar_checklist_por_os(cursor, os_id)
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
 
         return ok(
             checklist=checklist,
@@ -1395,26 +1405,32 @@ def create_api_blueprint(deps):
         if not token:
             return err("Token inválido.", 404)
 
+        # INC-001: conexão sem try/except/finally — mesmo padrão do hotfix de auth_login.
+        # Rota pública, sem login — nenhuma proteção anterior contra exceção.
         conn = conectar()
-        cursor = conn.cursor()
-        checklist = _buscar_checklist_por_token(cursor, token)
-        if not checklist:
-            conn.close()
-            return err("Checklist não encontrado.", 404)
+        try:
+            cursor = conn.cursor()
+            checklist = _buscar_checklist_por_token(cursor, token)
+            if not checklist:
+                return err("Checklist não encontrado.", 404)
 
-        cursor.execute(
-            """
-            SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''),
-                   COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '')
-            FROM os
-            WHERE id=?
-            """,
-            (checklist["os_id"],),
-        )
-        ordem = cursor.fetchone()
-        conn.close()
-        if not ordem:
-            return err("OS não encontrada.", 404)
+            cursor.execute(
+                """
+                SELECT id, cliente, COALESCE(modelo, ''), COALESCE(cor, ''), COALESCE(imei, ''), COALESCE(status, ''),
+                       COALESCE(origem_integracao, ''), COALESCE(id_externo_integracao, '')
+                FROM os
+                WHERE id=?
+                """,
+                (checklist["os_id"],),
+            )
+            ordem = cursor.fetchone()
+            if not ordem:
+                return err("OS não encontrada.", 404)
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
 
         return ok(
             checklist=checklist,
@@ -1452,37 +1468,45 @@ def create_api_blueprint(deps):
         agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         resultado_json = json.dumps({"testes": testes}, ensure_ascii=True)
 
+        # INC-001: conexão sem try/except/finally — mesmo padrão do hotfix de auth_login.
+        # Rota pública, sem login, escreve dado enviado por cliente final — maior risco
+        # restante identificado na investigação.
         conn = conectar()
-        cursor = conn.cursor()
-        checklist = _buscar_checklist_por_token(cursor, token)
-        if not checklist:
-            conn.close()
-            return err("Checklist não encontrado.", 404)
+        try:
+            cursor = conn.cursor()
+            checklist = _buscar_checklist_por_token(cursor, token)
+            if not checklist:
+                return err("Checklist não encontrado.", 404)
 
-        cursor.execute(
-            """
-            UPDATE os_checklists
-            SET status_touch=?, status_audio=?, status_microfone=?, status_camera=?, status_botoes=?,
-                observacoes=?, executado_por=?, origem=?, resultado_json=?, atualizado_em=?
-            WHERE access_token=?
-            """,
-            (
-                status_touch,
-                status_audio,
-                status_microfone,
-                status_camera,
-                status_botoes,
-                observacoes,
-                executado_por,
-                origem,
-                resultado_json,
-                agora,
-                token,
-            ),
-        )
-        conn.commit()
-        checklist_atualizado = _buscar_checklist_por_token(cursor, token)
-        conn.close()
+            cursor.execute(
+                """
+                UPDATE os_checklists
+                SET status_touch=?, status_audio=?, status_microfone=?, status_camera=?, status_botoes=?,
+                    observacoes=?, executado_por=?, origem=?, resultado_json=?, atualizado_em=?
+                WHERE access_token=?
+                """,
+                (
+                    status_touch,
+                    status_audio,
+                    status_microfone,
+                    status_camera,
+                    status_botoes,
+                    observacoes,
+                    executado_por,
+                    origem,
+                    resultado_json,
+                    agora,
+                    token,
+                ),
+            )
+            conn.commit()
+            checklist_atualizado = _buscar_checklist_por_token(cursor, token)
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
+
         return ok(checklist=checklist_atualizado)
 
     @api.route("/ordens", methods=["POST"])

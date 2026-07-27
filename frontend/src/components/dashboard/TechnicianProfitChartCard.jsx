@@ -45,7 +45,6 @@ export default function TechnicianProfitChartCard({ data }) {
   }
 
   const totalLucro = data.reduce((sum, item) => sum + item.lucro, 0);
-  const avgLucro = totalLucro / data.length;
 
   return (
     <div className="bg-card rounded-xl border border-border p-5">

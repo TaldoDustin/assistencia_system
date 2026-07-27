@@ -43,7 +43,7 @@ export default function ShoppingModal({ open, onOpenChange, osId, onCreated }) {
       } else {
         toast.error(res?.erro || "Erro ao adicionar peça");
       }
-    } catch (err) {
+    } catch {
       toast.error("Erro ao adicionar peça");
     } finally {
       setLoading(false);

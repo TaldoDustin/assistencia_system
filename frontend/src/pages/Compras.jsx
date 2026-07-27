@@ -17,7 +17,10 @@ export default function Compras() {
   }
 
   useEffect(() => {
-    load();
+    async function carregarInicial() {
+      await load();
+    }
+    carregarInicial();
   }, []);
 
   function handleEdit(item) {
@@ -25,7 +28,7 @@ export default function Compras() {
     setOpen(true);
   }
 
-  function handleSaved(updated) {
+  function handleSaved() {
     setOpen(false);
     setEditing(null);
     load();

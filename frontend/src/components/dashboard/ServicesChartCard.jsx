@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
-function LegendItem({ name, color, value, percentage }) {
+function LegendItem({ name, color, percentage }) {
   return (
     <div className="flex items-center gap-2 py-2">
       <div
@@ -109,7 +109,6 @@ export default function ServicesChartCard({ data }) {
                 key={item.name}
                 name={item.name}
                 color={COLORS[i % COLORS.length]}
-                value={item.value}
                 percentage={item.percentage}
               />
             ))}

@@ -43,20 +43,26 @@ export default function VendaDetalhe() {
 
   useEffect(() => {
     let ativo = true;
-    setLoading(true);
-    vendasApi.get(id).then((res) => {
-      if (!ativo) return;
-      if (res?.ok) {
-        setVenda(res.venda);
-        setItens(res.itens || []);
-      } else {
-        setErro(res?.erro || "Venda não encontrada");
+
+    async function carregar() {
+      setLoading(true);
+      try {
+        const res = await vendasApi.get(id);
+        if (!ativo) return;
+        if (res?.ok) {
+          setVenda(res.venda);
+          setItens(res.itens || []);
+        } else {
+          setErro(res?.erro || "Venda não encontrada");
+        }
+      } catch {
+        if (ativo) setErro("Erro ao carregar venda");
+      } finally {
+        if (ativo) setLoading(false);
       }
-    }).catch(() => {
-      if (ativo) setErro("Erro ao carregar venda");
-    }).finally(() => {
-      if (ativo) setLoading(false);
-    });
+    }
+
+    carregar();
     return () => { ativo = false; };
   }, [id]);
 

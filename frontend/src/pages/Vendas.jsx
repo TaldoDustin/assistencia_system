@@ -238,7 +238,13 @@ const EMPTY_STATE = {
   observacoes: "",
 };
 
-export default function Vendas() {
+const TABS = [
+  { key: "nova", label: "Nova Venda" },
+  { key: "historico", label: "Histórico" },
+];
+
+function NovaVenda() {
+  const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_STATE);
   const [clienteResultados, setClienteResultados] = useState([]);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
@@ -246,8 +252,6 @@ export default function Vendas() {
   const [buscandoAparelho, setBuscandoAparelho] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [vendaConcluida, setVendaConcluida] = useState(null);
-  const [detalheVenda, setDetalheVenda] = useState(null);
-  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
 
   const clienteQueryDebounced = useDebounced(form.clienteQuery);
   const aparelhoQueryDebounced = useDebounced(form.aparelhoQuery);
@@ -302,21 +306,6 @@ export default function Vendas() {
   const novaVenda = () => {
     setForm(EMPTY_STATE);
     setVendaConcluida(null);
-    setDetalheVenda(null);
-  };
-
-  const verVenda = async () => {
-    if (!vendaConcluida) return;
-    setCarregandoDetalhe(true);
-    try {
-      const res = await vendasApi.get(vendaConcluida.id);
-      if (res?.ok) setDetalheVenda(res);
-      else toast.error(res?.erro || "Erro ao carregar venda");
-    } catch {
-      toast.error("Erro ao carregar venda");
-    } finally {
-      setCarregandoDetalhe(false);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -385,25 +374,13 @@ export default function Vendas() {
 
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <Button onClick={novaVenda}><Plus className="h-4 w-4 mr-2" />Nova venda</Button>
-            <Button variant="outline" onClick={verVenda} disabled={carregandoDetalhe}>
-              {carregandoDetalhe ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
-              Ver venda
+            <Button variant="outline" onClick={() => navigate(`/vendas/${vendaConcluida.id}`)}>
+              <Eye className="h-4 w-4 mr-2" />Ver venda
             </Button>
             <Button variant="outline" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
               <Printer className="h-4 w-4 mr-2" />Imprimir
             </Button>
           </div>
-
-          {detalheVenda && (
-            <div className="bg-secondary/40 rounded-lg p-4 text-left text-xs space-y-1 text-muted-foreground">
-              <p className="font-medium text-card-foreground mb-1">Registro no servidor</p>
-              {detalheVenda.itens.map((item) => (
-                <p key={item.id}>
-                  {item.produto_nome} ({item.produto_sku || "sem SKU"}) — preço de tabela {item.valor_tabela != null ? formatCurrency(item.valor_tabela) : "—"}, vendido por {formatCurrency(item.valor_unitario)}
-                </p>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     );
@@ -572,6 +549,32 @@ export default function Vendas() {
           </div>
         )}
       </form>
+    </div>
+  );
+}
+
+export default function Vendas() {
+  const [activeTab, setActiveTab] = useState("nova");
+
+  return (
+    <div className="space-y-5">
+      <div className="flex gap-1 bg-secondary p-1 rounded-lg w-fit">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === tab.key
+                ? "bg-card text-card-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "nova" ? <NovaVenda /> : <Historico />}
     </div>
   );
 }

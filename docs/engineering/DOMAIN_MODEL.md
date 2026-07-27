@@ -198,6 +198,20 @@ separado hoje está registrado como está — ver seção 3.
 | Dependido por | `unidades_serializadas` (seção 1.13, origem `produto_id`) desde a migração ADR-007; futuramente Vendas |
 | Observação | `requer_rastreio_unidade` (schema desde a Sprint Comercial 0.1) passou a ser consumido pela primeira vez na migração `unidades_serializadas` (ADR-007) — a ambiguidade sinalizada em `VENDAS.md` sobre onde a unidade vendida vive está resolvida |
 
+### 1.15 Vendas (MVP)
+
+| Aspecto | Hoje |
+|---|---|
+| Responsabilidade | Venda de um único aparelho (unidade serializada) por vez — sem desconto, comissão, garantia, troca ou reserva com timeout (`docs/product/features/VENDAS.md`, dependem de decisões do Product Owner ainda pendentes). Primeiro domínio a nascer com o prefixo `fluxoly_`, não `irflow_` (`ADR-008`) |
+| Tabela(s) | `vendas`, `vendas_itens` (modelada como Venda + ItemVenda desde o início, mesmo com 1 item por venda nesta fatia — evita partir a tabela quando itens múltiplos existirem) |
+| Lógica | `fluxoly_vendas_service.py` — quarta aplicação da convenção `controller → service → repository`, primeira com o prefixo novo |
+| HTTP | `fluxoly_vendas_controller.py` (`vendas_api`, prefixo `/api/vendas`) — só `POST` (criar) e `GET /<id>` (consultar) |
+| Frontend | Nenhum ainda — fundação de backend apenas |
+| Testes | `tests/test_vendas.py` (15 casos, incluindo corrida real com threads) |
+| Depende de | Clientes (validação de `cliente_id`), Unidades Serializadas (validação + transição para `vendido` via `marcar_como_vendida`, exclusiva deste domínio por ADR-007), `irflow_audit.py` |
+| Dependido por | Nenhum domínio ainda (Garantias/Financeiro, quando existirem, provavelmente consumirão `vendas.id`) |
+| Observação | `marcar_como_vendida` (`irflow_unidades_serializadas_service.py`) é deliberadamente separada de `transicionar_status`/`TRANSICOES_VALIDAS` — evita que o endpoint genérico `PATCH /api/unidades-serializadas/<id>/status` aceite `{"status": "vendido"}` sem uma `venda` real por trás. `UNIQUE` em `vendas_itens.unidade_serializada_id` é a proteção de banco contra a mesma unidade em duas vendas, mesmo sob concorrência real |
+
 ---
 
 ## 2. O que ainda não é um domínio isolado
@@ -205,6 +219,7 @@ separado hoje está registrado como está — ver seção 3.
 - **Financeiro / Caixa** — não existe hoje. Custos operacionais (`custos_operacionais`) e valores de OS existem,
   mas não há conceito de caixa, sangria, suprimento ou fluxo de caixa consolidado.
 - ~~Clientes~~ — resolvido na Sprint P0.1, ver seção 1.12 acima.
+- ~~Vendas~~ — MVP resolvido em 2026-07-27, ver seção 1.15 acima. Fluxo completo (desconto, comissão, garantia, troca) segue como especificação, não implementado.
 
 ---
 

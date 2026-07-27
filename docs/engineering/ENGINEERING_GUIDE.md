@@ -138,6 +138,9 @@ nasce com o prefixo `fluxoly_` (nome da marca), não `irflow_` (nome legado). Do
 um futuro Épico de Rebranding Técnico (não escopado). A convenção de camadas acima (controller → service
 → repository → tests → README) é a mesma para os dois prefixos — só o nome muda, nunca a estrutura.
 
+**Primeira aplicação real (2026-07-27):** Vendas MVP (`fluxoly_vendas_controller.py`/`_service.py`/
+`_repository.py`, `docs/product/features/VENDAS.md`) é o primeiro domínio a nascer com o prefixo novo.
+
 **Adendo — README de domínio sem pasta própria (registrado em 2026-07-11, primeira aplicação real desta
 seção):** o item "README" das camadas obrigatórias acima pressupõe uma pasta de domínio (`domains/vendas/README.md`),
 que não existe neste layout flat-file. Interpretação aplicada em Clientes (`irflow_clientes_service.py`)

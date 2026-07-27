@@ -4,7 +4,7 @@ Diferente de `docs/operations/ROADMAP.md` (que responde **quando** — fases e s
 `docs/company/RELEASE_STRATEGY.md` (que responde **em qual versão** cada coisa sai), este documento
 responde **o quê** construir a seguir, em ordem de prioridade de negócio.
 
-**Última revisão:** 2026-07-25
+**Última revisão:** 2026-07-27
 **Fonte:** priorização de negócio — input direto do Product Owner. Coluna "Status" verificada contra o
 estado real do código/documentação (`docs/engineering/DOMAIN_MODEL.md`, `docs/product/features/`) antes
 de publicar, não copiada às cegas do exemplo dado.
@@ -19,7 +19,7 @@ ajuda a marcar.
 
 | Prioridade | Épico | Status | Valor de Negócio | Item do Release 1.0 | Fonte / Nota |
 |---|---|---|---|---|---|
-| P0 | Vendas | Especificação (`docs/product/features/VENDAS.md`, atualizada em 2026-07-11 com modelo de dados e wireframes) | Muito Alto | Comercial completo | Prioridade #1 do produto — ver `VENDAS.md` "Por que existe" |
+| P0 | Vendas | MVP implementado (backend) — `fluxoly_vendas_*.py`, 2026-07-27 (venda de 1 aparelho por vez, sem desconto/comissão/garantia/troca). Fluxo completo segue em Especificação (`docs/product/features/VENDAS.md`) | Muito Alto | Comercial completo | Prioridade #1 do produto — ver `VENDAS.md` "Por que existe". Fluxo completo condicionado a decisões do Product Owner ainda pendentes (timeout de reserva, % comissão, limite de desconto, prazo de garantia, critérios de avaliação de usado) |
 | P0 | Clientes (entidade própria) | Implementado (backend) — `irflow_clientes_*.py`, 2026-07-11 (Sprint P0.1) | Muito Alto | Comercial completo | Pré-requisito estrutural de Vendas, entregue como fundação antes do módulo em si (`docs/engineering/DOMAIN_MODEL.md` seção 1.12). Sem tela — cadastro/busca só via API por enquanto. Decisões de negócio pendentes (deduplicação) seguem `TODO`, ver `CLIENTES.md` |
 | P0 | IMEI Individual | Implementado (backend) — `irflow_unidades_serializadas_*.py`, 2026-07-11 (Sprint P0.1), evoluído de `estoque_unidades` na migração ADR-007 (2026-07-21) | Muito Alto | Comercial completo | Gap de schema resolvido — `docs/engineering/DOMAIN_MODEL.md` seção 1.13. Sem tela; reserva/venda (`reservado`/`vendido`) segue não implementada, depende de Vendas existir. Decisões de negócio pendentes (validação de formato, AirPods/série) seguem `TODO`, ver `IMEI.md` |
 | P0 | Produtos (catálogo comercial) | Implementado (backend) — `irflow_produtos_*.py`, 2026-07-20 (Sprint Comercial 0.1) | Muito Alto | Comercial completo | Lacuna real identificada só agora: nenhum documento desenhava um catálogo comercial (categoria/marca/cor/capacidade/condição/preço) antes desta sprint — `estoque` é peça de reparo, não produto de venda. Domínio novo, separado de Estoque. Sem tela; rastreamento por unidade/IMEI de produtos fica para o Sprint Comercial 0.2, que também vai exigir revisar `vendas.estoque_unidade_id` em `VENDAS.md` |

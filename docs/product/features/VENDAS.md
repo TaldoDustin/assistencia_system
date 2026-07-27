@@ -1,10 +1,17 @@
 # VENDAS.md — Feature Spec: Módulo de Vendas
 
-**Status:** Rascunho — desenhado em conversa entre Product Owner e engenharia em 2026-07-09, antes de qualquer implementação.
+**Status:** Vendas MVP implementado (backend) em 2026-07-27 — ver seção "Vendas MVP — o que foi
+entregue" abaixo. O restante do fluxo completo desenhado neste documento (desconto/aprovação,
+comissão, garantia, troca/avaliação de usado, reserva com timeout) segue como especificação, não
+implementado — depende de decisões do Product Owner ainda pendentes (seção "O que ainda está em
+aberto").
 **Épico:** Comercial (ver `docs/operations/ROADMAP.md` para o eixo de engenharia — este documento pertence ao eixo de produto, numeração própria a definir em `PRODUCT_BACKLOG.md`).
 **Atualizado em 2026-07-11** (Claude, a pedido do CTO): adicionadas as seções "Modelo de dados",
 "Wireframes conceituais" e "Dependências", que faltavam no rascunho original. Nenhuma decisão da seção
 "Decisões já tomadas" foi alterada.
+**Atualizado em 2026-07-27** (Claude, a pedido do CTO): seção "Vendas MVP — o que foi entregue"
+adicionada; "Modelo de dados" corrigido para refletir o schema real implementado (difere do proposto
+originalmente em dois pontos, ver nota na própria seção).
 
 ---
 
@@ -133,10 +140,53 @@ Não decidido nesta conversa — não assumir resposta implícita para nenhum de
 
 ---
 
-## Modelo de dados (proposto)
+## Vendas MVP — o que foi entregue (2026-07-27)
+
+Primeira fatia implementada, decisão explícita de escopo (conversa com o CTO, 2026-07-27): venda de
+**um único aparelho por vez** (uma unidade serializada), sem desconto, comissão, garantia, troca ou
+reserva com timeout — todos dependem de decisões do Product Owner ainda pendentes (seção "O que ainda
+está em aberto" abaixo). Ver `docs/operations/SPRINTS/SPRINT_COMERCIAL_VENDAS_MVP.md` para o relatório
+completo da sprint.
+
+**Decisões de modelagem tomadas nesta sprint, à frente do necessário para o MVP** (para evitar
+retrabalho quando desconto/comissão/garantia/troca forem implementados):
+
+- **`Venda` + `ItemVenda` desde o início**, não uma tabela `vendas` só com um aparelho embutido — mesmo
+  que esta fatia sempre crie exatamente um item por venda. Quando a plataforma vender múltiplos itens
+  na mesma operação (aparelho + acessórios), a tabela já está pronta.
+- **`status='concluida'`, não `'paga'`** — venda e pagamento são conceitos diferentes, não misturados.
+  Um futuro conceito de status de pagamento (pendente/pago/estornado) não precisa ser espremido dentro
+  do status da venda.
+- **Snapshot de `produto_nome`/`produto_sku`** em `vendas_itens` — preserva o histórico da venda mesmo
+  se o cadastro do produto/estoque for alterado depois (mesmo padrão já usado em
+  `os_pecas.peca_descricao`/`peca_fornecedor`/`peca_modelo`).
+- **`UNIQUE` em `vendas_itens.unidade_serializada_id`** — garante no nível do banco que a mesma unidade
+  nunca aparece em duas vendas, mesmo sob concorrência real (não só uma checagem na aplicação).
+- **Sem reserva com timeout**: a unidade vai direto de `disponivel` para `vendido` (sem passar por
+  `reservado`) — evita decidir o valor do timeout agora; reintroduzir `reservado` fica para quando
+  existir carrinho/orçamento reais.
+
+**Primeiro módulo a nascer com o prefixo `fluxoly_`** (`fluxoly_vendas_controller.py`/`_service.py`/
+`_repository.py`), não `irflow_` — ver `docs/engineering/adr/ADR-008.md`.
+
+**Fora de escopo desta fatia:** desconto/aprovação de admin, comissão, garantia (`vendas_garantias` não
+criada), troca/avaliação de usado, reserva com timeout, cancelamento de venda, telas de frontend (a
+API existe, sem tela ainda).
+
+---
+
+## Modelo de dados (implementado — difere do proposto originalmente)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`
-(`unidades_serializadas`) existirem antes de fazer sentido implementar este schema.
+(`unidades_serializadas`) existirem antes de fazer sentido implementar este schema — ambos entregues
+antes desta sprint.
+
+**Diferenças em relação ao schema originalmente proposto (2026-07-11), decididas em 2026-07-27:**
+`status` nasce como `'concluida'` (não `'paga'`); `vendas_itens` ganhou `produto_nome`/`produto_sku`
+(snapshot, não previstos na versão original) e `quantidade` (sempre `1` nesta fatia, existe para
+quando itens agregados/não serializados — ex. acessórios — forem vendidos); `comissao_percentual`/
+`comissao_valor`/`aprovado_por`/`desconto` e a tabela `vendas_garantias` **não foram criados** nesta
+sprint — ficam para quando as decisões de negócio correspondentes existirem.
 
 **Nota (2026-07-20, Sprint Comercial 0.1) — resolvida em 2026-07-21 (ADR-007):** este schema foi
 escrito antes de existir um catálogo comercial (`produtos`, ver `docs/engineering/DATABASE.md`) —
@@ -147,6 +197,48 @@ faria a venda de um iPhone do catálogo comercial apontar para a tabela de peça
 qualquer unidade física, com origem em Estoque OU Produtos (`produto_id`, nullable). O campo
 `estoque_unidade_id` abaixo deve apontar para `unidades_serializadas.id`, qualquer que seja a origem
 real da unidade vendida.
+
+### Schema real implementado (2026-07-27, Vendas MVP)
+
+```sql
+CREATE TABLE vendas (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id      INTEGER NOT NULL,               -- FK lógica: clientes.id
+    vendedor_id     INTEGER NOT NULL,               -- FK lógica: usuarios.id (sempre o usuário da sessão)
+    forma_pagamento TEXT NOT NULL,                  -- 'pix' | 'cartao' | 'dinheiro' | 'transferencia'
+    valor_total     REAL NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'concluida',  -- só 'concluida' alcançável nesta fatia
+    criado_em       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_vendas_cliente_id ON vendas(cliente_id);
+CREATE INDEX idx_vendas_vendedor_id ON vendas(vendedor_id);
+
+CREATE TABLE vendas_itens (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    venda_id                INTEGER NOT NULL,       -- FK lógica: vendas.id
+    unidade_serializada_id  INTEGER NOT NULL,       -- FK lógica: unidades_serializadas.id
+    produto_id              INTEGER,                -- denormalizado de unidades_serializadas.produto_id; NULL se origem é Estoque
+    produto_nome            TEXT NOT NULL,          -- snapshot no momento da venda
+    produto_sku             TEXT,                   -- snapshot, nullable
+    quantidade              INTEGER NOT NULL DEFAULT 1,  -- sempre 1 nesta fatia
+    valor_unitario          REAL NOT NULL,
+    subtotal                REAL NOT NULL,
+    criado_em               TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_vendas_itens_venda_id ON vendas_itens(venda_id);
+CREATE UNIQUE INDEX idx_vendas_itens_unidade_serializada_id ON vendas_itens(unidade_serializada_id);
+```
+
+Segue a convenção de `ENGINEERING_GUIDE.md` seção 5 (`snake_case`, plural, sem `FOREIGN KEY` declarada,
+mesma abordagem do restante do schema hoje — `DATABASE.md` seção 3). Ver `DATABASE.md` seção 2 para a
+entrada oficial destas duas tabelas.
+
+### Schema completo original (visão futura, não implementado)
+
+Preservado como referência do fluxo completo desenhado em 2026-07-09 — `desconto`, `comissao_*`,
+`aprovado_por`, `troca_estoque_unidade_id`, `margem`/`custo` calculados e `vendas_garantias` só
+existirão quando as decisões de negócio correspondentes (seção "O que ainda está em aberto") forem
+tomadas pelo Product Owner. Não é o schema real hoje.
 
 ```sql
 CREATE TABLE vendas (
@@ -183,9 +275,6 @@ CREATE TABLE vendas_garantias (
 );
 CREATE INDEX idx_vendas_garantias_venda_id ON vendas_garantias(venda_id);
 ```
-
-Segue a convenção de `ENGINEERING_GUIDE.md` seção 5 (`snake_case`, plural, sem `FOREIGN KEY` declarada,
-mesma abordagem do restante do schema hoje — `DATABASE.md` seção 3).
 
 ---
 
@@ -232,12 +321,12 @@ mesma abordagem do restante do schema hoje — `DATABASE.md` seção 3).
 
 ## Critérios de aceite
 
-- [ ] Fluxo completo (novo e troca) executável do início ao fim sem exigir suposição de tela não especificada
-- [ ] IMEI nunca pode ser vendido duas vezes simultaneamente, mesmo com dois vendedores atendendo ao mesmo tempo
-- [ ] Comissão calculada sempre sobre margem, nunca sobre valor bruto
-- [ ] Desconto acima do limite do vendedor é fisicamente impossível de confirmar sem aprovação de admin
-- [ ] Cliente é uma entidade própria — nenhuma venda salva nome de cliente como texto solto
-- [ ] Garantia emitida reflete o tipo de aparelho (novo/seminovo), nunca o valor fixo de 90 dias do reparo
+- [ ] Fluxo completo (novo e troca) executável do início ao fim sem exigir suposição de tela não especificada — **parcial**: fluxo de venda de aparelho novo (sem troca) implementado no Vendas MVP (2026-07-27); troca/avaliação de usado não implementada
+- [x] IMEI nunca pode ser vendido duas vezes simultaneamente, mesmo com dois vendedores atendendo ao mesmo tempo — **atendido no Vendas MVP**: `UNIQUE` em `vendas_itens.unidade_serializada_id` + `UPDATE ... WHERE status='disponivel'`, provado por teste com threads reais (`tests/test_vendas.py`)
+- [ ] Comissão calculada sempre sobre margem, nunca sobre valor bruto — não implementado, depende do % de comissão (decisão do Product Owner)
+- [ ] Desconto acima do limite do vendedor é fisicamente impossível de confirmar sem aprovação de admin — não implementado, depende do limite (decisão do Product Owner)
+- [x] Cliente é uma entidade própria — nenhuma venda salva nome de cliente como texto solto — **atendido**: `vendas.cliente_id` é FK lógica para `clientes.id`, obrigatória
+- [ ] Garantia emitida reflete o tipo de aparelho (novo/seminovo), nunca o valor fixo de 90 dias do reparo — não implementado, `vendas_garantias` não criada
 
 ---
 

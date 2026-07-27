@@ -90,7 +90,7 @@ observação, não decidida por suspeita.
 | Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros) — `backend`/`frontend` voltam a rodar via `needs: lint` para qualquer PR. **Correção de registro:** o merge de `chore/fix-ruff-lint-ki-017` em `origin/main` havia sido documentado como concluído em 2026-07-20, mas só chegou a `origin/main` de fato em 2026-07-21, junto do merge da Sprint Comercial 1.1 — achado ao mesclar a Tela Produtos (branch construída em cima da de lint). **Correção de registro (2026-07-27, Sprint Infra 1.1):** o workflow `CI` como um todo não registrava nenhum sucesso em `main` até esta revisão — 84/84 runs falharam entre 2026-07-07 e 2026-07-27 (`total_count` da API), sempre no job `Frontend Quality` (ESLint), por 3 causas diferentes ao longo do tempo (KI-026). Corrigido na mesma sessão (branch `chore/frontend-eslint-cleanup`, mergeada) — primeiro sucesso do workflow identificado nas execuções verificadas (commit `a86cc62`). `main` também não tinha proteção de branch configurada (`404 Branch not protected`); ativada logo após confirmar o run verde, exigindo os 5 status checks (`enforce_admins: false`, ver R-10/R-11/TD-13) |
+| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros). Workflow `CI` como um todo verde desde 2026-07-27 (Sprint Infra 1.1) — histórico de por que não estava, ver KI-026 (resolvida). `main` protegida, exige os 5 status checks antes de merge (R-10/R-11 mitigados, endurecimento adicional em TD-13) |
 | Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 580 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
@@ -373,24 +373,10 @@ editável) e `observacoes` em `vendas_itens`/`vendas`; frontend `frontend/src/pa
 testes, `ruff check .` limpo. Próximo passo do roadmap comercial: fluxo completo de Vendas (desconto/
 comissão/garantia/troca), condicionado a decisões do Product Owner.
 
-**Sprint Infra 1.1 — CI Verde (CONCLUÍDA em 2026-07-27):** achado ao investigar por que o CI da branch
-`feat/vendas-historico-detalhe` (Sprint Vendas 1.1) falhava — o workflow `CI` como um todo não registrava
-nenhum sucesso em `main` até então (84/84 runs falhos confirmados via `total_count` da API, 2026-07-07 a
-2026-07-27), sempre no job `Frontend Quality` (ESLint), por 3 causas diferentes ao longo do tempo (Ruff
-vermelho até ~07-20; `npm ci` quebrado por lockfile fora de sincronia ~07-23 a ~07-26; 4 erros reais de
-ESLint desde então, em arquivos sem relação com nenhuma sprint recente — `Compras.jsx`,
-`ShoppingModal.jsx`, `ServicesChartCard.jsx`, `TechnicianProfitChartCard.jsx`). Registrado como KI-026,
-R-10, R-11. Achado mais grave levantado pelo usuário (CTO) na revisão: o motivo de 84 falhas seguidas
-nunca terem bloqueado merge é que `main` não tinha **nenhuma** proteção de branch configurada
-(`404 Branch not protected`) — não era só "CI não é obrigatório", o gate nunca existiu. Escopo da sprint,
-deliberadamente pequeno (sugestão do usuário): corrigir os 4 erros (`chore/frontend-eslint-cleanup`,
-zero mudança de comportamento), confirmar `npm ci`/build/lint limpos, mergear, aguardar o CI de `main`
-confirmar verde, só então ativar a proteção de branch via `gh api` (5 status checks obrigatórios,
-`strict: true`, força-push/deleção bloqueados). Primeiro sucesso do workflow `CI` identificado nas
-execuções verificadas (commit `a86cc62`). `enforce_admins` deixado em `false` deliberadamente — não
-quebra o fluxo atual de merge local + push direto do único mantenedor; endurecimento completo
-(`enforce_admins: true`, `CODEOWNERS`, revisão obrigatória) registrado como TD-13, condicionado a
-crescimento da equipe. Nenhum código de produto tocado além dos 4 arquivos de lint.
+**Sprint Infra 1.1 — CI Verde (CONCLUÍDA em 2026-07-27):** workflow `CI` corrigido e verde em `main` pela
+primeira vez, `main` protegida contra merge sem os checks passando. Investigação completa, causas raiz e
+justificativa de cada configuração em KI-026 (resolvida)/R-10/R-11 (mitigados)/TD-13 (endurecimento
+adiado, backlog).
 
 **Sprint Vendas 1.1 — Histórico + Detalhe de Vendas (CONCLUÍDA em 2026-07-27, branch
 `feat/vendas-historico-detalhe`, mergeada em `main`):** retomada de uma branch aberta por uma sessão

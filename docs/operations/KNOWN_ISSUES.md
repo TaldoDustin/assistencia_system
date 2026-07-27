@@ -775,9 +775,14 @@ Responsável:
 
 Descrição:
 O workflow `CI` (`.github/workflows/ci.yml`) **nunca concluiu com sucesso em `main`** desde que existe —
-confirmado via `gh run list --workflow=ci.yml`: **105 de 105 execuções em `main` terminaram em falha**,
-do primeiro run (2026-07-07) até o mais recente antes desta revisão (2026-07-27). A causa raiz mudou ao
-longo do tempo, sempre no mesmo job (`Frontend Quality`, que roda `npm ci` + `npm run lint`):
+confirmado via `gh api repos/.../actions/workflows/ci.yml/runs?branch=main` (campo `total_count`
+autoritativo da API, não a listagem client-side de `gh run list`, que trunca por paginação): **84 de 84
+execuções em `main` terminaram em falha** (`status=failure`, `status=success` retorna `total_count: 0`),
+do primeiro run (2026-07-07) até o mais recente antes desta revisão (2026-07-27). Considerando todas as
+branches do repositório (não só `main`), o total sobe para 105 runs, também 0 sucessos — número usado
+por engano como "105/105 em `main`" numa versão anterior desta entrada, corrigido nesta revisão. A causa
+raiz mudou ao longo do tempo, sempre no mesmo job (`Frontend Quality`, que roda `npm ci` + `npm run
+lint`):
 
 1. **2026-07-07 a ~2026-07-20:** `ruff check .` vermelho (KI-017, já documentado e resolvido — mas o
    job `Frontend Quality`/ESLint nunca foi mencionado nessa investigação, então ninguém percebeu que ele
@@ -814,9 +819,18 @@ Nenhum dos achados individuais atende aos critérios objetivos de interrupção 
 `ENGINEERING_GUIDE.md` §11 (é lint estático, não comportamento de rota em produção) — registrado para
 correção em uma branch `chore:`/`fix:` própria.
 
+**Achado relacionado, mais grave (2026-07-27, mesma investigação):** o motivo de 84/84 falhas nunca terem
+travado um merge é que `main` **não tem nenhuma proteção de branch configurada** — confirmado via
+`gh api repos/.../branches/main/protection` retornando `404 Branch not protected` (não "sem status check
+obrigatório": não existe objeto de proteção nenhum — sem revisão obrigatória, sem status check
+obrigatório, sem bloqueio de force-push a nível de GitHub). O CI existe e roda, mas nunca funcionou como
+gate — qualquer PR/push podia mergear em `main` independente do resultado. Ver R-10/R-11 em
+`PROJECT_STATUS.md`.
+
 Sprint prevista:
 Não definida — recomendado priorizar antes do próximo merge relevante em `main`, já que o CI não detecta
-regressão de build/lint do frontend desde ~2026-07-07.
+regressão de build/lint do frontend desde ~2026-07-07 e não há proteção de branch que force esperar por
+ele.
 
 Responsável:
 —

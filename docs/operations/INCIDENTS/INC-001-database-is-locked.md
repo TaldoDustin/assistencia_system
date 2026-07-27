@@ -1,15 +1,19 @@
 # INC-001 — `database is locked`
 
-**Status:** Parcialmente corrigido — `POST /api/auth/login` corrigido via hotfix isolado; **4 rotas de
-checklist confirmadas sem proteção seguem em aberto** (4 rotas de shopping-list reclassificadas como
-risco estrutural, não vazamento confirmado); instrumentação de runtime pronta, reprodução local por
-carga (2 rodadas, até 120 threads/60s) não confirmou a causa raiz — aguardando decisão do usuário
+**Status:** Parcialmente corrigido — `POST /api/auth/login` e as 4 rotas de checklist corrigidas via
+hotfix isolado (4 rotas de shopping-list reclassificadas como risco estrutural, não vazamento
+confirmado); instrumentação de runtime pronta, reprodução local por carga (2 rodadas, até 120
+threads/60s) não confirmou a causa raiz — aguardando decisão do usuário sobre os próximos vetores
+(instrumentação em ambiente real / transação do MercadoPhone). **INC-001 continua aberto** — esta
+correção elimina um vetor confirmado, não a causa raiz (ver nota ao final da seção da correção).
 **Severidade:** P0 (crítico)
 **Impacto:** Alto — afeta operações de escrita centrais (criar/editar OS, cadastrar/alterar estoque)
 **Ambientes:** Produção, Desenvolvimento
 **Reportado por:** Usuário (CTO), 2026-07-23
 **Investigado por:** Claude (Principal Engineer), 2026-07-23
-**Hotfix por:** Claude (Principal Engineer), 2026-07-23 — branch `hotfix/conexao-login-database-locked`
+**Hotfixes aplicados (Claude, Principal Engineer):**
+- 2026-07-23 — login, branch `hotfix/conexao-login-database-locked`
+- 2026-07-27 — rotas de checklist, branch `fix/checklist-conexao-database-locked`
 
 ---
 
@@ -60,6 +64,40 @@ módulo). Confirmado que, contra o código **antes** da correção, o mesmo test
 sem tratamento); contra o código **depois** da correção, passa — inclusive a asserção de que uma
 escrita imediatamente seguinte não trava (prova de que a conexão foi de fato fechada, não só que a
 resposta HTTP teve o código certo). Suíte completa (480 testes) e `ruff check .` sem regressão.
+
+---
+
+## Correção aplicada — 4 rotas de checklist (2026-07-27)
+
+Branch `fix/checklist-conexao-database-locked`, mesmo padrão do hotfix de login. As 4 rotas
+identificadas como "confirmado sem proteção" na tabela abaixo (`GET /api/ordens/<id>/checklist`,
+`POST /api/ordens/<id>/checklist/token`, `GET /api/checklist/<token>` e `POST /api/checklist/<token>` —
+as duas últimas públicas, sem login) agora envolvem a conexão em `try/except/finally`:
+`conn = conectar()` antes do bloco, `except Exception as exc: conn.rollback(); return err(str(exc))`,
+`finally: conn.close()`. Nenhum outro comportamento das rotas foi alterado (mesmos códigos de resposta,
+mesmo payload, mesmas mensagens de erro) — mudança restrita a `try`/`except`/`finally`, sem refactor ou
+alteração de estilo.
+
+Prova por teste automatizado (`tests/test_inc001_checklist_connection_leak.py`, 8 casos — 2 por rota):
+para cada rota, um teste confirma que o contrato HTTP não mudou (status/payload no caminho feliz e no
+404) e outro injeta uma exceção real no ponto de leitura/escrita da rota (`_garantir_checklist_os` nas
+rotas 1 e 2 — que executa um INSERT real antes do commit da própria rota, reproduzindo fielmente o
+mecanismo do INC-001; `_buscar_checklist_por_token` nas rotas 3 e 4) via a mesma técnica de
+`cell.cell_contents` do teste de login. A prova de fechamento é um login imediatamente seguinte
+(escrita em `login_attempts`, tabela não relacionada) não travar — em WAL o lock de escrita é por
+arquivo de banco, não por tabela, então uma conexão vazada com transação pendente em `os_checklists`
+bloquearia também a escrita em `login_attempts`. **Confirmado que os 8 testes travam e estouram timeout
+contra o código anterior à correção** (validado com `git stash` temporário do arquivo alterado,
+restaurado imediatamente após) — mesmo rigor do teste de login. Suíte completa (533 testes) e
+`ruff check .` sem regressão.
+
+**Nota importante — o que esta correção não prova:** ela elimina um vetor de vazamento de conexão
+**confirmado por leitura de código e agora também reproduzido em teste automatizado** nas 4 rotas de
+checklist. Isso **não confirma nem elimina** a hipótese principal ainda em aberto relacionada à
+transação de `sincronizar_mercado_phone()` (ver seção "Instrumentação dinâmica..." acima) — essa
+continua sendo investigada separadamente. Não concluir, a partir desta correção, que o INC-001 foi
+causado pelas rotas de checklist; sabe-se apenas que elas eram um risco real e confirmado, agora
+eliminado.
 
 ---
 
@@ -125,10 +163,10 @@ uma contenção passageira e normal em um lock persistente.
 | 🟡 `PUT /api/shopping-list/<id>` | `irflow_blueprints_api.py:865` | Idem |
 | 🟡 `PATCH /api/shopping-list/<id>/status` | `irflow_blueprints_api.py:924` | Idem |
 | 🟡 `DELETE /api/shopping-list/<id>` | `irflow_blueprints_api.py:1019` | Idem |
-| 🔴 `GET /api/ordens/<id>/checklist` | `irflow_blueprints_api.py:1310` | **Confirmado sem proteção** — nenhum `try/except`, `conn.close()` só no caminho feliz e no 404 |
-| 🔴 `POST /api/ordens/<id>/checklist/token` | `irflow_blueprints_api.py:1344` | **Confirmado sem proteção** — idem |
-| 🔴 `GET /api/checklist/<token>` (checklist público) | `irflow_blueprints_api.py:1388` | **Confirmado sem proteção** — idem, pública |
-| 🔴 **`POST /api/checklist/<token>`** (salvar checklist público) | `irflow_blueprints_api.py:1445` | **Confirmado sem proteção — maior risco restante.** Pública, sem login, exposta a clientes finais via link compartilhado (`ChecklistDevice.jsx`); nenhum `try/except` em toda a função |
+| ✅ `GET /api/ordens/<id>/checklist` — **corrigido (2026-07-27)** | `irflow_blueprints_api.py:1315` | Corrigido — ver "Correção aplicada — 4 rotas de checklist" acima |
+| ✅ `POST /api/ordens/<id>/checklist/token` — **corrigido (2026-07-27)** | `irflow_blueprints_api.py:1354` | Corrigido — idem |
+| ✅ `GET /api/checklist/<token>` (checklist público) — **corrigido (2026-07-27)** | `irflow_blueprints_api.py:1402` | Corrigido — idem, pública |
+| ✅ **`POST /api/checklist/<token>`** (salvar checklist público) — **corrigido (2026-07-27)** | `irflow_blueprints_api.py:1449` | Corrigido — era o maior risco restante entre as rotas de escrita reais (pública, sem login) — ver "Correção aplicada — 4 rotas de checklist" acima |
 | `POST /nova` (view legada de criar OS) | `irflow_blueprints_orders.py:202` | **Provavelmente morta** — frontend usa `/api/ordens`, não este form legado |
 | `GET/POST /custos-operacionais` (view legada) | `irflow_blueprints_admin.py:48` | **Provavelmente morta** — `OperationalCosts.jsx` usa `/api/custos`, não este form legado |
 | `GET/POST /login` (view legada) | `irflow_blueprints_auth.py:43` | **Confirmado morta** — `Login.jsx` usa exclusivamente `/api/auth/login` |
@@ -233,19 +271,22 @@ agora — não confirmado, mas prioritário para a próxima rodada de investiga�
 
 ## Próximo passo — aguardando decisão do usuário
 
-`POST /api/auth/login` permanece corrigido (ver "Correção aplicada" acima) — mantido independente do
-resultado da investigação, por ser uma melhoria objetiva mesmo que não seja a causa raiz do incidente.
+`POST /api/auth/login` e as 4 rotas de checklist permanecem corrigidas (ver "Correção aplicada" e
+"Correção aplicada — 4 rotas de checklist" acima) — mantidas independente do resultado da investigação,
+por serem melhorias objetivas mesmo que não sejam a causa raiz do incidente.
 
 A reprodução local por carga não confirmou a causa raiz (ver seção anterior). Opções, não excludentes:
 
-1. **Corrigir as 4 rotas de checklist agora** (mesmo padrão do hotfix de login) — são risco confirmado
-   por leitura de código independentemente de reprodução em runtime, uma delas é pública, e a correção
-   é pequena e isolada. Não espera confirmação por instrumentação para agir sobre um risco já certo.
+1. ~~Corrigir as 4 rotas de checklist agora~~ — **feito em 2026-07-27**, branch
+   `fix/checklist-conexao-database-locked`.
 2. **Rodar a instrumentação num ambiente real** (dev/staging com uso real ao longo de dias, não só um
    teste de carga sintético de 2 minutos) — I/O de produção (disco de rede, latência) e padrões de uso
    real podem gerar a contenção sustentada que o teste local não conseguiu simular.
 3. **Escalar ainda mais o teste local** (mais threads, mais duração, ou simular disco lento) —
    risco de retorno decrescente; já foram 2 rodadas (40 e 120 threads) sem resultado.
+4. **Reduzir a transação de `sincronizar_mercado_phone()`** (candidato mais realista, ver seção
+   "Instrumentação dinâmica..." acima) — requer investigação de atomicidade antes de alterar, já
+   apontada como próximo passo.
 
 Branch `chore/inc-001-instrumentacao-conexoes` permanece pronta e não mergeada, aguardando qual dessas
 opções o usuário quer seguir.

@@ -286,6 +286,7 @@ com timeout — dependem de decisões de negócio ainda pendentes do Product Own
 | `forma_pagamento` | TEXT NOT NULL | `pix` \| `cartao` \| `dinheiro` \| `transferencia` |
 | `valor_total` | REAL NOT NULL | |
 | `status` | TEXT NOT NULL | `'concluida'` — único valor alcançável nesta fatia. Deliberadamente distinto de um futuro status de pagamento (pendente/pago/estornado) — venda e pagamento são conceitos diferentes |
+| `observacoes` | TEXT NOT NULL | `''` — livre (ex.: "retirada amanhã", "venda corporativa") |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` |
 
 **Índices:** `idx_vendas_cliente_id`, `idx_vendas_vendedor_id`.
@@ -305,7 +306,8 @@ venda nesta fatia) — evita partir a tabela quando a plataforma vender múltipl
 | `produto_nome` | TEXT NOT NULL | Snapshot no momento da venda — preserva o histórico mesmo se o cadastro do produto/estoque mudar depois |
 | `produto_sku` | TEXT | Snapshot, nullable |
 | `quantidade` | INTEGER NOT NULL | `1` — sempre 1 nesta fatia (unidade serializada não é fungível); existe para quando itens agregados/não serializados forem vendidos |
-| `valor_unitario` | REAL NOT NULL | |
+| `valor_tabela` | REAL | Snapshot do preço de catálogo (`estoque.valor` ou `produtos.preco_venda`) no momento da venda; `NULL` se o item não tinha preço cadastrado |
+| `valor_unitario` | REAL NOT NULL | Preço efetivo da venda — pode divergir de `valor_tabela` (negociação); nenhum dos dois sobrescreve o outro |
 | `subtotal` | REAL NOT NULL | `valor_unitario * quantidade`, calculado no repository, nunca recebido do chamador |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` |
 

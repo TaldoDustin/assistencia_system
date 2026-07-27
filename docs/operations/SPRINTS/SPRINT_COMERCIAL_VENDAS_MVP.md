@@ -90,8 +90,14 @@ completo for implementado:
 - `PATCH /api/unidades-serializadas/<id>/status` com `{"status": "vendido"}` continua rejeitado — prova
   de que a rota genérica não abriu a porta lateral
 
-Suíte completa: 565 testes (549 + 16), `ruff check .` limpo. Frontend não tocado nesta sprint — sem
-mudança em `frontend/`.
+Suíte completa: 570 testes, `ruff check .` limpo.
+
+**Refinamento no mesmo dia (revisão em conversa):** `vendas_itens.valor_tabela` (snapshot do preço de
+catálogo, pré-preenchido e editável no frontend — nunca sobrescreve `valor_unitario`) e
+`vendas.observacoes`. Frontend entregue: `frontend/src/pages/Vendas.jsx` (rota `/vendas`), validado
+manualmente ponta a ponta (servidor real + banco isolado, navegador dirigido via Chrome) — busca de
+cliente, busca combinada de aparelho, resumo automático, confirmação, tela de sucesso. 5 testes
+adicionais (21 no domínio).
 
 ## Riscos
 
@@ -107,7 +113,7 @@ com timeout, cancelamento de venda, frontend.
 
 - [x] Critérios de aceite atendidos (IMEI nunca vendido duas vezes; Cliente como entidade própria — ver
       `VENDAS.md` para o status de cada critério do spec completo)
-- [x] Testes obrigatórios passando, sem regressão (565 testes)
+- [x] Testes obrigatórios passando, sem regressão (570 testes)
 - [x] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRODUCT_BACKLOG.md`, `VENDAS.md`, `DATABASE.md`,
       `DOMAIN_MODEL.md` atualizados
 - [x] Commits seguem Conventional Commits

@@ -81,17 +81,64 @@ def _criar_item_estoque_rastreavel(**overrides):
         conn.close()
 
 
-def _criar_unidade_disponivel(estoque_id, imei=None):
+def _criar_produto_rastreavel(**overrides):
+    dados = {
+        "categoria": "iPhone",
+        "marca": "Apple",
+        "modelo": "iPhone 14",
+        "preco_venda": 4500.0,
+        "quantidade": 1,
+    }
+    dados.update(overrides)
+    conn = _app.conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO produtos (categoria, marca, modelo, preco_venda, quantidade, requer_rastreio_unidade)
+            VALUES (?,?,?,?,?,1)
+            """,
+            (dados["categoria"], dados["marca"], dados["modelo"], dados["preco_venda"], dados["quantidade"]),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def _limpar_produto(produto_id):
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM produtos WHERE id=?", (produto_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _criar_unidade_disponivel(estoque_id=None, produto_id=None, imei=None):
     imei = imei or "".join(str((int(uuid.uuid4().hex[:1], 16) + i) % 10) for i in range(15))
     conn = _app.conectar()
     try:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO unidades_serializadas (estoque_id, imei, status) VALUES (?, ?, 'disponivel')",
-            (estoque_id, imei),
+            "INSERT INTO unidades_serializadas (estoque_id, produto_id, imei, status) VALUES (?, ?, ?, 'disponivel')",
+            (estoque_id, produto_id, imei),
         )
         conn.commit()
         return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def _valor_tabela_do_item(unidade_id):
+    conn = _app.conectar()
+    try:
+        row = conn.execute(
+            "SELECT vi.valor_tabela, vi.valor_unitario, v.observacoes FROM vendas_itens vi "
+            "JOIN vendas v ON v.id = vi.venda_id WHERE vi.unidade_serializada_id=?",
+            (unidade_id,),
+        ).fetchone()
+        return row
     finally:
         conn.close()
 
@@ -104,7 +151,7 @@ def _status_unidade(unidade_id):
         conn.close()
 
 
-def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None):
+def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None, produto_id=None):
     conn = _app.conectar()
     try:
         if unidade_id:
@@ -125,6 +172,8 @@ def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None):
             conn.execute("DELETE FROM unidades_serializadas WHERE id=?", (unidade_id,))
         if estoque_id:
             conn.execute("DELETE FROM estoque WHERE id=?", (estoque_id,))
+        if produto_id:
+            conn.execute("DELETE FROM produtos WHERE id=?", (produto_id,))
         if cliente_id:
             conn.execute("DELETE FROM clientes WHERE id=?", (cliente_id,))
         conn.commit()
@@ -186,8 +235,8 @@ class TestCriarVenda:
                 (venda_id,),
             ).fetchone()
             item = conn.execute(
-                "SELECT unidade_serializada_id, produto_nome, produto_sku, quantidade, valor_unitario, subtotal "
-                "FROM vendas_itens WHERE venda_id=?",
+                "SELECT unidade_serializada_id, produto_nome, produto_sku, quantidade, valor_tabela, "
+                "valor_unitario, subtotal FROM vendas_itens WHERE venda_id=?",
                 (venda_id,),
             ).fetchone()
         finally:
@@ -202,10 +251,105 @@ class TestCriarVenda:
         assert item[1] == "iPhone 13"  # snapshot: origem_label vem do modelo do estoque
         assert item[2]  # snapshot de SKU presente
         assert item[3] == 1
-        assert item[4] == 3200.0
+        # valor_tabela (preço de catálogo, estoque.valor=3000) != valor_unitario (preço
+        # efetivo da venda, 3200 no payload) -- prova de que o vendedor pode negociar sem
+        # um sobrescrever o outro.
+        assert item[4] == 3000.0
         assert item[5] == 3200.0
+        assert item[6] == 3200.0
 
         assert _status_unidade(cenario_venda["unidade_id"]) == "vendido"
+
+    def test_valor_tabela_via_origem_produto(self, client, login_como, usuario_admin):
+        """valor_tabela também é derivado corretamente quando a unidade tem
+        origem em produtos (preco_venda), não só em estoque (valor)."""
+        cliente_id = _criar_cliente()
+        produto_id = _criar_produto_rastreavel(preco_venda=4500.0)
+        unidade_id = _criar_unidade_disponivel(produto_id=produto_id)
+        login_como(client, usuario_admin)
+        try:
+            resp = client.post(
+                "/api/vendas",
+                json={
+                    "cliente_id": cliente_id,
+                    "unidade_serializada_id": unidade_id,
+                    "forma_pagamento": "pix",
+                    "valor_unitario": 4500.0,
+                },
+            )
+            assert resp.status_code == 201
+            valor_tabela, valor_unitario, _ = _valor_tabela_do_item(unidade_id)
+            assert valor_tabela == 4500.0
+            assert valor_unitario == 4500.0
+        finally:
+            _limpar_tudo(cliente_id, unidade_id=unidade_id, produto_id=produto_id)
+
+    def test_valor_tabela_nulo_quando_item_sem_preco_cadastrado(
+        self, client, login_como, usuario_admin
+    ):
+        """Item de estoque genuinamente sem valor cadastrado (NULL, nunca
+        preenchido) -- valor_tabela fica NULL, a venda continua funcionando
+        normalmente (não é bloqueante)."""
+        cliente_id = _criar_cliente()
+        estoque_id = _criar_item_estoque_rastreavel(valor=None)
+        unidade_id = _criar_unidade_disponivel(estoque_id=estoque_id)
+        login_como(client, usuario_admin)
+        try:
+            resp = client.post(
+                "/api/vendas",
+                json={
+                    "cliente_id": cliente_id,
+                    "unidade_serializada_id": unidade_id,
+                    "forma_pagamento": "pix",
+                    "valor_unitario": 3200.0,
+                },
+            )
+            assert resp.status_code == 201
+            valor_tabela, valor_unitario, _ = _valor_tabela_do_item(unidade_id)
+            assert valor_tabela is None
+            assert valor_unitario == 3200.0
+        finally:
+            _limpar_tudo(cliente_id, estoque_id=estoque_id, unidade_id=unidade_id)
+
+    def test_valor_tabela_zero_e_preservado_nao_tratado_como_ausente(
+        self, client, login_como, usuario_admin
+    ):
+        """Prova direta do ajuste pedido: valor=0 é um preço real (ainda que
+        incomum), não deve cair no fallback como se estivesse ausente --
+        `is not None`, nunca `or`."""
+        cliente_id = _criar_cliente()
+        estoque_id = _criar_item_estoque_rastreavel(valor=0)
+        unidade_id = _criar_unidade_disponivel(estoque_id=estoque_id)
+        login_como(client, usuario_admin)
+        try:
+            resp = client.post(
+                "/api/vendas",
+                json={
+                    "cliente_id": cliente_id,
+                    "unidade_serializada_id": unidade_id,
+                    "forma_pagamento": "pix",
+                    "valor_unitario": 100.0,
+                },
+            )
+            assert resp.status_code == 201
+            valor_tabela, _, _ = _valor_tabela_do_item(unidade_id)
+            assert valor_tabela == 0
+        finally:
+            _limpar_tudo(cliente_id, estoque_id=estoque_id, unidade_id=unidade_id)
+
+    def test_observacoes_persistidas(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, observacoes="Retirada amanhã"))
+        assert resp.status_code == 201
+        _, _, observacoes = _valor_tabela_do_item(cenario_venda["unidade_id"])
+        assert observacoes == "Retirada amanhã"
+
+    def test_observacoes_omitidas_persiste_string_vazia(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda))
+        assert resp.status_code == 201
+        _, _, observacoes = _valor_tabela_do_item(cenario_venda["unidade_id"])
+        assert observacoes == ""
 
     def test_cliente_inexistente_retorna_404(self, client, login_como, usuario_admin, cenario_venda):
         login_como(client, usuario_admin)
@@ -363,12 +507,25 @@ class TestObterVenda:
 
     def test_obter_venda_existente(self, client, login_como, usuario_admin, cenario_venda):
         login_como(client, usuario_admin)
-        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+        venda_id = client.post(
+            "/api/vendas", json=_payload(cenario_venda, observacoes="Retirada amanhã")
+        ).get_json()["id"]
 
         resp = client.get(f"/api/vendas/{venda_id}")
 
         assert resp.status_code == 200
-        payload = resp.get_json()["venda"]
-        assert payload["id"] == venda_id
-        assert payload["status"] == "concluida"
-        assert payload["forma_pagamento"] == "pix"
+        corpo = resp.get_json()
+        venda = corpo["venda"]
+        assert venda["id"] == venda_id
+        assert venda["status"] == "concluida"
+        assert venda["forma_pagamento"] == "pix"
+        assert venda["observacoes"] == "Retirada amanhã"
+
+        # itens vem como lista separada, não achatado dentro de venda -- já
+        # pensado para múltiplos itens por venda, mesmo com 1 item hoje.
+        itens = corpo["itens"]
+        assert isinstance(itens, list)
+        assert len(itens) == 1
+        assert itens[0]["unidade_serializada_id"] == cenario_venda["unidade_id"]
+        assert itens[0]["valor_tabela"] == 3000.0
+        assert itens[0]["valor_unitario"] == 3200.0

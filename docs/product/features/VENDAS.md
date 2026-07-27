@@ -165,13 +165,23 @@ retrabalho quando desconto/comissão/garantia/troca forem implementados):
 - **Sem reserva com timeout**: a unidade vai direto de `disponivel` para `vendido` (sem passar por
   `reservado`) — evita decidir o valor do timeout agora; reintroduzir `reservado` fica para quando
   existir carrinho/orçamento reais.
+- **Preço pré-preenchido e editável** (`valor_tabela` vs. `valor_unitario`): ao selecionar o aparelho, o
+  preço de catálogo (`estoque.valor`/`produtos.preco_venda`) já vem preenchido no formulário, mas o
+  vendedor pode alterar livremente — sem aprovação nesta fatia. Ambos os valores são persistidos
+  separados, nunca um sobrescreve o outro.
+- **`observacoes`** (texto livre em `vendas`) — cadastro/retirada/venda corporativa, campo simples e
+  barato de já existir desde o início.
 
 **Primeiro módulo a nascer com o prefixo `fluxoly_`** (`fluxoly_vendas_controller.py`/`_service.py`/
 `_repository.py`), não `irflow_` — ver `docs/engineering/adr/ADR-008.md`.
 
+**Frontend:** `frontend/src/pages/Vendas.jsx` (rota `/vendas`, sidebar visível para `admin`/`vendedor`)
+— busca de cliente, busca combinada de aparelho (IMEI/modelo/SKU, reaproveitando o filtro de C1.3.3),
+resumo automático assim que ambos selecionados, confirmação, e tela de sucesso com atalhos para nova
+venda / conferir o registro salvo no servidor / imprimir (placeholder, ainda não implementado).
+
 **Fora de escopo desta fatia:** desconto/aprovação de admin, comissão, garantia (`vendas_garantias` não
-criada), troca/avaliação de usado, reserva com timeout, cancelamento de venda, telas de frontend (a
-API existe, sem tela ainda).
+criada), troca/avaliação de usado, reserva com timeout, cancelamento de venda.
 
 **Backlog documentado, não implementado:** `vendas_itens` não guarda `custo`/`margem` no momento da
 venda (só `valor_unitario`/`subtotal`). Quando o cálculo de comissão sobre margem (BR-019) for
@@ -214,6 +224,7 @@ CREATE TABLE vendas (
     forma_pagamento TEXT NOT NULL,                  -- 'pix' | 'cartao' | 'dinheiro' | 'transferencia'
     valor_total     REAL NOT NULL,
     status          TEXT NOT NULL DEFAULT 'concluida',  -- só 'concluida' alcançável nesta fatia
+    observacoes     TEXT NOT NULL DEFAULT '',        -- livre (ex.: "retirada amanhã")
     criado_em       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX idx_vendas_cliente_id ON vendas(cliente_id);
@@ -227,7 +238,8 @@ CREATE TABLE vendas_itens (
     produto_nome            TEXT NOT NULL,          -- snapshot no momento da venda
     produto_sku             TEXT,                   -- snapshot, nullable
     quantidade              INTEGER NOT NULL DEFAULT 1,  -- sempre 1 nesta fatia
-    valor_unitario          REAL NOT NULL,
+    valor_tabela            REAL,                   -- snapshot do preço de catálogo; NULL se não cadastrado
+    valor_unitario          REAL NOT NULL,          -- preço efetivo da venda, pode divergir de valor_tabela
     subtotal                REAL NOT NULL,
     criado_em               TEXT NOT NULL DEFAULT (datetime('now'))
 );

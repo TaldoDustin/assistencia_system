@@ -24,16 +24,21 @@ _COLUNAS = (
 
 # Colunas + LEFT JOIN em estoque/produtos só para exibição (label de origem) —
 # não introduz filtro novo, mesma invariante de origem do resto do módulo.
-# estoque_sku/produto_sku adicionados para o snapshot de vendas_itens
+# estoque_sku/produto_sku/estoque_valor/produto_preco_venda/produto_cor/
+# produto_capacidade adicionados para o snapshot e a tela de Vendas
 # (fluxoly_vendas_service.py) -- sempre no final, nunca inserir no meio (código
-# existente faz slicing posicional, ver _unidade_com_origem_para_dict).
+# existente faz slicing posicional, ver _unidade_com_origem_para_dict). Estoque
+# não tem cor/capacidade no schema (peça de reparo, não catálogo comercial) --
+# só produto_cor/produto_capacidade existem, ficam NULL na origem Estoque.
 _COLUNAS_COM_ORIGEM = (
     "u.id, u.estoque_id, u.produto_id, u.lote_id, u.imei, u.status, u.reservado_por, "
     "u.reservado_ate, u.venda_id, u.saude_bateria, u.localizacao, u.criado_em, u.atualizado_em, "
     "e.modelo AS estoque_modelo, e.descricao AS estoque_descricao, "
     "p.modelo AS produto_modelo, p.descricao AS produto_descricao, "
     "p.categoria AS produto_categoria, p.marca AS produto_marca, "
-    "e.sku AS estoque_sku, p.sku AS produto_sku"
+    "e.sku AS estoque_sku, p.sku AS produto_sku, "
+    "e.valor AS estoque_valor, p.preco_venda AS produto_preco_venda, "
+    "p.cor AS produto_cor, p.capacidade AS produto_capacidade"
 )
 _JOIN_ORIGEM = (
     "FROM unidades_serializadas u "

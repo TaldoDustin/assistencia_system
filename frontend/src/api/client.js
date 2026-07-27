@@ -324,6 +324,12 @@ export const clientes = {
   delete: (id)         => del(`/clientes/${id}`),
 };
 
+// ── Vendas ───────────────────────────────────────────────────────────────────
+export const vendas = {
+  create: (data) => post("/vendas", data),
+  get:    (id)   => get(`/vendas/${id}`),
+};
+
 // ── Relatórios ───────────────────────────────────────────────────────────────
 export const relatorios = {
   irphones:  (params = {}) => {

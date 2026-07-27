@@ -62,6 +62,7 @@ def create_vendas_blueprint(deps: dict):
             unidade_serializada_id,
             body.get("forma_pagamento"),
             valor_unitario,
+            body.get("observacoes"),
         )
         if erro:
             code = 404 if erro in ("Cliente não encontrado.", "Unidade não encontrada.") else 400
@@ -73,9 +74,9 @@ def create_vendas_blueprint(deps: dict):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        venda = service.obter_venda(conectar, venda_id)
+        venda, itens = service.obter_venda_com_itens(conectar, venda_id)
         if not venda:
             return err("Venda não encontrada.", 404)
-        return ok(venda=venda)
+        return ok(venda=venda, itens=itens)
 
     return vendas_api

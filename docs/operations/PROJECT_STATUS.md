@@ -402,6 +402,16 @@ Validado ponta a ponta via API real (servidor + banco isolados): criar → cance
 unidade → histórico com as duas vendas → segundo cancelamento rejeitado. Fluxo de clique no navegador não
 repetido nesta sessão (limite de contexto) — mesmos componentes já validados manualmente na Sprint 1.1.
 
+**Fechamento — validação de navegador da V1.2 (2026-07-28):** item pendente acima fechado. Servidor
+Flask + Vite reais, banco isolado (`IR_FLOW_DATA_DIR`, nunca `database.db`), navegador Chrome real.
+Fluxo completo executado: criar venda (unidade → `vendido`) → venda aparece no Histórico com badge
+"Concluída" → abrir Detalhe pelo botão "Ver venda" e pela linha do Histórico → cancelar informando
+motivo da lista fechada → toast de confirmação, badge "Cancelada", motivo e data exibidos, sem opção de
+reativação → confirmado via API que a unidade voltou a `disponivel` e que `audit_log` registrou as duas
+transições de status (`vendido→disponivel`, `disponivel→vendido`) → nova venda com o mesmo IMEI
+concluída como Venda #2 → Histórico lista as duas vendas (`Concluída`/`Cancelada`) corretamente.
+Nenhuma divergência encontrada — Sprint V1.2 encerrada sem achados.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)

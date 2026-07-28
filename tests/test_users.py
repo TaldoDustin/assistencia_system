@@ -23,7 +23,8 @@ def _buscar_usuario_no_banco(uid):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, nome, usuario, senha_hash, perfil, ativo FROM usuarios WHERE id = ?",
+            "SELECT id, nome, usuario, senha_hash, perfil, ativo, limite_desconto_livre "
+            "FROM usuarios WHERE id = ?",
             (uid,),
         )
         return cursor.fetchone()
@@ -171,6 +172,44 @@ class TestCriarUsuario:
 
         _remover_usuario(novo_id)
 
+    def test_criar_usuario_com_limite_desconto_livre(self, client, login_como, usuario_admin):
+        """V1.3 -- Descontos (BR-037): limite opcional, em R$, individual por usuário."""
+        login_como(client, usuario_admin)
+        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
+
+        resp = client.post(
+            "/api/usuarios",
+            json={
+                "nome": "Vendedor Limite", "usuario": login_novo, "senha": "senha_123",
+                "perfil": "vendedor", "limite_desconto_livre": 100,
+            },
+        )
+
+        assert resp.status_code == 201
+        novo_id = resp.get_json()["id"]
+        row = _buscar_usuario_no_banco(novo_id)
+        assert row[6] == 100.0
+
+        _remover_usuario(novo_id)
+
+    def test_criar_usuario_sem_limite_desconto_livre_fica_none(self, client, login_como, usuario_admin):
+        """Ausência do campo é 'não configurado' (None) -- nunca 0 (BR-037, decisão do
+        plano técnico de encapsular a semântica no service, não no schema)."""
+        login_como(client, usuario_admin)
+        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
+
+        resp = client.post(
+            "/api/usuarios",
+            json={"nome": "Sem Limite", "usuario": login_novo, "senha": "senha_123", "perfil": "vendedor"},
+        )
+
+        assert resp.status_code == 201
+        novo_id = resp.get_json()["id"]
+        row = _buscar_usuario_no_banco(novo_id)
+        assert row[6] is None
+
+        _remover_usuario(novo_id)
+
     def test_tecnico_nao_pode_criar_usuario(self, client, login_como, usuario_tecnico):
         login_como(client, usuario_tecnico)
         login_novo = f"novo_{uuid.uuid4().hex[:8]}"
@@ -208,6 +247,22 @@ class TestAtualizarUsuario:
         row = _buscar_usuario_no_banco(usuario_tecnico["id"])
         assert row[1] == "Nome Atualizado"
         assert row[4] == "vendedor"
+
+    def test_admin_atualiza_limite_desconto_livre(self, client, login_como, usuario_admin, usuario_tecnico):
+        """V1.3 -- Descontos (BR-037)."""
+        login_como(client, usuario_admin)
+
+        resp = client.put(
+            f"/api/usuarios/{usuario_tecnico['id']}",
+            json={
+                "nome": usuario_tecnico["nome"], "perfil": "vendedor", "ativo": True,
+                "limite_desconto_livre": 250.5,
+            },
+        )
+
+        assert resp.status_code == 200
+        row = _buscar_usuario_no_banco(usuario_tecnico["id"])
+        assert row[6] == 250.5
 
     def test_admin_troca_senha_de_outro_usuario(self, client, login_como, usuario_admin, usuario_tecnico):
         login_como(client, usuario_admin)

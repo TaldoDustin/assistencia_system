@@ -258,6 +258,66 @@ completa fica para quando V1.2 for construída.
 
 ---
 
+## V1.3 — Descontos e Aprovação (discovery concluída em 2026-07-28, sem código ainda)
+
+Discovery conduzida com o usuário (CTO) pela ótica do fluxo real de negociação na loja, não por uma lista
+solta de perguntas técnicas. Nenhum plano técnico ou código escrito ainda — este bloco é a especificação;
+`BR-037` a `BR-043` (`docs/product/BUSINESS_RULES.md`) são as regras formais derivadas dela, marcadas como
+propostas até o plano técnico ser aprovado.
+
+**Como a negociação acontece hoje (ponto de partida da discovery):** o vendedor tem um teto mental de até
+onde pode negociar sozinho; quando a negociação passa disso, ele consulta o admin (chamado de "gerente"
+na operação da loja — não existe perfil `gerente` separado no sistema, é o perfil `admin` já existente)
+de forma presencial ou remota, fora do fluxo técnico do sistema, e só depois aplica o desconto já
+autorizado.
+
+**Limite de desconto livre (BR-037):** em R$ (valor fixo, não percentual), e **individual por vendedor**
+— não um teto único global. Implica um campo novo de configuração por usuário (mecanismo exato é decisão
+de plano técnico, não desta discovery).
+
+**Aprovação acima do limite (BR-038):** o sistema não implementa um mecanismo técnico de aprovação (sem
+login separado do admin, sem PIN) — a negociação com o admin acontece fora do sistema. O sistema apenas
+registra a **confirmação de que houve aprovação**, sem capturar qual admin especificamente autorizou.
+
+**Motivo do desconto na criação da venda (BR-039):** opcional, texto livre — deliberadamente diferente do
+motivo de cancelamento (BR-032), que é lista fechada obrigatória. Desconto é uma negociação comercial
+corriqueira, não um evento excepcional como cancelamento.
+
+**Transparência no recibo (BR-040):** o comprovante mostra preço de tabela, desconto aplicado e valor
+final — mesma informação já visível no Detalhe da venda, estendida ao documento entregue ao cliente
+(quando o serviço de impressão/recibo existir).
+
+**Base de comissão, V1.4 (BR-041):** deliberadamente **não decidida agora** — o usuário optou por deixar
+essa fórmula configurável por loja/cliente da plataforma (tema de Multiempresa, não uma regra fixa do
+sistema). V1.3 preserva `valor_tabela`/`valor_unitario` separados em `vendas_itens` (já implementado desde
+o Vendas MVP) justamente para não travar nenhuma fórmula futura de comissão.
+
+**Base de cálculo do desconto (BR-042):** `valor_tabela` (preço de catálogo, já existe). "Preço
+promocional" distinto do preço de tabela foi considerado e fica deliberadamente fora do escopo da V1.3 —
+registrado como item de backlog, não decisão pendente.
+
+**Ajuste Comercial Autorizado — a única exceção ao Princípio da Imutabilidade da Venda (BR-043):** BR-034
+continua válido e não é reaberto de forma ampla. A única exceção formalmente definida pelo domínio é um
+**ajuste comercial do desconto**, feito por um `admin`, em uma venda já concluída — e mesmo essa exceção é
+estritamente escopada:
+
+- **Pode mudar:** o desconto e o valor final derivado dele (`valor_unitario` de `vendas_itens`).
+- **Nunca muda:** cliente, IMEI/Unidade Serializada, forma de pagamento, vendedor, data, status, itens —
+  todos continuam protegidos por BR-034 sem exceção.
+- **Append-only, nunca sobrescrita silenciosa:** o ajuste não substitui o valor antigo sem rastro — ele
+  registra um evento (valor anterior, valor novo, quem autorizou, quando, motivo do ajuste). Mesmo
+  princípio já usado no cancelamento (a venda não é apagada, ganha um evento de cancelamento) e no
+  histórico de `unidades_serializadas` (`audit_log`, `status_change`) — o histórico é sempre enriquecido,
+  nunca reescrito.
+- **Motivo do ajuste é obrigatório** — diferente do motivo do desconto original na criação da venda
+  (BR-039, opcional). Um ajuste comercial pós-venda é um evento excepcional o suficiente para exigir
+  justificativa, mesmo que o desconto inicial não exija.
+
+*Fonte: discovery com o usuário (CTO), 2026-07-28, conduzida pela ótica do fluxo real de negociação na
+loja em vez de uma lista de perguntas técnicas isoladas.*
+
+---
+
 ## Modelo de dados (implementado — difere do proposto originalmente)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`

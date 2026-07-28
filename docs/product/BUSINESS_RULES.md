@@ -275,6 +275,48 @@ padrão, identificadas por badge de status — nunca oculta por padrão. Filtro 
 no backend) permite restringir a visualização quando necessário.
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
 
+**BR-037 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+Limite de desconto livre (sem aprovação) é em R$ (valor fixo, não percentual) e **individual por
+vendedor** — não um teto único global.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-038 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+Acima do limite livre, a aprovação acontece fora do sistema (presencial ou remota, pelo perfil `admin` —
+não existe perfil `gerente` separado). O sistema registra apenas a confirmação de que houve aprovação,
+sem capturar qual admin especificamente autorizou.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-039 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+Motivo do desconto na criação da venda é opcional, texto livre — deliberadamente diferente do motivo de
+cancelamento (BR-032, lista fechada obrigatória).
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-040 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+O comprovante/recibo da venda exibe preço de tabela, desconto aplicado e valor final ao cliente —
+transparência total, não só informação interna do Detalhe da venda.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-041 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+A base de cálculo de comissão (V1.4) não é decidida pelo sistema — fica configurável por loja/cliente da
+plataforma. V1.3 preserva `valor_tabela`/`valor_unitario` separados (já implementado) para não travar
+nenhuma fórmula futura.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-042 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+O desconto é calculado sobre `valor_tabela` (preço de catálogo). "Preço promocional" distinto fica fora do
+escopo da V1.3 — registrado como backlog, não decisão pendente.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-043 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+Ajuste Comercial Autorizado: única exceção formalmente definida ao Princípio da Imutabilidade da Venda
+(BR-034, que permanece válido e não é reaberto de forma ampla). Um `admin` pode ajustar o desconto/
+`valor_unitario` de uma venda já concluída, e só esse campo — cliente, IMEI/Unidade Serializada, forma de
+pagamento, vendedor, data, status e itens continuam imutáveis sem exceção. A operação é append-only
+(nunca sobrescrita silenciosa): registra obrigatoriamente valor anterior, valor novo, quem autorizou,
+quando, e motivo do ajuste (motivo aqui é **obrigatório**, diferente do motivo opcional do desconto
+original em BR-039).
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
 ### Regras candidatas — exemplos citados nesta conversa (2026-07-10), pendentes de confirmação formal
 
 O Product Owner citou estes exemplos ao propor este documento. Onde já existe decisão formal em
@@ -308,7 +350,7 @@ Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis
 
 ## Documentos relacionados
 
-- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-036)
+- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-043)
 - `docs/product/features/CLIENTES.md` — fonte das regras de Clientes (BR-023, BR-024)
 - `docs/engineering/DOMAIN_MODEL.md` — domínios e arquivos onde cada regra implementada vive
 - `docs/engineering/DATABASE.md` — schema citado nas regras de Estoque/Compras

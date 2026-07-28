@@ -273,11 +273,15 @@ autorizado.
 
 **Limite de desconto livre (BR-037):** em R$ (valor fixo, não percentual), e **individual por vendedor**
 — não um teto único global. Implica um campo novo de configuração por usuário (mecanismo exato é decisão
-de plano técnico, não desta discovery).
+de plano técnico, não desta discovery). **Pendente para o plano técnico:** comportamento quando o
+vendedor não possuir limite configurado (ex.: bloquear qualquer desconto, assumir R$ 0, ou outro
+comportamento a definir na implementação) — não é uma regra de negócio nova, só um caso que o plano
+técnico precisa resolver explicitamente.
 
 **Aprovação acima do limite (BR-038):** o sistema não implementa um mecanismo técnico de aprovação (sem
-login separado do admin, sem PIN) — a negociação com o admin acontece fora do sistema. O sistema apenas
-registra a **confirmação de que houve aprovação**, sem capturar qual admin especificamente autorizou.
+login separado do admin, sem PIN) — a negociação com o admin acontece fora do sistema. Nesta versão
+(V1.3), o sistema registra apenas que houve aprovação administrativa; a identidade do administrador que
+concedeu a autorização **não é armazenada** — decisão consciente de produto, não limitação técnica.
 
 **Motivo do desconto na criação da venda (BR-039):** opcional, texto livre — deliberadamente diferente do
 motivo de cancelamento (BR-032), que é lista fechada obrigatória. Desconto é uma negociação comercial

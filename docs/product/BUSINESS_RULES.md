@@ -277,13 +277,15 @@ no backend) permite restringir a visualização quando necessário.
 
 **BR-037 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
 Limite de desconto livre (sem aprovação) é em R$ (valor fixo, não percentual) e **individual por
-vendedor** — não um teto único global.
+vendedor** — não um teto único global. Pendente para o plano técnico: comportamento quando o vendedor não
+possuir limite configurado (bloquear desconto, assumir R$ 0, ou outro comportamento a definir).
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
 **BR-038 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
 Acima do limite livre, a aprovação acontece fora do sistema (presencial ou remota, pelo perfil `admin` —
-não existe perfil `gerente` separado). O sistema registra apenas a confirmação de que houve aprovação,
-sem capturar qual admin especificamente autorizou.
+não existe perfil `gerente` separado). Nesta versão (V1.3), o sistema registra apenas que houve aprovação
+administrativa; a identidade do administrador que concedeu a autorização **não é armazenada** — decisão
+consciente de produto, não limitação técnica.
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
 **BR-039 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**

@@ -14,7 +14,9 @@
 - [x] Plano Técnico — aprovado (2026-07-28)
 - [x] Implementação — schema, backend (usuários/vendas), frontend (2026-07-28)
 - [x] Testes — 27 novos (612 no total), `ruff check .`/`npm run lint`/`npm run build` limpos
-- [ ] QA Manual
+- [x] QA Manual — 6 cenários validados (navegador real, servidor real, banco isolado); 1 bug real
+      encontrado e corrigido durante o QA (`c10fb70` — `limite_desconto_livre` ausente na resposta de
+      login), 613 testes no total
 - [ ] Encerramento
 
 ---

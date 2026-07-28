@@ -9,13 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/constants";
+import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
 
 const FORMAS_PAGAMENTO = [
   { value: "pix", label: "Pix" },
   { value: "cartao", label: "Cartão" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "transferencia", label: "Transferência" },
+];
+
+const STATUS_VENDA_OPCOES = [
+  { value: "concluida", label: "Concluída" },
+  { value: "cancelada", label: "Cancelada" },
 ];
 
 const ORIGEM_BADGE = {
@@ -48,6 +53,7 @@ function Historico() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [formaPagamentoFilter, setFormaPagamentoFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [sort, setSort] = useState("recente");
@@ -59,6 +65,7 @@ function Historico() {
   }, [searchInput]);
 
   const handleFormaPagamentoChange = (v) => { setFormaPagamentoFilter(v === "all" ? "" : v); setPage(1); };
+  const handleStatusChange = (v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); };
   const handleSortChange = (v) => { setSort(v); setPage(1); };
   const handleDataInicioChange = (v) => { setDataInicio(v); setPage(1); };
   const handleDataFimChange = (v) => { setDataFim(v); setPage(1); };
@@ -72,6 +79,7 @@ function Historico() {
       const params = { page, per_page: PER_PAGE_HISTORICO, sort };
       if (search) params.q = search;
       if (formaPagamentoFilter) params.forma_pagamento = formaPagamentoFilter;
+      if (statusFilter) params.status = statusFilter;
       if (dataInicio) params.data_inicio = dataInicio;
       if (dataFim) params.data_fim = dataFim;
 
@@ -97,10 +105,10 @@ function Historico() {
 
     buscar();
     return () => { ativo = false; };
-  }, [page, search, formaPagamentoFilter, dataInicio, dataFim, sort]);
+  }, [page, search, formaPagamentoFilter, statusFilter, dataInicio, dataFim, sort]);
 
   const totalPaginas = Math.max(1, Math.ceil(total / PER_PAGE_HISTORICO));
-  const filtrosAtivos = Boolean(search || formaPagamentoFilter || dataInicio || dataFim);
+  const filtrosAtivos = Boolean(search || formaPagamentoFilter || statusFilter || dataInicio || dataFim);
 
   return (
     <div className="space-y-5">
@@ -122,6 +130,14 @@ function Historico() {
           <SelectContent>
             <SelectItem value="all">Todas as formas</SelectItem>
             {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {STATUS_VENDA_OPCOES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -159,7 +175,7 @@ function Historico() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor"].map((h) => (
+                    {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor", "Status"].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -167,6 +183,7 @@ function Historico() {
                 <tbody className="divide-y divide-border">
                   {items.map((item) => {
                     const primeiroItem = item.itens_resumo?.[0];
+                    const status = vendaStatusBadge(item.status);
                     return (
                       <tr
                         key={item.id}
@@ -189,6 +206,11 @@ function Historico() {
                           {FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—"}
                         </td>
                         <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(item.valor_total)}</td>
+                        <td className="px-4 py-3">
+                          <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", status.className].join(" ")}>
+                            {status.label}
+                          </span>
+                        </td>
                       </tr>
                     );
                   })}

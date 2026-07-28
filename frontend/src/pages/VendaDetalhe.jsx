@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText, Ban } from "lucide-react";
 import { vendas as vendasApi } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/constants";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
 
 const FORMA_PAGAMENTO_LABEL = {
   pix: "Pix",
@@ -13,13 +17,16 @@ const FORMA_PAGAMENTO_LABEL = {
   transferencia: "Transferência",
 };
 
-const STATUS_BADGE = {
-  concluida: { label: "Concluída", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
-};
-
-function statusBadge(status) {
-  return STATUS_BADGE[status] || { label: status || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
-}
+// V1.2 -- Cancelamento (BR-032): lista fechada, "outro" exige observação.
+const MOTIVOS_CANCELAMENTO = [
+  { value: "cliente_desistiu", label: "Cliente desistiu" },
+  { value: "erro_lancamento", label: "Erro de lançamento" },
+  { value: "imei_incorreto", label: "IMEI incorreto" },
+  { value: "venda_duplicada", label: "Venda duplicada" },
+  { value: "pagamento_nao_concluido", label: "Pagamento não concluído" },
+  { value: "produto_indisponivel", label: "Produto indisponível" },
+  { value: "outro", label: "Outro" },
+];
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -36,35 +43,77 @@ function formatDateTime(value) {
 export default function VendaDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [venda, setVenda] = useState(null);
   const [itens, setItens] = useState([]);
   const [erro, setErro] = useState(null);
 
-  useEffect(() => {
-    let ativo = true;
+  const [cancelando, setCancelando] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [observacaoCancelamento, setObservacaoCancelamento] = useState("");
+  const [enviandoCancelamento, setEnviandoCancelamento] = useState(false);
 
-    async function carregar() {
-      setLoading(true);
-      try {
-        const res = await vendasApi.get(id);
-        if (!ativo) return;
-        if (res?.ok) {
-          setVenda(res.venda);
-          setItens(res.itens || []);
-        } else {
-          setErro(res?.erro || "Venda não encontrada");
-        }
-      } catch {
-        if (ativo) setErro("Erro ao carregar venda");
-      } finally {
-        if (ativo) setLoading(false);
+  async function carregar() {
+    setLoading(true);
+    try {
+      const res = await vendasApi.get(id);
+      if (res?.ok) {
+        setVenda(res.venda);
+        setItens(res.itens || []);
+      } else {
+        setErro(res?.erro || "Venda não encontrada");
       }
+    } catch {
+      setErro("Erro ao carregar venda");
+    } finally {
+      setLoading(false);
     }
+  }
 
-    carregar();
-    return () => { ativo = false; };
+  useEffect(() => {
+    async function carregarInicial() {
+      await carregar();
+    }
+    carregarInicial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const podeCancelar = Boolean(
+    venda && user && venda.status === "concluida" &&
+    (user.perfil === "admin" || (user.perfil === "vendedor" && venda.vendedor_id === user.id))
+  );
+
+  const confirmarCancelamento = async () => {
+    if (!motivoCancelamento) {
+      toast.error("Selecione o motivo do cancelamento.");
+      return;
+    }
+    if (motivoCancelamento === "outro" && !observacaoCancelamento.trim()) {
+      toast.error("Descreva o motivo quando selecionar 'Outro'.");
+      return;
+    }
+    setEnviandoCancelamento(true);
+    try {
+      const res = await vendasApi.cancelar(id, {
+        motivo: motivoCancelamento,
+        observacao: observacaoCancelamento,
+      });
+      if (res?.ok) {
+        toast.success("Venda cancelada.");
+        setCancelando(false);
+        setMotivoCancelamento("");
+        setObservacaoCancelamento("");
+        await carregar();
+      } else {
+        toast.error(res?.erro || "Erro ao cancelar venda");
+      }
+    } catch {
+      toast.error("Erro ao cancelar venda");
+    } finally {
+      setEnviandoCancelamento(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -87,7 +136,7 @@ export default function VendaDetalhe() {
     );
   }
 
-  const status = statusBadge(venda.status);
+  const status = vendaStatusBadge(venda.status);
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -95,10 +144,70 @@ export default function VendaDetalhe() {
         <Button variant="outline" size="sm" onClick={() => navigate("/vendas")}>
           <ArrowLeft className="h-4 w-4 mr-2" />Voltar
         </Button>
-        <Button variant="outline" size="sm" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
-          <Printer className="h-4 w-4 mr-2" />Imprimir
-        </Button>
+        <div className="flex items-center gap-2">
+          {podeCancelar && !cancelando && (
+            <Button variant="outline" size="sm" onClick={() => setCancelando(true)}>
+              <Ban className="h-4 w-4 mr-2" />Cancelar venda
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
+            <Printer className="h-4 w-4 mr-2" />Imprimir
+          </Button>
+        </div>
       </div>
+
+      {cancelando && (
+        <div className="bg-card border border-red-500/30 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium text-card-foreground">Cancelar venda #{venda.id}</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="motivo-cancelamento">Motivo</Label>
+            <Select value={motivoCancelamento} onValueChange={setMotivoCancelamento}>
+              <SelectTrigger id="motivo-cancelamento" className="w-full"><SelectValue placeholder="Selecione o motivo" /></SelectTrigger>
+              <SelectContent>
+                {MOTIVOS_CANCELAMENTO.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {motivoCancelamento === "outro" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="observacao-cancelamento">Descrição (obrigatória)</Label>
+              <Textarea
+                id="observacao-cancelamento"
+                value={observacaoCancelamento}
+                onChange={(e) => setObservacaoCancelamento(e.target.value)}
+                rows={2}
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <Button variant="destructive" size="sm" onClick={confirmarCancelamento} disabled={enviandoCancelamento}>
+              {enviandoCancelamento && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar cancelamento
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={enviandoCancelamento}
+              onClick={() => { setCancelando(false); setMotivoCancelamento(""); setObservacaoCancelamento(""); }}
+            >
+              Voltar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {venda.status === "cancelada" && (
+        <div className="bg-card border border-border rounded-xl p-4 text-sm space-y-1">
+          <p className="font-medium text-card-foreground">Venda cancelada</p>
+          <p className="text-muted-foreground">
+            Motivo: {MOTIVOS_CANCELAMENTO.find((m) => m.value === venda.motivo_cancelamento)?.label || venda.motivo_cancelamento || "—"}
+            {" — "}{formatDateTime(venda.cancelado_em)}
+          </p>
+          {venda.observacao_cancelamento && (
+            <p className="text-muted-foreground">Observação: {venda.observacao_cancelamento}</p>
+          )}
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-2">

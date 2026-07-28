@@ -332,6 +332,7 @@ export const vendas = {
   },
   create: (data) => post("/vendas", data),
   get:    (id)   => get(`/vendas/${id}`),
+  cancelar: (id, data) => post(`/vendas/${id}/cancelar`, data),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────

@@ -98,6 +98,8 @@ PASSO 4: AGUARDAR APROVAÇÃO
 
 **Tarefas complexas** (qualquer mudança em `app.py`, mudança de schema, nova feature) exigem plano escrito antes de qualquer linha de código.
 
+**Feature nova com regra de negócio:** o "Protocolo 2" acima é o protocolo genérico de qualquer mudança de código. Quando a tarefa é uma feature nova que envolve regra de negócio (não bug fix nem chore), siga em vez disso o ciclo com gates de `docs/engineering/adr/ADR-010.md` (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Encerramento) — o "Plano Técnico" ali é uma versão mais estruturada deste Protocolo 2, com artefato próprio (`docs/engineering/templates/PLAN_TEMPLATE.md`) e o gate explícito de que decisão de negócio nunca é tomada durante o planejamento técnico.
+
 ---
 
 ## Protocolo 3 — Durante a Implementação

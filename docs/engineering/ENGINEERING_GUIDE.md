@@ -552,3 +552,21 @@ Se **nenhum** critério for verdadeiro — por exemplo, uma exceção não trata
 - **Interrompeu (C-01 + C-02 + C-04):** `PUT /api/ordens/<id>` sem `status` reabria uma OS Finalizada e apagava `data_finalizado` silenciosamente — perda do dado de finalização sem qualquer erro.
 - **Não interrompeu (nenhum critério):** `POST /api/auth/login` com um array JSON no lugar de um objeto derrubava a rota com `AttributeError` (500). Falha alto e visível, não persiste nenhum dado incorreto — caracterizado como comportamento a evitar no teste (removido da suíte, não commitado como falha) e reportado separadamente.
 - **Não interrompeu (C-04 falso):** divergência entre `POST /atualizar_status` (rota legada) e `PATCH /api/ordens/<id>/status` (API) na reativação de OS Cancelada — a rota legada não é a que o frontend em produção usa; caracterizado por teste e reportado, sem hotfix.
+
+---
+
+## 12. Ciclo de Feature com Regra de Negócio
+
+Para qualquer feature nova que envolva regra de negócio (não uma correção de bug isolada ou chore), o
+processo obrigatório é definido em `docs/engineering/adr/ADR-010.md`: Discovery → Plano Técnico →
+Implementação → Testes → QA Manual → Encerramento, cada etapa com um gate de aprovação explícito antes da
+seguinte.
+
+**Princípio da Separação de Decisões** (`ADR-010`): cada decisão é tomada exatamente na etapa responsável
+por ela — Discovery decide regra de negócio, ADR decide arquitetura, Plano Técnico decide implementação,
+Código decide execução, QA decide validação. Em particular, o Plano Técnico (template em
+`docs/engineering/templates/PLAN_TEMPLATE.md`) **nunca** decide regra de negócio — se uma pergunta de
+negócio surgir durante o planejamento técnico, ela vai para a seção "Questões em Aberto" do plano e o
+trabalho volta para Discovery antes de prosseguir.
+
+Ver `docs/engineering/CONTRIBUTING.md` seção 9 para o passo a passo de como criar um Plano Técnico.

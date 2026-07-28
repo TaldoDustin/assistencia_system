@@ -127,4 +127,5 @@ guarda auditorias de um momento específico, disparadas por evento (scan de ferr
 
 - [`operations/templates/SPRINT_TEMPLATE.md`](operations/templates/SPRINT_TEMPLATE.md) — Template de sprint
 - [`engineering/templates/ADR_TEMPLATE.md`](engineering/templates/ADR_TEMPLATE.md) — Template de decisão arquitetural
+- [`engineering/templates/PLAN_TEMPLATE.md`](engineering/templates/PLAN_TEMPLATE.md) — Template de Plano Técnico (ciclo de feature com regra de negócio, `engineering/adr/ADR-010.md`); artefatos vivem em `engineering/plans/`, efêmeros por definição
 - [`operations/templates/ISSUE_TEMPLATE.md`](operations/templates/ISSUE_TEMPLATE.md) — Template de issue/bug

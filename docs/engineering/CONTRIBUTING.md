@@ -288,7 +288,49 @@ git commit -m "docs(adr): ADR-NNN decisão sobre X"
 
 ---
 
-## 8. Perguntas Frequentes
+## 9. Ciclo de Feature com Regra de Negócio (ADR-010)
+
+Para qualquer feature nova que envolva regra de negócio (não uma correção de bug isolada ou chore), siga
+o ciclo com gates definido em `docs/engineering/adr/ADR-010.md`:
+
+```
+Discovery → Plano Técnico → Implementação → Testes → QA Manual → Encerramento
+```
+
+Cada etapa tem um gate — não avance para a próxima sem ele:
+
+| Etapa | Objetivo | Gate |
+|---|---|---|
+| Discovery | Decidir regras de negócio | Product Owner aprovou? |
+| Plano Técnico | Definir como implementar | CTO aprovou? |
+| Implementação | Escrever código | — |
+| Testes | Validar as regras | Testes automatizados verdes? |
+| QA Manual | Validar a experiência real | Fluxo aprovado? |
+| Encerramento | Atualizar o mínimo necessário | — |
+
+### Criando um Plano Técnico
+
+```bash
+# 1. Copie o template
+cp docs/engineering/templates/PLAN_TEMPLATE.md docs/engineering/plans/PLAN-nome-da-feature.md
+
+# 2. Preencha objetivo, escopo, impacto no banco/backend/frontend, testes, riscos, rollback
+
+# 3. Se surgir uma pergunta de negócio (não técnica) durante o preenchimento, registre em
+#    "Questões em Aberto" e volte para Discovery antes de continuar — Plano Técnico nunca
+#    decide regra de negócio (ADR-010, Princípio da Separação de Decisões)
+
+# 4. Commit
+git commit -m "docs(plans): plano técnico de <feature>"
+```
+
+**Importante:** `docs/engineering/plans/*.md` é efêmero — útil como histórico da decisão de implementação
+depois que a sprint termina, mas nunca mantido atualizado como `ARCHITECTURE.md`/`DATABASE.md`. Se algo ali
+continuar relevante, promova para o documento vivo correspondente.
+
+---
+
+## 10. Perguntas Frequentes
 
 **Posso commitar direto em `main`?**
 Não. Todo código passa por branch + PR, mesmo que seja uma mudança pequena.

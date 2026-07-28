@@ -135,7 +135,7 @@ acima para a estratégia completa, rollback e checklist de integridade.
 | `produto_id` | INTEGER | FK lógica para `produtos.id` (ADR-007). Nullable, mesma invariante acima |
 | `lote_id` | INTEGER | FK lógica para `estoque_lotes.id`, opcional |
 | `imei` | TEXT UNIQUE | `NULL` permitido (SQLite não colide `NULL`s em `UNIQUE`) — formato não validado nesta sprint (`TODO` em `IMEI.md`) |
-| `status` | TEXT NOT NULL DEFAULT `'disponivel'` | Valores no schema: `disponivel \| reservado \| vendido \| em_reparo \| devolvido`. **Só `disponivel`/`em_reparo`/`devolvido` são alcançáveis por endpoint nesta sprint** — `reservado`/`vendido` existem para o futuro módulo de Vendas, nenhuma rota atual os produz ou aceita como destino (`irflow_unidades_serializadas_service.py::TRANSICOES_VALIDAS`) |
+| `status` | TEXT NOT NULL DEFAULT `'disponivel'` | Valores no schema: `disponivel \| reservado \| vendido \| em_reparo \| devolvido`. Alcançáveis via `TRANSICOES_VALIDAS` (genérico): `disponivel`/`em_reparo`/`devolvido`. `vendido` só via `fluxoly_vendas_service.py::iniciar_venda` (`marcar_como_vendida`); volta a `disponivel` só via `cancelar_venda` (`liberar_unidade_para_venda`, V1.2, 2026-07-27) — ambas fora de `TRANSICOES_VALIDAS` de propósito, exclusivas do domínio Vendas. `reservado` segue sem uso (reserva com timeout, fase futura) |
 | `reservado_por` | INTEGER | Sem uso ainda — reservado para Vendas |
 | `reservado_ate` | TEXT | Sem uso ainda — reservado para Vendas |
 | `venda_id` | INTEGER | Sem uso ainda — reservado para Vendas |
@@ -285,8 +285,12 @@ com timeout — dependem de decisões de negócio ainda pendentes do Product Own
 | `vendedor_id` | INTEGER NOT NULL | FK lógica: `usuarios.id` — sempre o usuário da sessão, nunca escolhido no payload |
 | `forma_pagamento` | TEXT NOT NULL | `pix` \| `cartao` \| `dinheiro` \| `transferencia` |
 | `valor_total` | REAL NOT NULL | |
-| `status` | TEXT NOT NULL | `'concluida'` — único valor alcançável nesta fatia. Deliberadamente distinto de um futuro status de pagamento (pendente/pago/estornado) — venda e pagamento são conceitos diferentes |
+| `status` | TEXT NOT NULL | `'concluida'` \| `'cancelada'` (V1.2, 2026-07-27) — `estornada` (financeira) prevista na ADR-009, não implementada ainda |
 | `observacoes` | TEXT NOT NULL | `''` — livre (ex.: "retirada amanhã", "venda corporativa") |
+| `motivo_cancelamento` | TEXT | *(ALTER, V1.2)* — lista fechada validada no service (BR-032), `NULL` até cancelar |
+| `observacao_cancelamento` | TEXT | *(ALTER, V1.2)* — obrigatória quando `motivo_cancelamento='outro'` |
+| `cancelado_por` | INTEGER | *(ALTER, V1.2)* — FK lógica: `usuarios.id`, `NULL` até cancelar |
+| `cancelado_em` | TEXT | *(ALTER, V1.2)* — `NULL` até cancelar |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` |
 
 **Índices:** `idx_vendas_cliente_id`, `idx_vendas_vendedor_id`.
@@ -309,13 +313,16 @@ venda nesta fatia) — evita partir a tabela quando a plataforma vender múltipl
 | `valor_tabela` | REAL | Snapshot do preço de catálogo (`estoque.valor` ou `produtos.preco_venda`) no momento da venda; `NULL` se o item não tinha preço cadastrado |
 | `valor_unitario` | REAL NOT NULL | Preço efetivo da venda — pode divergir de `valor_tabela` (negociação); nenhum dos dois sobrescreve o outro |
 | `subtotal` | REAL NOT NULL | `valor_unitario * quantidade`, calculado no repository, nunca recebido do chamador |
+| `ativo` | INTEGER NOT NULL | *(ALTER, V1.2)* `DEFAULT 1` — `0` quando a venda-mãe é cancelada (BR-033); distingue a venda vigente de uma unidade das suas vendas canceladas no histórico |
 | `criado_em` | TEXT NOT NULL | `datetime('now')` |
 
-**Índices:** `idx_vendas_itens_venda_id`, `idx_vendas_itens_unidade_serializada_id` (**`UNIQUE`** — a
-mesma unidade nunca pode aparecer em duas vendas, garantido pelo banco mesmo sob concorrência real; ver
-`fluxoly_vendas_service.py::iniciar_venda` e `irflow_unidades_serializadas_service.py::
-marcar_como_vendida`, que faz o `UPDATE ... WHERE status='disponivel'` como segunda camada de proteção
-contra a mesma corrida).
+**Índices:** `idx_vendas_itens_venda_id`; `idx_vendas_itens_unidade_ativa` (**`UNIQUE` parcial**,
+`WHERE ativo = 1`, V1.2 — substitui o `UNIQUE` incondicional `idx_vendas_itens_unidade_serializada_id`
+da Vendas MVP) — só uma linha *vigente* por unidade, não uma por vida inteira; permite revenda da mesma
+unidade após cancelamento sem perder o histórico da venda cancelada. Ver
+`fluxoly_vendas_service.py::iniciar_venda`/`cancelar_venda` e
+`irflow_unidades_serializadas_service.py::marcar_como_vendida`/`liberar_unidade_para_venda`, que fazem
+`UPDATE ... WHERE status=...` como segunda camada de proteção contra corrida.
 
 ### `compras` — lista de compras (versão legada/simplificada)
 

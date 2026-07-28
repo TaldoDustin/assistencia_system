@@ -202,6 +202,28 @@ def _item_ativo(unidade_id, venda_id):
         conn.close()
 
 
+def _definir_limite_desconto(usuario_id, valor):
+    """V1.3 -- Descontos (BR-037). `valor=None` deixa explicitamente 'não
+    configurado' (default dos fixtures `usuario_*`)."""
+    conn = _app.conectar()
+    try:
+        conn.execute("UPDATE usuarios SET limite_desconto_livre=? WHERE id=?", (valor, usuario_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _item_desconto_info(unidade_id):
+    conn = _app.conectar()
+    try:
+        return conn.execute(
+            "SELECT id, motivo_desconto, desconto_aprovado_em FROM vendas_itens WHERE unidade_serializada_id=?",
+            (unidade_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
 def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None, produto_id=None):
     conn = _app.conectar()
     try:
@@ -212,8 +234,16 @@ def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None, produto_id=N
                     "SELECT DISTINCT venda_id FROM vendas_itens WHERE unidade_serializada_id=?", (unidade_id,)
                 ).fetchall()
             ]
+            item_ids = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT id FROM vendas_itens WHERE unidade_serializada_id=?", (unidade_id,)
+                ).fetchall()
+            ]
             for venda_id in venda_ids:
                 conn.execute("DELETE FROM audit_log WHERE entidade='venda' AND entidade_id=?", (venda_id,))
+            for item_id in item_ids:
+                conn.execute("DELETE FROM audit_log WHERE entidade='venda_item' AND entidade_id=?", (item_id,))
             conn.execute("DELETE FROM vendas_itens WHERE unidade_serializada_id=?", (unidade_id,))
             if venda_ids:
                 conn.execute(
@@ -790,7 +820,11 @@ class TestListarVendas:
             _limpar_tudo(cliente_id=cliente_id)
 
     def test_itens_resumo_inclui_desconto_calculado(self, client, login_como, usuario_admin):
-        venda = _criar_venda_via_api(client, login_como, usuario_admin, valor_unitario=2800.0)
+        # V1.3 (BR-037/BR-038): usuario_admin sem limite configurado (NULL = R$0
+        # efetivo) -- este desconto de R$200 exige desconto_aprovado explícito.
+        venda = _criar_venda_via_api(
+            client, login_como, usuario_admin, valor_unitario=2800.0, desconto_aprovado=True
+        )
         try:
             resp = client.get("/api/vendas", query_string={"cliente_id": venda["cliente_id"]})
             item = resp.get_json()["items"][0]["itens_resumo"][0]
@@ -1009,3 +1043,205 @@ class TestCancelarVenda:
         assert depois["motivo_cancelamento"] == "imei_incorreto"
         assert depois["cancelado_por"] == usuario_admin["id"]
         assert depois["cancelado_em"] is not None
+
+
+class TestDescontoEAprovacao:
+    """V1.3 -- Descontos e Aprovação (BR-037 a BR-039,
+    docs/product/features/VENDAS.md "V1.3 -- Descontos e Aprovação";
+    docs/engineering/plans/PLAN-V1.3-Descontos.md). `cenario_venda` tem
+    `valor_tabela = 3000.0` (ver `_criar_item_estoque_rastreavel`)."""
+
+    def test_desconto_zero_nao_exige_aprovacao(self, client, login_como, usuario_vendedor, cenario_venda):
+        login_como(client, usuario_vendedor)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=3000.0))
+        assert resp.status_code == 201
+
+    def test_desconto_abaixo_do_limite_nao_exige_aprovacao(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        _definir_limite_desconto(usuario_vendedor["id"], 300.0)
+        login_como(client, usuario_vendedor)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        assert resp.status_code == 201
+
+    def test_desconto_exatamente_no_limite_nao_exige_aprovacao(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        _definir_limite_desconto(usuario_vendedor["id"], 200.0)
+        login_como(client, usuario_vendedor)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        assert resp.status_code == 201
+
+    def test_desconto_acima_do_limite_sem_aprovacao_e_rejeitado(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
+        login_como(client, usuario_vendedor)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        assert resp.status_code == 400
+        assert "aprovação" in resp.get_json()["erro"]
+
+    def test_desconto_acima_do_limite_com_aprovacao_e_aceito(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
+        login_como(client, usuario_vendedor)
+        resp = client.post(
+            "/api/vendas",
+            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
+        )
+        assert resp.status_code == 201
+        _id, _motivo, aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
+        assert aprovado_em is not None
+
+    def test_limite_nao_configurado_trata_como_zero(self, client, login_como, usuario_vendedor, cenario_venda):
+        """`usuario_vendedor` nasce com `limite_desconto_livre = NULL` --
+        qualquer desconto > 0 exige aprovação (fail-secure, plano técnico)."""
+        login_como(client, usuario_vendedor)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2999.0))
+        assert resp.status_code == 400
+
+    def test_motivo_desconto_opcional_ausente(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=3000.0))
+        assert resp.status_code == 201
+        _id, motivo, _aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
+        assert motivo == ""
+
+    def test_motivo_desconto_persistido_quando_enviado(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        resp = client.post(
+            "/api/vendas",
+            json=_payload(cenario_venda, valor_unitario=3000.0, motivo_desconto="Negociação final"),
+        )
+        assert resp.status_code == 201
+        _id, motivo, _aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
+        assert motivo == "Negociação final"
+
+    def test_nenhum_campo_grava_identidade_do_admin_aprovador(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        """BR-038 -- confirma por ausência: nenhuma coluna de `vendas_itens`
+        guarda qual admin aprovou, só o timestamp de quando."""
+        login_como(client, usuario_vendedor)
+        resp = client.post(
+            "/api/vendas",
+            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
+        )
+        assert resp.status_code == 201
+
+        conn = _app.conectar()
+        try:
+            colunas = [row[1] for row in conn.execute("PRAGMA table_info(vendas_itens)")]
+        finally:
+            conn.close()
+        assert "aprovado_por" not in colunas
+        assert "admin_aprovador_id" not in colunas
+
+
+class TestAjusteComercial:
+    """Ajuste Comercial Autorizado (BR-043) -- única exceção formalmente
+    definida ao Princípio da Imutabilidade da Venda (BR-034, que continua
+    válido para todo o resto)."""
+
+    def _criar_venda_concluida(self, client, login_como, usuario, cenario_venda, valor_unitario=3000.0):
+        login_como(client, usuario)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=valor_unitario))
+        assert resp.status_code == 201
+        venda_id = resp.get_json()["id"]
+        item_id = _item_desconto_info(cenario_venda["unidade_id"])[0]
+        return venda_id, item_id
+
+    def test_admin_ajusta_com_sucesso(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0, "motivo": "Negociação pós-venda"},
+        )
+
+        assert resp.status_code == 200
+        conn = _app.conectar()
+        try:
+            item = conn.execute(
+                "SELECT valor_unitario, subtotal FROM vendas_itens WHERE id=?", (item_id,)
+            ).fetchone()
+            venda = conn.execute("SELECT valor_total FROM vendas WHERE id=?", (venda_id,)).fetchone()
+            auditoria = conn.execute(
+                "SELECT valor_anterior, valor_novo FROM audit_log "
+                "WHERE entidade='venda_item' AND entidade_id=? ORDER BY id DESC LIMIT 1",
+                (item_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        assert item[0] == 2700.0
+        assert item[1] == 2700.0
+        assert venda[0] == 2700.0
+        assert auditoria is not None
+        assert "3000" in auditoria[0]
+        assert "2700" in auditoria[1]
+        assert "Negociação pós-venda" in auditoria[1]
+
+    def test_vendedor_nao_pode_ajustar(self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_vendedor)
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0, "motivo": "Tentativa"},
+        )
+        assert resp.status_code == 403
+
+    def test_ajuste_sem_motivo_e_rejeitado(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0},
+        )
+        assert resp.status_code == 400
+
+    def test_ajuste_em_venda_cancelada_e_rejeitado(self, client, login_como, usuario_admin, cenario_venda):
+        """Também cobre o caso de 'estado obsoleto' do plano técnico: o admin
+        poderia ter aberto a tela vendo a venda concluída; se ela foi
+        cancelada nesse meio-tempo, o PATCH deve falhar -- revalida
+        `status='concluida'` no momento da escrita, nunca confia no estado
+        lido antes."""
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0, "motivo": "Tarde demais"},
+        )
+        assert resp.status_code == 400
+
+    def test_ajuste_nao_altera_outros_campos_da_venda(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        antes = client.get(f"/api/vendas/{venda_id}").get_json()["venda"]
+
+        client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0, "motivo": "Ajuste"},
+        )
+
+        depois = client.get(f"/api/vendas/{venda_id}").get_json()["venda"]
+        assert depois["cliente_id"] == antes["cliente_id"]
+        assert depois["vendedor_id"] == antes["vendedor_id"]
+        assert depois["forma_pagamento"] == antes["forma_pagamento"]
+        assert depois["status"] == antes["status"] == "concluida"
+        assert depois["criado_em"] == antes["criado_em"]
+
+    def test_historico_desconto_expoe_o_ajuste(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/ajuste-desconto",
+            json={"valor_unitario": 2700.0, "motivo": "Ajuste histórico"},
+        )
+
+        resp = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-desconto")
+
+        assert resp.status_code == 200
+        historico = resp.get_json()["historico"]
+        assert len(historico) == 1
+        assert historico[0]["acao"] == "ajuste_desconto"

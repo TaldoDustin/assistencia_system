@@ -101,6 +101,9 @@ def create_vendas_blueprint(deps: dict):
             body.get("forma_pagamento"),
             valor_unitario,
             body.get("observacoes"),
+            # V1.3 -- Descontos e Aprovação (BR-037 a BR-039).
+            body.get("motivo_desconto"),
+            bool(body.get("desconto_aprovado", False)),
         )
         if erro:
             code = 404 if erro in ("Cliente não encontrado.", "Unidade não encontrada.") else 400
@@ -145,5 +148,40 @@ def create_vendas_blueprint(deps: dict):
                 code = 400
             return err(erro, code)
         return ok(id=venda_id, status="cancelada")
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/ajuste-desconto", methods=["PATCH"])
+    def ajustar_desconto_item(venda_id, item_id):
+        """Ajuste Comercial Autorizado (BR-043) -- só `admin`, checagem fina
+        do perfil vive no service (mesmo padrão de `cancelar_venda`)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") != "admin":
+            return err("Permissão negada.", 403)
+
+        body = safe_json(request)
+        valor_unitario_novo = parse_float(body.get("valor_unitario"), default=None)
+        sucesso, erro = service.ajustar_desconto_item(
+            conectar,
+            venda_id,
+            item_id,
+            session.get("usuario_id"),
+            session.get("usuario_perfil"),
+            valor_unitario_novo,
+            body.get("motivo"),
+        )
+        if not sucesso:
+            code = 404 if erro == "Item não encontrado." else 400
+            return err(erro, code)
+        return ok(id=item_id)
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/historico-desconto")
+    def historico_desconto_item(venda_id, item_id):
+        """Histórico de Ajustes Comerciais do item (BR-043) -- só leitura,
+        qualquer usuário autenticado (mesmo padrão de ver o Detalhe da
+        venda)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        return ok(historico=service.obter_historico_desconto_item(conectar, item_id))
 
     return vendas_api

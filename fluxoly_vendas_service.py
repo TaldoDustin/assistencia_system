@@ -96,22 +96,47 @@ def _item_para_dict(row):
         "quantidade": row[6],
         "valor_tabela": valor_tabela,
         "valor_unitario": valor_unitario,
-        # Diferença calculada, não uma feature de desconto (essa é a V1.4) --
-        # None quando não há preço de tabela para comparar.
+        # Diferença calculada, não uma feature de desconto isolada -- é o
+        # próprio desconto da V1.3 (BR-037 a BR-043). None quando não há
+        # preço de tabela para comparar.
         "desconto": round(valor_tabela - valor_unitario, 2) if valor_tabela is not None else None,
         "subtotal": row[9],
         "criado_em": row[10],
         "imei": row[11] or "",
+        "motivo_desconto": row[12] or "",
+        "desconto_aprovado_em": row[13],
     }
 
 
+def _limite_desconto_livre(conectar, usuario_id):
+    """BR-037 -- `NULL` no banco significa "não configurado"; é aqui, no
+    service, que isso vira o limite EFETIVO de R$ 0 (fail-secure, mesmo
+    princípio de KI-024) -- nunca uma query SQL decide isso, para não
+    confundir "não configurado" com "configurado como zero" no dado
+    persistido."""
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        limite = repo.buscar_limite_desconto_livre(cursor, usuario_id)
+    finally:
+        conn.close()
+    return limite if limite is not None else 0
+
+
 def iniciar_venda(
-    conectar, usuario_id, cliente_id, unidade_serializada_id, forma_pagamento, valor_unitario, observacoes=""
+    conectar, usuario_id, cliente_id, unidade_serializada_id, forma_pagamento, valor_unitario,
+    observacoes="", motivo_desconto=None, desconto_aprovado=False,
 ):
     """Retorna (venda_id, erro). `erro` é None em caso de sucesso.
 
     `usuario_id` é sempre o vendedor (sessão logada) -- nunca escolhido no
     payload, mesmo padrão de auditoria já usado no resto do sistema.
+
+    V1.3 -- Descontos e Aprovação (BR-037, BR-038): se o desconto
+    (`valor_tabela - valor_unitario`) exceder o limite livre do vendedor,
+    `desconto_aprovado=True` precisa vir explícito no payload -- a aprovação
+    em si acontece fora do sistema (presencial/remota com o admin); aqui só
+    se registra a confirmação, nunca quem aprovou.
     """
     forma_pagamento = (forma_pagamento or "").strip().lower()
     if forma_pagamento not in FORMAS_PAGAMENTO_VALIDAS:
@@ -134,6 +159,15 @@ def iniciar_venda(
     produto_id = unidade["produto_id"]
     valor_tabela = unidade["preco_catalogo"]
 
+    desconto = round(valor_tabela - valor_unitario, 2) if valor_tabela is not None else None
+    exigiu_aprovacao = False
+    if desconto and desconto > 0:
+        limite_efetivo = _limite_desconto_livre(conectar, usuario_id)
+        if desconto > limite_efetivo:
+            if not desconto_aprovado:
+                return None, "Desconto acima do limite livre requer aprovação de um admin."
+            exigiu_aprovacao = True
+
     conn = conectar()
     try:
         cursor = conn.cursor()
@@ -142,7 +176,7 @@ def iniciar_venda(
         )
         repo.inserir_item(
             cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            valor_tabela, valor_unitario,
+            valor_tabela, valor_unitario, motivo_desconto or "", exigiu_aprovacao,
         )
 
         sucesso, erro = unidades_service.marcar_como_vendida(cursor, unidade_serializada_id, venda_id, usuario_id)
@@ -311,3 +345,81 @@ def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, obser
         conn.close()
 
     return True, None
+
+
+def ajustar_desconto_item(conectar, venda_id, item_id, usuario_id, usuario_perfil, valor_unitario_novo, motivo):
+    """Ajuste Comercial Autorizado (BR-043) -- a única exceção formalmente
+    definida ao Princípio da Imutabilidade da Venda (BR-034, que continua
+    válido para todo o resto: cliente, IMEI/unidade, forma de pagamento,
+    vendedor, data, status, outros itens). Só `admin`; motivo é OBRIGATÓRIO
+    aqui (diferente do motivo opcional na criação, BR-039) -- um ajuste
+    pós-venda é excepcional o suficiente para exigir justificativa. Retorna
+    (sucesso, erro)."""
+    if usuario_perfil != "admin":
+        return False, "Permissão negada."
+    motivo = (motivo or "").strip()
+    if not motivo:
+        return False, "Motivo é obrigatório para o ajuste comercial."
+    if not isinstance(valor_unitario_novo, (int, float)) or valor_unitario_novo <= 0:
+        return False, "Valor deve ser maior que zero."
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        item_row = repo.buscar_item_por_id(cursor, venda_id, item_id)
+        if not item_row:
+            conn.rollback()
+            return False, "Item não encontrado."
+        valor_anterior = item_row[2]
+
+        # Compare-and-swap: revalida `status='concluida'` NO MOMENTO da escrita,
+        # não confia no estado lido acima -- protege contra a venda ser
+        # cancelada entre a leitura e este ajuste (estado obsoleto).
+        linhas = repo.ajustar_valor_item(cursor, venda_id, item_id, valor_unitario_novo)
+        if linhas == 0:
+            conn.rollback()
+            return False, "Venda não pode ser ajustada (cancelada ou em outro estado)."
+
+        # Recalculado sempre a partir da soma de todos os itens ativos --
+        # nunca só o delta deste item (BR-043).
+        repo.recalcular_valor_total_venda(cursor, venda_id)
+
+        registrar_log_auditoria(
+            cursor,
+            "venda_item",
+            item_id,
+            usuario_id,
+            "ajuste_desconto",
+            antes={"valor_unitario": valor_anterior},
+            depois={"valor_unitario": valor_unitario_novo, "motivo": motivo},
+        )
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        return False, str(exc)
+    finally:
+        conn.close()
+
+    return True, None
+
+
+def _evento_historico_desconto_para_dict(row):
+    return {
+        "id": row[0],
+        "acao": row[1],
+        "valor_anterior": row[2],
+        "valor_novo": row[3],
+        "criado_em": row[4],
+        "usuario_nome": row[5] or "",
+    }
+
+
+def obter_historico_desconto_item(conectar, item_id):
+    """Histórico de Ajustes Comerciais do item (BR-043) -- só leitura."""
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        rows = repo.buscar_historico_desconto_item(cursor, item_id)
+    finally:
+        conn.close()
+    return [_evento_historico_desconto_para_dict(r) for r in rows]

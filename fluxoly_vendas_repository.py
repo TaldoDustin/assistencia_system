@@ -45,30 +45,112 @@ def inserir_venda(cursor, cliente_id, vendedor_id, forma_pagamento, valor_total,
     return cursor.lastrowid
 
 
-def inserir_item(cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku, valor_tabela, valor_unitario):
+def inserir_item(
+    cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku, valor_tabela,
+    valor_unitario, motivo_desconto="", desconto_aprovado=False,
+):
     """`quantidade` é sempre 1 nesta fatia — uma unidade serializada não é
     fungível (uma linha de item = uma unidade física). `subtotal` calculado
     aqui, não recebido do chamador, para nunca divergir de `valor_unitario *
     quantidade`. `valor_tabela` é o preço de catálogo no momento da venda
     (nullable — item pode não ter preço cadastrado); `valor_unitario` é o
     preço efetivo, pode divergir de `valor_tabela` (negociação) -- nenhum dos
-    dois sobrescreve o outro."""
+    dois sobrescreve o outro.
+
+    V1.3 -- Descontos (BR-038, BR-039): `motivo_desconto` é opcional, texto
+    livre. `desconto_aprovado` só é `True` quando o desconto desta venda
+    excedeu o limite livre do vendedor e foi confirmado como aprovado --
+    `desconto_aprovado_em` grava o timestamp da aprovação nesse caso, `NULL`
+    caso contrário (nunca guarda qual admin aprovou, BR-038)."""
     quantidade = 1
     subtotal = valor_unitario * quantidade
     cursor.execute(
         """
         INSERT INTO vendas_itens (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            quantidade, valor_tabela, valor_unitario, subtotal
+            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto,
+            desconto_aprovado_em
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? THEN datetime('now') ELSE NULL END)
         """,
         (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            quantidade, valor_tabela, valor_unitario, subtotal,
+            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto or "",
+            1 if desconto_aprovado else 0,
         ),
     )
     return cursor.lastrowid
+
+
+def buscar_limite_desconto_livre(cursor, usuario_id):
+    """BR-037 -- limite de desconto livre (R$) do vendedor. `None` significa
+    "não configurado" -- o chamador (service) decide como interpretar isso,
+    nunca esta função (mantém a semântica fora do SQL)."""
+    cursor.execute("SELECT limite_desconto_livre FROM usuarios WHERE id = ?", (usuario_id,))
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
+def buscar_item_por_id(cursor, venda_id, item_id):
+    """Usado pelo Ajuste Comercial (BR-043) para ler o `valor_unitario`
+    anterior antes de sobrescrever -- necessário para o evento de auditoria
+    registrar o valor_anterior real."""
+    cursor.execute(
+        "SELECT id, venda_id, valor_unitario FROM vendas_itens WHERE id = ? AND venda_id = ?",
+        (item_id, venda_id),
+    )
+    return cursor.fetchone()
+
+
+def ajustar_valor_item(cursor, venda_id, item_id, valor_unitario_novo):
+    """Ajuste Comercial Autorizado (BR-043). `WHERE` revalida o estado da
+    venda NO MOMENTO da escrita (nunca confia no estado lido quando a tela
+    foi aberta) -- mesmo padrão de compare-and-swap de `cancelar_venda`/
+    `marcar_vendida`. Retorna o número de linhas afetadas: 0 significa que a
+    venda deixou de estar `concluida` entre a leitura e esta escrita (ex.:
+    foi cancelada nesse meio-tempo) -- o chamador trata isso como falha."""
+    cursor.execute(
+        """
+        UPDATE vendas_itens
+        SET valor_unitario = ?, subtotal = ? * quantidade
+        WHERE id = ? AND venda_id = ? AND ativo = 1
+          AND EXISTS (
+              SELECT 1 FROM vendas WHERE id = vendas_itens.venda_id AND status = 'concluida'
+          )
+        """,
+        (valor_unitario_novo, valor_unitario_novo, item_id, venda_id),
+    )
+    return cursor.rowcount
+
+
+def recalcular_valor_total_venda(cursor, venda_id):
+    """`vendas.valor_total` é sempre recalculado como a soma dos `subtotal`
+    de todos os itens ATIVOS da venda -- nunca escrito diretamente a partir
+    do delta de um único item ajustado. Evita divergência quando uma venda
+    futura tiver múltiplos itens e só um sofrer ajuste (BR-043)."""
+    cursor.execute(
+        "SELECT COALESCE(SUM(subtotal), 0) FROM vendas_itens WHERE venda_id = ? AND ativo = 1",
+        (venda_id,),
+    )
+    total = cursor.fetchone()[0]
+    cursor.execute("UPDATE vendas SET valor_total = ? WHERE id = ?", (total, venda_id))
+
+
+def buscar_historico_desconto_item(cursor, item_id):
+    """Histórico de ajustes comerciais do item (BR-043), mais recente
+    primeiro -- mesmo padrão de
+    `irflow_unidades_serializadas_repository.py::buscar_historico`."""
+    cursor.execute(
+        """
+        SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
+        FROM audit_log a
+        LEFT JOIN usuarios u ON a.usuario_id = u.id
+        WHERE a.entidade = 'venda_item' AND a.entidade_id = ?
+        ORDER BY a.id DESC
+        """,
+        (item_id,),
+    )
+    return cursor.fetchall()
 
 
 def buscar_por_id(cursor, venda_id):
@@ -88,7 +170,7 @@ def buscar_itens_por_venda(cursor, venda_id):
         """
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id = ?
@@ -175,7 +257,7 @@ def buscar_itens_por_vendas(cursor, venda_ids):
         f"""
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id IN ({marcadores})

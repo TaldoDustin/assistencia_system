@@ -1014,6 +1014,30 @@ def criar_tabelas():
                 "ON vendas_itens (unidade_serializada_id) WHERE ativo = 1"
             )
 
+            # V1.3 -- Descontos e Aprovação (BR-037 a BR-043, VENDAS.md "V1.3 -- Descontos e
+            # Aprovação"; plano técnico docs/engineering/plans/PLAN-V1.3-Descontos.md). Três
+            # colunas aditivas, nenhuma tabela nova.
+            #
+            # limite_desconto_livre: limite de desconto (R$) que o vendedor pode conceder sem
+            # aprovação (BR-037), individual por usuário. NULL sempre significa "não
+            # configurado" -- nunca é escrito como 0 pelo sistema; é o service (nunca uma query
+            # SQL) quem interpreta NULL como limite efetivo de R$ 0 (fail-secure, mesmo
+            # princípio de KI-024).
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE usuarios ADD COLUMN limite_desconto_livre REAL")
+
+            # motivo_desconto: opcional, texto livre (BR-039) -- deliberadamente diferente do
+            # motivo_cancelamento (lista fechada obrigatória, BR-032). Vive no item, não na
+            # venda, porque valor_tabela/valor_unitario já vivem no item.
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN motivo_desconto TEXT DEFAULT ''")
+
+            # desconto_aprovado_em: timestamp em vez de booleano (BR-038) -- NULL nunca precisou
+            # de aprovação; preenchido = foi aprovado, e quando. Nunca guarda qual admin aprovou
+            # (decisão consciente de produto, não omissão).
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN desconto_aprovado_em TEXT")
+
             # Add valor column if it doesn't exist
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")

@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText
 import { vendas as vendasApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -54,6 +55,13 @@ export default function VendaDetalhe() {
   const [observacaoCancelamento, setObservacaoCancelamento] = useState("");
   const [enviandoCancelamento, setEnviandoCancelamento] = useState(false);
 
+  // V1.3 -- Ajuste Comercial Autorizado (BR-043).
+  const [ajustando, setAjustando] = useState(false);
+  const [novoValorAjuste, setNovoValorAjuste] = useState("");
+  const [motivoAjuste, setMotivoAjuste] = useState("");
+  const [enviandoAjuste, setEnviandoAjuste] = useState(false);
+  const [historicoAjustes, setHistoricoAjustes] = useState([]);
+
   async function carregar() {
     setLoading(true);
     try {
@@ -83,6 +91,55 @@ export default function VendaDetalhe() {
     venda && user && venda.status === "concluida" &&
     (user.perfil === "admin" || (user.perfil === "vendedor" && venda.vendedor_id === user.id))
   );
+
+  // V1.3 -- Ajuste Comercial Autorizado (BR-043): só admin, só em venda
+  // concluída, e só o item (nunca a venda inteira) -- nesta fatia sempre o
+  // primeiro/único item.
+  const itemPrincipal = itens[0];
+  const podeAjustar = Boolean(venda && user?.perfil === "admin" && venda.status === "concluida" && itemPrincipal);
+
+  async function carregarHistoricoAjustes(itemId) {
+    const res = await vendasApi.historicoDescontoItem(id, itemId);
+    if (res?.ok) setHistoricoAjustes(res.historico || []);
+  }
+
+  useEffect(() => {
+    if (itemPrincipal) carregarHistoricoAjustes(itemPrincipal.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemPrincipal?.id]);
+
+  const confirmarAjuste = async () => {
+    const valor = parseFloat(novoValorAjuste);
+    if (!valor || valor <= 0) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
+    if (!motivoAjuste.trim()) {
+      toast.error("Motivo é obrigatório para o ajuste comercial.");
+      return;
+    }
+    setEnviandoAjuste(true);
+    try {
+      const res = await vendasApi.ajustarDescontoItem(id, itemPrincipal.id, {
+        valor_unitario: valor,
+        motivo: motivoAjuste,
+      });
+      if (res?.ok) {
+        toast.success("Ajuste comercial aplicado.");
+        setAjustando(false);
+        setNovoValorAjuste("");
+        setMotivoAjuste("");
+        await carregar();
+        await carregarHistoricoAjustes(itemPrincipal.id);
+      } else {
+        toast.error(res?.erro || "Erro ao aplicar o ajuste.");
+      }
+    } catch {
+      toast.error("Erro ao aplicar o ajuste.");
+    } finally {
+      setEnviandoAjuste(false);
+    }
+  };
 
   const confirmarCancelamento = async () => {
     if (!motivoCancelamento) {
@@ -287,6 +344,14 @@ export default function VendaDetalhe() {
               </table>
             </div>
           </div>
+          {itemPrincipal && (itemPrincipal.motivo_desconto || itemPrincipal.desconto_aprovado_em) && (
+            <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
+              {itemPrincipal.motivo_desconto && <p>Motivo do desconto: {itemPrincipal.motivo_desconto}</p>}
+              {itemPrincipal.desconto_aprovado_em && (
+                <p>Desconto aprovado em {formatDateTime(itemPrincipal.desconto_aprovado_em)}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-border">
@@ -294,6 +359,73 @@ export default function VendaDetalhe() {
           <span className="text-lg font-bold text-foreground">{formatCurrency(venda.valor_total)}</span>
         </div>
       </div>
+
+      {podeAjustar && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-card-foreground">Ajuste Comercial Autorizado</p>
+            {!ajustando && (
+              <Button variant="outline" size="sm" onClick={() => { setAjustando(true); setNovoValorAjuste(String(itemPrincipal.valor_unitario)); }}>
+                Ajustar desconto
+              </Button>
+            )}
+          </div>
+          {ajustando && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Só o valor deste item pode ser ajustado — cliente, IMEI, forma de pagamento, vendedor,
+                data e status da venda permanecem imutáveis.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ajuste-valor">Novo valor</Label>
+                  <Input
+                    id="ajuste-valor"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={novoValorAjuste}
+                    onChange={(e) => setNovoValorAjuste(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ajuste-motivo">Motivo (obrigatório)</Label>
+                <Textarea
+                  id="ajuste-motivo"
+                  value={motivoAjuste}
+                  onChange={(e) => setMotivoAjuste(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={confirmarAjuste} disabled={enviandoAjuste}>
+                  {enviandoAjuste && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Confirmar ajuste
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={enviandoAjuste}
+                  onClick={() => { setAjustando(false); setNovoValorAjuste(""); setMotivoAjuste(""); }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+          {historicoAjustes.length > 0 && (
+            <div className="pt-2 border-t border-border space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Histórico de ajustes</p>
+              {historicoAjustes.map((evento) => (
+                <p key={evento.id} className="text-xs text-muted-foreground">
+                  {formatDateTime(evento.criado_em)} — {evento.usuario_nome || "—"}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

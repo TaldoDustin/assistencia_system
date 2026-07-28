@@ -135,10 +135,11 @@ async function request(method, path, body) {
   return data;
 }
 
-const get  = (path)        => request("GET",    path);
-const post = (path, body)  => request("POST",   path, body);
-const put  = (path, body)  => request("PUT",    path, body);
-const del  = (path)        => request("DELETE", path);
+const get   = (path)        => request("GET",    path);
+const post  = (path, body)  => request("POST",   path, body);
+const put   = (path, body)  => request("PUT",    path, body);
+const patch = (path, body)  => request("PATCH",  path, body);
+const del   = (path)        => request("DELETE", path);
 
 // ── Auth ────────────────────────────────────────────────────────────────────
 export const auth = {
@@ -333,6 +334,11 @@ export const vendas = {
   create: (data) => post("/vendas", data),
   get:    (id)   => get(`/vendas/${id}`),
   cancelar: (id, data) => post(`/vendas/${id}/cancelar`, data),
+  // V1.3 -- Descontos e Aprovação (BR-043: Ajuste Comercial Autorizado).
+  ajustarDescontoItem: (vendaId, itemId, data) =>
+    patch(`/vendas/${vendaId}/itens/${itemId}/ajuste-desconto`, data),
+  historicoDescontoItem: (vendaId, itemId) =>
+    get(`/vendas/${vendaId}/itens/${itemId}/historico-desconto`),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────

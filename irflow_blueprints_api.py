@@ -466,10 +466,26 @@ def create_api_blueprint(deps):
     def auth_me():
         if not usuario_logado():
             return err("Não autenticado.", 401)
+
+        # V1.3 -- Descontos (BR-037): o vendedor precisa saber o próprio
+        # limite de desconto livre para o fluxo de Nova Venda -- não vem da
+        # sessão (só gravada no login), busca direto no banco. `None` =
+        # "não configurado" (nunca confundir com 0, ver
+        # fluxoly_vendas_service.py::_limite_desconto_livre).
+        conn = conectar()
+        try:
+            row = conn.execute(
+                "SELECT limite_desconto_livre FROM usuarios WHERE id = ?",
+                (session["usuario_id"],),
+            ).fetchone()
+        finally:
+            conn.close()
+
         return ok(usuario={
             "id": session["usuario_id"],
             "nome": session["usuario_nome"],
             "perfil": session["usuario_perfil"],
+            "limite_desconto_livre": row[0] if row else None,
         })
 
     # ── CONSTANTS ──────────────────────────────────────────────────────────

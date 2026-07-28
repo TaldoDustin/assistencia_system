@@ -228,20 +228,20 @@ nome como texto solto" — isso será validado quando `VENDAS.md` for implementa
 *Fonte: `irflow_clientes_service.py` (BR-023, BR-024); `VENDAS.md` — "Critérios de aceite";
 `docs/engineering/DOMAIN_MODEL.md` seção 1.12.*
 
-### V1.2 — Cancelamento de venda (especificado em discuss-phase, 2026-07-27; não implementado)
+### V1.2 — Cancelamento de venda (implementado em 2026-07-27)
 
 Fecha a candidata *"uma venda cancelada devolve o IMEI ao estoque"* (ver histórico abaixo) e as decisões
 correspondentes de `ADR-009` deixadas deliberadamente em aberto. Discuss-phase completa, sem código
 escrito — ver `VENDAS.md` seção "V1.2 — Cancelamento" para o relato completo do raciocínio.
 
-**BR-031 — 📋 Especificado**
+**BR-031 — ✅ Implementado (2026-07-27, V1.2)**
 Cancelamento de venda concluída: `admin` pode cancelar qualquer venda; `vendedor` só pode cancelar vendas
 que ele mesmo realizou; `tecnico` e demais perfis não podem cancelar. Sem limite de tempo — segurança vem
 de perfil + motivo obrigatório + auditoria, não de janela temporal (janela pode virar configuração por
 loja no futuro, não decidida/implementada agora).
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
 
-**BR-032 — 📋 Especificado**
+**BR-032 — ✅ Implementado (2026-07-27, V1.2)**
 Cancelamento exige motivo de lista fechada (`cliente_desistiu` \| `erro_lancamento` \| `imei_incorreto` \|
 `venda_duplicada` \| `pagamento_nao_concluido` \| `produto_indisponivel` \| `outro`), valor fora da lista
 rejeitado (mesmo padrão de `categoria`/`condicao` em Produtos, BR-027) — nunca normalizado. Quando
@@ -249,7 +249,7 @@ rejeitado (mesmo padrão de `categoria`/`condicao` em Produtos, BR-027) — nunc
 `motivo_cancelamento` (lista fechada) + `observacao_cancelamento` (texto, condicional).
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
 
-**BR-033 — 📋 Especificado**
+**BR-033 — ✅ Implementado (2026-07-27, V1.2)**
 Cancelar uma venda devolve a Unidade Serializada vendida para `disponivel` — mesma mecânica de
 `devolvido → disponivel` já usada em Assistência —, via função de domínio dedicada
 (`liberar_unidade_para_venda`), nunca por atribuição direta de `status` espalhada pelo código. Sem
@@ -257,19 +257,19 @@ migração para os dois eixos do `ADR-009` (Estado Operacional × Situação Com
 quando Garantia/Troca exigirem a ortogonalidade de fato.
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento"; `docs/engineering/adr/ADR-009.md`.*
 
-**BR-034 — 📋 Especificado**
+**BR-034 — ✅ Implementado (2026-07-27, V1.2)**
 Princípio da Imutabilidade da Venda: uma venda cancelada é estado terminal — nunca retorna a `concluida`
 ("reativação" não existe). Uma nova negociação sobre a mesma unidade sempre gera uma venda nova, nunca
 reabre a cancelada.
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
 
-**BR-035 — 📋 Especificado**
+**BR-035 — ✅ Implementado (2026-07-27, V1.2)**
 `cancelada` (V1.2) é evento comercial, sem nenhuma reversão financeira — Vendas MVP não tem caixa formal.
 `estornada` (também prevista na máquina de estados de `vendas.status`, `ADR-009`) só será implementada
 junto do Épico Financeiro, quando existir pagamento/caixa reais para reverter.
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento"; `docs/engineering/adr/ADR-009.md`.*
 
-**BR-036 — 📋 Especificado**
+**BR-036 — ✅ Implementado (2026-07-27, V1.2)**
 A listagem de histórico de vendas (`GET /api/vendas`, Sprint Vendas 1.1) inclui vendas canceladas por
 padrão, identificadas por badge de status — nunca oculta por padrão. Filtro por `status` (já implementado
 no backend) permite restringir a visualização quando necessário.

@@ -1,8 +1,8 @@
 # VENDAS.md — Feature Spec: Módulo de Vendas
 
 **Status:** Vendas MVP + Sprint 1.1 (Histórico + Detalhe) implementados em 2026-07-27 — ver seção "Vendas
-MVP — o que foi entregue" abaixo. V1.2 (Cancelamento) tem a discuss-phase concluída (seção "V1.2 —
-Cancelamento" abaixo) mas nenhum código escrito ainda. O restante do fluxo completo desenhado neste
+MVP — o que foi entregue" abaixo. V1.2 (Cancelamento) implementada (seção "V1.2 —
+Cancelamento" abaixo). O restante do fluxo completo desenhado neste
 documento (desconto/aprovação, comissão, garantia, troca/avaliação de usado, reserva com timeout) segue
 como especificação, não implementado — depende de decisões do Product Owner ainda pendentes (seção "O que
 ainda está em aberto").
@@ -184,7 +184,8 @@ resumo automático assim que ambos selecionados, confirmação, e tela de sucess
 venda / conferir o registro salvo no servidor / imprimir (placeholder, ainda não implementado).
 
 **Fora de escopo desta fatia:** desconto/aprovação de admin, comissão, garantia (`vendas_garantias` não
-criada), troca/avaliação de usado, reserva com timeout, cancelamento de venda.
+criada), troca/avaliação de usado, reserva com timeout. Cancelamento passou a existir na V1.2 (seção
+própria abaixo).
 
 **Backlog documentado, não implementado:** `vendas_itens` não guarda `custo`/`margem` no momento da
 venda (só `valor_unitario`/`subtotal`). Quando o cálculo de comissão sobre margem (BR-019) for
@@ -194,7 +195,7 @@ do produto for reajustado depois. Não adicionado agora porque ficaria `NULL` se
 
 ---
 
-## V1.2 — Cancelamento (discuss-phase concluída em 2026-07-27; não implementado)
+## V1.2 — Cancelamento (implementado em 2026-07-27)
 
 Antes de qualquer plano técnico, as regras de negócio de cancelamento foram fechadas em conversa direta
 com o usuário (CTO), motivadas por `docs/engineering/adr/ADR-009.md` ter deixado deliberadamente em

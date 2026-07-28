@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 Cancelamento — discuss-phase concluída (2026-07-27, regras fechadas em `VENDAS.md`/`BUSINESS_RULES.md` BR-031 a BR-036, código pendente) → 🟡 plano técnico de V1.2 → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
 
 ---
 
@@ -391,6 +391,16 @@ motivou a investigação da Sprint Infra 1.1 acima. 10 novos testes (31 no domí
 `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos. Validado manualmente ponta a ponta
 com servidor real + banco isolado (nunca `database.db`) e navegador Chrome real: criação de venda, clique
 em "Ver venda" navegando corretamente para o detalhe, listagem/filtros/busca/paginação do histórico.
+
+**V1.2 — Cancelamento (CONCLUÍDA em 2026-07-27):** discuss-phase completa antes de código (regras em
+`VENDAS.md`/`BUSINESS_RULES.md` BR-031 a BR-036), depois implementação. `POST /api/vendas/<id>/cancelar`
+— admin cancela qualquer venda, vendedor só as próprias, motivo obrigatório (lista fechada), terminal
+(sem reativação). Índice único de `vendas_itens.unidade_serializada_id` trocado por um parcial
+(`WHERE ativo=1`) — permite revenda da mesma unidade após cancelamento sem perder o histórico. 14 novos
+testes (45 no domínio, 592 no repositório), `ruff check .`/`npm run lint`/`npm run build` limpos.
+Validado ponta a ponta via API real (servidor + banco isolados): criar → cancelar → revenda da mesma
+unidade → histórico com as duas vendas → segundo cancelamento rejeitado. Fluxo de clique no navegador não
+repetido nesta sessão (limite de contexto) — mesmos componentes já validados manualmente na Sprint 1.1.
 
 ### Escopo previsto
 

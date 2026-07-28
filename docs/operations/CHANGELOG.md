@@ -276,6 +276,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `frontend/src/pages/Vendas.jsx`: abas "Nova Venda"/"Histórico" (mesmo padrão de `Reports.jsx`); componente `Historico()` com busca, filtros, ordenação e paginação; botão "Ver venda" da tela de sucesso passa a navegar para `/vendas/:id` em vez de buscar o detalhe inline
 - 10 novos testes (`tests/test_vendas.py`, 31 no total do domínio). 580 testes no repositório, `ruff check .` limpo, `npm run build`/`npm run lint` sem erros novos. Validado manualmente ponta a ponta (servidor real + banco isolado, navegador dirigido via Chrome): criação de venda, navegação "Ver venda" → detalhe, listagem/filtros/busca/paginação do histórico
 
+### Adicionado (2026-07-27 — V1.2, Cancelamento de Venda)
+- `POST /api/vendas/<id>/cancelar` — admin cancela qualquer venda, vendedor só as próprias, motivo obrigatório (lista fechada), cancelamento é terminal (sem reativação)
+- Índice único de `vendas_itens.unidade_serializada_id` trocado por um parcial (`WHERE ativo=1`) — permite revenda da mesma unidade após cancelamento sem apagar o histórico da venda cancelada
+- Histórico de vendas ganhou filtro e badge de status (Concluída/Cancelada)
+- Regras de negócio fechadas antes do código (BR-031 a BR-036, `VENDAS.md`/`BUSINESS_RULES.md`); 14 novos testes (592 no total)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

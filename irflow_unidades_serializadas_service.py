@@ -286,6 +286,30 @@ def marcar_como_vendida(cursor, unidade_id, venda_id, usuario_id):
     return True, None
 
 
+def liberar_unidade_para_venda(cursor, unidade_id, usuario_id):
+    """Transição vendido -> disponivel, efeito colateral exclusivo de cancelar uma venda
+    (fluxoly_vendas_service.py::cancelar_venda, BR-033). Recebe `cursor` (não `conectar`) --
+    mesma razão de `marcar_como_vendida`: precisa viver na MESMA transação de
+    `cancelar_venda` (cancelar venda -> desativar item -> liberar unidade -> auditoria ->
+    commit único). Deliberadamente fora de `TRANSICOES_VALIDAS`, mesmo motivo de
+    `marcar_como_vendida`: não abrir uma porta lateral no endpoint genérico
+    `PATCH /api/unidades-serializadas/<id>/status`. Retorna (sucesso, erro)."""
+    linhas = repo.liberar_venda(cursor, unidade_id)
+    if linhas == 0:
+        return False, "Unidade não está mais vendida."
+
+    registrar_log_auditoria(
+        cursor,
+        "unidade_serializada",
+        unidade_id,
+        usuario_id,
+        "status_change",
+        antes="vendido",
+        depois="disponivel",
+    )
+    return True, None
+
+
 # C1.3.4 — únicos campos editáveis fora da máquina de estados de status:
 # localizacao e saude_bateria. IMEI é tratado como imutável após o cadastro
 # (decisão do usuário/CTO, 2026-07-22 — identificador primário usado em

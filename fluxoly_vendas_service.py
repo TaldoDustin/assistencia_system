@@ -47,6 +47,14 @@ FORMAS_PAGAMENTO_VALIDAS = {"pix", "cartao", "dinheiro", "transferencia"}
 PAGINA_PADRAO = 1
 POR_PAGINA_PADRAO = 20
 
+# V1.2 -- Cancelamento (BR-032, VENDAS.md "V1.2 -- Cancelamento"): lista fechada, valor fora
+# rejeitado com erro explícito, nunca normalizado -- mesmo padrão de categoria/condicao em
+# irflow_produtos_service.py (BR-027).
+MOTIVOS_CANCELAMENTO_VALIDOS = {
+    "cliente_desistiu", "erro_lancamento", "imei_incorreto", "venda_duplicada",
+    "pagamento_nao_concluido", "produto_indisponivel", "outro",
+}
+
 
 class VendaConflitoError(Exception):
     """A unidade deixou de estar disponível entre a pré-checagem e a
@@ -68,6 +76,10 @@ def _venda_para_dict(row):
         "cliente_nome": row[8] or "",
         "cliente_telefone": row[9] or "",
         "vendedor_nome": row[10] or "",
+        "motivo_cancelamento": row[11],
+        "observacao_cancelamento": row[12] or "",
+        "cancelado_por": row[13],
+        "cancelado_em": row[14],
     }
 
 
@@ -231,3 +243,71 @@ def listar_vendas(
         "page": page,
         "per_page": per_page,
     }
+
+
+def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, observacao=None):
+    """V1.2 -- Cancelamento (BR-031 a BR-036, VENDAS.md "V1.2 -- Cancelamento"). Retorna
+    (sucesso, erro). `erro` é None em caso de sucesso.
+
+    `admin` cancela qualquer venda; `vendedor` só as que ele mesmo realizou; qualquer outro
+    perfil é negado -- checagem fina de dono vive aqui (service), não no controller, mesma
+    filosofia já aplicada ao índice único: o banco/controller são a última linha de defesa,
+    a regra de negócio vive na camada de serviço. Motivo é lista fechada; 'outro' exige
+    observação. Terminal: só transiciona de 'concluida' para 'cancelada' (Princípio da
+    Imutabilidade da Venda) -- não existe reativação.
+    """
+    motivo = (motivo or "").strip().lower()
+    observacao = (observacao or "").strip()
+    if motivo not in MOTIVOS_CANCELAMENTO_VALIDOS:
+        return False, "Motivo de cancelamento inválido."
+    if motivo == "outro" and not observacao:
+        return False, "Descrição obrigatória quando o motivo é 'Outro'."
+
+    venda, _itens = obter_venda_com_itens(conectar, venda_id)
+    if not venda:
+        return False, "Venda não encontrada."
+    if venda["status"] != "concluida":
+        return False, "Venda não pode ser cancelada (já cancelada ou em outro estado)."
+    if usuario_perfil == "admin":
+        pass
+    elif usuario_perfil == "vendedor":
+        if venda["vendedor_id"] != usuario_id:
+            return False, "Permissão negada — só é possível cancelar as próprias vendas."
+    else:
+        return False, "Permissão negada."
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        linhas = repo.cancelar_venda(cursor, venda_id, motivo, observacao, usuario_id)
+        if linhas == 0:
+            conn.rollback()
+            return False, "Venda não pode ser cancelada (estado mudou)."
+
+        repo.desativar_itens_da_venda(cursor, venda_id)
+
+        for unidade_id in repo.buscar_unidades_da_venda(cursor, venda_id):
+            sucesso, erro = unidades_service.liberar_unidade_para_venda(cursor, unidade_id, usuario_id)
+            if not sucesso:
+                raise VendaConflitoError(erro)
+
+        registrar_log_auditoria(
+            cursor,
+            "venda",
+            venda_id,
+            usuario_id,
+            "status_change",
+            antes="concluida",
+            depois={"status": "cancelada", "motivo": motivo, "observacao": observacao or None},
+        )
+        conn.commit()
+    except VendaConflitoError as exc:
+        conn.rollback()
+        return False, str(exc)
+    except Exception as exc:
+        conn.rollback()
+        return False, str(exc)
+    finally:
+        conn.close()
+
+    return True, None

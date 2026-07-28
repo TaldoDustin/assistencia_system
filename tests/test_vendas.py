@@ -17,6 +17,7 @@ import threading
 import uuid
 
 import pytest
+from werkzeug.security import generate_password_hash
 
 import app as _app
 import fluxoly_vendas_repository as vendas_repo
@@ -147,6 +148,56 @@ def _status_unidade(unidade_id):
     conn = _app.conectar()
     try:
         return conn.execute("SELECT status FROM unidades_serializadas WHERE id=?", (unidade_id,)).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def _criar_usuario(nome, perfil):
+    """Segundo usuário de um perfil, distinto dos fixtures `usuario_*` -- usado
+    para provar isolamento entre vendedores (BR-031)."""
+    login = f"user_{uuid.uuid4().hex[:10]}"
+    conn = _app.conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo) VALUES (?, ?, ?, ?, 1)",
+            (nome, login, generate_password_hash(SENHA_PADRAO), perfil),
+        )
+        conn.commit()
+        user_id = cursor.lastrowid
+    finally:
+        conn.close()
+    return {"id": user_id, "nome": nome, "usuario": login, "senha": SENHA_PADRAO}
+
+
+def _remover_usuario(user_id):
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM usuarios WHERE id = ?", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _venda_status_e_cancelamento(venda_id):
+    conn = _app.conectar()
+    try:
+        return conn.execute(
+            "SELECT status, motivo_cancelamento, observacao_cancelamento, cancelado_por, cancelado_em "
+            "FROM vendas WHERE id=?",
+            (venda_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def _item_ativo(unidade_id, venda_id):
+    conn = _app.conectar()
+    try:
+        return conn.execute(
+            "SELECT ativo FROM vendas_itens WHERE unidade_serializada_id=? AND venda_id=?",
+            (unidade_id, venda_id),
+        ).fetchone()[0]
     finally:
         conn.close()
 
@@ -748,3 +799,213 @@ class TestListarVendas:
             assert item["desconto"] == 200.0
         finally:
             _limpar_tudo(venda["cliente_id"], venda["estoque_id"], venda["unidade_id"])
+
+
+class TestCancelarVenda:
+    """V1.2 -- Cancelamento (BR-031 a BR-036, docs/product/features/VENDAS.md
+    "V1.2 -- Cancelamento"). O teste mais importante desta classe é
+    `test_revenda_da_mesma_unidade_apos_cancelamento` -- prova de que o
+    índice único parcial (`idx_vendas_itens_unidade_ativa`) permite revenda
+    sem violar a proteção original contra a mesma unidade em duas vendas
+    vigentes simultâneas."""
+
+    def test_sem_autenticacao_retorna_401(self, client):
+        resp = client.post("/api/vendas/1/cancelar", json={"motivo": "cliente_desistiu"})
+        assert resp.status_code == 401
+
+    def test_tecnico_nao_pode_cancelar(
+        self, client, login_como, usuario_admin, usuario_tecnico, cenario_venda
+    ):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        login_como(client, usuario_tecnico)
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        assert resp.status_code == 403
+        status, *_ = _venda_status_e_cancelamento(venda_id)
+        assert status == "concluida"
+
+    def test_admin_cancela_qualquer_venda(
+        self, client, login_como, usuario_vendedor, usuario_admin, cenario_venda
+    ):
+        login_como(client, usuario_vendedor)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        login_como(client, usuario_admin)
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "cancelada"
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+        assert _item_ativo(cenario_venda["unidade_id"], venda_id) == 0
+
+        status, motivo, observacao, cancelado_por, cancelado_em = _venda_status_e_cancelamento(venda_id)
+        assert status == "cancelada"
+        assert motivo == "cliente_desistiu"
+        assert observacao in (None, "")
+        assert cancelado_por == usuario_admin["id"]
+        assert cancelado_em is not None
+
+        conn = _app.conectar()
+        try:
+            log = conn.execute(
+                "SELECT valor_anterior, valor_novo FROM audit_log "
+                "WHERE entidade='venda' AND entidade_id=? AND acao='status_change'",
+                (venda_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        assert log is not None
+        assert log[0] == "concluida"
+        assert "cancelada" in log[1]
+
+    def test_vendedor_cancela_a_propria_venda(self, client, login_como, usuario_vendedor, cenario_venda):
+        login_como(client, usuario_vendedor)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "erro_lancamento"})
+
+        assert resp.status_code == 200
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+    def test_vendedor_nao_pode_cancelar_venda_de_outro_vendedor(
+        self, client, login_como, usuario_vendedor, cenario_venda
+    ):
+        outro_vendedor = _criar_usuario("Outro Vendedor", "vendedor")
+        try:
+            login_como(client, usuario_vendedor)
+            venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+            login_como(client, outro_vendedor)
+            resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+            assert resp.status_code == 403
+            status, *_ = _venda_status_e_cancelamento(venda_id)
+            assert status == "concluida"
+            assert _status_unidade(cenario_venda["unidade_id"]) == "vendido"
+        finally:
+            _remover_usuario(outro_vendedor["id"])
+
+    def test_motivo_invalido_retorna_400(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "motivo_que_nao_existe"})
+
+        assert resp.status_code == 400
+        status, *_ = _venda_status_e_cancelamento(venda_id)
+        assert status == "concluida"
+
+    def test_motivo_outro_sem_observacao_retorna_400(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "outro"})
+
+        assert resp.status_code == 400
+        status, *_ = _venda_status_e_cancelamento(venda_id)
+        assert status == "concluida"
+
+    def test_motivo_outro_com_observacao_persiste(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        resp = client.post(
+            f"/api/vendas/{venda_id}/cancelar",
+            json={"motivo": "outro", "observacao": "Motivo específico não listado"},
+        )
+
+        assert resp.status_code == 200
+        _, motivo, observacao, _, _ = _venda_status_e_cancelamento(venda_id)
+        assert motivo == "outro"
+        assert observacao == "Motivo específico não listado"
+
+    def test_cancelar_venda_ja_cancelada_retorna_erro(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        primeira = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+        assert primeira.status_code == 200
+
+        segunda = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+        assert segunda.status_code == 400
+
+    def test_cancelar_venda_inexistente_retorna_404(self, client, login_como, usuario_admin):
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas/999999/cancelar", json={"motivo": "cliente_desistiu"})
+        assert resp.status_code == 404
+
+    def test_revenda_da_mesma_unidade_apos_cancelamento(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        """Prova de que o índice único parcial (idx_vendas_itens_unidade_ativa)
+        funciona -- BR-033: cancelar libera a unidade para uma venda nova,
+        sem violar a proteção contra a mesma unidade em duas vendas vigentes
+        simultâneas, e sem apagar o histórico da venda cancelada."""
+        login_como(client, usuario_admin)
+        primeira_venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        cancelar = client.post(
+            f"/api/vendas/{primeira_venda_id}/cancelar", json={"motivo": "cliente_desistiu"}
+        )
+        assert cancelar.status_code == 200
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+        segunda = client.post("/api/vendas", json=_payload(cenario_venda))
+        assert segunda.status_code == 201
+        segunda_venda_id = segunda.get_json()["id"]
+        assert segunda_venda_id != primeira_venda_id
+        assert _status_unidade(cenario_venda["unidade_id"]) == "vendido"
+
+        conn = _app.conectar()
+        try:
+            total_itens = conn.execute(
+                "SELECT COUNT(*) FROM vendas_itens WHERE unidade_serializada_id=?",
+                (cenario_venda["unidade_id"],),
+            ).fetchone()[0]
+        finally:
+            conn.close()
+        assert total_itens == 2  # histórico preservado: a linha cancelada não é apagada
+        assert _item_ativo(cenario_venda["unidade_id"], primeira_venda_id) == 0
+        assert _item_ativo(cenario_venda["unidade_id"], segunda_venda_id) == 1
+
+    def test_historico_inclui_canceladas_por_padrao(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        resp = client.get("/api/vendas", query_string={"cliente_id": cenario_venda["cliente_id"]})
+
+        assert venda_id in [v["id"] for v in resp.get_json()["items"]]
+
+    def test_historico_filtra_por_status(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        canceladas = client.get(
+            "/api/vendas", query_string={"cliente_id": cenario_venda["cliente_id"], "status": "cancelada"}
+        ).get_json()
+        concluidas = client.get(
+            "/api/vendas", query_string={"cliente_id": cenario_venda["cliente_id"], "status": "concluida"}
+        ).get_json()
+
+        assert canceladas["total"] == 1
+        assert concluidas["total"] == 0
+
+    def test_detalhe_expoe_campos_de_cancelamento(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        antes = client.get(f"/api/vendas/{venda_id}").get_json()["venda"]
+        assert antes["motivo_cancelamento"] is None
+        assert antes["cancelado_em"] is None
+
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "imei_incorreto"})
+
+        depois = client.get(f"/api/vendas/{venda_id}").get_json()["venda"]
+        assert depois["status"] == "cancelada"
+        assert depois["motivo_cancelamento"] == "imei_incorreto"
+        assert depois["cancelado_por"] == usuario_admin["id"]
+        assert depois["cancelado_em"] is not None

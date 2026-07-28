@@ -8,6 +8,18 @@ export function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
 }
 
+// Compartilhado entre VendaDetalhe.jsx e Vendas.jsx (Historico) -- badge de
+// status de venda, mesmo padrão visual dos badges de origem/status já usados
+// em UnidadesSerializadas.jsx.
+export const VENDA_STATUS_BADGE = {
+  concluida: { label: "Concluída", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
+  cancelada: { label: "Cancelada", className: "bg-red-500/10 text-red-300 border-red-500/30" },
+};
+
+export function vendaStatusBadge(status) {
+  return VENDA_STATUS_BADGE[status] || { label: status || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
+}
+
 export function getOrderDisplayNumber(order) {
   if (!order) {
     return "";

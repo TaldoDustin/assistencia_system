@@ -12,8 +12,8 @@
 
 - [x] Discovery — aprovada (BR-037 a BR-043, `docs/product/BUSINESS_RULES.md`)
 - [x] Plano Técnico — aprovado (2026-07-28)
-- [ ] Implementação
-- [ ] Testes
+- [x] Implementação — schema, backend (usuários/vendas), frontend (2026-07-28)
+- [x] Testes — 27 novos (612 no total), `ruff check .`/`npm run lint`/`npm run build` limpos
 - [ ] QA Manual
 - [ ] Encerramento
 

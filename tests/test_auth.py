@@ -7,6 +7,7 @@ Nao cobre estoque, ordens de servico ou lista de compras.
 
 import uuid
 
+import app as _app
 
 # Fixtures de usuario (client, usuario_admin, usuario_tecnico, usuario_inativo, ...)
 # vivem em tests/conftest.py — compartilhadas por toda a suite (Sprint 2.3).
@@ -71,6 +72,28 @@ class TestApiAuthLogin:
         body = resp.get_json()
         assert "senha_hash" not in body["usuario"]
         assert "senha" not in body["usuario"]
+
+    def test_login_expoe_limite_desconto_livre(self, client, usuario_vendedor):
+        """V1.3 -- Descontos (BR-037). Achado no QA Manual: `Login.jsx` popula
+        o `AuthContext` direto desta resposta, sem esperar `/api/auth/me` --
+        sem este campo aqui, o limite ficava `undefined` logo após o login."""
+        conn = _app.conectar()
+        try:
+            conn.execute(
+                "UPDATE usuarios SET limite_desconto_livre = ? WHERE id = ?",
+                (300.0, usuario_vendedor["id"]),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        resp = client.post(
+            "/api/auth/login",
+            json={"usuario": usuario_vendedor["usuario"], "senha": usuario_vendedor["senha"]},
+        )
+
+        assert resp.status_code == 200
+        assert resp.get_json()["usuario"]["limite_desconto_livre"] == 300.0
 
 
 class TestApiAuthMe:

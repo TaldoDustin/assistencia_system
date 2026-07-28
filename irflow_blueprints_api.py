@@ -434,7 +434,8 @@ def create_api_blueprint(deps):
                 return err("Usuário e senha são obrigatórios.")
 
             cursor.execute(
-                "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
+                "SELECT id, nome, senha_hash, perfil, ativo, limite_desconto_livre "
+                "FROM usuarios WHERE usuario = ?",
                 (usuario_txt,),
             )
             row = cursor.fetchone()
@@ -453,7 +454,10 @@ def create_api_blueprint(deps):
             session["usuario_id"] = row[0]
             session["usuario_nome"] = row[1]
             session["usuario_perfil"] = row[3]
-            return ok(usuario={"id": row[0], "nome": row[1], "perfil": row[3]})
+            # V1.3 -- Descontos (BR-037): Login.jsx popula o AuthContext direto
+            # desta resposta (não espera o próximo /api/auth/me) -- sem este
+            # campo aqui, o limite ficava undefined logo após o login.
+            return ok(usuario={"id": row[0], "nome": row[1], "perfil": row[3], "limite_desconto_livre": row[5]})
 
         return err("Usuário ou senha inválidos.", 401)
 

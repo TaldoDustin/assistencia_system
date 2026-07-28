@@ -2,7 +2,7 @@
 
 **Data:** 2026-07-28
 **Feature:** `docs/product/features/VENDAS.md` — "V1.3 — Descontos e Aprovação"; `docs/product/BUSINESS_RULES.md` BR-037 a BR-043
-**Status:** Aprovado pelo CTO (2026-07-28, com 5 ajustes incorporados na revisão)
+**Status:** Concluído (2026-07-28)
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -17,7 +17,7 @@
 - [x] QA Manual — 6 cenários validados (navegador real, servidor real, banco isolado); 1 bug real
       encontrado e corrigido durante o QA (`c10fb70` — `limite_desconto_livre` ausente na resposta de
       login), 613 testes no total
-- [ ] Encerramento
+- [x] Encerramento — `CHANGELOG.md`/`PROJECT_STATUS.md` atualizados (2026-07-28)
 
 ---
 

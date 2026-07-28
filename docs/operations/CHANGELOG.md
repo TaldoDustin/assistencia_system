@@ -282,6 +282,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Histórico de vendas ganhou filtro e badge de status (Concluída/Cancelada)
 - Regras de negócio fechadas antes do código (BR-031 a BR-036, `VENDAS.md`/`BUSINESS_RULES.md`); 14 novos testes (592 no total)
 
+### Adicionado (2026-07-28 — ADR-010, ciclo de feature com regra de negócio)
+- `docs/engineering/adr/ADR-010.md`: formaliza o processo Discovery → Plano Técnico → Implementação → Testes → QA Manual → Encerramento, cada etapa com gate de aprovação explícito, e o Princípio da Separação de Decisões (Plano Técnico nunca decide regra de negócio)
+- Novo artefato `docs/engineering/plans/PLAN-<slug>.md` (template em `docs/engineering/templates/PLAN_TEMPLATE.md`), deliberadamente efêmero — histórico da decisão de implementação, não documentação viva
+
+### Adicionado (2026-07-28 — V1.3, Descontos e Aprovação)
+- `usuarios.limite_desconto_livre` (R$, `NULL` = não configurado — o service, nunca uma query SQL, trata isso como limite efetivo R$0); `POST /api/vendas` exige `desconto_aprovado=true` explícito quando o desconto excede o limite do vendedor — aprovação acontece fora do sistema, o backend só registra a confirmação e o timestamp (`vendas_itens.desconto_aprovado_em`), nunca quem aprovou (BR-037, BR-038)
+- Ajuste Comercial Autorizado (`PATCH /api/vendas/<id>/itens/<id>/ajuste-desconto`) — única exceção formal ao Princípio da Imutabilidade da Venda (BR-034): só `admin`, motivo obrigatório, recálculo transacional (item → soma dos itens ativos → `valor_total`), auditoria append-only via `audit_log`, compare-and-swap contra cancelamento concorrente (BR-043)
+- Regras de negócio fechadas antes do código pela ótica do fluxo real de negociação da loja, não uma lista de perguntas técnicas isoladas (BR-037 a BR-043); primeira feature a seguir o ciclo formal de `ADR-010`
+- 21 novos testes (613 no total). QA Manual (navegador real, servidor real, banco isolado, 6 cenários) encontrou e corrigiu 1 bug real: `limite_desconto_livre` ausente na resposta de `POST /api/auth/login` (`Login.jsx` populava o `AuthContext` direto dessa resposta, sem esperar `/api/auth/me`)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

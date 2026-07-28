@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-27  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → 🟡 fluxo completo de Vendas (desconto/comissão/garantia/troca, condicionado a decisões do Product Owner)
+**Última revisão:** 2026-07-28  
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → 🟡 V1.4 — Comissão (próxima, condicionada a decisões do Product Owner)
 
 ---
 
@@ -411,6 +411,29 @@ reativação → confirmado via API que a unidade voltou a `disponivel` e que `a
 transições de status (`vendido→disponivel`, `disponivel→vendido`) → nova venda com o mesmo IMEI
 concluída como Venda #2 → Histórico lista as duas vendas (`Concluída`/`Cancelada`) corretamente.
 Nenhuma divergência encontrada — Sprint V1.2 encerrada sem achados.
+
+**ADR-010 (CONCLUÍDA em 2026-07-28):** formaliza o ciclo Discovery → Plano Técnico → Implementação →
+Testes → QA Manual → Encerramento, com gate explícito em cada etapa e o Princípio da Separação de
+Decisões (Plano Técnico nunca decide regra de negócio — se surgir, volta para Discovery). Novo artefato
+`docs/engineering/plans/PLAN-<slug>.md` (template em `docs/engineering/templates/PLAN_TEMPLATE.md`),
+deliberadamente efêmero. Processo vive só na ADR — `CLAUDE.md` ganhou apenas uma referência de uma
+linha, por ser processo do projeto, não de uma ferramenta de IA específica.
+
+**V1.3 — Descontos e Aprovação (CONCLUÍDA em 2026-07-28, primeira feature a seguir o ciclo formal da
+ADR-010):** discovery pela ótica do fluxo real de negociação da loja (BR-037 a BR-043,
+`VENDAS.md`/`BUSINESS_RULES.md`), plano técnico revisado e aprovado (5 ajustes incorporados —
+`docs/engineering/plans/PLAN-V1.3-Descontos.md`), depois implementação. `usuarios.limite_desconto_livre`
+(R$, `NULL` = não configurado, tratado como R$0 pelo service — nunca por SQL); `POST /api/vendas` exige
+`desconto_aprovado=true` explícito acima do limite (aprovação acontece fora do sistema, só a confirmação
+e o timestamp são registrados, nunca quem aprovou). Ajuste Comercial Autorizado
+(`PATCH /api/vendas/<id>/itens/<id>/ajuste-desconto`) — única exceção formal ao Princípio da Imutabilidade
+da Venda (BR-034): só `admin`, motivo obrigatório, recálculo transacional, auditoria append-only,
+compare-and-swap contra cancelamento concorrente. 21 novos testes (613 no total), `ruff check .`/
+`npm run lint`/`npm run build` limpos. QA Manual (navegador real, servidor + banco isolados, 6 cenários:
+desconto dentro/acima do limite, vendedor sem limite, Ajuste Comercial, segurança, estado obsoleto) —
+todos passaram; encontrado e corrigido 1 bug real no processo (`limite_desconto_livre` ausente na
+resposta de `POST /api/auth/login`, já que `Login.jsx` popula o `AuthContext` direto dessa resposta, sem
+esperar `/api/auth/me`).
 
 ### Escopo previsto
 

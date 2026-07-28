@@ -986,9 +986,32 @@ def criar_tabelas():
             )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_itens_venda_id ON vendas_itens (venda_id)")
+
+            # V1.2 -- Cancelamento (BR-031 a BR-036, VENDAS.md "V1.2 -- Cancelamento"): cancelar uma
+            # venda é evento comercial, terminal, sem efeito financeiro (estornada fica para o Épico
+            # Financeiro). motivo_cancelamento é lista fechada validada no service, nunca normalizada.
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas ADD COLUMN motivo_cancelamento TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas ADD COLUMN observacao_cancelamento TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas ADD COLUMN cancelado_por INTEGER")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas ADD COLUMN cancelado_em TEXT")
+
+            # ativo distingue a venda vigente de uma unidade das suas vendas canceladas no
+            # histórico -- permite revenda da mesma unidade_serializada_id sem violar o índice
+            # único (BR-033). DEFAULT 1 já backfila as linhas existentes corretamente: toda
+            # vendas_itens hoje é uma venda vigente.
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN ativo INTEGER NOT NULL DEFAULT 1")
+
+            # Substitui o UNIQUE incondicional por um parcial -- só uma linha "ativa" por unidade,
+            # não uma por vida inteira. DROP+CREATE é seguro (índice, não dado) e idempotente.
+            cursor.execute("DROP INDEX IF EXISTS idx_vendas_itens_unidade_serializada_id")
             cursor.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_vendas_itens_unidade_serializada_id "
-                "ON vendas_itens (unidade_serializada_id)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_vendas_itens_unidade_ativa "
+                "ON vendas_itens (unidade_serializada_id) WHERE ativo = 1"
             )
 
             # Add valor column if it doesn't exist

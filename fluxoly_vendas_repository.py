@@ -24,7 +24,8 @@ justificativa já usada em `irflow_unidades_serializadas_repository.py`
 _COLUNAS_VENDA_COM_NOMES = (
     "v.id, v.cliente_id, v.vendedor_id, v.forma_pagamento, v.valor_total, v.status, "
     "v.observacoes, v.criado_em, "
-    "c.nome AS cliente_nome, c.telefone AS cliente_telefone, u.nome AS vendedor_nome"
+    "c.nome AS cliente_nome, c.telefone AS cliente_telefone, u.nome AS vendedor_nome, "
+    "v.motivo_cancelamento, v.observacao_cancelamento, v.cancelado_por, v.cancelado_em"
 )
 _JOIN_VENDA_COM_NOMES = (
     "FROM vendas v "
@@ -183,3 +184,38 @@ def buscar_itens_por_vendas(cursor, venda_ids):
         venda_ids,
     )
     return cursor.fetchall()
+
+
+def cancelar_venda(cursor, venda_id, motivo, observacao, usuario_id):
+    """V1.2 -- Cancelamento (BR-031 a BR-036). `WHERE status = 'concluida'` é compare-and-swap
+    contra cancelamento concorrente da mesma venda (mesmo padrão de
+    `irflow_unidades_serializadas_repository.py::marcar_vendida`) -- também é o que impede
+    "descancelar", já que só há caminho de `concluida` para `cancelada`, nunca o inverso
+    (Princípio da Imutabilidade da Venda). Retorna o número de linhas afetadas -- 0 significa
+    que a venda não estava mais `concluida` (já cancelada ou estado mudou)."""
+    cursor.execute(
+        """
+        UPDATE vendas
+        SET status = 'cancelada', motivo_cancelamento = ?, observacao_cancelamento = ?,
+            cancelado_por = ?, cancelado_em = datetime('now')
+        WHERE id = ? AND status = 'concluida'
+        """,
+        (motivo, observacao or None, usuario_id, venda_id),
+    )
+    return cursor.rowcount
+
+
+def desativar_itens_da_venda(cursor, venda_id):
+    """Marca os itens da venda cancelada como não-vigentes (`ativo = 0`) -- permite que a(s)
+    mesma(s) unidade(s) apareça(m) numa venda nova sem violar o índice único parcial
+    (`idx_vendas_itens_unidade_ativa`, `app.py::criar_tabelas()`), preservando a linha
+    original para histórico/auditoria."""
+    cursor.execute("UPDATE vendas_itens SET ativo = 0 WHERE venda_id = ?", (venda_id,))
+
+
+def buscar_unidades_da_venda(cursor, venda_id):
+    """Unidades a liberar (voltar para `disponivel`) ao cancelar a venda -- nesta fatia sempre
+    1 item, mas já pronto para múltiplos itens por venda (mesmo padrão de
+    `buscar_itens_por_venda`)."""
+    cursor.execute("SELECT unidade_serializada_id FROM vendas_itens WHERE venda_id = ?", (venda_id,))
+    return [row[0] for row in cursor.fetchall()]

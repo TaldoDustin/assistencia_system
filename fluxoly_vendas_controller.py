@@ -117,4 +117,33 @@ def create_vendas_blueprint(deps: dict):
             return err("Venda não encontrada.", 404)
         return ok(venda=venda, itens=itens)
 
+    @vendas_api.route("/<int:venda_id>/cancelar", methods=["POST"])
+    def cancelar_venda(venda_id):
+        """V1.2 -- Cancelamento (BR-031 a BR-036). Gate grosso aqui (logado +
+        perfil admin/vendedor); a checagem fina de "só a própria venda" para
+        vendedor vive em service.cancelar_venda, não aqui."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") not in ("admin", "vendedor"):
+            return err("Permissão negada.", 403)
+
+        body = safe_json(request)
+        sucesso, erro = service.cancelar_venda(
+            conectar,
+            venda_id,
+            session.get("usuario_id"),
+            session.get("usuario_perfil"),
+            body.get("motivo"),
+            body.get("observacao"),
+        )
+        if not sucesso:
+            if erro == "Venda não encontrada.":
+                code = 404
+            elif erro.startswith("Permissão negada"):
+                code = 403
+            else:
+                code = 400
+            return err(erro, code)
+        return ok(id=venda_id, status="cancelada")
+
     return vendas_api

@@ -210,6 +210,21 @@ def marcar_vendida(cursor, unidade_id, venda_id):
     return cursor.rowcount
 
 
+def liberar_venda(cursor, unidade_id):
+    """Transição vendido -> disponivel, exclusiva do domínio Vendas (efeito colateral de
+    cancelar uma venda, ADR-009 seção 3 -- cancelamento é evento de processo, nunca estado
+    da unidade). CAS simétrico a `marcar_vendida`: só libera se ainda está 'vendido'. Limpa
+    `venda_id` -- uma unidade `disponivel` nunca referencia uma venda. Retorna o número de
+    linhas afetadas -- 0 significa que a unidade não estava mais vendida (estado mudou entre
+    a checagem e esta chamada)."""
+    cursor.execute(
+        "UPDATE unidades_serializadas SET status = 'disponivel', venda_id = NULL, "
+        "atualizado_em = datetime('now') WHERE id = ? AND status = 'vendido'",
+        (unidade_id,),
+    )
+    return cursor.rowcount
+
+
 def atualizar_campos(cursor, unidade_id, localizacao, saude_bateria):
     """C1.3.4 — únicos campos editáveis fora da transição de status:
     localizacao e saude_bateria. `None` limpa o valor (mesma semântica de

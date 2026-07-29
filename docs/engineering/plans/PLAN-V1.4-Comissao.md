@@ -19,8 +19,8 @@ UI de comissão fazer sentido), mas cada parte é claramente delimitada abaixo e
 - [x] Discovery — aprovada (BR-044 a BR-054, `docs/product/BUSINESS_RULES.md`, incluindo a revisão de
       BR-037/BR-038)
 - [x] Plano Técnico — aprovado (2026-07-29)
-- [ ] Implementação
-- [ ] Testes
+- [x] Implementação — commits 1 a 6 (`3b74fb4`, `b4284a7`, `4df6b94`, `bafbc53`, `b9a7290`, `d1029f6`)
+- [x] Testes — commit 7 (`116e805`), 625/625 passando
 - [ ] QA Manual
 - [ ] Encerramento
 

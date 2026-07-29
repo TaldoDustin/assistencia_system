@@ -48,6 +48,8 @@ def inserir_venda(cursor, cliente_id, vendedor_id, forma_pagamento, valor_total,
 def inserir_item(
     cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku, valor_tabela,
     valor_unitario, motivo_desconto="",
+    tipo_garantia_id=None, garantia_nome=None, garantia_duracao_meses=None,
+    garantia_data_inicio=None, garantia_data_fim=None,
 ):
     """`quantidade` é sempre 1 nesta fatia — uma unidade serializada não é
     fungível (uma linha de item = uma unidade física). `subtotal` calculado
@@ -60,20 +62,30 @@ def inserir_item(
     `motivo_desconto` é opcional, texto livre (BR-039). `desconto_aprovado_em`
     nunca é gravado a partir daqui (BR-053/BR-054, revisão de 2026-07-29) --
     permanece sempre `NULL` para vendas novas; a coluna só existe por
-    compatibilidade histórica com vendas da V1.3."""
+    compatibilidade histórica com vendas da V1.3.
+
+    V1.5 -- Garantia de Venda (BR-056/BR-057): os cinco campos de garantia são
+    o snapshot completo resolvido pelo service no momento da criação -- esta
+    função só grava, nunca resolve `tipo_garantia_id` nem calcula
+    `garantia_data_fim` (isso é responsabilidade do service, que já validou a
+    obrigatoriedade antes de chegar aqui)."""
     quantidade = 1
     subtotal = valor_unitario * quantidade
     cursor.execute(
         """
         INSERT INTO vendas_itens (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto
+            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto,
+            tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+            garantia_data_inicio, garantia_data_fim
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
             quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto or "",
+            tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+            garantia_data_inicio, garantia_data_fim,
         ),
     )
     return cursor.lastrowid
@@ -204,6 +216,96 @@ def buscar_historico_comissao_item(cursor, item_id):
     return cursor.fetchall()
 
 
+def buscar_garantia_item(cursor, venda_id, item_id):
+    """V1.5 -- Garantia de Venda (BR-057/BR-059). Lê o snapshot completo atual
+    antes de uma correção -- necessário para o evento de auditoria registrar
+    o valor_anterior real. Diferente da comissão, a concessão original
+    acontece na criação da venda (não é lida aqui, é o próprio `inserir_item`
+    que já grava o primeiro valor) -- esta função só serve para corrigir."""
+    cursor.execute(
+        """
+        SELECT id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+               garantia_data_inicio, garantia_data_fim
+        FROM vendas_itens WHERE id = ? AND venda_id = ?
+        """,
+        (item_id, venda_id),
+    )
+    return cursor.fetchone()
+
+
+def corrigir_garantia_item(
+    cursor, venda_id, item_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+    garantia_data_inicio, garantia_data_fim,
+):
+    """V1.5 -- Garantia de Venda (BR-059). Mesmo compare-and-swap do Ajuste
+    Comercial/Comissão: `WHERE` revalida `status='concluida'` no momento da
+    escrita -- não corrige garantia de uma venda cancelada (ela já foi
+    zerada, BR-058). Retorna o número de linhas afetadas."""
+    cursor.execute(
+        """
+        UPDATE vendas_itens
+        SET tipo_garantia_id = ?, garantia_nome = ?, garantia_duracao_meses = ?,
+            garantia_data_inicio = ?, garantia_data_fim = ?
+        WHERE id = ? AND venda_id = ? AND ativo = 1
+          AND EXISTS (
+              SELECT 1 FROM vendas WHERE id = vendas_itens.venda_id AND status = 'concluida'
+          )
+        """,
+        (
+            tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+            garantia_data_inicio, garantia_data_fim, item_id, venda_id,
+        ),
+    )
+    return cursor.rowcount
+
+
+def buscar_itens_com_garantia_por_venda(cursor, venda_id):
+    """Itens da venda com Garantia de Venda concedida (`tipo_garantia_id` não
+    nulo) -- usado no cancelamento (BR-058) para zerar cada um e registrar o
+    evento de auditoria correspondente."""
+    cursor.execute(
+        """
+        SELECT id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+               garantia_data_inicio, garantia_data_fim
+        FROM vendas_itens WHERE venda_id = ? AND tipo_garantia_id IS NOT NULL
+        """,
+        (venda_id,),
+    )
+    return cursor.fetchall()
+
+
+def zerar_garantia_item(cursor, item_id):
+    """BR-058 -- invalida a Garantia de Venda de um item quando a venda é
+    cancelada. Zera todos os campos do snapshot (não só um valor escalar,
+    diferente de `zerar_comissao_item`) -- uma venda cancelada não tem
+    garantia parcial, o snapshot inteiro deixa de fazer sentido."""
+    cursor.execute(
+        """
+        UPDATE vendas_itens
+        SET tipo_garantia_id = NULL, garantia_nome = NULL, garantia_duracao_meses = NULL,
+            garantia_data_inicio = NULL, garantia_data_fim = NULL
+        WHERE id = ?
+        """,
+        (item_id,),
+    )
+
+
+def buscar_historico_garantia_item(cursor, item_id):
+    """Histórico de correções da Garantia de Venda do item (BR-059), mais
+    recente primeiro -- mesmo padrão de `buscar_historico_comissao_item`."""
+    cursor.execute(
+        """
+        SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
+        FROM audit_log a
+        LEFT JOIN usuarios u ON a.usuario_id = u.id
+        WHERE a.entidade = 'venda_item' AND a.entidade_id = ? AND a.acao = 'garantia_alterada'
+        ORDER BY a.id DESC
+        """,
+        (item_id,),
+    )
+    return cursor.fetchall()
+
+
 def buscar_por_id(cursor, venda_id):
     cursor.execute(
         f"SELECT {_COLUNAS_VENDA_COM_NOMES} {_JOIN_VENDA_COM_NOMES} WHERE v.id = ?",
@@ -221,7 +323,9 @@ def buscar_itens_por_venda(cursor, venda_id):
         """
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor,
+               vi.tipo_garantia_id, vi.garantia_nome, vi.garantia_duracao_meses,
+               vi.garantia_data_inicio, vi.garantia_data_fim
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id = ?
@@ -308,7 +412,9 @@ def buscar_itens_por_vendas(cursor, venda_ids):
         f"""
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor,
+               vi.tipo_garantia_id, vi.garantia_nome, vi.garantia_duracao_meses,
+               vi.garantia_data_inicio, vi.garantia_data_fim
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id IN ({marcadores})

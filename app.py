@@ -1050,6 +1050,56 @@ def criar_tabelas():
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE vendas_itens ADD COLUMN comissao_valor REAL")
 
+            # V1.5 -- Garantia (BR-055 a BR-066, VENDAS.md "V1.5 -- Garantia"). Cadastro de
+            # política (Tipo de Garantia) separado da instância concedida (Garantia) -- nunca
+            # confundir os dois no código. `ativo` permite ao admin aposentar uma política sem
+            # apagá-la; nunca afeta garantias já concedidas, que são snapshot (colunas abaixo).
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS tipos_garantia (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                duracao_meses INTEGER NOT NULL,
+                ativo INTEGER NOT NULL DEFAULT 1,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """)
+
+            # Garantia de Venda (BR-056/BR-057): atribuída manualmente por item, na criação da
+            # venda -- sem default vindo do produto. Snapshot completo (id do tipo, nome,
+            # duração, datas) para que uma edição futura em `tipos_garantia` nunca altere uma
+            # garantia já concedida. Nullable no schema (compatibilidade com linhas já
+            # existentes) -- a obrigatoriedade de BR-056 é imposta pelo service, nunca pelo
+            # schema, mesmo padrão já usado no resto do domínio Vendas. Sem FOREIGN KEY real em
+            # `tipo_garantia_id`, mesmo padrão do resto do schema (FK lógica).
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN tipo_garantia_id INTEGER")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN garantia_nome TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN garantia_duracao_meses INTEGER")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN garantia_data_inicio TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN garantia_data_fim TEXT")
+
+            # Garantia de Reparo (BR-061 a BR-063): mesmo conjunto de colunas, mas por linha de
+            # reparo (`os_reparos`), não por OS inteira -- uma OS com reparos diferentes pode ter
+            # garantias diferentes, cada linha mantém a sua (BR-062). Atribuída na conclusão da
+            # OS (`Finalizado`), não na criação -- substitui o prazo fixo de 90 dias hardcoded
+            # (`GARANTIA_REPARO_DIAS_PADRAO`, mantida só como fallback para dados históricos sem
+            # `tipo_garantia_id`, ver `listar_garantias`).
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE os_reparos ADD COLUMN tipo_garantia_id INTEGER")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE os_reparos ADD COLUMN garantia_nome TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE os_reparos ADD COLUMN garantia_duracao_meses INTEGER")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE os_reparos ADD COLUMN garantia_data_inicio TEXT")
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE os_reparos ADD COLUMN garantia_data_fim TEXT")
+
             # Add valor column if it doesn't exist
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")

@@ -36,11 +36,14 @@ Depende de: `irflow_clientes_service.py` (validar cliente),
 
 import sqlite3
 from collections import defaultdict
+from datetime import date
 
 import irflow_clientes_service as clientes_service
 import irflow_unidades_serializadas_service as unidades_service
 from irflow_audit import registrar_log_auditoria
+from irflow_core import calcular_data_fim_garantia
 
+import fluxoly_tipos_garantia_service as tipos_garantia_service
 import fluxoly_vendas_repository as repo
 
 FORMAS_PAGAMENTO_VALIDAS = {"pix", "cartao", "dinheiro", "transferencia"}
@@ -109,12 +112,20 @@ def _item_para_dict(row):
         # nada de comissão) acontece no controller, nunca aqui -- o service
         # continua perfil-agnóstico, sempre retorna o dado completo.
         "comissao_valor": row[14],
+        # V1.5 -- Garantia de Venda (BR-056/BR-057): snapshot completo, sem
+        # ocultação por perfil (diferente da comissão) -- qualquer usuário
+        # autenticado que vê a venda vê a garantia.
+        "tipo_garantia_id": row[15],
+        "garantia_nome": row[16],
+        "garantia_duracao_meses": row[17],
+        "garantia_data_inicio": row[18],
+        "garantia_data_fim": row[19],
     }
 
 
 def iniciar_venda(
     conectar, usuario_id, cliente_id, unidade_serializada_id, forma_pagamento, valor_unitario,
-    observacoes="", motivo_desconto=None,
+    tipo_garantia_id, observacoes="", motivo_desconto=None,
 ):
     """Retorna (venda_id, erro). `erro` é None em caso de sucesso.
 
@@ -127,12 +138,22 @@ def iniciar_venda(
     por vendedor (BR-037/BR-038); revogado no dia seguinte por não refletir
     o fluxo real de negociação da loja -- ver `VENDAS.md` "Revisão do modelo
     de desconto".
+
+    Garantia de Venda (BR-056/BR-057): `tipo_garantia_id` é obrigatório --
+    sem default vindo do produto do catálogo, decisão deliberada da
+    discovery. Resolvido e congelado (nome/duração/datas) no momento da
+    criação; editar o cadastro de Tipos de Garantia depois nunca afeta esta
+    venda.
     """
     forma_pagamento = (forma_pagamento or "").strip().lower()
     if forma_pagamento not in FORMAS_PAGAMENTO_VALIDAS:
         return None, "Forma de pagamento inválida."
     if not isinstance(valor_unitario, (int, float)) or valor_unitario <= 0:
         return None, "Valor deve ser maior que zero."
+
+    tipo_garantia = tipos_garantia_service.obter_tipo_garantia(conectar, tipo_garantia_id)
+    if not tipo_garantia or not tipo_garantia["ativo"]:
+        return None, "Tipo de Garantia inválido ou inativo."
 
     cliente = clientes_service.obter_cliente(conectar, cliente_id)
     if not cliente:
@@ -149,6 +170,9 @@ def iniciar_venda(
     produto_id = unidade["produto_id"]
     valor_tabela = unidade["preco_catalogo"]
 
+    garantia_data_inicio = date.today()
+    garantia_data_fim = calcular_data_fim_garantia(garantia_data_inicio, tipo_garantia["duracao_meses"])
+
     conn = conectar()
     try:
         cursor = conn.cursor()
@@ -158,6 +182,11 @@ def iniciar_venda(
         repo.inserir_item(
             cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
             valor_tabela, valor_unitario, motivo_desconto or "",
+            tipo_garantia_id=tipo_garantia["id"],
+            garantia_nome=tipo_garantia["nome"],
+            garantia_duracao_meses=tipo_garantia["duracao_meses"],
+            garantia_data_inicio=garantia_data_inicio.isoformat(),
+            garantia_data_fim=garantia_data_fim.isoformat(),
         )
 
         sucesso, erro = unidades_service.marcar_como_vendida(cursor, unidade_serializada_id, venda_id, usuario_id)

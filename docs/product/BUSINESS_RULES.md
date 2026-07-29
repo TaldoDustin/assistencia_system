@@ -210,10 +210,12 @@ bloqueada em "aguardando aprovação" — nunca há bypass.
 Comissão do vendedor é sempre calculada sobre a margem (venda − custo), nunca sobre o valor bruto.
 *Fonte: `VENDAS.md` — "Decisões já tomadas", "Critérios de aceite".*
 
-**BR-020 — 📋 Especificado**
-Garantia de venda tem prazo próprio por tipo de aparelho (novo/seminovo), independente do prazo fixo de
-90 dias hardcoded do reparo.
-*Fonte: `VENDAS.md` — "Decisões já tomadas".*
+**BR-020 — 📋 Especificado — refinada pela discovery de 2026-07-29, ver BR-055 a BR-066**
+Garantia de venda tem prazo próprio, independente do prazo fixo de 90 dias hardcoded do reparo. A
+discovery da V1.5 (2026-07-29) substituiu o modelo original "prazo fixo por tipo de aparelho novo/
+seminovo" por um cadastro configurável de Tipos de Garantia, atribuído manualmente por item — não uma
+regra de prazo fixa por condição do aparelho.
+*Fonte: `VENDAS.md` — "Decisões já tomadas"; "V1.5 — Garantia".*
 
 **BR-021 — 📋 Especificado**
 Aparelho escolhido sem estoque disponível no momento da confirmação gera erro explícito antes do
@@ -390,6 +392,85 @@ Ajuste Comercial (BR-043, editar desconto pós-venda) continua exclusivo do perf
 `financeiro` não ganha esse direito.
 *Fonte: `VENDAS.md` — "V1.4 — Comissão".*
 
+**BR-055 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Novo cadastro **Tipos de Garantia** (nome + duração em meses de calendário), CRUD restrito a `admin`.
+Distinção de domínio deliberada: **Tipo de Garantia** é a política configurável (o cadastro); **Garantia**
+é a instância concreta concedida a um item de venda ou a um reparo específico — os dois nunca devem ser
+confundidos no código nem na UI. Representa política comercial desta loja, nunca um valor hardcoded no
+sistema. Não existe obrigatoriedade de um tipo "Sem garantia" (0 meses) existir no cadastro — é uma
+política comercial que o `admin` cria se fizer sentido para a loja, não uma exigência técnica do sistema.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-056 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Garantia de Venda: um Tipo de Garantia é atribuído manualmente, por item de venda, **na criação da
+venda** — obrigatório (toda venda concluída precisa ter uma Garantia de Venda atribuída ao item; nenhum
+item fica sem seleção, mas o Tipo de Garantia escolhido pode ser aquele que representa "sem cobertura",
+se um existir no cadastro). Sem default automático vindo do produto do catálogo — decisão explícita de
+manter simples, sem tocar `produtos`.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-057 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Ao conceder a Garantia de Venda, o sistema copia para o registro do item: id do Tipo de Garantia, nome
+(snapshot), duração em meses (snapshot), data de início e `data_fim_garantia` já calculada — nunca um
+JOIN ao vivo com o cadastro. Alterações futuras no cadastro de Tipos de Garantia (ex.: "Seminovo" de 6
+para 12 meses) não afetam garantias já concedidas — mesma disciplina já aplicada a `valor_tabela`
+(V1.1), histórico de desconto (V1.3) e comissão (V1.4).
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-058 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Cancelar a venda invalida/zera a Garantia de Venda do item cancelado — mesmo padrão de BR-051 (comissão
+zerada no cancelamento).
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-059 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Corrigir uma Garantia de Venda já concedida é restrito a `admin`, com auditoria append-only (valor
+anterior, valor novo, quem, quando) — mesmo padrão do Ajuste Comercial (BR-043) e da edição de comissão
+(BR-049): a correção é mais restrita que a atribuição original (que é `admin`/`vendedor`).
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-060 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Garantia de Venda cobre apenas vendas de `produtos` (catálogo comercial) — não o caminho legado
+`estoque`, fora de escopo desta fase.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-061 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Garantia de Reparo: um Tipo de Garantia é atribuído manualmente, por linha de reparo dentro da OS
+(`os_reparos`), **na conclusão da OS** (`Finalizado`) — obrigatório, mesmo padrão de exigência de BR-056.
+Sem default automático vindo do cadastro de Tipos de Reparo (`reparos`) — decisão explícita, mesma razão
+de BR-056.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-062 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Mesma disciplina de snapshot de BR-057 aplicada à Garantia de Reparo, calculada a partir de
+`data_finalizado`. Se uma OS combina múltiplos reparos com Tipos de Garantia diferentes, cada linha de
+`os_reparos` mantém sua própria Garantia — não existe uma "garantia da OS" única/agregada.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-063 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Garantia de Reparo substitui o prazo fixo de 90 dias hardcoded (`GARANTIA_REPARO_DIAS_PADRAO`) — resolve
+a dívida técnica já registrada em `VENDAS.md`/`OPERATION_SYSTEM.md`. A tela de Garantias existente e o
+alerta de "perto de vencer" passam a ler a Garantia de Reparo de cada linha, não mais o valor fixo.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-064 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Cancelar a OS invalida/zera a Garantia de Reparo já concedida a qualquer linha de reparo — mesmo padrão
+de BR-058.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-065 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Corrigir uma Garantia de Reparo já concedida é restrito a `admin`, com auditoria — mesmo padrão de
+BR-059.
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
+**BR-066 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+Garantia de Venda e Garantia de Reparo são domínios independentes — nenhum vínculo formal entre uma OS
+aberta por defeito coberto por Garantia de Venda e a venda original. A decisão de cobrar ou não a OS
+nesse caso fica manual/informal, fora do sistema (candidata a automatizar em sprint futura, se o volume
+de casos justificar). O cadastro de Tipos de Garantia é configurável **por esta loja/deploy**, não um
+modelo multi-tenant real — `empresa_id` não existe no schema hoje (fica para quando Multiempresa for
+escopada, ADR-005).
+*Fonte: `VENDAS.md` — "V1.5 — Garantia".*
+
 ### Regras candidatas — exemplos citados nesta conversa (2026-07-10), pendentes de confirmação formal
 
 O Product Owner citou estes exemplos ao propor este documento. Onde já existe decisão formal em
@@ -401,7 +482,9 @@ confirmada, para não inflar o número de "especificadas" com algo ainda não de
   tomadas" hoje; consistente com `VENDAS.md` "Quem usa" (vendedor conduz a venda), mas não formalizada
   como regra de validação.
 - *"Uma reserva expira automaticamente"* — já coberto por BR-017.
-- *"Garantia nunca pode ser alterada após emitida"* — **candidata**, não está em `VENDAS.md` hoje.
+- ~~*"Garantia nunca pode ser alterada após emitida"*~~ — **resolvida em 2026-07-29** (discovery V1.5):
+  a resposta real é mais nuançada que a candidata original — garantia **pode** ser corrigida depois de
+  concedida, mas restrito a `admin`, com auditoria (BR-059/BR-065), mesmo padrão do Ajuste Comercial.
 - ~~*"Uma venda cancelada devolve o IMEI ao estoque"*~~ — **formalizada em 2026-07-27** como BR-033
   (discuss-phase de V1.2 — Cancelamento).
 
@@ -423,7 +506,7 @@ Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis
 
 ## Documentos relacionados
 
-- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-054)
+- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-066)
 - `docs/product/features/CLIENTES.md` — fonte das regras de Clientes (BR-023, BR-024)
 - `docs/engineering/DOMAIN_MODEL.md` — domínios e arquivos onde cada regra implementada vive
 - `docs/engineering/DATABASE.md` — schema citado nas regras de Estoque/Compras

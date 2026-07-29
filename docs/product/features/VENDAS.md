@@ -125,7 +125,9 @@ Não decidido nesta conversa — não assumir resposta implícita para nenhum de
 - **Valor exato do timeout de reserva de IMEI** (minutos) — TODO, decisão de Product Owner
 - **Percentual de comissão sobre margem** — TODO, decisão de Product Owner
 - **Limite de desconto do vendedor sem aprovação** — TODO, decisão de Product Owner
-- **Prazo de garantia por tipo de aparelho** (novo vs. seminovo) — TODO, decisão de Product Owner
+- ~~**Prazo de garantia por tipo de aparelho**~~ — resolvido pela discovery da V1.5 (2026-07-29): não é
+  mais um prazo fixo por tipo, é um cadastro configurável de Tipos de Garantia (ver seção "V1.5 —
+  Garantia")
 - **Critérios exatos do checklist de avaliação de usado** e tabela de referência por modelo — TODO, provavelmente vira `docs/product/features/AVALIACAO_USADO.md` próprio se crescer
 - **Modelo de dados de `clientes`** — não está mais em aberto aqui: especificado em `docs/product/features/CLIENTES.md`, incluindo os pontos de deduplicação/unicidade ainda pendentes de decisão do Product Owner
 
@@ -411,6 +413,78 @@ explicitamente (contraste com o resto do domínio, onde nada acontece sem quem d
 
 ---
 
+## V1.5 — Garantia (discovery concluída em 2026-07-29, sem código ainda)
+
+Discovery aberta a partir de uma proposta de negócio trazida pelo usuário (CTO): o prazo de garantia
+**não pode ser um valor fixo no código** — depende de uma política comercial da loja, que varia por tipo
+de aparelho (lacrado, seminovo, seminovo premium, modelo específico) e por tipo de reparo (troca de
+tela, troca de bateria, limpeza), e que precisa ser configurável sem exigir deploy. `BR-020` (2026-07-09)
+já registrava uma versão inicial dessa ideia ("prazo próprio por tipo de aparelho, novo/seminovo"); esta
+discovery generaliza para um cadastro de política, não um prazo fixo por condição.
+
+**Dois conceitos completamente independentes, sem vínculo automático entre eles:**
+
+1. **Garantia de Venda** — cobre o aparelho vendido (defeito eletrônico, exclui dano físico/água).
+2. **Garantia de Reparo** — cobre um reparo específico feito na Assistência, substituindo o prazo fixo
+   de 90 dias hoje hardcoded (`GARANTIA_REPARO_DIAS_PADRAO`, dívida técnica já registrada).
+
+Quando um cliente volta com um aparelho vendido, ainda dentro da Garantia de Venda, apresentando defeito,
+a OS aberta para o conserto **não tem vínculo formal com a venda original** — o sistema só rastreia as
+duas datas de garantia (a da venda e a do reparo, cada uma independente); a decisão de cobrar ou não essa
+OS específica fica manual/informal, fora do sistema. Automatizar esse vínculo é candidato a uma sprint
+futura, se o volume de casos justificar — não faz parte do escopo desta.
+
+**Cadastro de política vs. instância concedida — distinção central do domínio (BR-055).** **Tipo de
+Garantia** é o cadastro (nome + duração em meses de calendário), CRUD restrito a `admin` — representa a
+política comercial da loja. **Garantia** é a instância concreta concedida a um item de venda ou a uma
+linha de reparo específica, no momento em que a venda é criada ou a OS é concluída. Os dois termos nunca
+devem ser confundidos no código nem na UI: alterar o cadastro de Tipos de Garantia não deve, por si só,
+mudar nenhuma Garantia já concedida (ver snapshot, abaixo). Não existe obrigatoriedade de um Tipo de
+Garantia "Sem garantia" (0 meses) existir no cadastro — é uma política que cada loja escolhe ter ou não,
+não uma exigência técnica do sistema.
+
+**Garantia de Venda: manual, obrigatória, na criação (BR-056).** Um Tipo de Garantia é escolhido por item
+de venda no momento da criação da venda (junto com forma de pagamento e desconto) — sem default vindo do
+produto do catálogo. Decisão explícita de manter simples: nenhuma mudança em `produtos` nesta fase.
+
+**Snapshot no momento da concessão (BR-057).** Ao conceder a Garantia (de venda ou de reparo), o sistema
+copia para o registro: id do Tipo de Garantia, nome, duração em meses, data de início e `data_fim`
+já calculada — nunca recalculado via um JOIN ao vivo com o cadastro depois. Mudar a duração de "Seminovo"
+de 6 para 12 meses no cadastro não altera nenhuma garantia já concedida — mesma disciplina já aplicada a
+`valor_tabela` (Vendas MVP), ao histórico de desconto (V1.3) e à comissão (V1.4).
+
+**Cancelamento invalida a garantia (BR-058/BR-064).** Cancelar a venda zera a Garantia de Venda do item;
+cancelar a OS zera a Garantia de Reparo das linhas afetadas — mesmo padrão já usado para zerar comissão
+no cancelamento de venda (BR-051).
+
+**Correção restrita a admin, com auditoria (BR-059/BR-065).** Uma Garantia já concedida pode ser
+corrigida depois — mas só por `admin`, com o mesmo princípio append-only do Ajuste Comercial (valor
+anterior, valor novo, quem, quando). A atribuição original é mais permissiva (`admin`/`vendedor` na
+venda) do que a correção — mesma assimetria já usada no Ajuste Comercial.
+
+**Garantia de Reparo: manual, obrigatória, na conclusão da OS, por linha de reparo (BR-061/BR-062).**
+Diferente da venda, o momento certo é a conclusão (`Finalizado`), não a criação da OS — o prazo só faz
+sentido contar a partir de quando o serviço termina, mesma lógica já usada pelo prazo fixo de 90 dias
+hoje. Sem default vindo do cadastro de Tipos de Reparo (`reparos`) — mesma decisão de simplicidade da
+venda. Se uma OS combina múltiplos reparos com Tipos de Garantia diferentes, **cada linha mantém sua
+própria garantia** — não existe uma garantia única agregada por OS.
+
+**Substitui o prazo fixo de 90 dias (BR-063).** Resolve a dívida técnica já registrada — a tela de
+Garantias existente e o alerta de "perto de vencer" passam a ler a Garantia de Reparo de cada linha, não
+mais `GARANTIA_REPARO_DIAS_PADRAO`.
+
+**Escopo e não-escopo (BR-060/BR-066).** Garantia de Venda cobre só vendas de `produtos` (catálogo
+comercial), não o caminho legado `estoque`. O cadastro de Tipos de Garantia é configurável **por esta
+loja/deploy** — não é um modelo multi-tenant real (`empresa_id` não existe no schema hoje; fica para
+quando Multiempresa for de fato escopada, `ADR-005`).
+
+*Fonte: discovery com o usuário (CTO), 2026-07-29, conduzida a partir de uma proposta de negócio trazida
+pelo próprio usuário (cadastro de política de garantia, não prazo fixo), refinada em rodadas sucessivas
+até chegar num modelo onde Garantia de Venda e Garantia de Reparo ficaram como domínios independentes,
+ambos de atribuição manual.*
+
+---
+
 ## Modelo de dados (implementado — difere do proposto originalmente)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`
@@ -564,7 +638,7 @@ CREATE INDEX idx_vendas_garantias_venda_id ON vendas_garantias(venda_id);
 - [ ] Comissão calculada sempre sobre margem, nunca sobre valor bruto — não implementado, depende do % de comissão (decisão do Product Owner)
 - [ ] Desconto acima do limite do vendedor é fisicamente impossível de confirmar sem aprovação de admin — não implementado, depende do limite (decisão do Product Owner)
 - [x] Cliente é uma entidade própria — nenhuma venda salva nome de cliente como texto solto — **atendido**: `vendas.cliente_id` é FK lógica para `clientes.id`, obrigatória
-- [ ] Garantia emitida reflete o tipo de aparelho (novo/seminovo), nunca o valor fixo de 90 dias do reparo — não implementado, `vendas_garantias` não criada
+- [ ] Garantia emitida reflete o Tipo de Garantia atribuído manualmente ao item, nunca um prazo fixo por tipo de aparelho — discovery concluída (BR-055 a BR-066, ver "V1.5 — Garantia"), não implementado ainda
 
 ---
 
@@ -583,6 +657,7 @@ tempo médio de venda, número de vendas com troca, taxa de aprovação de desco
 - `docs/engineering/DOMAIN_MODEL.md` — domínios existentes hoje (1.3 OS, 1.4 Estoque) e lacunas estruturais (Cliente, Financeiro) citadas nas decisões acima
 - `docs/engineering/ENGINEERING_GUIDE.md` seção 3.1 — convenção de camadas obrigatória para o novo domínio Vendas quando for implementado
 - `docs/operations/ROADMAP.md` — roadmap de engenharia (eixo separado deste documento)
-- `docs/product/BUSINESS_RULES.md` — BR-017 a BR-022 (fluxo original), BR-031 a BR-036 (V1.2 — Cancelamento)
+- `docs/product/BUSINESS_RULES.md` — BR-017 a BR-022 (fluxo original), BR-031 a BR-036 (V1.2 — Cancelamento),
+  BR-037 a BR-054 (V1.3 — Descontos/Aprovação, revisão e Comissão), BR-055 a BR-066 (V1.5 — Garantia)
 - `docs/company/OPERATION_SYSTEM.md` — blocos Venda/Troca/Reserva/Garantia posicionam este spec no ciclo completo da loja
 - `docs/engineering/adr/ADR-009.md` — modelo de domínio da Unidade Serializada (eixos, `origem_tipo`, mecanismo do `UNIQUE`) que a seção "V1.2 — Cancelamento" fecha

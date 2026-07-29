@@ -139,16 +139,21 @@ tabelas `estoque`/`estoque_lotes` para o detalhe campo a campo.
 
 ## Garantia
 
-**Status: 🟡 Parcial — dois contextos diferentes, não confundir.**
+**Status: 🟡 Parcial — dois processos comerciais independentes, não confundir (discovery da V1.5,
+2026-07-29, `docs/product/features/VENDAS.md` "V1.5 — Garantia").**
 
-1. **Garantia de reparo (Assistência)** — já existe: `os.tipo = 'Garantia'` é um dos três tipos de OS
-   (`Assistencia`\|`Garantia`\|`Upgrade`), com prazo fixo de 90 dias hardcoded (dívida técnica conhecida).
-2. **Garantia de venda** — especificada, não implementada: prazo próprio por tipo de aparelho
-   (novo/seminovo), desacoplado do prazo de 90 dias do reparo desde o início (BR-020).
+1. **Garantia de reparo (Assistência)** — hoje ainda usa prazo fixo de 90 dias hardcoded
+   (`GARANTIA_REPARO_DIAS_PADRAO`, dívida técnica conhecida); especificado para virar um cadastro
+   configurável de Tipos de Garantia, atribuído manualmente por linha de reparo na conclusão da OS
+   (BR-061 a BR-065). Não implementado ainda.
+2. **Garantia de venda** — especificada, não implementada: cadastro de Tipos de Garantia (política
+   comercial da loja, não prazo fixo por tipo de aparelho), atribuído manualmente por item na criação da
+   venda (BR-055 a BR-060).
 
-`TODO` — não fundamentado: prazo exato de garantia por tipo de aparelho (`VENDAS.md` já registra isso
-como decisão pendente do Product Owner); o que a garantia cobre exatamente (defeito de fábrica,
-qualquer defeito, exclui dano físico); processo de acionamento pelo cliente.
+Cobre qualquer defeito eletrônico, exclui dano físico/água (decisão de negócio confirmada). Sem vínculo
+formal entre uma OS aberta por defeito coberto por garantia de venda e a venda original — decisão de
+cobrar fica manual/informal (BR-066). Processo de acionamento pelo cliente continua não fundamentado além
+disso — fora do escopo da V1.5.
 
 ---
 

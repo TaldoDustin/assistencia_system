@@ -275,41 +275,41 @@ padrão, identificadas por badge de status — nunca oculta por padrão. Filtro 
 no backend) permite restringir a visualização quando necessário.
 *Fonte: `VENDAS.md` — "V1.2 — Cancelamento".*
 
-**BR-037 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
-Limite de desconto livre (sem aprovação) é em R$ (valor fixo, não percentual) e **individual por
-vendedor** — não um teto único global. Pendente para o plano técnico: comportamento quando o vendedor não
-possuir limite configurado (bloquear desconto, assumir R$ 0, ou outro comportamento a definir).
-*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+**BR-037 — ❌ REVOGADA (2026-07-29) — ver BR-053**
+~~Limite de desconto livre (sem aprovação) é em R$ (valor fixo, não percentual) e individual por
+vendedor.~~ Implementada em 2026-07-28 (V1.3, `c824958`), revogada no dia seguinte na revisão do modelo de
+desconto — a loja não opera com bloqueio preventivo. Ver BR-053 para a regra vigente.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação"; "Revisão do modelo de desconto (2026-07-29)".*
 
-**BR-038 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
-Acima do limite livre, a aprovação acontece fora do sistema (presencial ou remota, pelo perfil `admin` —
-não existe perfil `gerente` separado). Nesta versão (V1.3), o sistema registra apenas que houve aprovação
-administrativa; a identidade do administrador que concedeu a autorização **não é armazenada** — decisão
-consciente de produto, não limitação técnica.
-*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+**BR-038 — ❌ REVOGADA (2026-07-29) — ver BR-053**
+~~Acima do limite livre, a aprovação acontece fora do sistema; o sistema registra apenas a confirmação
+de que houve aprovação.~~ Implementada em 2026-07-28 (V1.3, `c824958`), revogada no dia seguinte — não
+existe mais bloqueio nem confirmação de aprovação para desconto algum. Ver BR-053.
+*Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação"; "Revisão do modelo de desconto (2026-07-29)".*
 
-**BR-039 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+**BR-039 — ✅ Implementado (2026-07-28, V1.3, `c824958`)**
 Motivo do desconto na criação da venda é opcional, texto livre — deliberadamente diferente do motivo de
-cancelamento (BR-032, lista fechada obrigatória).
+cancelamento (BR-032, lista fechada obrigatória). Não afetado pela revisão de 2026-07-29.
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
-**BR-040 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+**BR-040 — ✅ Implementado (2026-07-28, V1.3, `c824958`)**
 O comprovante/recibo da venda exibe preço de tabela, desconto aplicado e valor final ao cliente —
 transparência total, não só informação interna do Detalhe da venda.
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
-**BR-041 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+**BR-041 — ✅ Implementado (2026-07-28, V1.3, `c824958`)**
 A base de cálculo de comissão (V1.4) não é decidida pelo sistema — fica configurável por loja/cliente da
-plataforma. V1.3 preserva `valor_tabela`/`valor_unitario` separados (já implementado) para não travar
-nenhuma fórmula futura.
+plataforma. V1.3 preserva `valor_tabela`/`valor_unitario` separados para não travar nenhuma fórmula
+futura. Cumprida concretamente pela V1.4 (BR-048: comissão sempre atribuída manualmente, nunca por
+fórmula fixa do sistema).
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
-**BR-042 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+**BR-042 — ✅ Implementado (2026-07-28, V1.3, `c824958`)**
 O desconto é calculado sobre `valor_tabela` (preço de catálogo). "Preço promocional" distinto fica fora do
 escopo da V1.3 — registrado como backlog, não decisão pendente.
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
 
-**BR-043 — 🟡 Proposto (discovery 2026-07-28, V1.3) — aguardando plano técnico**
+**BR-043 — ✅ Implementado (2026-07-28, V1.3, `c824958`)**
 Ajuste Comercial Autorizado: única exceção formalmente definida ao Princípio da Imutabilidade da Venda
 (BR-034, que permanece válido e não é reaberto de forma ampla). Um `admin` pode ajustar o desconto/
 `valor_unitario` de uma venda já concluída, e só esse campo — cliente, IMEI/Unidade Serializada, forma de
@@ -318,6 +318,72 @@ pagamento, vendedor, data, status e itens continuam imutáveis sem exceção. A 
 quando, e motivo do ajuste (motivo aqui é **obrigatório**, diferente do motivo opcional do desconto
 original em BR-039).
 *Fonte: `VENDAS.md` — "V1.3 — Descontos e Aprovação".*
+
+**BR-053 — 🟡 Proposto (discovery 2026-07-29) — aguardando plano técnico**
+Revisão do modelo de desconto (revoga BR-037 e BR-038): desconto nunca bloqueia a venda, independente do
+valor — sempre permitido e sempre registrado. Modelo passa de preventivo (impede a venda) para analítico
+(acompanhamento acontece depois, fora do fluxo de venda). Painel de indicadores de desconto (por
+vendedor, ranking, vendas fora do padrão) é explicitamente **fora de escopo** desta sprint — vira uma
+sprint própria (V1.4.1 ou V1.5), com discovery dedicada.
+*Fonte: `VENDAS.md` — "Revisão do modelo de desconto (2026-07-29)".*
+
+**BR-054 — 🟡 Proposto (discovery 2026-07-29) — aguardando plano técnico**
+`usuarios.limite_desconto_livre` e `vendas_itens.desconto_aprovado_em` (colunas da V1.3) deixam de ser
+lidos/escritos por qualquer fluxo a partir desta revisão, mas **permanecem no schema sem remoção** —
+evita migração destrutiva agora; dado histórico já gravado (vendas da V1.3) não é apagado.
+*Fonte: `VENDAS.md` — "Revisão do modelo de desconto (2026-07-29)".*
+
+**BR-044 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Novo perfil `financeiro` — não substitui `admin`, representa uma função própria de acompanhamento
+financeiro das vendas. **Nota de visão (não escopo desta sprint):** este perfil é o embrião do futuro
+domínio Financeiro completo do roadmap de 6 fases (`docs/company/RELEASE_STRATEGY.md`) — caixa, metas,
+contas a pagar/receber, painel de indicadores. A V1.4 implementa só o necessário para comissão, não a
+visão inteira.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-045 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Escopo de acesso do `financeiro` nesta sprint: histórico e Detalhe de vendas (`GET /api/vendas`,
+`GET /api/vendas/<id>` — já existentes, hoje liberados a qualquer perfil autenticado), Dashboard, e os
+relatórios já existentes (IR Phones, Técnicos, Custos Operacionais). Nenhuma rota nova de leitura é criada
+para isso — é extensão de permissão sobre rotas já existentes, mais a nova capacidade de atribuir
+comissão (BR-048).
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-046 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+`financeiro` não acessa usuários, permissões, configurações de sistema, estoque, compras, cadastro de
+produtos, Ordens de Serviço, nem auditoria técnica. Não cria nem cancela vendas — só visualiza e atribui
+comissão.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-047 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Vendedor não tem nenhuma visibilidade sobre comissão em nenhuma tela do sistema — nem a própria.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-048 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Comissão é atribuída manualmente, por `financeiro` ou `admin`, por item de venda (`vendas_itens`) — nunca
+calculada automaticamente por uma fórmula fixa do sistema (percentual, valor fixo, categoria, etc.). A
+mesma estrutura de dado suporta qualquer política de comissão que a loja adotar.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-049 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Comissão pode ser editada depois de atribuída, por `financeiro` ou `admin`, com auditoria (valor anterior,
+valor novo, quem editou, quando) — mesmo princípio append-only já usado no Ajuste Comercial (BR-043).
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-050 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Não existe campo de motivo/observação específico para a atribuição de comissão — diferente do desconto
+(BR-039).
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-051 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Cancelamento de venda (V1.2, BR-031 a BR-036) zera automaticamente a comissão associada ao item
+cancelado, sem intervenção manual do `financeiro`.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
+
+**BR-052 — 🟡 Proposto (discovery 2026-07-29, V1.4) — aguardando plano técnico**
+Ajuste Comercial (BR-043, editar desconto pós-venda) continua exclusivo do perfil `admin` — o novo perfil
+`financeiro` não ganha esse direito.
+*Fonte: `VENDAS.md` — "V1.4 — Comissão".*
 
 ### Regras candidatas — exemplos citados nesta conversa (2026-07-10), pendentes de confirmação formal
 
@@ -352,7 +418,7 @@ Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis
 
 ## Documentos relacionados
 
-- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-043)
+- `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-054)
 - `docs/product/features/CLIENTES.md` — fonte das regras de Clientes (BR-023, BR-024)
 - `docs/engineering/DOMAIN_MODEL.md` — domínios e arquivos onde cada regra implementada vive
 - `docs/engineering/DATABASE.md` — schema citado nas regras de Estoque/Compras

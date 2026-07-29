@@ -322,6 +322,95 @@ loja em vez de uma lista de perguntas técnicas isoladas.*
 
 ---
 
+## Revisão do modelo de desconto (2026-07-29, revoga BR-037/BR-038)
+
+Discovery da V1.4 (Comissão) reabriu, a pedido do usuário (CTO), a regra de bloqueio preventivo de
+desconto da V1.3 — já em produção (`main`, `c824958`) havia menos de 24h. Motivação: a pergunta original
+da V1.3 presumia que a loja quer um controle preventivo (impedir a venda). Na prática operacional descrita
+pelo usuário, lojas costumam funcionar de forma mais informal — vendedor negocia, financeiro/gerente
+percebe e conversa depois. Um controle preventivo rígido não reflete esse fluxo real.
+
+**BR-053 — desconto nunca bloqueia a venda.** Qualquer desconto, de qualquer valor, é sempre permitido e
+sempre registrado. O modelo deixa de ser preventivo (impede a venda até aprovação) e passa a ser
+analítico (o acompanhamento acontece depois, fora do fluxo de venda). Isso revoga BR-037 (limite de
+desconto livre) e BR-038 (aprovação obrigatória acima do limite) — ambas continuam registradas em
+`BUSINESS_RULES.md` como histórico, marcadas `REVOGADA`, não apagadas.
+
+**Painel de indicadores — explicitamente fora de escopo desta sprint.** A ideia de um painel para
+`financeiro` (resumo de descontos por vendedor, ranking, vendas fora do padrão estatístico) é o
+substituto natural do bloqueio preventivo — mas é um desenho de dado e tela diferente (agregações,
+médias, desvio), que merece sua própria discovery. Registrado como próxima sprint candidata (V1.4.1 ou
+V1.5), não implementado agora.
+
+**BR-054 — colunas da V1.3 permanecem no schema, sem uso.** `usuarios.limite_desconto_livre` e
+`vendas_itens.desconto_aprovado_em` deixam de ser lidos/escritos por qualquer fluxo a partir desta
+revisão. Não são removidas do banco — evita uma migração destrutiva por uma mudança de regra de negócio
+de um dia; dado histórico das vendas já feitas na V1.3 permanece intacto.
+
+**O que NÃO muda:** BR-039 (motivo do desconto opcional), BR-040 (recibo transparente), BR-042 (base de
+cálculo = `valor_tabela`) e BR-043 (Ajuste Comercial Autorizado, `admin`-only) continuam válidas —
+nenhuma delas dependia do bloqueio preventivo revogado.
+
+*Fonte: discovery com o usuário (CTO), 2026-07-29.*
+
+---
+
+## V1.4 — Comissão (discovery concluída em 2026-07-29, sem código ainda)
+
+Discovery conduzida pela ótica de "quem define o valor da comissão", não "qual é o percentual" — a
+pergunta original presumia uma fórmula única (percentual fixo), quando lojas reais usam modelos muito
+diferentes (percentual, valor fixo por venda, por categoria, metas, bônus). `BR-041` (V1.3) já havia
+deixado isso em aberto deliberadamente ("base de cálculo de comissão fica configurável por loja, não é
+regra fixa do sistema") — a V1.4 cumpre exatamente essa flexibilidade.
+
+**Novo perfil `financeiro` (BR-044).** Não substitui `admin` — representa uma função própria de
+acompanhamento financeiro das vendas. **Nota de visão, não escopo desta sprint:** este perfil é o embrião
+do futuro domínio Financeiro completo do roadmap de 6 fases (`docs/company/RELEASE_STRATEGY.md`) — caixa,
+metas, contas a pagar/receber, painel de indicadores de desconto. A V1.4 implementa só o necessário para
+comissão; o resto fica registrado aqui como direção, não como requisito.
+
+**Nota para o Plano Técnico — modelo de autorização (TD-14, não decisão desta discovery):** durante esta
+conversa foi proposta uma evolução maior, de perfil único (`usuarios.perfil`) para permissões habilitadas
+por módulo (Vendas/Estoque/Financeiro/etc., como checkboxes). Decisão explícita: **não implementar agora**
+— muda arquitetura de autorização transversalmente (afeta todo domínio existente, não só Vendas/
+Financeiro), exige ADR e discovery própria, registrado como `TD-14` em `PROJECT_STATUS.md`. A V1.4 segue
+com `financeiro` como 5º valor do enum existente, mesmo padrão aditivo já usado quando `estoque` foi
+adicionado. Único ajuste de baixo custo pedido para o Plano Técnico: encapsular as checagens de
+autorização **novas** desta sprint (financeiro) em uma função helper reutilizável (não espalhar
+`session.get("usuario_perfil") in (...)` inline nos novos pontos), para que uma futura migração para o
+modelo de módulos troque só a implementação do helper, sem precisar reescrever os call sites.
+
+**Escopo de acesso do financeiro nesta sprint (BR-045/BR-046):** histórico e Detalhe de vendas (rotas já
+existentes), Dashboard, relatórios já existentes (IR Phones, Técnicos, Custos Operacionais) — nenhuma
+rota nova de leitura criada para isso, só extensão de permissão. **Não acessa:** usuários, permissões,
+configurações, estoque, compras, produtos, Ordens de Serviço, auditoria técnica. Não cria nem cancela
+vendas. Também não ganha o direito de fazer o Ajuste Comercial (BR-052) — isso continua exclusivo do
+`admin`.
+
+**Vendedor não vê comissão (BR-047).** Nenhuma tela do sistema expõe o valor da própria comissão ao
+vendedor — informação exclusiva de `financeiro`/`admin`, mesmo espírito de "cada perfil enxerga só o que
+precisa" já usado no resto do sistema, aqui aplicado no sentido inverso (proteger informação, não só
+simplificar tela).
+
+**Comissão é atribuição manual, nunca fórmula automática (BR-048).** `financeiro` ou `admin` atribuem a
+comissão por item de venda (`vendas_itens`, mesmo nível de onde vive o desconto) — nunca uma fórmula fixa
+calculada pelo sistema. A mesma estrutura de dado (um valor por item) suporta qualquer política de
+comissão que a loja adotar, sem precisar modelar percentual/fixo/categoria como conceitos distintos no
+schema.
+
+**Comissão é editável, com auditoria (BR-049).** Mesmo princípio append-only do Ajuste Comercial: valor
+anterior, valor novo, quem editou, quando — nunca sobrescrita silenciosa. **Sem campo de motivo (BR-050)**
+— diferente do desconto, atribuir/editar comissão não exige justificativa textual.
+
+**Cancelamento zera comissão automaticamente (BR-051).** Quando uma venda é cancelada (V1.2), a comissão
+associada ao item cancelado é zerada sem intervenção manual — única automação desta sprint, decidida
+explicitamente (contraste com o resto do domínio, onde nada acontece sem quem decide ver).
+
+*Fonte: discovery com o usuário (CTO), 2026-07-29, conduzida pela ótica de "quem define o valor", não
+"qual fórmula usar".*
+
+---
+
 ## Modelo de dados (implementado — difere do proposto originalmente)
 
 Depende de `docs/product/features/CLIENTES.md` (`clientes`) e `docs/product/features/IMEI.md`

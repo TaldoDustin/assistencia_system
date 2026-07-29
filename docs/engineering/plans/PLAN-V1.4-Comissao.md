@@ -302,3 +302,14 @@ regras já fechadas:
 - Comissão só editável em venda `concluida` (decorre de BR-034/BR-051, não é regra nova).
 - `comissao_valor` sem campo "tipo" (fixo/percentual) — decorre de BR-048 (sem fórmula automática, o
   valor final é sempre o que importa).
+
+**Revisão arquitetural pré-merge (2026-07-29, antes do merge final em `main`):** confirmado que (1)
+`limite_desconto_livre` não tem nenhum ponto de leitura/escrita fora da coluna deprecada; (2) toda
+checagem de acesso à comissão passa por `usuario_pode_financeiro()`, sem checagem inline duplicada; (3)
+`comissao_valor` só sai da API através de `_ocultar_comissao_se_necessario()`, chamado nas duas únicas
+rotas que devolvem item (`GET /vendas` e `GET /vendas/<id>`); (4) a máquina de estados da venda
+(criação/edição/cancelamento/leitura) é consistente com BR-044 a BR-054. Único ponto levantado:
+`desconto_aprovado_em` continua sendo **lido** (nunca mais escrito) e exibido no Detalhe da venda —
+decisão deliberada, não lacuna: descontinuar a exigência de aprovação para vendas novas (BR-053) não
+significa apagar o registro de que vendas feitas durante a vigência da V1.3 passaram por ela. Documentado
+em BR-054.

@@ -24,7 +24,7 @@ UI de comissão fazer sentido), mas cada parte é claramente delimitada abaixo e
 - [x] QA Manual — 2026-07-29, via `curl` contra o backend real (ambiente de automação de navegador não
       persistiu o cookie de sessão HttpOnly em nenhuma aba testada — comportamento do próprio Chrome
       automatizado, não do código; ver decisão registrada abaixo)
-- [ ] Encerramento
+- [x] Encerramento — `CHANGELOG.md`/`PROJECT_STATUS.md` atualizados (2026-07-29)
 
 ---
 

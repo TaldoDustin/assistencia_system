@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-28  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → 🟡 V1.4 — Comissão (próxima, condicionada a decisões do Product Owner)
+**Última revisão:** 2026-07-29  
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3)
 
 ---
 
@@ -434,6 +434,25 @@ desconto dentro/acima do limite, vendedor sem limite, Ajuste Comercial, seguran�
 todos passaram; encontrado e corrigido 1 bug real no processo (`limite_desconto_livre` ausente na
 resposta de `POST /api/auth/login`, já que `Login.jsx` popula o `AuthContext` direto dessa resposta, sem
 esperar `/api/auth/me`).
+
+**V1.4 — Comissão (CONCLUÍDA em 2026-07-29, segunda feature a seguir o ciclo formal da ADR-010):**
+discovery reabriu a V1.3 na mesma sessão e revogou o modelo de bloqueio preventivo de desconto
+(BR-037/BR-038 → BR-053: todo desconto passa a ser sempre aceito e sempre registrado, sem exigir
+aprovação nem respeitar limite; `limite_desconto_livre`/`desconto_aprovado_em` param de ser
+lidos/gravados em qualquer fluxo, colunas mantidas no schema só por compatibilidade histórica, marcadas
+como deprecadas). Plano técnico único cobrindo as duas partes
+(`docs/engineering/plans/PLAN-V1.4-Comissao.md`, 5 ajustes incorporados), implementado em 8 commits
+temáticos (reversão backend → reversão frontend → testes da reversão → schema/repository da comissão →
+service/controller → frontend → testes da comissão → docs). Novo perfil `financeiro`; `comissao_valor`
+(R$, `NULL` = não atribuída, sem campo de "tipo" fixo/percentual — BR-048) atribuída manualmente por
+`admin`/`financeiro` via `PATCH /api/vendas/<id>/itens/<id>/comissao`; ocultação de `comissao_valor` para
+qualquer outro perfil centralizada numa única função (`_ocultar_comissao_se_necessario`); zerada
+automaticamente no cancelamento, sempre com evento de auditoria; histórico dedicado
+(`GET .../historico-comissao`) restrito a `admin`/`financeiro` — diferente do histórico de desconto, que
+é aberto. 15 novos testes de comissão + 6 reescritos da reversão (625 no total), `ruff check .`/
+`npm run lint`/`npm run build` limpos. QA Manual via `curl` (14 cenários, autorização/ocultação/
+zeragem/histórico/criação de usuário financeiro) — todos passaram; navegador real indisponível neste
+ambiente por limitação do próprio ambiente de automação de navegador, não do produto (**KI-027**, novo).
 
 ### Escopo previsto
 

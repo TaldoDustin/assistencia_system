@@ -292,6 +292,19 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Regras de negócio fechadas antes do código pela ótica do fluxo real de negociação da loja, não uma lista de perguntas técnicas isoladas (BR-037 a BR-043); primeira feature a seguir o ciclo formal de `ADR-010`
 - 21 novos testes (613 no total). QA Manual (navegador real, servidor real, banco isolado, 6 cenários) encontrou e corrigiu 1 bug real: `limite_desconto_livre` ausente na resposta de `POST /api/auth/login` (`Login.jsx` populava o `AuthContext` direto dessa resposta, sem esperar `/api/auth/me`)
 
+### Removido (2026-07-29 — reversão do bloqueio de desconto da V1.3, BR-053)
+- Bloqueio preventivo de desconto (BR-037/BR-038, revogadas): `limite_desconto_livre` e `desconto_aprovado_em` parados de ler/gravar em qualquer fluxo (Vendas/Usuários) e removidos das respostas de `POST /api/auth/login` e `GET /api/auth/me`; todo desconto passa a ser sempre aceito e sempre registrado, sem exigir aprovação. Colunas mantidas no schema, marcadas como deprecadas em comentário — só compatibilidade histórica com vendas já feitas na V1.3
+- UI correspondente no frontend: aviso de "desconto excede o limite" e checkbox de confirmação de aprovação em `Vendas.jsx`; campo "Limite de desconto livre" em `Users.jsx`
+
+### Adicionado (2026-07-29 — V1.4, Comissão)
+- Novo perfil de usuário `financeiro` (`PERFIS_OPCOES`), ao lado de `admin`/`tecnico`/`vendedor`/`estoque` — acompanhamento financeiro das vendas, não substitui `admin`
+- `vendas_itens.comissao_valor` (R$, `NULL` = ainda não atribuída) — atribuição manual por `admin`/`financeiro` via `PATCH /api/vendas/<id>/itens/<id>/comissao`, sempre em R$, sem campo de "tipo" (fixo/percentual): o valor final gravado é sempre o que importa, independente de como financeiro chegou nele (BR-044 a BR-048)
+- `GET /api/vendas/<id>/itens/<id>/historico-comissao` — histórico de alterações via `audit_log`, restrito a `admin`/`financeiro` (diferente do histórico de desconto, que é aberto a qualquer autenticado) (BR-049)
+- `comissao_valor` ocultado de qualquer perfil que não seja `admin`/`financeiro`, centralizado numa única função (`_ocultar_comissao_se_necessario`) aplicada em `GET /api/vendas/<id>` e na listagem — para uma rota de leitura nova não vazar o campo por esquecimento (BR-047)
+- Comissão zerada automaticamente no cancelamento da venda, mesma transação, sempre com evento de auditoria (BR-051)
+- Discovery revisitou e revogou o modelo de bloqueio da V1.3 na mesma sessão (ver acima); segunda feature a seguir o ciclo formal de `ADR-010`
+- 15 novos testes de comissão + 6 reescritos da reversão (625 no total). QA Manual via `curl` (14 cenários, `docs/engineering/plans/PLAN-V1.4-Comissao.md`) — navegador real indisponível neste ambiente por limitação do ambiente de automação, não do produto (KI-027)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

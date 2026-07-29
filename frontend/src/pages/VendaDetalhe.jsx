@@ -62,6 +62,12 @@ export default function VendaDetalhe() {
   const [enviandoAjuste, setEnviandoAjuste] = useState(false);
   const [historicoAjustes, setHistoricoAjustes] = useState([]);
 
+  // V1.4 -- Comissão (BR-044 a BR-049).
+  const [editandoComissao, setEditandoComissao] = useState(false);
+  const [novoValorComissao, setNovoValorComissao] = useState("");
+  const [enviandoComissao, setEnviandoComissao] = useState(false);
+  const [historicoComissao, setHistoricoComissao] = useState([]);
+
   async function carregar() {
     setLoading(true);
     try {
@@ -98,15 +104,30 @@ export default function VendaDetalhe() {
   const itemPrincipal = itens[0];
   const podeAjustar = Boolean(venda && user?.perfil === "admin" && venda.status === "concluida" && itemPrincipal);
 
+  // V1.4 -- Comissão (BR-044/BR-047): visível só para admin/financeiro --
+  // combina com a ocultação já feita pelo backend em `_ocultar_comissao_se_necessario`.
+  const podeVerComissao = Boolean(user && (user.perfil === "admin" || user.perfil === "financeiro"));
+  const podeEditarComissao = Boolean(podeVerComissao && venda && venda.status === "concluida" && itemPrincipal);
+
   async function carregarHistoricoAjustes(itemId) {
     const res = await vendasApi.historicoDescontoItem(id, itemId);
     if (res?.ok) setHistoricoAjustes(res.historico || []);
+  }
+
+  async function carregarHistoricoComissao(itemId) {
+    const res = await vendasApi.historicoComissaoItem(id, itemId);
+    if (res?.ok) setHistoricoComissao(res.historico || []);
   }
 
   useEffect(() => {
     if (itemPrincipal) carregarHistoricoAjustes(itemPrincipal.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemPrincipal?.id]);
+
+  useEffect(() => {
+    if (itemPrincipal && podeVerComissao) carregarHistoricoComissao(itemPrincipal.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemPrincipal?.id, podeVerComissao]);
 
   const confirmarAjuste = async () => {
     const valor = parseFloat(novoValorAjuste);
@@ -138,6 +159,31 @@ export default function VendaDetalhe() {
       toast.error("Erro ao aplicar o ajuste.");
     } finally {
       setEnviandoAjuste(false);
+    }
+  };
+
+  const confirmarComissao = async () => {
+    const valor = parseFloat(novoValorComissao);
+    if (Number.isNaN(valor) || valor < 0) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
+    setEnviandoComissao(true);
+    try {
+      const res = await vendasApi.atribuirComissaoItem(id, itemPrincipal.id, { valor });
+      if (res?.ok) {
+        toast.success("Comissão atribuída.");
+        setEditandoComissao(false);
+        setNovoValorComissao("");
+        await carregar();
+        await carregarHistoricoComissao(itemPrincipal.id);
+      } else {
+        toast.error(res?.erro || "Erro ao atribuir a comissão.");
+      }
+    } catch {
+      toast.error("Erro ao atribuir a comissão.");
+    } finally {
+      setEnviandoComissao(false);
     }
   };
 
@@ -418,6 +464,67 @@ export default function VendaDetalhe() {
             <div className="pt-2 border-t border-border space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Histórico de ajustes</p>
               {historicoAjustes.map((evento) => (
+                <p key={evento.id} className="text-xs text-muted-foreground">
+                  {formatDateTime(evento.criado_em)} — {evento.usuario_nome || "—"}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {podeVerComissao && itemPrincipal && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-card-foreground">Comissão</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {itemPrincipal.comissao_valor != null ? formatCurrency(itemPrincipal.comissao_valor) : "Não atribuída"}
+              </p>
+            </div>
+            {podeEditarComissao && !editandoComissao && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setEditandoComissao(true); setNovoValorComissao(String(itemPrincipal.comissao_valor ?? "")); }}
+              >
+                {itemPrincipal.comissao_valor != null ? "Editar comissão" : "Atribuir comissão"}
+              </Button>
+            )}
+          </div>
+          {editandoComissao && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="comissao-valor">Valor da comissão</Label>
+                <Input
+                  id="comissao-valor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={novoValorComissao}
+                  onChange={(e) => setNovoValorComissao(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={confirmarComissao} disabled={enviandoComissao}>
+                  {enviandoComissao && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Confirmar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={enviandoComissao}
+                  onClick={() => { setEditandoComissao(false); setNovoValorComissao(""); }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+          {historicoComissao.length > 0 && (
+            <div className="pt-2 border-t border-border space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Histórico de comissão</p>
+              {historicoComissao.map((evento) => (
                 <p key={evento.id} className="text-xs text-muted-foreground">
                   {formatDateTime(evento.criado_em)} — {evento.usuario_nome || "—"}
                 </p>

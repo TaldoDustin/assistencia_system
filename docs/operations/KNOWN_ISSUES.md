@@ -837,3 +837,40 @@ Sprint Infra 1.1 — concluída em 2026-07-27.
 
 Responsável:
 —
+
+---
+
+## KI-027
+
+Descrição:
+Ambiente de automação de navegador (Chrome via ferramenta de automação) não persiste o cookie de sessão
+`HttpOnly` gerado por `POST /api/auth/login`: o login retorna `200 ok:true`, mas a próxima requisição
+same-origin na mesma aba (`GET /api/auth/me` ou qualquer rota autenticada) recebe `401`. Testado com
+múltiplas abas/tab groups novas, cliques reais na UI e `fetch` direto via JS no console da página —
+sempre o mesmo resultado. O mesmo fluxo de login, contra o mesmo backend, funciona instantaneamente via
+`curl` (tanto direto na porta do Flask quanto através do proxy do Vite), e um cookie não-`HttpOnly` de
+teste (`document.cookie`) persiste normalmente na mesma aba — descarta bloqueio geral de cookies do
+perfil. Não há ferramenta disponível para inspecionar o cookie `HttpOnly` armazenado pelo Chrome nessa
+automação (JS não pode lê-lo, por design do navegador), então não foi possível confirmar se o cookie é
+rejeitado no armazenamento ou apenas não reenviado.
+
+Impacto:
+Médio, só para o processo de trabalho — impede QA Manual via navegador real dentro deste ambiente de
+automação para qualquer feature que dependa de sessão autenticada. Nenhum impacto em produção nem no
+código da aplicação (o mesmo fluxo funciona normalmente em `curl`, e a suíte automatizada cobre a lógica
+de sessão via `flask.testing` client, que não depende deste mecanismo de cookie do navegador).
+
+Status:
+Aberto — identificado em 2026-07-29 durante a QA Manual do PLAN-V1.4-Comissao.md
+(`docs/engineering/plans/PLAN-V1.4-Comissao.md`). Contornado nessa sessão validando os mesmos cenários
+via `curl` com cookie jar por perfil (login real, banco de desenvolvimento real, dado de teste removido
+ao final) em vez do navegador — ver seção "QA Manual" do plano para os 14 cenários executados. Não
+investigado a fundo por ser característica do ambiente de automação disponível nesta sessão, não do
+código do produto; se o ambiente de automação mudar (nova versão da ferramenta, outro perfil de
+navegador), revalidar se o problema ainda ocorre antes de assumir que persiste.
+
+Sprint prevista:
+Não definida — sem urgência, contornável via `curl` sempre que necessário.
+
+Responsável:
+—

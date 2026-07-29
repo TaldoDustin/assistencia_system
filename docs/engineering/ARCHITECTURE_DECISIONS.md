@@ -20,7 +20,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-007](adr/ADR-007.md) | Consolidação de rastreamento por IMEI entre Estoque e Produtos — nova tabela `unidades_serializadas` | Aceita | 2026-07-21 |
 | [ADR-008](adr/ADR-008.md) | Rebranding técnico incremental — novos módulos nascem como `fluxoly_*`, legado `irflow_*` inalterado | Aceita | 2026-07-27 |
 | [ADR-009](adr/ADR-009.md) | Unidade Serializada como agregado raiz do domínio Comercial — estado físico × situação comercial, `origem_tipo`, eventos de processo separados de estado | Aceita | 2026-07-27 |
-| [ADR-010](adr/ADR-010.md) | Ciclo obrigatório para features com regra de negócio — Discovery → Plano Técnico → Implementação → Testes → QA Manual → Encerramento, com gates explícitos | Aceita | 2026-07-28 |
+| [ADR-010](adr/ADR-010.md) | Ciclo obrigatório para features com regra de negócio — Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento, com gates explícitos | Aceita | 2026-07-28 |
 
 ---
 

@@ -559,8 +559,9 @@ Se **nenhum** critério for verdadeiro — por exemplo, uma exceção não trata
 
 Para qualquer feature nova que envolva regra de negócio (não uma correção de bug isolada ou chore), o
 processo obrigatório é definido em `docs/engineering/adr/ADR-010.md`: Discovery → Plano Técnico →
-Implementação → Testes → QA Manual → Encerramento, cada etapa com um gate de aprovação explícito antes da
-seguinte.
+Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento, cada etapa com um gate de
+aprovação explícito antes da seguinte. Revisão Arquitetural é obrigatória quando a sprint combina
+reversão de comportamento com feature nova, ou toca mais de 3 arquivos.
 
 **Princípio da Separação de Decisões** (`ADR-010`): cada decisão é tomada exatamente na etapa responsável
 por ela — Discovery decide regra de negócio, ADR decide arquitetura, Plano Técnico decide implementação,

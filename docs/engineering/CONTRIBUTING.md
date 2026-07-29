@@ -294,7 +294,7 @@ Para qualquer feature nova que envolva regra de negócio (não uma correção de
 o ciclo com gates definido em `docs/engineering/adr/ADR-010.md`:
 
 ```
-Discovery → Plano Técnico → Implementação → Testes → QA Manual → Encerramento
+Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento
 ```
 
 Cada etapa tem um gate — não avance para a próxima sem ele:
@@ -306,6 +306,7 @@ Cada etapa tem um gate — não avance para a próxima sem ele:
 | Implementação | Escrever código | — |
 | Testes | Validar as regras | Testes automatizados verdes? |
 | QA Manual | Validar a experiência real | Fluxo aprovado? |
+| Revisão Arquitetural | Validar coerência transversal (domínio, autorização, serialização, máquina de estados) — obrigatória quando a sprint combina reversão + feature nova, ou toca >3 arquivos | Nenhuma inconsistência não documentada? |
 | Encerramento | Atualizar o mínimo necessário | — |
 
 ### Criando um Plano Técnico

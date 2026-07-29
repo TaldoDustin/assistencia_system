@@ -24,6 +24,8 @@ UI de comissão fazer sentido), mas cada parte é claramente delimitada abaixo e
 - [x] QA Manual — 2026-07-29, via `curl` contra o backend real (ambiente de automação de navegador não
       persistiu o cookie de sessão HttpOnly em nenhuma aba testada — comportamento do próprio Chrome
       automatizado, não do código; ver decisão registrada abaixo)
+- [x] Revisão Arquitetural — 2026-07-29, pós-merge (`7076c79`); etapa formalizada em `ADR-010` a partir
+      deste caso, ver seção "Questões em Aberto" abaixo para o achado (`desconto_aprovado_em`, BR-054)
 - [x] Encerramento — `CHANGELOG.md`/`PROJECT_STATUS.md` atualizados (2026-07-29)
 
 ---

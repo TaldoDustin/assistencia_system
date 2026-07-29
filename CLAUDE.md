@@ -73,7 +73,7 @@ Todo trabalho segue este ciclo obrigatório. Nunca pule etapas.
 - Se a tarefa altera mais de 3 arquivos: plano obrigatório.
 - Para funcionalidades novas com regra de negócio, siga o ciclo com gates definido em
   `docs/engineering/adr/ADR-010.md` (Discovery → Plano Técnico → Implementação → Testes → QA Manual →
-  Encerramento).
+  Revisão Arquitetural → Encerramento).
 
 ### 3 — IMPLEMENTAR
 - Uma mudança por vez. Commits atômicos e descritivos.

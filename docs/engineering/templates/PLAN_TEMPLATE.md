@@ -8,6 +8,17 @@
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
 > ou `DATABASE.md`. Se algo aqui continuar relevante depois, promova para o documento vivo correspondente.
 
+**Estado**
+
+- [ ] Discovery — aprovada (BR-NNN a BR-NNN, `docs/product/BUSINESS_RULES.md`)
+- [ ] Plano Técnico — aprovado
+- [ ] Implementação
+- [ ] Testes
+- [ ] QA Manual
+- [ ] Revisão Arquitetural — obrigatória se a sprint combina reversão + feature nova, ou toca >3 arquivos
+      (ver `ADR-010`); caso contrário, recomendada
+- [ ] Encerramento
+
 ---
 
 ## Objetivo

@@ -1046,60 +1046,54 @@ class TestCancelarVenda:
 
 
 class TestDescontoEAprovacao:
-    """V1.3 -- Descontos e Aprovação (BR-037 a BR-039,
-    docs/product/features/VENDAS.md "V1.3 -- Descontos e Aprovação";
-    docs/engineering/plans/PLAN-V1.3-Descontos.md). `cenario_venda` tem
-    `valor_tabela = 3000.0` (ver `_criar_item_estoque_rastreavel`)."""
+    """Desconto (BR-039, BR-053, docs/product/features/VENDAS.md "Revisão do
+    modelo de desconto"). `cenario_venda` tem `valor_tabela = 3000.0` (ver
+    `_criar_item_estoque_rastreavel`).
+
+    BR-037/BR-038 (limite por vendedor + aprovação obrigatória acima do
+    limite) foram implementadas na V1.3 e revogadas no dia seguinte -- a loja
+    não opera com bloqueio preventivo. Os testes que existiam para essas
+    regras foram substituídos pelos abaixo, que provam a regra vigente."""
 
     def test_desconto_zero_nao_exige_aprovacao(self, client, login_como, usuario_vendedor, cenario_venda):
         login_como(client, usuario_vendedor)
         resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=3000.0))
         assert resp.status_code == 201
 
-    def test_desconto_abaixo_do_limite_nao_exige_aprovacao(
+    def test_desconto_de_qualquer_valor_e_sempre_aceito(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        _definir_limite_desconto(usuario_vendedor["id"], 300.0)
+        """BR-053 -- mesmo um desconto muito grande (R$ 2.000 numa venda de
+        R$ 3.000) é aceito sem exigir nenhum campo de aprovação."""
         login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
 
-    def test_desconto_exatamente_no_limite_nao_exige_aprovacao(
+    def test_venda_nunca_exige_aprovacao_mesmo_com_limite_legado_configurado(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        _definir_limite_desconto(usuario_vendedor["id"], 200.0)
+        """Regressão: `limite_desconto_livre` (coluna deprecada da V1.3) pode
+        continuar com um valor herdado de antes da revisão -- confirma que
+        ele não tem efeito algum sobre a venda."""
+        _definir_limite_desconto(usuario_vendedor["id"], 50.0)
         login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
 
-    def test_desconto_acima_do_limite_sem_aprovacao_e_rejeitado(
-        self, client, login_como, usuario_vendedor, cenario_venda
-    ):
-        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
-        login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
-        assert resp.status_code == 400
-        assert "aprovação" in resp.get_json()["erro"]
-
-    def test_desconto_acima_do_limite_com_aprovacao_e_aceito(
-        self, client, login_como, usuario_vendedor, cenario_venda
-    ):
-        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
-        login_como(client, usuario_vendedor)
-        resp = client.post(
-            "/api/vendas",
-            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
-        )
+    def test_valor_do_desconto_continua_persistido(self, client, login_como, usuario_admin, cenario_venda):
+        """O campo `desconto` (valor_tabela - valor_unitario) continua sendo
+        calculado e exposto -- indicadores futuros (V1.4.1/V1.5) dependem
+        dele existir, mesmo sem bloqueio nenhum sobre o valor."""
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2500.0))
         assert resp.status_code == 201
-        _id, _motivo, aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
-        assert aprovado_em is not None
+        venda_id = resp.get_json()["id"]
 
-    def test_limite_nao_configurado_trata_como_zero(self, client, login_como, usuario_vendedor, cenario_venda):
-        """`usuario_vendedor` nasce com `limite_desconto_livre = NULL` --
-        qualquer desconto > 0 exige aprovação (fail-secure, plano técnico)."""
-        login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2999.0))
-        assert resp.status_code == 400
+        detalhe = client.get(f"/api/vendas/{venda_id}")
+        item = detalhe.get_json()["itens"][0]
+        assert item["valor_tabela"] == 3000.0
+        assert item["valor_unitario"] == 2500.0
+        assert item["desconto"] == 500.0
 
     def test_motivo_desconto_opcional_ausente(self, client, login_como, usuario_admin, cenario_venda):
         login_como(client, usuario_admin)
@@ -1118,25 +1112,16 @@ class TestDescontoEAprovacao:
         _id, motivo, _aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
         assert motivo == "Negociação final"
 
-    def test_nenhum_campo_grava_identidade_do_admin_aprovador(
+    def test_desconto_aprovado_em_nunca_mais_e_gravado(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        """BR-038 -- confirma por ausência: nenhuma coluna de `vendas_itens`
-        guarda qual admin aprovou, só o timestamp de quando."""
+        """BR-054 -- `desconto_aprovado_em` (coluna deprecada) permanece
+        sempre `NULL` para vendas novas, mesmo com um desconto grande."""
         login_como(client, usuario_vendedor)
-        resp = client.post(
-            "/api/vendas",
-            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
-        )
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
-
-        conn = _app.conectar()
-        try:
-            colunas = [row[1] for row in conn.execute("PRAGMA table_info(vendas_itens)")]
-        finally:
-            conn.close()
-        assert "aprovado_por" not in colunas
-        assert "admin_aprovador_id" not in colunas
+        _id, _motivo, aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
+        assert aprovado_em is None
 
 
 class TestAjusteComercial:

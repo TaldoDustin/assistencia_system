@@ -73,10 +73,10 @@ class TestApiAuthLogin:
         assert "senha_hash" not in body["usuario"]
         assert "senha" not in body["usuario"]
 
-    def test_login_expoe_limite_desconto_livre(self, client, usuario_vendedor):
-        """V1.3 -- Descontos (BR-037). Achado no QA Manual: `Login.jsx` popula
-        o `AuthContext` direto desta resposta, sem esperar `/api/auth/me` --
-        sem este campo aqui, o limite ficava `undefined` logo após o login."""
+    def test_login_nao_expoe_mais_limite_desconto_livre(self, client, usuario_vendedor):
+        """BR-054 (revisão de 2026-07-29): `limite_desconto_livre` deixou de
+        ser lido/exposto por qualquer fluxo -- mesmo com um valor legado
+        gravado na coluna deprecada, o login não o retorna mais."""
         conn = _app.conectar()
         try:
             conn.execute(
@@ -93,7 +93,7 @@ class TestApiAuthLogin:
         )
 
         assert resp.status_code == 200
-        assert resp.get_json()["usuario"]["limite_desconto_livre"] == 300.0
+        assert "limite_desconto_livre" not in resp.get_json()["usuario"]
 
 
 class TestApiAuthMe:
@@ -116,6 +116,8 @@ class TestApiAuthMe:
         assert body["usuario"]["id"] == usuario_tecnico["id"]
         assert body["usuario"]["nome"] == usuario_tecnico["nome"]
         assert body["usuario"]["perfil"] == "tecnico"
+        # BR-054 (revisão de 2026-07-29): campo deprecado, não exposto mais.
+        assert "limite_desconto_livre" not in body["usuario"]
 
 
 class TestApiAuthLogout:

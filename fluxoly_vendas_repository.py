@@ -47,7 +47,7 @@ def inserir_venda(cursor, cliente_id, vendedor_id, forma_pagamento, valor_total,
 
 def inserir_item(
     cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku, valor_tabela,
-    valor_unitario, motivo_desconto="", desconto_aprovado=False,
+    valor_unitario, motivo_desconto="",
 ):
     """`quantidade` é sempre 1 nesta fatia — uma unidade serializada não é
     fungível (uma linha de item = uma unidade física). `subtotal` calculado
@@ -57,38 +57,26 @@ def inserir_item(
     preço efetivo, pode divergir de `valor_tabela` (negociação) -- nenhum dos
     dois sobrescreve o outro.
 
-    V1.3 -- Descontos (BR-038, BR-039): `motivo_desconto` é opcional, texto
-    livre. `desconto_aprovado` só é `True` quando o desconto desta venda
-    excedeu o limite livre do vendedor e foi confirmado como aprovado --
-    `desconto_aprovado_em` grava o timestamp da aprovação nesse caso, `NULL`
-    caso contrário (nunca guarda qual admin aprovou, BR-038)."""
+    `motivo_desconto` é opcional, texto livre (BR-039). `desconto_aprovado_em`
+    nunca é gravado a partir daqui (BR-053/BR-054, revisão de 2026-07-29) --
+    permanece sempre `NULL` para vendas novas; a coluna só existe por
+    compatibilidade histórica com vendas da V1.3."""
     quantidade = 1
     subtotal = valor_unitario * quantidade
     cursor.execute(
         """
         INSERT INTO vendas_itens (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto,
-            desconto_aprovado_em
+            quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? THEN datetime('now') ELSE NULL END)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
             quantidade, valor_tabela, valor_unitario, subtotal, motivo_desconto or "",
-            1 if desconto_aprovado else 0,
         ),
     )
     return cursor.lastrowid
-
-
-def buscar_limite_desconto_livre(cursor, usuario_id):
-    """BR-037 -- limite de desconto livre (R$) do vendedor. `None` significa
-    "não configurado" -- o chamador (service) decide como interpretar isso,
-    nunca esta função (mantém a semântica fora do SQL)."""
-    cursor.execute("SELECT limite_desconto_livre FROM usuarios WHERE id = ?", (usuario_id,))
-    row = cursor.fetchone()
-    return row[0] if row else None
 
 
 def buscar_item_por_id(cursor, venda_id, item_id):

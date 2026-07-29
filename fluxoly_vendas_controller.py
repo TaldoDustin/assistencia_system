@@ -101,9 +101,7 @@ def create_vendas_blueprint(deps: dict):
             body.get("forma_pagamento"),
             valor_unitario,
             body.get("observacoes"),
-            # V1.3 -- Descontos e Aprovação (BR-037 a BR-039).
-            body.get("motivo_desconto"),
-            bool(body.get("desconto_aprovado", False)),
+            body.get("motivo_desconto"),  # BR-039 -- opcional, texto livre.
         )
         if erro:
             code = 404 if erro in ("Cliente não encontrado.", "Unidade não encontrada.") else 400

@@ -96,8 +96,8 @@ def _item_para_dict(row):
         "quantidade": row[6],
         "valor_tabela": valor_tabela,
         "valor_unitario": valor_unitario,
-        # Diferença calculada, não uma feature de desconto isolada -- é o
-        # próprio desconto da V1.3 (BR-037 a BR-043). None quando não há
+        # Diferença calculada -- o próprio desconto (BR-053: sempre permitido,
+        # sempre registrado, nunca exige aprovação). None quando não há
         # preço de tabela para comparar.
         "desconto": round(valor_tabela - valor_unitario, 2) if valor_tabela is not None else None,
         "subtotal": row[9],
@@ -108,35 +108,21 @@ def _item_para_dict(row):
     }
 
 
-def _limite_desconto_livre(conectar, usuario_id):
-    """BR-037 -- `NULL` no banco significa "não configurado"; é aqui, no
-    service, que isso vira o limite EFETIVO de R$ 0 (fail-secure, mesmo
-    princípio de KI-024) -- nunca uma query SQL decide isso, para não
-    confundir "não configurado" com "configurado como zero" no dado
-    persistido."""
-    conn = conectar()
-    try:
-        cursor = conn.cursor()
-        limite = repo.buscar_limite_desconto_livre(cursor, usuario_id)
-    finally:
-        conn.close()
-    return limite if limite is not None else 0
-
-
 def iniciar_venda(
     conectar, usuario_id, cliente_id, unidade_serializada_id, forma_pagamento, valor_unitario,
-    observacoes="", motivo_desconto=None, desconto_aprovado=False,
+    observacoes="", motivo_desconto=None,
 ):
     """Retorna (venda_id, erro). `erro` é None em caso de sucesso.
 
     `usuario_id` é sempre o vendedor (sessão logada) -- nunca escolhido no
     payload, mesmo padrão de auditoria já usado no resto do sistema.
 
-    V1.3 -- Descontos e Aprovação (BR-037, BR-038): se o desconto
-    (`valor_tabela - valor_unitario`) exceder o limite livre do vendedor,
-    `desconto_aprovado=True` precisa vir explícito no payload -- a aprovação
-    em si acontece fora do sistema (presencial/remota com o admin); aqui só
-    se registra a confirmação, nunca quem aprovou.
+    Desconto (BR-053, revisão de 2026-07-29): nunca bloqueia a venda,
+    independente do valor -- sempre permitido e sempre registrado. `motivo`
+    é opcional (BR-039). A V1.3 chegou a exigir aprovação acima de um limite
+    por vendedor (BR-037/BR-038); revogado no dia seguinte por não refletir
+    o fluxo real de negociação da loja -- ver `VENDAS.md` "Revisão do modelo
+    de desconto".
     """
     forma_pagamento = (forma_pagamento or "").strip().lower()
     if forma_pagamento not in FORMAS_PAGAMENTO_VALIDAS:
@@ -159,15 +145,6 @@ def iniciar_venda(
     produto_id = unidade["produto_id"]
     valor_tabela = unidade["preco_catalogo"]
 
-    desconto = round(valor_tabela - valor_unitario, 2) if valor_tabela is not None else None
-    exigiu_aprovacao = False
-    if desconto and desconto > 0:
-        limite_efetivo = _limite_desconto_livre(conectar, usuario_id)
-        if desconto > limite_efetivo:
-            if not desconto_aprovado:
-                return None, "Desconto acima do limite livre requer aprovação de um admin."
-            exigiu_aprovacao = True
-
     conn = conectar()
     try:
         cursor = conn.cursor()
@@ -176,7 +153,7 @@ def iniciar_venda(
         )
         repo.inserir_item(
             cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            valor_tabela, valor_unitario, motivo_desconto or "", exigiu_aprovacao,
+            valor_tabela, valor_unitario, motivo_desconto or "",
         )
 
         sucesso, erro = unidades_service.marcar_como_vendida(cursor, unidade_serializada_id, venda_id, usuario_id)

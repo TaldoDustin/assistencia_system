@@ -32,6 +32,27 @@ def create_vendas_blueprint(deps: dict):
     def usuario_pode_vender():
         return session.get("usuario_perfil") in ("admin", "vendedor")
 
+    def usuario_pode_financeiro():
+        """V1.4 -- Comissão (BR-044 a BR-047). Nome deliberadamente mais
+        amplo que "comissão" -- hoje protege só esses endpoints, mas é o
+        ponto natural para proteger qualquer coisa do domínio Financeiro
+        que vier depois (caixa, contas, relatórios financeiros), sem
+        precisar renomear nem duplicar a função (TD-14, preparação de baixo
+        custo para uma futura migração de modelo de autorização)."""
+        return session.get("usuario_perfil") in ("admin", "financeiro")
+
+    def _ocultar_comissao_se_necessario(itens):
+        """BR-047 -- vendedor (e qualquer perfil que não seja admin/financeiro)
+        não vê nada de comissão. Toda serialização de `comissao_valor` para o
+        cliente HTTP passa por aqui -- nunca uma checagem de perfil duplicada
+        inline em cada rota, para uma rota nova de leitura não vazar o campo
+        por esquecimento."""
+        if usuario_pode_financeiro():
+            return itens
+        for item in itens:
+            item.pop("comissao_valor", None)
+        return itens
+
     def err(msg, code=400):
         return jsonify({"ok": False, "erro": msg}), code
 
@@ -76,6 +97,8 @@ def create_vendas_blueprint(deps: dict):
             conectar, cliente_id, vendedor_id, forma_pagamento, status,
             data_inicio, data_fim, termo, sort, page, per_page,
         )
+        for venda in resultado.get("items", []):
+            _ocultar_comissao_se_necessario(venda.get("itens_resumo", []))
         return ok(**resultado)
 
     @vendas_api.route("", methods=["POST"])
@@ -116,6 +139,7 @@ def create_vendas_blueprint(deps: dict):
         venda, itens = service.obter_venda_com_itens(conectar, venda_id)
         if not venda:
             return err("Venda não encontrada.", 404)
+        _ocultar_comissao_se_necessario(itens)
         return ok(venda=venda, itens=itens)
 
     @vendas_api.route("/<int:venda_id>/cancelar", methods=["POST"])
@@ -181,5 +205,43 @@ def create_vendas_blueprint(deps: dict):
             return err("Não autenticado.", 401)
 
         return ok(historico=service.obter_historico_desconto_item(conectar, item_id))
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/comissao", methods=["PATCH"])
+    def atribuir_comissao_item(venda_id, item_id):
+        """V1.4 -- Comissão (BR-044 a BR-049) -- só `admin`/`financeiro`,
+        diferente do Ajuste Comercial (só `admin`). Checagem fina do estado
+        da venda vive no service (mesmo padrão de `ajustar_desconto_item`)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if not usuario_pode_financeiro():
+            return err("Permissão negada.", 403)
+
+        body = safe_json(request)
+        valor = parse_float(body.get("valor"), default=None)
+        sucesso, erro = service.atribuir_comissao_item(
+            conectar,
+            venda_id,
+            item_id,
+            session.get("usuario_id"),
+            session.get("usuario_perfil"),
+            valor,
+        )
+        if not sucesso:
+            code = 404 if erro == "Item não encontrado." else 400
+            return err(erro, code)
+        return ok(id=item_id)
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/historico-comissao")
+    def historico_comissao_item(venda_id, item_id):
+        """Histórico de alterações de comissão do item (BR-049) -- ao
+        contrário de `historico-desconto`, aqui é restrito a
+        `admin`/`financeiro` (mesma regra de visibilidade de
+        `_ocultar_comissao_se_necessario`)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if not usuario_pode_financeiro():
+            return err("Permissão negada.", 403)
+
+        return ok(historico=service.obter_historico_comissao_item(conectar, item_id))
 
     return vendas_api

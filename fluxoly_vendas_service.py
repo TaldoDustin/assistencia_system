@@ -105,6 +105,10 @@ def _item_para_dict(row):
         "imei": row[11] or "",
         "motivo_desconto": row[12] or "",
         "desconto_aprovado_em": row[13],
+        # V1.4 -- Comissão (BR-047): a ocultação por perfil (vendedor não vê
+        # nada de comissão) acontece no controller, nunca aqui -- o service
+        # continua perfil-agnóstico, sempre retorna o dado completo.
+        "comissao_valor": row[14],
     }
 
 
@@ -302,6 +306,21 @@ def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, obser
             if not sucesso:
                 raise VendaConflitoError(erro)
 
+        # V1.4 -- Comissão (BR-051): zera a comissão de qualquer item que já
+        # tinha valor atribuído, na mesma transação do cancelamento --
+        # sempre com evento de auditoria, nunca uma mutação silenciosa.
+        for item_id, comissao_anterior in repo.buscar_itens_com_comissao_por_venda(cursor, venda_id):
+            repo.zerar_comissao_item(cursor, item_id)
+            registrar_log_auditoria(
+                cursor,
+                "venda_item",
+                item_id,
+                usuario_id,
+                "comissao_alterada",
+                antes={"comissao_valor": comissao_anterior},
+                depois={"comissao_valor": 0},
+            )
+
         registrar_log_auditoria(
             cursor,
             "venda",
@@ -380,7 +399,7 @@ def ajustar_desconto_item(conectar, venda_id, item_id, usuario_id, usuario_perfi
     return True, None
 
 
-def _evento_historico_desconto_para_dict(row):
+def _evento_historico_item_para_dict(row):
     return {
         "id": row[0],
         "acao": row[1],
@@ -399,4 +418,59 @@ def obter_historico_desconto_item(conectar, item_id):
         rows = repo.buscar_historico_desconto_item(cursor, item_id)
     finally:
         conn.close()
-    return [_evento_historico_desconto_para_dict(r) for r in rows]
+    return [_evento_historico_item_para_dict(r) for r in rows]
+
+
+def atribuir_comissao_item(conectar, venda_id, item_id, usuario_id, usuario_perfil, valor):
+    """V1.4 -- Comissão (BR-044 a BR-049). Só `admin`/`financeiro` (a checagem
+    de perfil vive no controller, via `usuario_pode_financeiro` -- aqui só
+    valida o dado). `valor` sempre em R$, sem campo de "tipo" (BR-048) --
+    qualquer política de comissão da loja usa a mesma estrutura. Mesmo
+    compare-and-swap do Ajuste Comercial: rejeita se a venda não está
+    `concluida` no momento da escrita (BR-034). Retorna (sucesso, erro)."""
+    if not isinstance(valor, (int, float)) or valor < 0:
+        return False, "Valor deve ser maior ou igual a zero."
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        item_row = repo.buscar_comissao_item(cursor, venda_id, item_id)
+        if not item_row:
+            conn.rollback()
+            return False, "Item não encontrado."
+        comissao_anterior = item_row[1]
+
+        linhas = repo.atribuir_comissao_item(cursor, venda_id, item_id, valor)
+        if linhas == 0:
+            conn.rollback()
+            return False, "Venda não pode receber comissão (cancelada ou em outro estado)."
+
+        registrar_log_auditoria(
+            cursor,
+            "venda_item",
+            item_id,
+            usuario_id,
+            "comissao_alterada",
+            antes={"comissao_valor": comissao_anterior},
+            depois={"comissao_valor": valor},
+        )
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        return False, str(exc)
+    finally:
+        conn.close()
+
+    return True, None
+
+
+def obter_historico_comissao_item(conectar, item_id):
+    """Histórico de alterações de comissão do item (BR-049) -- só leitura,
+    restrito a `admin`/`financeiro` (checagem no controller)."""
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        rows = repo.buscar_historico_comissao_item(cursor, item_id)
+    finally:
+        conn.close()
+    return [_evento_historico_item_para_dict(r) for r in rows]

@@ -19,10 +19,12 @@ UI de comissão fazer sentido), mas cada parte é claramente delimitada abaixo e
 - [x] Discovery — aprovada (BR-044 a BR-054, `docs/product/BUSINESS_RULES.md`, incluindo a revisão de
       BR-037/BR-038)
 - [x] Plano Técnico — aprovado (2026-07-29)
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
-- [ ] Encerramento
+- [x] Implementação — commits 1 a 6 (`3b74fb4`, `b4284a7`, `4df6b94`, `bafbc53`, `b9a7290`, `d1029f6`)
+- [x] Testes — commit 7 (`116e805`), 625/625 passando
+- [x] QA Manual — 2026-07-29, via `curl` contra o backend real (ambiente de automação de navegador não
+      persistiu o cookie de sessão HttpOnly em nenhuma aba testada — comportamento do próprio Chrome
+      automatizado, não do código; ver decisão registrada abaixo)
+- [x] Encerramento — `CHANGELOG.md`/`PROJECT_STATUS.md` atualizados (2026-07-29)
 
 ---
 
@@ -233,12 +235,46 @@ apagado sem substituto:**
 
 ## Critérios de Aceite
 
-- [ ] Todos os casos de teste acima implementados e passando
-- [ ] `ruff check .` / `npm run lint` / `npm run build` sem erros novos
-- [ ] Nenhuma regressão nos 613 testes existentes (menos os removidos deliberadamente pela reversão)
-- [ ] QA manual (navegador real, servidor real, banco isolado): criar venda com desconto alto sem
-      qualquer bloqueio → admin atribui comissão → financeiro edita comissão → vendedor não vê nada de
-      comissão em lugar nenhum → cancelar venda → comissão zerada
+- [x] Todos os casos de teste acima implementados e passando (`TestComissao`, 15 testes)
+- [x] `ruff check .` / `npm run lint` / `npm run build` sem erros novos
+- [x] Nenhuma regressão — 625/625 passando (610 antes da feature + 15 novos de `TestComissao`; os 6
+      testes removidos de `TestDescontoEAprovacao` foram substituídos 1:1 por testes da nova regra, ver
+      commit `4df6b94`)
+- [x] QA manual — ver "QA Manual" abaixo (via `curl` contra o backend real, servidor + banco de
+      desenvolvimento reais; navegador real não disponível neste ambiente — ver nota)
+
+## QA Manual
+
+**Data:** 2026-07-29. **Ambiente:** backend Flask real (`python app.py`, porta 5080) + banco de
+desenvolvimento real (dados de teste criados e removidos ao final — nenhum dado de cliente real
+tocado). **Método:** `curl` com cookie jar por perfil, não navegador — o ambiente de automação de
+navegador disponível nesta sessão não persistiu o cookie de sessão `HttpOnly` do login em nenhuma aba
+testada (múltiplas abas, múltiplos métodos), enquanto o mesmo fluxo de login funcionou instantaneamente
+via `curl` contra o mesmo backend e também através do proxy do Vite — evidência de que é uma
+particularidade do ambiente de automação do navegador, não do código da aplicação. Ficou registrado como
+lacuna de ambiente, não como bug do produto (ver `docs/operations/KNOWN_ISSUES.md`).
+
+Cenários executados e confirmados:
+
+1. Criar venda com desconto de R$2.000 sobre um item de R$3.000 (66%, muito acima de qualquer limite da
+   V1.3) — aceita sem qualquer aprovação; `desconto_aprovado_em` permanece `null`.
+2. Admin atribui comissão (R$120) ao item da venda — sucesso.
+3. Vendedor consulta a mesma venda (`GET /api/vendas/<id>`) — `comissao_valor` ausente do item.
+4. Vendedor tenta atribuir comissão — `403 Permissão negada`.
+5. Vendedor tenta ler o histórico de comissão — `403 Permissão negada`.
+6. Financeiro consulta a venda — `comissao_valor: 120.0` visível.
+7. Financeiro consulta a listagem (`GET /api/vendas`) — `itens_resumo[0].comissao_valor: 120.0` visível.
+8. Vendedor consulta a listagem — `comissao_valor` ausente de `itens_resumo`.
+9. Histórico de comissão (financeiro) — 1 evento `comissao_alterada` (null → 120.0).
+10. Admin cancela a venda — sucesso.
+11. Venda cancelada — `comissao_valor` zerado automaticamente (era 120.0, agora 0.0).
+12. Histórico de comissão pós-cancelamento — 2 eventos (120.0 → 0 registrado, além do evento original).
+13. Tentativa de atribuir comissão numa venda já cancelada — `400`, mensagem "Venda não pode receber
+    comissão (cancelada ou em outro estado)".
+14. Criar usuário com `perfil: "financeiro"` via `POST /api/usuarios` — `201`, perfil persistido
+    corretamente e aparece na listagem de usuários.
+
+Todos os 14 pontos conferem com o comportamento especificado nas BR-044 a BR-051.
 
 ## Riscos
 

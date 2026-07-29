@@ -339,6 +339,11 @@ export const vendas = {
     patch(`/vendas/${vendaId}/itens/${itemId}/ajuste-desconto`, data),
   historicoDescontoItem: (vendaId, itemId) =>
     get(`/vendas/${vendaId}/itens/${itemId}/historico-desconto`),
+  // V1.4 -- Comissão (BR-044 a BR-049).
+  atribuirComissaoItem: (vendaId, itemId, data) =>
+    patch(`/vendas/${vendaId}/itens/${itemId}/comissao`, data),
+  historicoComissaoItem: (vendaId, itemId) =>
+    get(`/vendas/${vendaId}/itens/${itemId}/historico-comissao`),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────

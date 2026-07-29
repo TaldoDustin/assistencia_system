@@ -1046,60 +1046,54 @@ class TestCancelarVenda:
 
 
 class TestDescontoEAprovacao:
-    """V1.3 -- Descontos e Aprovação (BR-037 a BR-039,
-    docs/product/features/VENDAS.md "V1.3 -- Descontos e Aprovação";
-    docs/engineering/plans/PLAN-V1.3-Descontos.md). `cenario_venda` tem
-    `valor_tabela = 3000.0` (ver `_criar_item_estoque_rastreavel`)."""
+    """Desconto (BR-039, BR-053, docs/product/features/VENDAS.md "Revisão do
+    modelo de desconto"). `cenario_venda` tem `valor_tabela = 3000.0` (ver
+    `_criar_item_estoque_rastreavel`).
+
+    BR-037/BR-038 (limite por vendedor + aprovação obrigatória acima do
+    limite) foram implementadas na V1.3 e revogadas no dia seguinte -- a loja
+    não opera com bloqueio preventivo. Os testes que existiam para essas
+    regras foram substituídos pelos abaixo, que provam a regra vigente."""
 
     def test_desconto_zero_nao_exige_aprovacao(self, client, login_como, usuario_vendedor, cenario_venda):
         login_como(client, usuario_vendedor)
         resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=3000.0))
         assert resp.status_code == 201
 
-    def test_desconto_abaixo_do_limite_nao_exige_aprovacao(
+    def test_desconto_de_qualquer_valor_e_sempre_aceito(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        _definir_limite_desconto(usuario_vendedor["id"], 300.0)
+        """BR-053 -- mesmo um desconto muito grande (R$ 2.000 numa venda de
+        R$ 3.000) é aceito sem exigir nenhum campo de aprovação."""
         login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
 
-    def test_desconto_exatamente_no_limite_nao_exige_aprovacao(
+    def test_venda_nunca_exige_aprovacao_mesmo_com_limite_legado_configurado(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        _definir_limite_desconto(usuario_vendedor["id"], 200.0)
+        """Regressão: `limite_desconto_livre` (coluna deprecada da V1.3) pode
+        continuar com um valor herdado de antes da revisão -- confirma que
+        ele não tem efeito algum sobre a venda."""
+        _definir_limite_desconto(usuario_vendedor["id"], 50.0)
         login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
 
-    def test_desconto_acima_do_limite_sem_aprovacao_e_rejeitado(
-        self, client, login_como, usuario_vendedor, cenario_venda
-    ):
-        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
-        login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2800.0))
-        assert resp.status_code == 400
-        assert "aprovação" in resp.get_json()["erro"]
-
-    def test_desconto_acima_do_limite_com_aprovacao_e_aceito(
-        self, client, login_como, usuario_vendedor, cenario_venda
-    ):
-        _definir_limite_desconto(usuario_vendedor["id"], 100.0)
-        login_como(client, usuario_vendedor)
-        resp = client.post(
-            "/api/vendas",
-            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
-        )
+    def test_valor_do_desconto_continua_persistido(self, client, login_como, usuario_admin, cenario_venda):
+        """O campo `desconto` (valor_tabela - valor_unitario) continua sendo
+        calculado e exposto -- indicadores futuros (V1.4.1/V1.5) dependem
+        dele existir, mesmo sem bloqueio nenhum sobre o valor."""
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2500.0))
         assert resp.status_code == 201
-        _id, _motivo, aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
-        assert aprovado_em is not None
+        venda_id = resp.get_json()["id"]
 
-    def test_limite_nao_configurado_trata_como_zero(self, client, login_como, usuario_vendedor, cenario_venda):
-        """`usuario_vendedor` nasce com `limite_desconto_livre = NULL` --
-        qualquer desconto > 0 exige aprovação (fail-secure, plano técnico)."""
-        login_como(client, usuario_vendedor)
-        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=2999.0))
-        assert resp.status_code == 400
+        detalhe = client.get(f"/api/vendas/{venda_id}")
+        item = detalhe.get_json()["itens"][0]
+        assert item["valor_tabela"] == 3000.0
+        assert item["valor_unitario"] == 2500.0
+        assert item["desconto"] == 500.0
 
     def test_motivo_desconto_opcional_ausente(self, client, login_como, usuario_admin, cenario_venda):
         login_como(client, usuario_admin)
@@ -1118,25 +1112,16 @@ class TestDescontoEAprovacao:
         _id, motivo, _aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
         assert motivo == "Negociação final"
 
-    def test_nenhum_campo_grava_identidade_do_admin_aprovador(
+    def test_desconto_aprovado_em_nunca_mais_e_gravado(
         self, client, login_como, usuario_vendedor, cenario_venda
     ):
-        """BR-038 -- confirma por ausência: nenhuma coluna de `vendas_itens`
-        guarda qual admin aprovou, só o timestamp de quando."""
+        """BR-054 -- `desconto_aprovado_em` (coluna deprecada) permanece
+        sempre `NULL` para vendas novas, mesmo com um desconto grande."""
         login_como(client, usuario_vendedor)
-        resp = client.post(
-            "/api/vendas",
-            json=_payload(cenario_venda, valor_unitario=2800.0, desconto_aprovado=True),
-        )
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=1000.0))
         assert resp.status_code == 201
-
-        conn = _app.conectar()
-        try:
-            colunas = [row[1] for row in conn.execute("PRAGMA table_info(vendas_itens)")]
-        finally:
-            conn.close()
-        assert "aprovado_por" not in colunas
-        assert "admin_aprovador_id" not in colunas
+        _id, _motivo, aprovado_em = _item_desconto_info(cenario_venda["unidade_id"])
+        assert aprovado_em is None
 
 
 class TestAjusteComercial:
@@ -1245,3 +1230,189 @@ class TestAjusteComercial:
         historico = resp.get_json()["historico"]
         assert len(historico) == 1
         assert historico[0]["acao"] == "ajuste_desconto"
+
+
+class TestComissao:
+    """V1.4 -- Comissão (BR-044 a BR-051, VENDAS.md "V1.4 -- Comissão")."""
+
+    def _criar_venda_concluida(self, client, login_como, usuario, cenario_venda, valor_unitario=3000.0):
+        login_como(client, usuario)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=valor_unitario))
+        assert resp.status_code == 201
+        venda_id = resp.get_json()["id"]
+        item_id = _item_desconto_info(cenario_venda["unidade_id"])[0]
+        return venda_id, item_id
+
+    def test_admin_atribui_comissao_com_sucesso(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+
+        assert resp.status_code == 200
+        conn = _app.conectar()
+        try:
+            comissao = conn.execute(
+                "SELECT comissao_valor FROM vendas_itens WHERE id=?", (item_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+        assert comissao[0] == 150.0
+
+    def test_financeiro_atribui_comissao_com_sucesso(
+        self, client, login_como, usuario_admin, usuario_financeiro, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_financeiro)
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 200.0})
+
+        assert resp.status_code == 200
+
+    def test_vendedor_nao_pode_atribuir_comissao(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_vendedor)
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+        assert resp.status_code == 403
+
+    def test_tecnico_nao_pode_atribuir_comissao(
+        self, client, login_como, usuario_admin, usuario_tecnico, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_tecnico)
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+        assert resp.status_code == 403
+
+    def test_estoque_nao_pode_atribuir_comissao(
+        self, client, login_como, usuario_admin, usuario_estoque, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_estoque)
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+        assert resp.status_code == 403
+
+    def test_valor_negativo_e_rejeitado(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": -10.0})
+        assert resp.status_code == 400
+
+    def test_comissao_zero_e_aceita(self, client, login_como, usuario_admin, cenario_venda):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 0})
+        assert resp.status_code == 200
+
+    def test_atribuir_comissao_em_venda_cancelada_e_rejeitado(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+        assert resp.status_code == 400
+
+    def test_editar_comissao_duas_vezes_gera_dois_eventos_de_auditoria(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 100.0})
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 180.0})
+
+        resp = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-comissao")
+        assert resp.status_code == 200
+        historico = resp.get_json()["historico"]
+        assert len(historico) == 2
+        assert all(evento["acao"] == "comissao_alterada" for evento in historico)
+
+    def test_cancelar_venda_com_comissao_zera_automaticamente(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+        assert resp.status_code == 200
+
+        conn = _app.conectar()
+        try:
+            comissao = conn.execute(
+                "SELECT comissao_valor FROM vendas_itens WHERE id=?", (item_id,)
+            ).fetchone()
+        finally:
+            conn.close()
+        assert comissao[0] == 0
+
+        historico = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-comissao").get_json()["historico"]
+        assert any(evento["acao"] == "comissao_alterada" for evento in historico)
+
+    def test_get_venda_esconde_comissao_para_vendedor(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+
+        login_como(client, usuario_vendedor)
+        resp = client.get(f"/api/vendas/{venda_id}")
+        assert resp.status_code == 200
+        assert "comissao_valor" not in resp.get_json()["itens"][0]
+
+    def test_get_venda_mostra_comissao_para_admin_e_financeiro(
+        self, client, login_como, usuario_admin, usuario_financeiro, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+
+        resp = client.get(f"/api/vendas/{venda_id}")
+        assert resp.get_json()["itens"][0]["comissao_valor"] == 150.0
+
+        login_como(client, usuario_financeiro)
+        resp = client.get(f"/api/vendas/{venda_id}")
+        assert resp.get_json()["itens"][0]["comissao_valor"] == 150.0
+
+    def test_listar_vendas_esconde_comissao_para_vendedor(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/comissao", json={"valor": 150.0})
+
+        login_como(client, usuario_vendedor)
+        resp = client.get("/api/vendas")
+        assert resp.status_code == 200
+        venda = next(v for v in resp.get_json()["items"] if v["id"] == venda_id)
+        assert all("comissao_valor" not in item for item in venda["itens_resumo"])
+
+    def test_historico_comissao_e_restrito_a_admin_e_financeiro(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_vendedor)
+        resp = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-comissao")
+        assert resp.status_code == 403
+
+    def test_criar_usuario_com_perfil_financeiro_e_aceito(self, client, login_como, usuario_admin):
+        login_como(client, usuario_admin)
+        resp = client.post(
+            "/api/usuarios",
+            json={
+                "nome": "Financeiro Novo",
+                "usuario": f"financeiro_{uuid.uuid4().hex[:8]}",
+                "senha": SENHA_PADRAO,
+                "perfil": "financeiro",
+            },
+        )
+        assert resp.status_code == 201
+        novo_id = resp.get_json()["id"]
+        conn = _app.conectar()
+        try:
+            perfil = conn.execute("SELECT perfil FROM usuarios WHERE id=?", (novo_id,)).fetchone()[0]
+        finally:
+            conn.close()
+        assert perfil == "financeiro"
+        _remover_usuario(novo_id)

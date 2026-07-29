@@ -434,8 +434,7 @@ def create_api_blueprint(deps):
                 return err("Usuário e senha são obrigatórios.")
 
             cursor.execute(
-                "SELECT id, nome, senha_hash, perfil, ativo, limite_desconto_livre "
-                "FROM usuarios WHERE usuario = ?",
+                "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
                 (usuario_txt,),
             )
             row = cursor.fetchone()
@@ -454,10 +453,7 @@ def create_api_blueprint(deps):
             session["usuario_id"] = row[0]
             session["usuario_nome"] = row[1]
             session["usuario_perfil"] = row[3]
-            # V1.3 -- Descontos (BR-037): Login.jsx popula o AuthContext direto
-            # desta resposta (não espera o próximo /api/auth/me) -- sem este
-            # campo aqui, o limite ficava undefined logo após o login.
-            return ok(usuario={"id": row[0], "nome": row[1], "perfil": row[3], "limite_desconto_livre": row[5]})
+            return ok(usuario={"id": row[0], "nome": row[1], "perfil": row[3]})
 
         return err("Usuário ou senha inválidos.", 401)
 
@@ -471,25 +467,10 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        # V1.3 -- Descontos (BR-037): o vendedor precisa saber o próprio
-        # limite de desconto livre para o fluxo de Nova Venda -- não vem da
-        # sessão (só gravada no login), busca direto no banco. `None` =
-        # "não configurado" (nunca confundir com 0, ver
-        # fluxoly_vendas_service.py::_limite_desconto_livre).
-        conn = conectar()
-        try:
-            row = conn.execute(
-                "SELECT limite_desconto_livre FROM usuarios WHERE id = ?",
-                (session["usuario_id"],),
-            ).fetchone()
-        finally:
-            conn.close()
-
         return ok(usuario={
             "id": session["usuario_id"],
             "nome": session["usuario_nome"],
             "perfil": session["usuario_perfil"],
-            "limite_desconto_livre": row[0] if row else None,
         })
 
     # ── CONSTANTS ──────────────────────────────────────────────────────────
@@ -2718,18 +2699,11 @@ def create_api_blueprint(deps):
 
         conn = conectar()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, nome, usuario, perfil, ativo, limite_desconto_livre FROM usuarios ORDER BY nome"
-        )
+        cursor.execute("SELECT id, nome, usuario, perfil, ativo FROM usuarios ORDER BY nome")
         rows = cursor.fetchall()
         conn.close()
         return ok(usuarios=[
-            {
-                "id": r[0], "nome": r[1], "usuario": r[2], "perfil": r[3], "ativo": bool(r[4]),
-                # V1.3 -- Descontos (BR-037): limite de desconto livre do vendedor, em R$.
-                # None (NULL) significa "não configurado" -- nunca confundir com 0.
-                "limite_desconto_livre": r[5],
-            }
+            {"id": r[0], "nome": r[1], "usuario": r[2], "perfil": r[3], "ativo": bool(r[4])}
             for r in rows
         ])
 
@@ -2743,11 +2717,6 @@ def create_api_blueprint(deps):
         usuario_txt = (body.get("usuario") or "").strip()
         senha_txt = (body.get("senha") or "").strip()
         perfil = body.get("perfil") or "tecnico"
-        # V1.3 -- Descontos (BR-037): limite opcional, em R$. Ausente/vazio = None (não
-        # configurado, nunca confundir com 0) -- mesmo padrão de preco_custo em Produtos.
-        limite_desconto_livre = parse_float(body.get("limite_desconto_livre"), default=None)
-        if limite_desconto_livre is None and body.get("limite_desconto_livre") not in (None, ""):
-            return err("Limite de desconto inválido.")
 
         if not nome or not usuario_txt or not senha_txt:
             return err("Preencha nome, usuário e senha.")
@@ -2758,9 +2727,8 @@ def create_api_blueprint(deps):
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil, limite_desconto_livre) "
-                "VALUES (?,?,?,?,?)",
-                (nome, usuario_txt, generate_password_hash(senha_txt), perfil, limite_desconto_livre),
+                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?,?,?,?)",
+                (nome, usuario_txt, generate_password_hash(senha_txt), perfil),
             )
             novo_id = cursor.lastrowid
             conn.commit()
@@ -2782,10 +2750,6 @@ def create_api_blueprint(deps):
         perfil = body.get("perfil") or "tecnico"
         senha_nova = (body.get("senha_nova") or "").strip()
         ativo = bool(body.get("ativo", True))
-        # V1.3 -- Descontos (BR-037): mesma regra de opcional/None de criar_usuario.
-        limite_desconto_livre = parse_float(body.get("limite_desconto_livre"), default=None)
-        if limite_desconto_livre is None and body.get("limite_desconto_livre") not in (None, ""):
-            return err("Limite de desconto inválido.")
 
         if perfil not in perfis_opcoes:
             perfil = "tecnico"
@@ -2797,17 +2761,13 @@ def create_api_blueprint(deps):
         try:
             if senha_nova:
                 cursor.execute(
-                    "UPDATE usuarios SET nome=?,perfil=?,senha_hash=?,ativo=?,limite_desconto_livre=? "
-                    "WHERE id=?",
-                    (
-                        nome, perfil, generate_password_hash(senha_nova), 1 if ativo else 0,
-                        limite_desconto_livre, uid,
-                    ),
+                    "UPDATE usuarios SET nome=?,perfil=?,senha_hash=?,ativo=? WHERE id=?",
+                    (nome, perfil, generate_password_hash(senha_nova), 1 if ativo else 0, uid),
                 )
             else:
                 cursor.execute(
-                    "UPDATE usuarios SET nome=?,perfil=?,ativo=?,limite_desconto_livre=? WHERE id=?",
-                    (nome, perfil, 1 if ativo else 0, limite_desconto_livre, uid),
+                    "UPDATE usuarios SET nome=?,perfil=?,ativo=? WHERE id=?",
+                    (nome, perfil, 1 if ativo else 0, uid),
                 )
             conn.commit()
         except Exception as exc:

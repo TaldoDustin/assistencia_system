@@ -172,35 +172,19 @@ class TestCriarUsuario:
 
         _remover_usuario(novo_id)
 
-    def test_criar_usuario_com_limite_desconto_livre(self, client, login_como, usuario_admin):
-        """V1.3 -- Descontos (BR-037): limite opcional, em R$, individual por usuário."""
+    def test_criar_usuario_ignora_limite_desconto_livre_legado(self, client, login_como, usuario_admin):
+        """BR-054 (revisão de 2026-07-29): `limite_desconto_livre` é coluna
+        deprecada -- mesmo enviada no payload, a API não a persiste mais.
+        Regressão da remoção do bloqueio de desconto da V1.3."""
         login_como(client, usuario_admin)
         login_novo = f"novo_{uuid.uuid4().hex[:8]}"
 
         resp = client.post(
             "/api/usuarios",
             json={
-                "nome": "Vendedor Limite", "usuario": login_novo, "senha": "senha_123",
+                "nome": "Vendedor Teste", "usuario": login_novo, "senha": "senha_123",
                 "perfil": "vendedor", "limite_desconto_livre": 100,
             },
-        )
-
-        assert resp.status_code == 201
-        novo_id = resp.get_json()["id"]
-        row = _buscar_usuario_no_banco(novo_id)
-        assert row[6] == 100.0
-
-        _remover_usuario(novo_id)
-
-    def test_criar_usuario_sem_limite_desconto_livre_fica_none(self, client, login_como, usuario_admin):
-        """Ausência do campo é 'não configurado' (None) -- nunca 0 (BR-037, decisão do
-        plano técnico de encapsular a semântica no service, não no schema)."""
-        login_como(client, usuario_admin)
-        login_novo = f"novo_{uuid.uuid4().hex[:8]}"
-
-        resp = client.post(
-            "/api/usuarios",
-            json={"nome": "Sem Limite", "usuario": login_novo, "senha": "senha_123", "perfil": "vendedor"},
         )
 
         assert resp.status_code == 201
@@ -248,8 +232,11 @@ class TestAtualizarUsuario:
         assert row[1] == "Nome Atualizado"
         assert row[4] == "vendedor"
 
-    def test_admin_atualiza_limite_desconto_livre(self, client, login_como, usuario_admin, usuario_tecnico):
-        """V1.3 -- Descontos (BR-037)."""
+    def test_atualizar_usuario_ignora_limite_desconto_livre_legado(
+        self, client, login_como, usuario_admin, usuario_tecnico
+    ):
+        """BR-054 (revisão de 2026-07-29): mesmo enviado no payload de
+        atualização, `limite_desconto_livre` não é mais persistido."""
         login_como(client, usuario_admin)
 
         resp = client.put(
@@ -262,7 +249,7 @@ class TestAtualizarUsuario:
 
         assert resp.status_code == 200
         row = _buscar_usuario_no_banco(usuario_tecnico["id"])
-        assert row[6] == 250.5
+        assert row[6] is None
 
     def test_admin_troca_senha_de_outro_usuario(self, client, login_como, usuario_admin, usuario_tecnico):
         login_como(client, usuario_admin)

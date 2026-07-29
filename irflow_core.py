@@ -32,10 +32,12 @@ GARANTIA_REPARO_DIAS_PADRAO = 90
 
 # Perfis de usuário válidos — sem hierarquia entre eles (BR-003). "estoque"
 # adicionado em 2026-07-25 (Sprint Segurança 1.0, docs/security/SECURITY_AUDIT_2026-07.md)
-# junto da restrição de perfil nas rotas de mutação de Estoque. Fonte única —
-# usada tanto para validar o campo `perfil` na criação/edição de usuário quanto
-# como cinto de segurança para rotas que checam perfil por lista explícita.
-PERFIS_OPCOES = ["admin", "tecnico", "vendedor", "estoque"]
+# junto da restrição de perfil nas rotas de mutação de Estoque. "financeiro"
+# adicionado em 2026-07-29 (V1.4 -- Comissão, BR-044) -- acompanhamento
+# financeiro das vendas, não substitui admin. Fonte única — usada tanto para
+# validar o campo `perfil` na criação/edição de usuário quanto como cinto de
+# segurança para rotas que checam perfil por lista explícita.
+PERFIS_OPCOES = ["admin", "tecnico", "vendedor", "estoque", "financeiro"]
 
 
 def texto_limpo(valor):

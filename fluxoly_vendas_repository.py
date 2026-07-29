@@ -133,7 +133,70 @@ def buscar_historico_desconto_item(cursor, item_id):
         SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
         FROM audit_log a
         LEFT JOIN usuarios u ON a.usuario_id = u.id
-        WHERE a.entidade = 'venda_item' AND a.entidade_id = ?
+        WHERE a.entidade = 'venda_item' AND a.entidade_id = ? AND a.acao = 'ajuste_desconto'
+        ORDER BY a.id DESC
+        """,
+        (item_id,),
+    )
+    return cursor.fetchall()
+
+
+def buscar_comissao_item(cursor, venda_id, item_id):
+    """V1.4 -- Comissão (BR-048/BR-049). Lê `comissao_valor` atual antes de
+    sobrescrever -- necessário para o evento de auditoria registrar o
+    valor_anterior real (`None` = ainda não atribuída)."""
+    cursor.execute(
+        "SELECT id, comissao_valor FROM vendas_itens WHERE id = ? AND venda_id = ?",
+        (item_id, venda_id),
+    )
+    return cursor.fetchone()
+
+
+def atribuir_comissao_item(cursor, venda_id, item_id, valor):
+    """V1.4 -- Comissão (BR-048/BR-049). Mesmo compare-and-swap do Ajuste
+    Comercial: `WHERE` revalida `status='concluida'` no momento da escrita --
+    comissão não é atribuível/editável numa venda cancelada (BR-034).
+    Retorna o número de linhas afetadas -- 0 significa que a venda deixou de
+    estar `concluida` entre a leitura e esta escrita."""
+    cursor.execute(
+        """
+        UPDATE vendas_itens
+        SET comissao_valor = ?
+        WHERE id = ? AND venda_id = ? AND ativo = 1
+          AND EXISTS (
+              SELECT 1 FROM vendas WHERE id = vendas_itens.venda_id AND status = 'concluida'
+          )
+        """,
+        (valor, item_id, venda_id),
+    )
+    return cursor.rowcount
+
+
+def buscar_itens_com_comissao_por_venda(cursor, venda_id):
+    """Itens da venda com comissão já atribuída (`comissao_valor` não nulo) --
+    usado no cancelamento (BR-051) para zerar cada um e registrar o evento de
+    auditoria correspondente."""
+    cursor.execute(
+        "SELECT id, comissao_valor FROM vendas_itens WHERE venda_id = ? AND comissao_valor IS NOT NULL",
+        (venda_id,),
+    )
+    return cursor.fetchall()
+
+
+def zerar_comissao_item(cursor, item_id):
+    """BR-051 -- zera a comissão de um item quando a venda é cancelada."""
+    cursor.execute("UPDATE vendas_itens SET comissao_valor = 0 WHERE id = ?", (item_id,))
+
+
+def buscar_historico_comissao_item(cursor, item_id):
+    """Histórico de alterações de comissão do item (BR-049), mais recente
+    primeiro -- mesmo padrão de `buscar_historico_desconto_item`."""
+    cursor.execute(
+        """
+        SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
+        FROM audit_log a
+        LEFT JOIN usuarios u ON a.usuario_id = u.id
+        WHERE a.entidade = 'venda_item' AND a.entidade_id = ? AND a.acao = 'comissao_alterada'
         ORDER BY a.id DESC
         """,
         (item_id,),
@@ -158,7 +221,7 @@ def buscar_itens_por_venda(cursor, venda_id):
         """
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id = ?
@@ -245,7 +308,7 @@ def buscar_itens_por_vendas(cursor, venda_ids):
         f"""
         SELECT vi.id, vi.venda_id, vi.unidade_serializada_id, vi.produto_id, vi.produto_nome,
                vi.produto_sku, vi.quantidade, vi.valor_tabela, vi.valor_unitario, vi.subtotal,
-               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em
+               vi.criado_em, u.imei, vi.motivo_desconto, vi.desconto_aprovado_em, vi.comissao_valor
         FROM vendas_itens vi
         LEFT JOIN unidades_serializadas u ON vi.unidade_serializada_id = u.id
         WHERE vi.venda_id IN ({marcadores})

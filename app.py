@@ -1041,6 +1041,15 @@ def criar_tabelas():
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE vendas_itens ADD COLUMN desconto_aprovado_em TEXT")
 
+            # V1.4 -- Comissão (BR-044 a BR-052, VENDAS.md "V1.4 -- Comissão"). Uma coluna
+            # aditiva. `comissao_valor`: atribuído manualmente por admin/financeiro, em R$.
+            # NULL = "ainda não atribuída" -- nunca confundir com atribuída como zero. Sem
+            # campo de "tipo" (fixo/percentual, BR-048): o valor final é sempre o que é
+            # gravado, independente de como financeiro chegou nele mentalmente -- é isso que
+            # permite a mesma estrutura suportar qualquer política de comissão da loja.
+            with contextlib.suppress(sqlite3.OperationalError):
+                cursor.execute("ALTER TABLE vendas_itens ADD COLUMN comissao_valor REAL")
+
             # Add valor column if it doesn't exist
             with contextlib.suppress(sqlite3.OperationalError):
                 cursor.execute("ALTER TABLE os_pecas ADD COLUMN valor REAL")

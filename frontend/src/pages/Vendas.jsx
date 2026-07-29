@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Search, UserCircle, Smartphone, Check, Plus, Eye, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { clientes as clientesApi, unidadesSerializadas as unidadesApi, vendas as vendasApi } from "@/api/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
 
@@ -261,7 +259,6 @@ const EMPTY_STATE = {
   formaPagamento: "",
   observacoes: "",
   motivoDesconto: "",
-  descontoAprovado: false,
 };
 
 const TABS = [
@@ -271,7 +268,6 @@ const TABS = [
 
 function NovaVenda() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [form, setForm] = useState(EMPTY_STATE);
   const [clienteResultados, setClienteResultados] = useState([]);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
@@ -335,14 +331,12 @@ function NovaVenda() {
     setVendaConcluida(null);
   };
 
-  // V1.3 -- Descontos e Aprovação (BR-037, BR-038). `limite_desconto_livre`
-  // vem de /api/auth/me; `null`/ausente = "não configurado" -- tratado como
-  // limite efetivo R$0 no front, mesma regra do backend (fail-secure).
+  // Desconto (BR-053): sempre permitido, sempre registrado -- nunca bloqueia
+  // a venda. `desconto` só existe aqui para decidir se mostra o campo de
+  // motivo (nenhum efeito de validação).
   const precoTabela = form.aparelhoSelecionado?.preco_catalogo;
   const valorVendaNum = parseFloat(form.valorVenda) || 0;
   const desconto = precoTabela != null ? Math.round((precoTabela - valorVendaNum) * 100) / 100 : null;
-  const limiteEfetivo = user?.limite_desconto_livre ?? 0;
-  const excedeLimite = desconto != null && desconto > limiteEfetivo;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -359,10 +353,6 @@ function NovaVenda() {
       toast.error("Informe um valor de venda válido.");
       return;
     }
-    if (excedeLimite && !form.descontoAprovado) {
-      toast.error("Desconto acima do seu limite livre requer confirmação de aprovação do admin.");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -373,7 +363,6 @@ function NovaVenda() {
         valor_unitario: valor,
         observacoes: form.observacoes,
         motivo_desconto: form.motivoDesconto,
-        desconto_aprovado: excedeLimite ? form.descontoAprovado : false,
       });
       if (res?.ok) {
         toast.success("Venda concluída!");
@@ -578,25 +567,6 @@ function NovaVenda() {
               </div>
             )}
 
-            {excedeLimite && (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2">
-                <p className="text-sm text-amber-300">
-                  Desconto de {formatCurrency(desconto)} acima do seu limite livre
-                  ({formatCurrency(limiteEfetivo)}) — requer aprovação do admin.
-                </p>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="venda-desconto-aprovado"
-                    checked={form.descontoAprovado}
-                    onCheckedChange={(checked) => setForm((p) => ({ ...p, descontoAprovado: !!checked }))}
-                  />
-                  <Label htmlFor="venda-desconto-aprovado" className="font-normal">
-                    Confirmo que o admin aprovou este desconto
-                  </Label>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-1.5">
               <Label htmlFor="venda-observacoes">Observações (opcional)</Label>
               <Textarea
@@ -615,7 +585,7 @@ function NovaVenda() {
               </span>
             </div>
 
-            <Button type="submit" className="w-full" disabled={submitting || (excedeLimite && !form.descontoAprovado)}>
+            <Button type="submit" className="w-full" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {submitting ? "Confirmando..." : "Confirmar Venda"}
             </Button>

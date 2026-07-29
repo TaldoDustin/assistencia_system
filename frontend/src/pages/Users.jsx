@@ -20,7 +20,7 @@ import {
 // docs/security/SECURITY_AUDIT_2026-07.md e irflow_core.py::PERFIS_OPCOES.
 const PERFIS = ["admin", "tecnico", "vendedor", "estoque"];
 
-const EMPTY_FORM = { nome: "", usuario: "", senha: "", perfil: "tecnico", ativo: true, limiteDescontoLivre: "" };
+const EMPTY_FORM = { nome: "", usuario: "", senha: "", perfil: "tecnico", ativo: true };
 
 export default function Users() {
   const { user: currentUser } = useAuth();
@@ -64,7 +64,6 @@ export default function Users() {
     setForm({
       nome: u.nome || "", usuario: u.usuario || "", senha: "", perfil: u.perfil || "tecnico",
       ativo: u.ativo !== false,
-      limiteDescontoLivre: u.limite_desconto_livre != null ? String(u.limite_desconto_livre) : "",
     });
     setEditId(u.id);
     setDialogOpen(true);
@@ -74,10 +73,7 @@ export default function Users() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { limiteDescontoLivre, ...resto } = form;
-      const payload = { ...resto };
-      // V1.3 -- Descontos (BR-037): vazio = "não configurado" (None), nunca 0.
-      payload.limite_desconto_livre = limiteDescontoLivre.trim() === "" ? null : parseFloat(limiteDescontoLivre);
+      const payload = { ...form };
       if (editId && !payload.senha) delete payload.senha;
       const res = editId ? await usuariosApi.update(editId, payload) : await usuariosApi.create(payload);
       if (res?.ok) {
@@ -202,20 +198,6 @@ export default function Users() {
                 />
                 <Label>Ativo</Label>
               </div>
-              {form.perfil === "vendedor" && (
-                <div className="space-y-1.5 col-span-2">
-                  <Label htmlFor="user-limite-desconto">Limite de desconto livre (R$)</Label>
-                  <Input
-                    id="user-limite-desconto"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Não configurado (exige aprovação para qualquer desconto)"
-                    value={form.limiteDescontoLivre}
-                    onChange={(e) => setForm((p) => ({ ...p, limiteDescontoLivre: e.target.value }))}
-                  />
-                </div>
-              )}
             </div>
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>

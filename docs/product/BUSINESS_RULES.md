@@ -424,8 +424,10 @@ zerada no cancelamento).
 
 **BR-059 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
 Corrigir uma Garantia de Venda já concedida é restrito a `admin`, com auditoria append-only (valor
-anterior, valor novo, quem, quando) — mesmo padrão do Ajuste Comercial (BR-043) e da edição de comissão
-(BR-049): a correção é mais restrita que a atribuição original (que é `admin`/`vendedor`).
+anterior, valor novo, quem concedeu, quem corrigiu, quando) — a correção é mais restrita que a
+atribuição original (`admin`/`vendedor`), mesma assimetria do Ajuste Comercial (BR-043). **Sem motivo
+obrigatório** — mesmo padrão da edição de comissão (BR-049/BR-050), não do Ajuste Comercial (BR-043,
+que exige motivo): valor anterior/novo/quem/quando já bastam como justificativa registrada.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
 **BR-060 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
@@ -458,8 +460,8 @@ de BR-058.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
 **BR-065 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
-Corrigir uma Garantia de Reparo já concedida é restrito a `admin`, com auditoria — mesmo padrão de
-BR-059.
+Corrigir uma Garantia de Reparo já concedida é restrito a `admin`, com auditoria, sem motivo obrigatório
+— mesmo padrão de BR-059.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
 **BR-066 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**

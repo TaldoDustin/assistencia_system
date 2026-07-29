@@ -458,9 +458,12 @@ cancelar a OS zera a Garantia de Reparo das linhas afetadas — mesmo padrão j�
 no cancelamento de venda (BR-051).
 
 **Correção restrita a admin, com auditoria (BR-059/BR-065).** Uma Garantia já concedida pode ser
-corrigida depois — mas só por `admin`, com o mesmo princípio append-only do Ajuste Comercial (valor
-anterior, valor novo, quem, quando). A atribuição original é mais permissiva (`admin`/`vendedor` na
-venda) do que a correção — mesma assimetria já usada no Ajuste Comercial.
+corrigida depois — mas só por `admin`, com o mesmo princípio append-only já usado no Ajuste Comercial e
+na Comissão (valor anterior, valor novo, quem concedeu, quem corrigiu, quando). A atribuição original é
+mais permissiva (`admin`/`vendedor` na venda) do que a correção — mesma assimetria já usada no Ajuste
+Comercial. **Sem motivo obrigatório na correção** — mesmo padrão da Comissão (BR-049/BR-050), não do
+Ajuste Comercial (que exige motivo): reaproveita o mecanismo de auditoria já existente (`audit_log`),
+sem criar um terceiro padrão diferente para Garantia.
 
 **Garantia de Reparo: manual, obrigatória, na conclusão da OS, por linha de reparo (BR-061/BR-062).**
 Diferente da venda, o momento certo é a conclusão (`Finalizado`), não a criação da OS — o prazo só faz

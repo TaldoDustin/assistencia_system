@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import OrderStatusBadge from "./OrderStatusBadge";
 import { formatCurrency, getOrderDisplayNumber } from "@/lib/constants";
 
-export default function OrderTable({ orders = [], onDelete }) {
+export default function OrderTable({ orders = [], onDelete, onEditClick }) {
   if (orders.length === 0) {
     return (
       <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground text-sm">
@@ -31,7 +31,12 @@ export default function OrderTable({ orders = [], onDelete }) {
           </thead>
           <tbody className="divide-y divide-border">
             {orders.map((os) => (
-              <tr key={os.id} className="hover:bg-accent/30 transition-colors" data-testid={`order-row-${os.id}`}>
+              <tr
+                key={os.id}
+                className="hover:bg-accent/30 transition-colors"
+                data-testid={`order-row-${os.id}`}
+                data-context-row={os.id}
+              >
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                   #{getOrderDisplayNumber(os)}
                 </td>
@@ -54,7 +59,7 @@ export default function OrderTable({ orders = [], onDelete }) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
-                    <Link to={`/ordens/editar/${os.id}`}>
+                    <Link to={`/ordens/editar/${os.id}`} onClick={() => onEditClick?.(os.id)}>
                       <Button
                         variant="ghost"
                         size="icon"

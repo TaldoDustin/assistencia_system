@@ -6,6 +6,9 @@ import { ordens as ordensApi, constantes as constApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import OrderFilters from "@/components/orders/OrderFilters";
 import OrderTable from "@/components/orders/OrderTable";
+import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
+
+const NAV_CONTEXT_KEY = "ordens";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
@@ -38,7 +41,8 @@ function applyFilters(ordens, filters) {
 export default function Orders() {
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({});
+  // UX-001 -- restaura filtros salvos ao voltar de uma edição, se houver.
+  const [filters, setFilters] = useState(() => readListContext(NAV_CONTEXT_KEY)?.filters || {});
   const [deleteId, setDeleteId] = useState(null);
   const [constants, setConstants] = useState(null);
 
@@ -68,6 +72,14 @@ export default function Orders() {
       if (res?.ok) setConstants(res);
     });
   }, []);
+
+  // UX-001 -- rola de volta para o item editado (ou posição salva) assim
+  // que a listagem carrega.
+  useRestoreScroll(NAV_CONTEXT_KEY, !loading);
+
+  const handleEditClick = (id) => {
+    saveListContext(NAV_CONTEXT_KEY, { filters, focusId: id });
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -124,7 +136,7 @@ export default function Orders() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <OrderTable orders={filtered} onDelete={setDeleteId} />
+        <OrderTable orders={filtered} onDelete={setDeleteId} onEditClick={handleEditClick} />
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

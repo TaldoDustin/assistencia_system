@@ -64,18 +64,29 @@ from irflow_core import (
 # ============================================================================
 from irflow_os import (
     adicionar_peca_os_sem_consumir,
+    buscar_garantia_reparo,
+    buscar_historico_garantia_reparo,
+    buscar_linhas_com_garantia_da_os,
+    buscar_reparo_ids_da_os,
     carregar_os_com_relacoes,
     consumir_peca_da_os,
+    corrigir_garantia_reparo,
     devolver_pecas_da_os,
     extrair_reparo_ids,
+    gravar_garantias_reparo,
     modelo_compativel,
     obter_ou_criar_reparo,
     obter_reparos_por_os,
     registrar_movimentacao,
+    resolver_garantias_reparo,
     salvar_reparos_os,
     validar_reparo_ids,
     vendedor_valido,
+    zerar_garantia_reparo,
 )
+
+from irflow_audit import registrar_log_auditoria
+from fluxoly_tipos_garantia_service import obter_tipo_garantia
 
 from irflow_mercadophone import (
     detalhar_os_mercado_phone,
@@ -1929,6 +1940,16 @@ app.register_blueprint(
             "validar_reparo_ids": validar_reparo_ids,
             "vendedor_valido": vendedor_valido,
             "salvar_reparos_os": salvar_reparos_os,
+            "buscar_reparo_ids_da_os": buscar_reparo_ids_da_os,
+            "resolver_garantias_reparo": resolver_garantias_reparo,
+            "gravar_garantias_reparo": gravar_garantias_reparo,
+            "buscar_linhas_com_garantia_da_os": buscar_linhas_com_garantia_da_os,
+            "zerar_garantia_reparo": zerar_garantia_reparo,
+            "buscar_garantia_reparo": buscar_garantia_reparo,
+            "corrigir_garantia_reparo": corrigir_garantia_reparo,
+            "buscar_historico_garantia_reparo": buscar_historico_garantia_reparo,
+            "obter_tipo_garantia": obter_tipo_garantia,
+            "registrar_log_auditoria": registrar_log_auditoria,
             "modelo_compativel": modelo_compativel,
             "consumir_peca_da_os": consumir_peca_da_os,
             "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,

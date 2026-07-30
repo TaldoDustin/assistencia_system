@@ -180,8 +180,41 @@ def dois_reparos_ids():
 
 
 @pytest.fixture
-def payload_os_valido(reparo_padrao_id):
-    """Factory: payload minimo valido para POST/PUT /api/ordens, com overrides pontuais."""
+def tipo_garantia_padrao_id():
+    """V1.5 -- Garantia de Reparo (BR-061): concluir uma OS (PATCH .../status
+    ou PUT .../ordens/<id> levando o status a Finalizado) passa a exigir um
+    Tipo de Garantia por linha de reparo. Fixture de apoio para qualquer
+    teste que finalize uma OS -- não é o objeto sob teste (isso é
+    tests/test_tipos_garantia.py e o service de Garantia de Reparo)."""
+    conn = _app.conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO tipos_garantia (nome, duracao_meses) VALUES (?, ?)",
+            ("Garantia Teste Padrão (Reparo)", 12),
+        )
+        conn.commit()
+        tipo_garantia_id = cursor.lastrowid
+    finally:
+        conn.close()
+    yield tipo_garantia_id
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM tipos_garantia WHERE id=?", (tipo_garantia_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@pytest.fixture
+def payload_os_valido(reparo_padrao_id, tipo_garantia_padrao_id):
+    """Factory: payload minimo valido para POST/PUT /api/ordens, com overrides pontuais.
+
+    `garantias` é derivado automaticamente dos `reparo_ids` finais (depois de
+    aplicar overrides) -- só tem efeito real quando o status vira Finalizado
+    (BR-061), mas é sempre incluído por simplicidade (ignorado nos demais
+    casos). Um teste que precise provar a rejeição por garantia ausente deve
+    sobrescrever `garantias` explicitamente."""
 
     def _payload(**overrides):
         base = {
@@ -193,6 +226,8 @@ def payload_os_valido(reparo_padrao_id):
             "reparo_ids": [reparo_padrao_id],
         }
         base.update(overrides)
+        if "garantias" not in base:
+            base["garantias"] = {str(rid): tipo_garantia_padrao_id for rid in base.get("reparo_ids") or []}
         return base
 
     return _payload

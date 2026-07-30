@@ -305,6 +305,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Discovery revisitou e revogou o modelo de bloqueio da V1.3 na mesma sessão (ver acima); segunda feature a seguir o ciclo formal de `ADR-010`
 - 15 novos testes de comissão + 6 reescritos da reversão (625 no total). QA Manual via `curl` (14 cenários, `docs/engineering/plans/PLAN-V1.4-Comissao.md`) — navegador real indisponível neste ambiente por limitação do ambiente de automação, não do produto (KI-027)
 
+### Corrigido (2026-07-30 — responsividade do Dashboard em telas de notebook/MacBook)
+- `frontend/src/pages/Dashboard.jsx`: grids de KPIs e gráficos usavam contagem fixa de colunas por breakpoint (`lg:grid-cols-3 xl:grid-cols-6`, `lg:grid-cols-2`), pulando abruptamente entre 3 e 6 colunas e deixando espaço em branco em larguras intermediárias (1366–1728px, faixa típica de MacBook). Trocado por CSS Grid `auto-fit`/`minmax` (KPIs: `minmax(280px,1fr)`; gráficos: `minmax(420px,1fr)`), que ajusta o número de colunas ao espaço real disponível. Mobile (`grid-cols-2` abaixo de `sm`) preservado sem alteração
+- `minmax(280px,1fr)` nos KPIs (não 200px): validado que 200px truncava valores monetários de notebook ("R$ 128.450,90"); medido via `scrollWidth`/`clientWidth` (não só cálculo de grid) que 280px não trunca em nenhuma das 6 larguras-alvo (1280/1366/1440/1512/1728/1920px) com valores realistas
+- `KpiCard.jsx` e os 3 cartões de gráfico já eram fluidos (`ResponsiveContainer width="100%"`, truncamento de valor do fix de 2026-07-26) — não precisaram de mudança
+- Validação visual num MacBook real não foi possível nesta sessão (sem acesso físico a Mac); validação por medição real de overflow no DOM (`scrollWidth`/`clientWidth`), não só cálculo de CSS
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

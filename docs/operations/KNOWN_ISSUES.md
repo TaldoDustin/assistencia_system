@@ -840,7 +840,7 @@ Responsável:
 
 ---
 
-## KI-027
+## ~~KI-027~~ — RESOLVIDO (causa raiz reclassificada)
 
 Descrição:
 Ambiente de automação de navegador (Chrome via ferramenta de automação) não persiste o cookie de sessão
@@ -861,16 +861,39 @@ código da aplicação (o mesmo fluxo funciona normalmente em `curl`, e a suíte
 de sessão via `flask.testing` client, que não depende deste mecanismo de cookie do navegador).
 
 Status:
-Aberto — identificado em 2026-07-29 durante a QA Manual do PLAN-V1.4-Comissao.md
-(`docs/engineering/plans/PLAN-V1.4-Comissao.md`). Contornado nessa sessão validando os mesmos cenários
-via `curl` com cookie jar por perfil (login real, banco de desenvolvimento real, dado de teste removido
-ao final) em vez do navegador — ver seção "QA Manual" do plano para os 14 cenários executados. Não
-investigado a fundo por ser característica do ambiente de automação disponível nesta sessão, não do
-código do produto; se o ambiente de automação mudar (nova versão da ferramenta, outro perfil de
-navegador), revalidar se o problema ainda ocorre antes de assumir que persiste.
+**Causa raiz real encontrada em 2026-07-30**, durante QA manual da UX-001 (Preservação de Contexto da
+Navegação) — não é característica do ambiente de automação, como suposto em 2026-07-29. `app.py` liga
+`IS_SERVER_RUNTIME=True` sempre que `IR_FLOW_DATA_DIR` está definido (linha ~187) — a mesma variável usada
+para isolar qualquer sessão de QA local do `database.db` real. Com `IS_SERVER_RUNTIME=True`, o cookie de
+sessão sai com `Secure; SameSite=None; Partitioned` (confirmado via `curl -i` contra `http://127.0.0.1:5080`
+rodando com `IR_FLOW_DATA_DIR` setado: `Set-Cookie: session=...; Secure; HttpOnly; Path=/; SameSite=None;
+Partitioned`). O atributo `Secure` exige HTTPS — um navegador real (Chrome via Claude in Chrome, ou
+qualquer outro) descarta silenciosamente esse cookie numa conexão `http://localhost` pura, exatamente o
+sintoma original (login `200`, toda requisição seguinte `401`). `curl` com `-b`/`-c` (cookie jar) é mais
+permissivo que um navegador real quanto ao atributo `Secure` sobre `http://`, o que explica por que o
+mesmo fluxo "funcionava instantaneamente via curl" — não é um cookie geral bloqueado, é especificamente a
+combinação `Secure` + `http://`.
+
+**Confirmado resolvido**: rodando o backend com um override local de `app.config["SESSION_COOKIE_SECURE"] =
+False` / `SESSION_COOKIE_SAMESITE = "Lax"` / `SESSION_COOKIE_PARTITIONED = False` (só no processo da sessão
+de QA, nenhuma mudança em `app.py`), o cookie passou a persistir normalmente no Chrome real via Claude in
+Chrome — login, navegação autenticada, scroll/filtro/destaque da UX-001 validados ponta a ponta sem
+nenhum 401. Zero impacto em produção (lá é HTTPS real via Render/Vercel, `Secure` é o comportamento
+correto) — o problema só existe ao rodar `IR_FLOW_DATA_DIR` + servidor real + navegador real + `http://`
+simultaneamente, combinação que só acontece em QA manual local, nunca em produção nem na suíte automatizada
+(`flask.testing` não depende do mecanismo de cookie do navegador).
+
+**Não corrigido em código** — nenhuma mudança em `app.py` feita a partir deste achado; ver "Próximos
+passos" abaixo para a decisão pendente sobre se vale introduzir uma flag de override para facilitar QA
+manual local futura.
 
 Sprint prevista:
-Não definida — sem urgência, contornável via `curl` sempre que necessário.
+Não definida.
 
 Responsável:
 —
+
+Próximos passos (não decidido, registrado para referência futura):
+Considerar uma variável de ambiente dedicada (ex.: `IR_FLOW_FORCE_INSECURE_COOKIE=1`) para permitir QA
+manual local com `IR_FLOW_DATA_DIR` + navegador real sem precisar de um script wrapper ad-hoc como o usado
+nesta sessão — decisão de arquitetura pequena, não tomada unilateralmente aqui.

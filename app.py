@@ -2030,6 +2030,16 @@ from fluxoly_vendas_controller import create_vendas_blueprint  # noqa: E402
 app.register_blueprint(create_vendas_blueprint({"conectar": conectar}))
 
 # ============================================================================
+# REGISTRO DO BLUEPRINT DE TIPOS DE GARANTIA (V1.5 — Garantia, cadastro
+# compartilhado entre Vendas e Assistência, ver docs/engineering/plans/
+# PLAN-V1.5-Garantia.md)
+# ============================================================================
+
+from fluxoly_tipos_garantia_controller import create_tipos_garantia_blueprint  # noqa: E402
+
+app.register_blueprint(create_tipos_garantia_blueprint({"conectar": conectar}))
+
+# ============================================================================
 # HEALTH CHECKS (Sprint Observabilidade) — sem autenticação, usados por
 # probes de infraestrutura (Render, load balancer). Não usam a convenção
 # ok()/err() das blueprints de domínio de propósito — são infraestrutura,

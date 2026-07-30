@@ -4,7 +4,7 @@ Diferente de `docs/operations/ROADMAP.md` (que responde **quando** — fases e s
 `docs/company/RELEASE_STRATEGY.md` (que responde **em qual versão** cada coisa sai), este documento
 responde **o quê** construir a seguir, em ordem de prioridade de negócio.
 
-**Última revisão:** 2026-07-27
+**Última revisão:** 2026-07-30
 **Fonte:** priorização de negócio — input direto do Product Owner. Coluna "Status" verificada contra o
 estado real do código/documentação (`docs/engineering/DOMAIN_MODEL.md`, `docs/product/features/`) antes
 de publicar, não copiada às cegas do exemplo dado.
@@ -29,6 +29,7 @@ ajuda a marcar.
 | P2 | WhatsApp | Não iniciado | Médio | Fase 4 (Automação) — fora do escopo da 1.0 | Notificação automática de status de OS/venda — pilar "Relacionamento", `BRAND_IDENTITY.md` seção 2 |
 | P2 | CRM | Não iniciado | Médio | Fase 4 (Automação) — fora do escopo da 1.0 | Depende de Clientes (P0) existir como entidade primeiro |
 | P3 | Multiempresa | ADR pendente | Estratégico | Fase 3 (Multiempresa) — fora do escopo da 1.0, depende da Fase 2 (Infraestrutura SaaS) | `docs/engineering/adr/ADR-005.md` — alternativas técnicas prontas, decisão de negócio ainda não tomada |
+| P3 | UX-001 — Preservação de Contexto da Navegação | Em andamento — piloto validado (Orders + Histórico de Vendas) | Médio (usabilidade, não bloqueia receita) | Fora do escopo da 1.0 | Proposto em 2026-07-30 durante revisão da V1.5 (Garantia); piloto implementado e validado em navegador real no mesmo dia. Mecanismo reutilizável (`frontend/src/hooks/useListContext.js`) de preservação de contexto de navegação para listagens — restaura posição de rolagem, paginação, filtros, pesquisa e registro em foco (com destaque temporário) ao retornar de uma tela de visualização/edição/criação, consumindo o snapshot uma única vez (`clearListContext`) para não "grudar" em visitas futuras não relacionadas. Validado ponta a ponta (Chrome real via Claude in Chrome) em `Orders.jsx` e `Vendas.jsx`/Histórico — as duas páginas piloto escolhidas deliberadamente para reduzir risco antes de expandir. **Pendente para concluir**: aplicar o mesmo hook a Clientes, Produtos, Estoque, Compras, Garantias, Unidades Serializadas e futuras listagens; hoje o hook só cobre o clique em "Editar" — ampliar para visualizar/criar/qualquer navegação temporária; considerar evoluir a chave fixa (`"ordens"`, `"vendas-historico"`) para um padrão `módulo:contexto` (ou derivado do `pathname`) que dispense escolher uma string por página. Decisão deliberada de não competir com o roadmap funcional em andamento (Vendas → Financeiro → CRM) — retomar a expansão só depois das prioridades P0/P1 acima |
 
 ---
 

@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
+import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
+
+const NAV_CONTEXT_KEY = "vendas-historico";
 
 const FORMAS_PAGAMENTO = [
   { value: "pix", label: "Pix" },
@@ -50,14 +53,16 @@ function Historico() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [formaPagamentoFilter, setFormaPagamentoFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
-  const [sort, setSort] = useState("recente");
-  const [page, setPage] = useState(1);
+  // UX-001 -- restaura filtros/paginação salvos ao voltar do detalhe de uma venda.
+  const [ctxInicial] = useState(() => readListContext(NAV_CONTEXT_KEY) || {});
+  const [searchInput, setSearchInput] = useState(ctxInicial.search || "");
+  const [search, setSearch] = useState(ctxInicial.search || "");
+  const [formaPagamentoFilter, setFormaPagamentoFilter] = useState(ctxInicial.formaPagamentoFilter || "");
+  const [statusFilter, setStatusFilter] = useState(ctxInicial.statusFilter || "");
+  const [dataInicio, setDataInicio] = useState(ctxInicial.dataInicio || "");
+  const [dataFim, setDataFim] = useState(ctxInicial.dataFim || "");
+  const [sort, setSort] = useState(ctxInicial.sort || "recente");
+  const [page, setPage] = useState(ctxInicial.page || 1);
 
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 350);
@@ -106,6 +111,17 @@ function Historico() {
     buscar();
     return () => { ativo = false; };
   }, [page, search, formaPagamentoFilter, statusFilter, dataInicio, dataFim, sort]);
+
+  // UX-001 -- rola de volta para a venda em foco (ou posição salva) assim
+  // que a listagem carrega.
+  useRestoreScroll(NAV_CONTEXT_KEY, !loading);
+
+  const handleRowClick = (id) => {
+    saveListContext(NAV_CONTEXT_KEY, {
+      search, formaPagamentoFilter, statusFilter, dataInicio, dataFim, sort, page, focusId: id,
+    });
+    navigate(`/vendas/${id}`);
+  };
 
   const totalPaginas = Math.max(1, Math.ceil(total / PER_PAGE_HISTORICO));
   const filtrosAtivos = Boolean(search || formaPagamentoFilter || statusFilter || dataInicio || dataFim);
@@ -189,7 +205,8 @@ function Historico() {
                         key={item.id}
                         className="hover:bg-accent/30 transition-colors cursor-pointer"
                         data-testid={`venda-row-${item.id}`}
-                        onClick={() => navigate(`/vendas/${item.id}`)}
+                        data-context-row={item.id}
+                        onClick={() => handleRowClick(item.id)}
                       >
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(item.criado_em)}</td>
                         <td className="px-4 py-3 font-medium text-card-foreground">{item.cliente_nome || "—"}</td>
@@ -597,7 +614,10 @@ function NovaVenda() {
 }
 
 export default function Vendas() {
-  const [activeTab, setActiveTab] = useState("nova");
+  // UX-001 -- se havia um contexto salvo do Histórico (usuário estava lá
+  // antes de sair para ver o detalhe de uma venda), volta para essa aba em
+  // vez de sempre cair em "Nova Venda".
+  const [activeTab, setActiveTab] = useState(() => (readListContext(NAV_CONTEXT_KEY) ? "historico" : "nova"));
 
   return (
     <div className="space-y-5">

@@ -394,6 +394,33 @@ não deve ser feita "por suspeita".
 
 ---
 
+## Novo sintoma observado — `POST /api/usuarios` mascarava o erro real (2026-07-30)
+
+Reportado pelo usuário (CTO) em produção: impossível criar qualquer usuário novo, sistema sempre
+respondia "Usuário já existe." mesmo para nomes de usuário genuinamente inéditos (confirmado testando
+com um nome aleatório). `criar_usuario()` (`irflow_blueprints_api.py`) tinha um `except Exception:` amplo
+que convertia **qualquer** exceção do `INSERT INTO usuarios` — não só `sqlite3.IntegrityError` de
+duplicata real — na mensagem hardcoded "Usuário já existe.". Se a causa real fosse `database is locked`
+(este incidente), o admin nunca veria isso — só a mensagem enganosa.
+
+Essa rota nunca havia sido citada como sintoma/vetor nas investigações anteriores deste incidente (rotas
+auditadas até então: login, checklist, MercadoPhone). Não foi possível confirmar em produção qual
+exceção de fato ocorria (sem acesso ao banco/logs de produção nesta sessão).
+
+**Corrigido em 2026-07-30** (`hotfix/criar-usuario-erro-mascarado`): `except Exception:` dividido em
+`except sqlite3.IntegrityError` (mantém "Usuário já existe.", único caso onde essa mensagem é
+correta) e `except Exception as exc: return err(str(exc))` (mesmo padrão já usado no resto do arquivo,
+ex. `atualizar_status_os`, `criar_venda`) — qualquer outra causa passa a aparecer com o texto real do
+erro. Teste de regressão dedicado (`tests/test_users.py`) simula `sqlite3.OperationalError("database is
+locked")` e confirma que a mensagem já não é mascarada.
+
+**Isso não confirma nem corrige a causa raiz deste incidente** — só impede que ela continue disfarçada
+de "usuário duplicado" nesta rota especificamente. Se o erro real continuar sendo `database is locked`
+após o deploy deste hotfix, é evidência nova e direta para a investigação em andamento (ver "Próximo
+passo" acima).
+
+---
+
 ## Documentos relacionados
 
 - `app.py` (linhas 344-372) — `conectar()`, `_configurar_conexao_sqlite()`, configuração de WAL/timeout

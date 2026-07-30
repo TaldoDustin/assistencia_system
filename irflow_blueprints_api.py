@@ -10,6 +10,7 @@ import json
 import re
 import secrets
 import math
+import sqlite3
 import threading
 
 from flask import Blueprint, jsonify, request, session, send_from_directory, Response
@@ -2932,9 +2933,12 @@ def create_api_blueprint(deps):
             )
             novo_id = cursor.lastrowid
             conn.commit()
-        except Exception:
+        except sqlite3.IntegrityError:
             conn.rollback()
             return err("Usuário já existe.")
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
         finally:
             conn.close()
 

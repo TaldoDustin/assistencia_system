@@ -11,11 +11,63 @@ nao um comportamento desejado — nao adicionam nem alteram nenhuma regra de
 negocio.
 """
 
+import sqlite3
 import uuid
 
+import pytest
 from werkzeug.security import check_password_hash
 
 import app as _app
+
+
+class _CursorComFalha:
+    """Envelope fino em volta do cursor real -- delega tudo, exceto o INSERT
+    alvo, que levanta a exceção simulada."""
+
+    def __init__(self, cursor_real):
+        self._cursor_real = cursor_real
+
+    def execute(self, sql, *args, **kwargs):
+        if isinstance(sql, str) and "INSERT INTO usuarios" in sql:
+            raise sqlite3.OperationalError("database is locked")
+        return self._cursor_real.execute(sql, *args, **kwargs)
+
+    def __getattr__(self, nome):
+        return getattr(self._cursor_real, nome)
+
+
+class _ConexaoComFalha:
+    def __init__(self, conexao_real):
+        self._conexao_real = conexao_real
+
+    def cursor(self):
+        return _CursorComFalha(self._conexao_real.cursor())
+
+    def __getattr__(self, nome):
+        return getattr(self._conexao_real, nome)
+
+
+@pytest.fixture
+def falha_ao_inserir_usuario(app):
+    """Faz o próximo INSERT INTO usuarios levantar sqlite3.OperationalError
+    ('database is locked') -- mesma técnica de
+    tests/test_inc001_login_connection_leak.py: `conectar` é vinculado por
+    closure na criação do blueprint (não é atributo de módulo
+    monkeypatch-ável), e `sqlite3.Cursor` é um tipo C-extension imutável, sem
+    como monkeypatch-ar `execute` diretamente."""
+    view = app.view_functions["api.criar_usuario"]
+    indice = view.__code__.co_freevars.index("conectar")
+    cell = view.__closure__[indice]
+    conectar_original = cell.cell_contents
+
+    def conectar_com_falha():
+        return _ConexaoComFalha(conectar_original())
+
+    cell.cell_contents = conectar_com_falha
+    try:
+        yield
+    finally:
+        cell.cell_contents = conectar_original
 
 
 def _buscar_usuario_no_banco(uid):
@@ -129,6 +181,30 @@ class TestCriarUsuario:
         body = resp.get_json()
         assert body["ok"] is False
         assert "já existe" in body["erro"]
+
+    def test_criar_usuario_com_erro_inesperado_nao_e_mascarado_como_duplicado(
+        self, client, login_como, usuario_admin, falha_ao_inserir_usuario
+    ):
+        """Regressão (achado em produção, 2026-07-30): um erro diferente de
+        duplicata -- ex. 'database is locked' (INC-001) -- não pode ser
+        mascarado como 'Usuário já existe.'. Só sqlite3.IntegrityError vira
+        essa mensagem; qualquer outra exceção deve surgir com o texto real,
+        para não esconder o problema verdadeiro do admin."""
+        login_como(client, usuario_admin)
+
+        resp = client.post(
+            "/api/usuarios",
+            json={
+                "nome": "Fulano", "usuario": f"novo_{uuid.uuid4().hex[:8]}",
+                "senha": "senha_123", "perfil": "tecnico",
+            },
+        )
+
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body["ok"] is False
+        assert "já existe" not in body["erro"]
+        assert "database is locked" in body["erro"]
 
     def test_criar_usuario_sem_campos_obrigatorios_retorna_400(self, client, login_como, usuario_admin):
         login_como(client, usuario_admin)

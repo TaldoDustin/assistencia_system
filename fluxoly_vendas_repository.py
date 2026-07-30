@@ -291,14 +291,16 @@ def zerar_garantia_item(cursor, item_id):
 
 
 def buscar_historico_garantia_item(cursor, item_id):
-    """Histórico de correções da Garantia de Venda do item (BR-059), mais
-    recente primeiro -- mesmo padrão de `buscar_historico_comissao_item`."""
+    """Histórico da Garantia de Venda do item (BR-057/BR-059), mais recente
+    primeiro -- inclui tanto a concessão original (`garantia_concedida`,
+    gravada na criação da venda) quanto correções (`garantia_alterada`)."""
     cursor.execute(
         """
         SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
         FROM audit_log a
         LEFT JOIN usuarios u ON a.usuario_id = u.id
-        WHERE a.entidade = 'venda_item' AND a.entidade_id = ? AND a.acao = 'garantia_alterada'
+        WHERE a.entidade = 'venda_item' AND a.entidade_id = ?
+          AND a.acao IN ('garantia_concedida', 'garantia_alterada')
         ORDER BY a.id DESC
         """,
         (item_id,),

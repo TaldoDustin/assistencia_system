@@ -179,7 +179,7 @@ def iniciar_venda(
         venda_id = repo.inserir_venda(
             cursor, cliente_id, usuario_id, forma_pagamento, valor_unitario, observacoes
         )
-        repo.inserir_item(
+        item_id = repo.inserir_item(
             cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
             valor_tabela, valor_unitario, motivo_desconto or "",
             tipo_garantia_id=tipo_garantia["id"],
@@ -192,6 +192,23 @@ def iniciar_venda(
         sucesso, erro = unidades_service.marcar_como_vendida(cursor, unidade_serializada_id, venda_id, usuario_id)
         if not sucesso:
             raise VendaConflitoError(erro)
+
+        # V1.5 -- Garantia de Venda (BR-057): evento de concessão original,
+        # mesmo padrão do lado de Garantia de Reparo (irflow_blueprints_api.py).
+        registrar_log_auditoria(
+            cursor,
+            "venda_item",
+            item_id,
+            usuario_id,
+            "garantia_concedida",
+            depois={
+                "tipo_garantia_id": tipo_garantia["id"],
+                "garantia_nome": tipo_garantia["nome"],
+                "garantia_duracao_meses": tipo_garantia["duracao_meses"],
+                "garantia_data_inicio": garantia_data_inicio.isoformat(),
+                "garantia_data_fim": garantia_data_fim.isoformat(),
+            },
+        )
 
         registrar_log_auditoria(
             cursor,
@@ -350,6 +367,31 @@ def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, obser
                 depois={"comissao_valor": 0},
             )
 
+        # V1.5 -- Garantia de Venda (BR-058): mesmo padrão da comissão acima --
+        # zera o snapshot inteiro de qualquer item com Garantia de Venda
+        # concedida, na mesma transação do cancelamento, sempre com evento de
+        # auditoria.
+        for (
+            item_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+            garantia_data_inicio, garantia_data_fim,
+        ) in repo.buscar_itens_com_garantia_por_venda(cursor, venda_id):
+            repo.zerar_garantia_item(cursor, item_id)
+            registrar_log_auditoria(
+                cursor,
+                "venda_item",
+                item_id,
+                usuario_id,
+                "garantia_alterada",
+                antes={
+                    "tipo_garantia_id": tipo_garantia_id,
+                    "garantia_nome": garantia_nome,
+                    "garantia_duracao_meses": garantia_duracao_meses,
+                    "garantia_data_inicio": garantia_data_inicio,
+                    "garantia_data_fim": garantia_data_fim,
+                },
+                depois=None,
+            )
+
         registrar_log_auditoria(
             cursor,
             "venda",
@@ -500,6 +542,92 @@ def obter_historico_comissao_item(conectar, item_id):
     try:
         cursor = conn.cursor()
         rows = repo.buscar_historico_comissao_item(cursor, item_id)
+    finally:
+        conn.close()
+    return [_evento_historico_item_para_dict(r) for r in rows]
+
+
+def corrigir_garantia_item(conectar, venda_id, item_id, usuario_id, usuario_perfil, tipo_garantia_id):
+    """V1.5 -- Garantia de Venda (BR-059). Só `admin` (mais restrito que a
+    atribuição original, `admin`/`vendedor` -- mesma assimetria do Ajuste
+    Comercial, BR-043). Sem motivo obrigatório (diferente do Ajuste
+    Comercial, igual à correção de comissão). Recalcula `garantia_data_fim` a
+    partir da data de início já concedida -- corrigir o Tipo de Garantia não
+    é reemitir a garantia a partir de hoje. Mesmo compare-and-swap do Ajuste
+    Comercial/Comissão: rejeita se a venda não está mais `concluida`. Retorna
+    (sucesso, erro)."""
+    if usuario_perfil != "admin":
+        return False, "Permissão negada."
+
+    tipo_garantia = tipos_garantia_service.obter_tipo_garantia(conectar, tipo_garantia_id)
+    if not tipo_garantia or not tipo_garantia["ativo"]:
+        return False, "Tipo de Garantia inválido ou inativo."
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        item_row = repo.buscar_garantia_item(cursor, venda_id, item_id)
+        if not item_row:
+            conn.rollback()
+            return False, "Item não encontrado."
+        (
+            _id, tipo_garantia_id_anterior, garantia_nome_anterior, garantia_duracao_meses_anterior,
+            garantia_data_inicio_anterior, garantia_data_fim_anterior,
+        ) = item_row
+
+        data_inicio = (
+            date.fromisoformat(garantia_data_inicio_anterior) if garantia_data_inicio_anterior
+            else date.today()
+        )
+        garantia_data_fim = calcular_data_fim_garantia(data_inicio, tipo_garantia["duracao_meses"])
+
+        linhas = repo.corrigir_garantia_item(
+            cursor, venda_id, item_id, tipo_garantia["id"], tipo_garantia["nome"],
+            tipo_garantia["duracao_meses"], data_inicio.isoformat(), garantia_data_fim.isoformat(),
+        )
+        if linhas == 0:
+            conn.rollback()
+            return False, "Venda não pode ser corrigida (cancelada ou em outro estado)."
+
+        registrar_log_auditoria(
+            cursor,
+            "venda_item",
+            item_id,
+            usuario_id,
+            "garantia_alterada",
+            antes={
+                "tipo_garantia_id": tipo_garantia_id_anterior,
+                "garantia_nome": garantia_nome_anterior,
+                "garantia_duracao_meses": garantia_duracao_meses_anterior,
+                "garantia_data_inicio": garantia_data_inicio_anterior,
+                "garantia_data_fim": garantia_data_fim_anterior,
+            },
+            depois={
+                "tipo_garantia_id": tipo_garantia["id"],
+                "garantia_nome": tipo_garantia["nome"],
+                "garantia_duracao_meses": tipo_garantia["duracao_meses"],
+                "garantia_data_inicio": data_inicio.isoformat(),
+                "garantia_data_fim": garantia_data_fim.isoformat(),
+            },
+        )
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        return False, str(exc)
+    finally:
+        conn.close()
+
+    return True, None
+
+
+def obter_historico_garantia_item(conectar, item_id):
+    """Histórico de correções da Garantia de Venda do item (BR-059) -- só
+    leitura, aberto a qualquer usuário autenticado (mesmo padrão do
+    histórico de desconto, diferente do de comissão)."""
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        rows = repo.buscar_historico_garantia_item(cursor, item_id)
     finally:
         conn.close()
     return [_evento_historico_item_para_dict(r) for r in rows]

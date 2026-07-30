@@ -112,9 +112,12 @@ def create_vendas_blueprint(deps: dict):
         cliente_id = parse_int(body.get("cliente_id"), default=None)
         unidade_serializada_id = parse_int(body.get("unidade_serializada_id"), default=None)
         valor_unitario = parse_float(body.get("valor_unitario"), default=None)
+        tipo_garantia_id = parse_int(body.get("tipo_garantia_id"), default=None)
 
         if cliente_id is None or unidade_serializada_id is None:
             return err("cliente_id e unidade_serializada_id são obrigatórios.")
+        if tipo_garantia_id is None:
+            return err("tipo_garantia_id é obrigatório.")  # BR-056
 
         venda_id, erro = service.iniciar_venda(
             conectar,
@@ -123,6 +126,7 @@ def create_vendas_blueprint(deps: dict):
             unidade_serializada_id,
             body.get("forma_pagamento"),
             valor_unitario,
+            tipo_garantia_id,
             body.get("observacoes"),
             body.get("motivo_desconto"),  # BR-039 -- opcional, texto livre.
         )
@@ -243,5 +247,42 @@ def create_vendas_blueprint(deps: dict):
             return err("Permissão negada.", 403)
 
         return ok(historico=service.obter_historico_comissao_item(conectar, item_id))
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/garantia", methods=["PATCH"])
+    def corrigir_garantia_item(venda_id, item_id):
+        """V1.5 -- Garantia de Venda (BR-059) -- só `admin`, checagem fina
+        também revalidada no service (mesmo padrão de `ajustar_desconto_item`)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") != "admin":
+            return err("Permissão negada.", 403)
+
+        body = safe_json(request)
+        tipo_garantia_id = parse_int(body.get("tipo_garantia_id"), default=None)
+        if tipo_garantia_id is None:
+            return err("tipo_garantia_id é obrigatório.")
+
+        sucesso, erro = service.corrigir_garantia_item(
+            conectar,
+            venda_id,
+            item_id,
+            session.get("usuario_id"),
+            session.get("usuario_perfil"),
+            tipo_garantia_id,
+        )
+        if not sucesso:
+            code = 404 if erro == "Item não encontrado." else 400
+            return err(erro, code)
+        return ok(id=item_id)
+
+    @vendas_api.route("/<int:venda_id>/itens/<int:item_id>/historico-garantia")
+    def historico_garantia_item(venda_id, item_id):
+        """Histórico de correções da Garantia de Venda do item (BR-059) --
+        aberto a qualquer usuário autenticado, mesmo padrão de
+        `historico_desconto_item`."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        return ok(historico=service.obter_historico_garantia_item(conectar, item_id))
 
     return vendas_api

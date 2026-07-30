@@ -116,6 +116,31 @@ def _limpar_produto(produto_id):
         conn.close()
 
 
+def _criar_tipo_garantia(**overrides):
+    dados = {"nome": f"Tipo Garantia Teste {uuid.uuid4().hex[:8]}", "duracao_meses": 12, "ativo": 1}
+    dados.update(overrides)
+    conn = _app.conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO tipos_garantia (nome, duracao_meses, ativo) VALUES (?, ?, ?)",
+            (dados["nome"], dados["duracao_meses"], dados["ativo"]),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def _remover_tipo_garantia(tipo_garantia_id):
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM tipos_garantia WHERE id=?", (tipo_garantia_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _criar_unidade_disponivel(estoque_id=None, produto_id=None, imei=None):
     imei = imei or "".join(str((int(uuid.uuid4().hex[:1], 16) + i) % 10) for i in range(15))
     conn = _app.conectar()
@@ -262,6 +287,37 @@ def _limpar_tudo(cliente_id=None, estoque_id=None, unidade_id=None, produto_id=N
         conn.close()
 
 
+_TIPO_GARANTIA_PADRAO_ID = None
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _tipo_garantia_padrao():
+    """V1.5 -- Garantia de Venda (BR-056): toda venda passa a exigir
+    `tipo_garantia_id`. Um único Tipo de Garantia compartilhado por toda a
+    suíte deste módulo -- não é o objeto sob teste (isso é
+    tests/test_tipos_garantia.py, quando existir), só um dado de apoio
+    necessário para criar qualquer venda via `_payload`/`_criar_venda_via_api`."""
+    global _TIPO_GARANTIA_PADRAO_ID
+    conn = _app.conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO tipos_garantia (nome, duracao_meses) VALUES (?, ?)",
+            ("Garantia Teste Padrão", 12),
+        )
+        conn.commit()
+        _TIPO_GARANTIA_PADRAO_ID = cursor.lastrowid
+    finally:
+        conn.close()
+    yield
+    conn = _app.conectar()
+    try:
+        conn.execute("DELETE FROM tipos_garantia WHERE id=?", (_TIPO_GARANTIA_PADRAO_ID,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 @pytest.fixture
 def cenario_venda():
     """Cliente + item de estoque rastreável + unidade disponível, prontos
@@ -279,6 +335,7 @@ def _payload(cenario, **overrides):
         "unidade_serializada_id": cenario["unidade_id"],
         "forma_pagamento": "pix",
         "valor_unitario": 3200.0,
+        "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
     }
     base.update(overrides)
     return base
@@ -356,6 +413,7 @@ class TestCriarVenda:
                     "unidade_serializada_id": unidade_id,
                     "forma_pagamento": "pix",
                     "valor_unitario": 4500.0,
+                    "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
                 },
             )
             assert resp.status_code == 201
@@ -383,6 +441,7 @@ class TestCriarVenda:
                     "unidade_serializada_id": unidade_id,
                     "forma_pagamento": "pix",
                     "valor_unitario": 3200.0,
+                    "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
                 },
             )
             assert resp.status_code == 201
@@ -410,6 +469,7 @@ class TestCriarVenda:
                     "unidade_serializada_id": unidade_id,
                     "forma_pagamento": "pix",
                     "valor_unitario": 100.0,
+                    "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
                 },
             )
             assert resp.status_code == 201
@@ -461,6 +521,48 @@ class TestCriarVenda:
         resp = client.post("/api/vendas", json=_payload(cenario_venda, valor_unitario=0))
         assert resp.status_code == 400
         assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+    def test_sem_tipo_garantia_id_retorna_400(self, client, login_como, usuario_admin, cenario_venda):
+        """BR-056 -- toda venda exige um Tipo de Garantia atribuído ao item;
+        sem default vindo do produto do catálogo."""
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, tipo_garantia_id=None))
+        assert resp.status_code == 400
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+    def test_tipo_garantia_id_inexistente_retorna_400(self, client, login_como, usuario_admin, cenario_venda):
+        login_como(client, usuario_admin)
+        resp = client.post("/api/vendas", json=_payload(cenario_venda, tipo_garantia_id=999999))
+        assert resp.status_code == 400
+        assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+
+    def test_tipo_garantia_inativo_retorna_400(self, client, login_como, usuario_admin, cenario_venda):
+        tipo_garantia_id = _criar_tipo_garantia(ativo=0)
+        try:
+            login_como(client, usuario_admin)
+            resp = client.post("/api/vendas", json=_payload(cenario_venda, tipo_garantia_id=tipo_garantia_id))
+            assert resp.status_code == 400
+            assert _status_unidade(cenario_venda["unidade_id"]) == "disponivel"
+        finally:
+            _remover_tipo_garantia(tipo_garantia_id)
+
+    def test_garantia_de_venda_snapshot_correto_na_criacao(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        """BR-057 -- snapshot completo (id/nome/duração/datas) congelado no
+        item no momento da criação, calculado a partir da duração do Tipo de
+        Garantia usado (12 meses, `_tipo_garantia_padrao`)."""
+        login_como(client, usuario_admin)
+        venda_id = client.post("/api/vendas", json=_payload(cenario_venda)).get_json()["id"]
+
+        resp = client.get(f"/api/vendas/{venda_id}")
+        item = resp.get_json()["itens"][0]
+        assert item["tipo_garantia_id"] == _TIPO_GARANTIA_PADRAO_ID
+        assert item["garantia_nome"] == "Garantia Teste Padrão"
+        assert item["garantia_duracao_meses"] == 12
+        assert item["garantia_data_inicio"] is not None
+        assert item["garantia_data_fim"] is not None
+        assert item["garantia_data_fim"] > item["garantia_data_inicio"]
 
     def test_erro_na_criacao_do_item_causa_rollback_unidade_continua_disponivel(
         self, client, login_como, usuario_admin, cenario_venda, monkeypatch
@@ -650,6 +752,7 @@ def _criar_venda_via_api(client, login_como, usuario, **overrides):
             "unidade_serializada_id": unidade_id,
             "forma_pagamento": overrides.pop("forma_pagamento", "pix"),
             "valor_unitario": overrides.pop("valor_unitario", 3200.0),
+            "tipo_garantia_id": overrides.pop("tipo_garantia_id", _TIPO_GARANTIA_PADRAO_ID),
             **overrides,
         },
     )
@@ -737,6 +840,7 @@ class TestListarVendas:
                 "unidade_serializada_id": unidade_id,
                 "forma_pagamento": "pix",
                 "valor_unitario": 3200.0,
+                "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
             },
         ).get_json()["id"]
         try:
@@ -762,6 +866,7 @@ class TestListarVendas:
                         "unidade_serializada_id": unidade_id,
                         "forma_pagamento": "pix",
                         "valor_unitario": 3200.0,
+                        "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
                     },
                 ).get_json()["id"]
                 criados.append((estoque_id, unidade_id, venda_id))
@@ -800,6 +905,7 @@ class TestListarVendas:
                         "unidade_serializada_id": unidade_id,
                         "forma_pagamento": "pix",
                         "valor_unitario": 3200.0,
+                        "tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID,
                     },
                 ).get_json()["id"]
                 criados.append((estoque_id, unidade_id, venda_id))
@@ -1416,3 +1522,144 @@ class TestComissao:
             conn.close()
         assert perfil == "financeiro"
         _remover_usuario(novo_id)
+
+
+class TestGarantiaDeVenda:
+    """V1.5 -- Garantia de Venda (BR-056 a BR-059, VENDAS.md "V1.5 -- Garantia")."""
+
+    def _criar_venda_concluida(self, client, login_como, usuario, cenario_venda, tipo_garantia_id=None):
+        login_como(client, usuario)
+        resp = client.post(
+            "/api/vendas", json=_payload(cenario_venda, tipo_garantia_id=tipo_garantia_id or _TIPO_GARANTIA_PADRAO_ID)
+        )
+        assert resp.status_code == 201
+        venda_id = resp.get_json()["id"]
+        item_id = _item_desconto_info(cenario_venda["unidade_id"])[0]
+        return venda_id, item_id
+
+    def test_cancelar_venda_zera_garantia_com_auditoria(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        """BR-058 -- cancelar zera o snapshot inteiro do item, mesmo padrão
+        já usado para a comissão (BR-051)."""
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+        assert resp.status_code == 200
+
+        conn = _app.conectar()
+        try:
+            row = conn.execute(
+                """
+                SELECT tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+                       garantia_data_inicio, garantia_data_fim
+                FROM vendas_itens WHERE id=?
+                """,
+                (item_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        assert row == (None, None, None, None, None)
+
+        historico = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-garantia").get_json()["historico"]
+        assert any(evento["acao"] == "garantia_alterada" for evento in historico)
+
+    def test_admin_corrige_garantia_com_sucesso(self, client, login_como, usuario_admin, cenario_venda):
+        """BR-059 -- correção só `admin`, sem motivo, recalcula
+        `garantia_data_fim` a partir da nova duração."""
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        tipo_novo = _criar_tipo_garantia(nome="Garantia Estendida", duracao_meses=24)
+        try:
+            resp = client.patch(
+                f"/api/vendas/{venda_id}/itens/{item_id}/garantia", json={"tipo_garantia_id": tipo_novo}
+            )
+            assert resp.status_code == 200
+
+            venda = client.get(f"/api/vendas/{venda_id}").get_json()
+            item = venda["itens"][0]
+            assert item["tipo_garantia_id"] == tipo_novo
+            assert item["garantia_nome"] == "Garantia Estendida"
+            assert item["garantia_duracao_meses"] == 24
+        finally:
+            _remover_tipo_garantia(tipo_novo)
+
+    def test_vendedor_nao_pode_corrigir_garantia(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_vendedor)
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/garantia",
+            json={"tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID},
+        )
+        assert resp.status_code == 403
+
+    def test_tecnico_nao_pode_corrigir_garantia(
+        self, client, login_como, usuario_admin, usuario_tecnico, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_tecnico)
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/garantia",
+            json={"tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID},
+        )
+        assert resp.status_code == 403
+
+    def test_corrigir_garantia_com_tipo_invalido_retorna_400(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        resp = client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/garantia", json={"tipo_garantia_id": 999999})
+        assert resp.status_code == 400
+
+    def test_corrigir_garantia_em_venda_cancelada_e_rejeitado(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        client.post(f"/api/vendas/{venda_id}/cancelar", json={"motivo": "cliente_desistiu"})
+
+        resp = client.patch(
+            f"/api/vendas/{venda_id}/itens/{item_id}/garantia",
+            json={"tipo_garantia_id": _TIPO_GARANTIA_PADRAO_ID},
+        )
+        assert resp.status_code == 400
+
+    def test_corrigir_garantia_duas_vezes_gera_dois_eventos_de_correcao(
+        self, client, login_como, usuario_admin, cenario_venda
+    ):
+        """O histórico inclui também o evento de concessão original
+        (`garantia_concedida`, gravado na criação da venda) -- este teste
+        confere só os eventos de correção (`garantia_alterada`)."""
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+        tipo_a = _criar_tipo_garantia(nome="Garantia A", duracao_meses=6)
+        tipo_b = _criar_tipo_garantia(nome="Garantia B", duracao_meses=18)
+        try:
+            client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/garantia", json={"tipo_garantia_id": tipo_a})
+            client.patch(f"/api/vendas/{venda_id}/itens/{item_id}/garantia", json={"tipo_garantia_id": tipo_b})
+
+            resp = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-garantia")
+            assert resp.status_code == 200
+            historico = resp.get_json()["historico"]
+            assert len(historico) == 3
+            correcoes = [e for e in historico if e["acao"] == "garantia_alterada"]
+            concessoes = [e for e in historico if e["acao"] == "garantia_concedida"]
+            assert len(correcoes) == 2
+            assert len(concessoes) == 1
+        finally:
+            _remover_tipo_garantia(tipo_a)
+            _remover_tipo_garantia(tipo_b)
+
+    def test_historico_garantia_e_aberto_a_qualquer_autenticado(
+        self, client, login_como, usuario_admin, usuario_vendedor, cenario_venda
+    ):
+        """Diferente do histórico de comissão (restrito), o de garantia segue
+        o mesmo padrão aberto do histórico de desconto -- qualquer usuário
+        autenticado que vê a venda vê a garantia (BR-057)."""
+        venda_id, item_id = self._criar_venda_concluida(client, login_como, usuario_admin, cenario_venda)
+
+        login_como(client, usuario_vendedor)
+        resp = client.get(f"/api/vendas/{venda_id}/itens/{item_id}/historico-garantia")
+        assert resp.status_code == 200

@@ -52,30 +52,38 @@ export default function Garantias() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {["OS", "Cliente", "Modelo", "Reparos", "Data Finalização", "Garantia"].map((h) => (
+                  {["OS", "Cliente", "Modelo", "Reparo", "Data Finalização", "Garantia"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {garantias.map((g) => (
-                  <tr key={g.id} className="hover:bg-accent/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <Link to={`/ordens/editar/${g.id}`} className="font-mono text-xs text-primary hover:underline">
-                        #{getOrderDisplayNumber(g)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-card-foreground">{g.cliente}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{g.modelo}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px]">{g.reparos_texto || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {g.data_finalizado ? new Date(g.data_finalizado).toLocaleDateString("pt-BR") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <GarantiaBadge status={g.status_garantia} dias={g.dias_restantes} />
-                    </td>
-                  </tr>
-                ))}
+                {garantias.map((g, i) => {
+                  // BR-062: uma linha por reparo -- mas ainda agrupável
+                  // visualmente por OS (linhas consecutivas da mesma OS não
+                  // repetem OS/Cliente/Modelo/Data, só o reparo e a garantia).
+                  const mesmaOsDaAnterior = i > 0 && garantias[i - 1].id === g.id;
+                  return (
+                    <tr key={`${g.id}-${g.reparo_id}`} className="hover:bg-accent/30 transition-colors">
+                      <td className="px-4 py-3">
+                        {mesmaOsDaAnterior ? null : (
+                          <Link to={`/ordens/editar/${g.id}`} className="font-mono text-xs text-primary hover:underline">
+                            #{getOrderDisplayNumber(g)}
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-card-foreground">{mesmaOsDaAnterior ? "" : g.cliente}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{mesmaOsDaAnterior ? "" : g.modelo}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px]">{g.reparos_texto || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {mesmaOsDaAnterior ? "" : (g.data_finalizado ? new Date(g.data_finalizado).toLocaleDateString("pt-BR") : "—")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <GarantiaBadge status={g.status_garantia} dias={g.dias_restantes} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -59,6 +59,10 @@ function normalizeWarrantyResponse(data) {
     return data;
   }
 
+  // V1.5 -- cada item agora é uma linha de reparo (não mais uma OS inteira),
+  // ver PLAN-V1.5-Garantia.md. `reparo_nome` substitui a antiga lista
+  // `reparos` (múltiplos nomes por OS) -- mantido como `reparos_texto` aqui
+  // só para não precisar renomear nas telas que já consomem esse campo.
   const garantias = data.ordens.map((item) => {
     const color = item.garantia?.color;
     const statusMap = {
@@ -69,7 +73,7 @@ function normalizeWarrantyResponse(data) {
 
     return {
       ...item,
-      reparos_texto: (item.reparos || []).join(", "),
+      reparos_texto: item.reparo_nome || "",
       dias_restantes: item.garantia?.dias_restantes,
       status_garantia: statusMap[color] || "desconhecida",
     };

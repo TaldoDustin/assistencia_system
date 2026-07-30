@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText, Ban } from "lucide-react";
-import { vendas as vendasApi } from "@/api/client";
+import { vendas as vendasApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,13 @@ export default function VendaDetalhe() {
   const [enviandoComissao, setEnviandoComissao] = useState(false);
   const [historicoComissao, setHistoricoComissao] = useState([]);
 
+  // V1.5 -- Garantia de Venda (BR-057 a BR-059).
+  const [tiposGarantiaList, setTiposGarantiaList] = useState([]);
+  const [corrigindoGarantia, setCorrigindoGarantia] = useState(false);
+  const [novoTipoGarantiaId, setNovoTipoGarantiaId] = useState("");
+  const [enviandoGarantia, setEnviandoGarantia] = useState(false);
+  const [historicoGarantia, setHistoricoGarantia] = useState([]);
+
   async function carregar() {
     setLoading(true);
     try {
@@ -109,6 +116,10 @@ export default function VendaDetalhe() {
   const podeVerComissao = Boolean(user && (user.perfil === "admin" || user.perfil === "financeiro"));
   const podeEditarComissao = Boolean(podeVerComissao && venda && venda.status === "concluida" && itemPrincipal);
 
+  // V1.5 -- Garantia de Venda (BR-057/BR-059): qualquer usuário autenticado
+  // vê a garantia (diferente da comissão); só admin corrige, só em venda concluída.
+  const podeCorrigirGarantia = Boolean(user?.perfil === "admin" && venda && venda.status === "concluida" && itemPrincipal);
+
   async function carregarHistoricoAjustes(itemId) {
     const res = await vendasApi.historicoDescontoItem(id, itemId);
     if (res?.ok) setHistoricoAjustes(res.historico || []);
@@ -117,6 +128,11 @@ export default function VendaDetalhe() {
   async function carregarHistoricoComissao(itemId) {
     const res = await vendasApi.historicoComissaoItem(id, itemId);
     if (res?.ok) setHistoricoComissao(res.historico || []);
+  }
+
+  async function carregarHistoricoGarantia(itemId) {
+    const res = await vendasApi.historicoGarantiaItem(id, itemId);
+    if (res?.ok) setHistoricoGarantia(res.historico || []);
   }
 
   useEffect(() => {
@@ -128,6 +144,17 @@ export default function VendaDetalhe() {
     if (itemPrincipal && podeVerComissao) carregarHistoricoComissao(itemPrincipal.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemPrincipal?.id, podeVerComissao]);
+
+  useEffect(() => {
+    if (itemPrincipal) carregarHistoricoGarantia(itemPrincipal.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemPrincipal?.id]);
+
+  useEffect(() => {
+    if (podeCorrigirGarantia) {
+      tiposGarantiaApi.list().then((res) => { if (res?.ok) setTiposGarantiaList(res.items || []); });
+    }
+  }, [podeCorrigirGarantia]);
 
   const confirmarAjuste = async () => {
     const valor = parseFloat(novoValorAjuste);
@@ -184,6 +211,32 @@ export default function VendaDetalhe() {
       toast.error("Erro ao atribuir a comissão.");
     } finally {
       setEnviandoComissao(false);
+    }
+  };
+
+  const confirmarGarantia = async () => {
+    if (!novoTipoGarantiaId) {
+      toast.error("Selecione o Tipo de Garantia.");
+      return;
+    }
+    setEnviandoGarantia(true);
+    try {
+      const res = await vendasApi.corrigirGarantiaItem(id, itemPrincipal.id, {
+        tipo_garantia_id: parseInt(novoTipoGarantiaId, 10),
+      });
+      if (res?.ok) {
+        toast.success("Garantia corrigida.");
+        setCorrigindoGarantia(false);
+        setNovoTipoGarantiaId("");
+        await carregar();
+        await carregarHistoricoGarantia(itemPrincipal.id);
+      } else {
+        toast.error(res?.erro || "Erro ao corrigir a garantia.");
+      }
+    } catch {
+      toast.error("Erro ao corrigir a garantia.");
+    } finally {
+      setEnviandoGarantia(false);
     }
   };
 
@@ -525,6 +578,72 @@ export default function VendaDetalhe() {
             <div className="pt-2 border-t border-border space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Histórico de comissão</p>
               {historicoComissao.map((evento) => (
+                <p key={evento.id} className="text-xs text-muted-foreground">
+                  {formatDateTime(evento.criado_em)} — {evento.usuario_nome || "—"}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {itemPrincipal && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-card-foreground">Garantia de Venda</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {itemPrincipal.garantia_nome
+                  ? `${itemPrincipal.garantia_nome} — até ${itemPrincipal.garantia_data_fim ? new Date(itemPrincipal.garantia_data_fim).toLocaleDateString("pt-BR") : "—"}`
+                  : "Sem garantia registrada"}
+              </p>
+            </div>
+            {podeCorrigirGarantia && !corrigindoGarantia && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCorrigindoGarantia(true);
+                  setNovoTipoGarantiaId(itemPrincipal.tipo_garantia_id ? String(itemPrincipal.tipo_garantia_id) : "");
+                }}
+              >
+                Corrigir garantia
+              </Button>
+            )}
+          </div>
+          {corrigindoGarantia && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="garantia-tipo">Novo Tipo de Garantia</Label>
+                <Select value={novoTipoGarantiaId} onValueChange={setNovoTipoGarantiaId}>
+                  <SelectTrigger id="garantia-tipo" className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {tiposGarantiaList.map((tg) => (
+                      <SelectItem key={tg.id} value={String(tg.id)}>{tg.nome} ({tg.duracao_meses}m)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={confirmarGarantia} disabled={enviandoGarantia}>
+                  {enviandoGarantia && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Confirmar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={enviandoGarantia}
+                  onClick={() => { setCorrigindoGarantia(false); setNovoTipoGarantiaId(""); }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+          {historicoGarantia.length > 0 && (
+            <div className="pt-2 border-t border-border space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Histórico de garantia</p>
+              {historicoGarantia.map((evento) => (
                 <p key={evento.id} className="text-xs text-muted-foreground">
                   {formatDateTime(evento.criado_em)} — {evento.usuario_nome || "—"}
                 </p>

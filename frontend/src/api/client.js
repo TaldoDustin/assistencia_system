@@ -208,8 +208,15 @@ export const ordens = {
   create:        (data)       => post("/ordens", withPieceIds(data)),
   update:        (id, data)   => put(`/ordens/${id}`, withPieceIds(data)),
   delete:        (id)         => del(`/ordens/${id}`),
-  patchStatus:   (id, status) => request("PATCH", `/ordens/${id}/status`, { status }),
+  // V1.5 -- Garantia de Reparo (BR-061): `garantias` é opcional, {reparo_id: tipo_garantia_id} --
+  // só é exigido pelo backend na transição para Finalizado.
+  patchStatus:   (id, status, garantias) =>
+    request("PATCH", `/ordens/${id}/status`, garantias ? { status, garantias } : { status }),
   clienteHistory:(nome)       => get(`/ordens/historico-cliente?cliente=${encodeURIComponent(nome)}`),
+  corrigirGarantiaReparo: (osId, reparoId, data) =>
+    patch(`/ordens/${osId}/reparos/${reparoId}/garantia`, data),
+  historicoGarantiaReparo: (osId, reparoId) =>
+    get(`/ordens/${osId}/reparos/${reparoId}/historico-garantia`),
 };
 
 // ── Checklist de Aparelho ──────────────────────────────────────────────────
@@ -317,6 +324,16 @@ export const garantias = {
   },
 };
 
+// V1.5 -- Tipos de Garantia (BR-055): cadastro compartilhado entre Vendas e Assistência.
+export const tiposGarantia = {
+  list:   (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/tipos-garantia${qs ? "?" + qs : ""}`);
+  },
+  create: (data)     => post("/tipos-garantia", data),
+  update: (id, data) => put(`/tipos-garantia/${id}`, data),
+};
+
 // ── Clientes ─────────────────────────────────────────────────────────────────
 export const clientes = {
   list:   (params = {}) => {
@@ -348,6 +365,11 @@ export const vendas = {
     patch(`/vendas/${vendaId}/itens/${itemId}/comissao`, data),
   historicoComissaoItem: (vendaId, itemId) =>
     get(`/vendas/${vendaId}/itens/${itemId}/historico-comissao`),
+  // V1.5 -- Garantia de Venda (BR-059).
+  corrigirGarantiaItem: (vendaId, itemId, data) =>
+    patch(`/vendas/${vendaId}/itens/${itemId}/garantia`, data),
+  historicoGarantiaItem: (vendaId, itemId) =>
+    get(`/vendas/${vendaId}/itens/${itemId}/historico-garantia`),
 };
 
 // ── Relatórios ───────────────────────────────────────────────────────────────

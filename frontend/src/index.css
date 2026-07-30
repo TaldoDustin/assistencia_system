@@ -90,3 +90,14 @@
   }
 }
 
+/* UX-001 -- Preservação de Contexto da Navegação: destaque temporário do
+   registro restaurado ao voltar de uma edição/detalhe (ver useListContext.js). */
+@keyframes nav-context-pulse {
+  from { background-color: hsl(351 100% 50% / 0.18); }
+  to { background-color: transparent; }
+}
+
+.nav-context-highlight {
+  animation: nav-context-pulse 2s ease-out;
+}
+

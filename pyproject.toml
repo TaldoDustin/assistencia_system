@@ -33,12 +33,9 @@ profile = "black"
 line_length = 120
 known_first_party = [
     "app",
-    "irflow_blueprints_admin",
     "irflow_blueprints_api",
     "irflow_blueprints_auth",
-    "irflow_blueprints_inventory",
     "irflow_blueprints_main",
-    "irflow_blueprints_orders",
     "irflow_core",
     "irflow_mercadophone",
     "irflow_os",
@@ -79,12 +76,9 @@ addopts = [
 [tool.coverage.run]
 source = [
     "app",
-    "irflow_blueprints_admin",
     "irflow_blueprints_api",
     "irflow_blueprints_auth",
-    "irflow_blueprints_inventory",
     "irflow_blueprints_main",
-    "irflow_blueprints_orders",
     "irflow_core",
     "irflow_mercadophone",
     "irflow_os",

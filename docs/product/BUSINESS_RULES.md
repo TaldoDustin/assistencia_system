@@ -435,11 +435,23 @@ Garantia de Venda cobre apenas vendas de `produtos` (catálogo comercial) — n�
 `estoque`, fora de escopo desta fase.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-061 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-061 — ✅ Implementado (2026-07-30, V1.5)**
 Garantia de Reparo: um Tipo de Garantia é atribuído manualmente, por linha de reparo dentro da OS
 (`os_reparos`), **na conclusão da OS** (`Finalizado`) — obrigatório, mesmo padrão de exigência de BR-056.
 Sem default automático vindo do cadastro de Tipos de Reparo (`reparos`) — decisão explícita, mesma razão
-de BR-056.
+de BR-056. Aplica-se às duas rotas que podem levar uma OS a `Finalizado` (`PATCH /api/ordens/<id>/status`
+e `PUT /api/ordens/<id>`, achado durante a implementação — o formulário completo de edição também finaliza
+OS, não só o botão de status dedicado).
+
+**Exceção deliberada (decisão do CTO, 2026-07-30):** OS finalizadas automaticamente pela sincronização do
+Mercado Phone (`irflow_mercadophone.py::importar_os_mercado_phone`/`reimportar_todas_os_mercado_phone`, que
+escrevem `os.status` direto a partir do texto retornado pela API externa) **são isentas** desta exigência —
+não há humano no loop nesse fluxo para escolher o Tipo de Garantia por linha de reparo no momento do sync.
+Essas linhas ficam com `tipo_garantia_id NULL`, tratadas pelo mesmo fallback de dado histórico que
+`listar_garantias()` já usa para OS concluídas antes da V1.5 (ver "Estratégia de Migração" em
+`docs/engineering/plans/PLAN-V1.5-Garantia.md`) — nunca inventam uma garantia que não foi de fato
+concedida. Se uma OS importada precisar de Garantia de Reparo formal depois, a correção manual
+(`PATCH /api/ordens/<id>/reparos/<reparo_id>/garantia`, admin) continua disponível.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
 **BR-062 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**

@@ -840,7 +840,7 @@ Responsável:
 
 ---
 
-## KI-027
+## ~~KI-027~~ — RESOLVIDO (causa raiz reclassificada)
 
 Descrição:
 Ambiente de automação de navegador (Chrome via ferramenta de automação) não persiste o cookie de sessão
@@ -861,16 +861,93 @@ código da aplicação (o mesmo fluxo funciona normalmente em `curl`, e a suíte
 de sessão via `flask.testing` client, que não depende deste mecanismo de cookie do navegador).
 
 Status:
-Aberto — identificado em 2026-07-29 durante a QA Manual do PLAN-V1.4-Comissao.md
-(`docs/engineering/plans/PLAN-V1.4-Comissao.md`). Contornado nessa sessão validando os mesmos cenários
-via `curl` com cookie jar por perfil (login real, banco de desenvolvimento real, dado de teste removido
-ao final) em vez do navegador — ver seção "QA Manual" do plano para os 14 cenários executados. Não
-investigado a fundo por ser característica do ambiente de automação disponível nesta sessão, não do
-código do produto; se o ambiente de automação mudar (nova versão da ferramenta, outro perfil de
-navegador), revalidar se o problema ainda ocorre antes de assumir que persiste.
+**Causa raiz real encontrada em 2026-07-30**, durante QA manual da UX-001 (Preservação de Contexto da
+Navegação) — não é característica do ambiente de automação, como suposto em 2026-07-29. `app.py` liga
+`IS_SERVER_RUNTIME=True` sempre que `IR_FLOW_DATA_DIR` está definido (linha ~187) — a mesma variável usada
+para isolar qualquer sessão de QA local do `database.db` real. Com `IS_SERVER_RUNTIME=True`, o cookie de
+sessão sai com `Secure; SameSite=None; Partitioned` (confirmado via `curl -i` contra `http://127.0.0.1:5080`
+rodando com `IR_FLOW_DATA_DIR` setado: `Set-Cookie: session=...; Secure; HttpOnly; Path=/; SameSite=None;
+Partitioned`). O atributo `Secure` exige HTTPS — um navegador real (Chrome via Claude in Chrome, ou
+qualquer outro) descarta silenciosamente esse cookie numa conexão `http://localhost` pura, exatamente o
+sintoma original (login `200`, toda requisição seguinte `401`). `curl` com `-b`/`-c` (cookie jar) é mais
+permissivo que um navegador real quanto ao atributo `Secure` sobre `http://`, o que explica por que o
+mesmo fluxo "funcionava instantaneamente via curl" — não é um cookie geral bloqueado, é especificamente a
+combinação `Secure` + `http://`.
+
+**Confirmado resolvido**: rodando o backend com um override local de `app.config["SESSION_COOKIE_SECURE"] =
+False` / `SESSION_COOKIE_SAMESITE = "Lax"` / `SESSION_COOKIE_PARTITIONED = False` (só no processo da sessão
+de QA, nenhuma mudança em `app.py`), o cookie passou a persistir normalmente no Chrome real via Claude in
+Chrome — login, navegação autenticada, scroll/filtro/destaque da UX-001 validados ponta a ponta sem
+nenhum 401. Zero impacto em produção (lá é HTTPS real via Render/Vercel, `Secure` é o comportamento
+correto) — o problema só existe ao rodar `IR_FLOW_DATA_DIR` + servidor real + navegador real + `http://`
+simultaneamente, combinação que só acontece em QA manual local, nunca em produção nem na suíte automatizada
+(`flask.testing` não depende do mecanismo de cookie do navegador).
+
+**Não corrigido em código** — nenhuma mudança em `app.py` feita a partir deste achado; ver "Próximos
+passos" abaixo para a decisão pendente sobre se vale introduzir uma flag de override para facilitar QA
+manual local futura.
 
 Sprint prevista:
-Não definida — sem urgência, contornável via `curl` sempre que necessário.
+Não definida.
+
+Responsável:
+—
+
+Próximos passos (não decidido, registrado para referência futura):
+Considerar uma variável de ambiente dedicada (ex.: `IR_FLOW_FORCE_INSECURE_COOKIE=1`) para permitir QA
+manual local com `IR_FLOW_DATA_DIR` + navegador real sem precisar de um script wrapper ad-hoc como o usado
+nesta sessão — decisão de arquitetura pequena, não tomada unilateralmente aqui.
+
+**Observação (2026-07-30, QA Manual da V1.5 — Garantia):** login e navegação autenticada via Claude in
+Chrome funcionaram normalmente nesta sessão com `IR_FLOW_DATA_DIR` setado (`IS_SERVER_RUNTIME=True`,
+cookie `Secure; SameSite=None; Partitioned`), sem nenhum wrapper/override de `SESSION_COOKIE_SECURE` —
+mesma combinação que reproduzia o 401 na sessão da UX-001. Hipótese não confirmada: `localhost`/`127.0.0.1`
+são tratados por Chrome como origens "potencialmente confiáveis" havia algumas versões, o que satisfaria o
+atributo `Secure` mesmo sem HTTPS — se essa for a causa, o sintoma pode depender da versão do Chrome usada
+pela ferramenta de automação em cada sessão, não ser 100% determinístico. Não investigado a fundo (fora do
+escopo da sessão de V1.5); registrado só para não assumir que o wrapper de `SESSION_COOKIE_SECURE` é
+sempre necessário daqui pra frente.
+
+---
+
+## ~~KI-028~~ — RESOLVIDO
+
+Descrição:
+Datas "puras" (`YYYY-MM-DD`, sem componente de horário) são exibidas um dia antes do valor real gravado
+no banco em qualquer tela que use o padrão `new Date(string).toLocaleDateString("pt-BR")`. Causa:
+`new Date("2027-07-30")` é interpretado pelo JavaScript como meia-noite UTC; `.toLocaleDateString()`
+renderiza no fuso horário local do navegador — em `America/Sao_Paulo` (UTC-3), isso sempre volta um dia
+(`29/07/2027`). Confirmado via `Intl.DateTimeFormat().resolvedOptions().timeZone` (`America/Sao_Paulo`,
+offset 180min) e comparação direta com o valor cru da API (`garantia_data_fim: "2027-07-30"` no banco vs.
+"29/07/2027" na tela). O dado persistido está sempre correto — o problema é exclusivamente de exibição.
+
+Impacto:
+Médio. Achado durante o QA Manual da V1.5 (Garantia) em `VendaDetalhe.jsx` (`garantia_data_fim`), mas o
+mesmo padrão (`new Date(<campo_date_only>).toLocaleDateString("pt-BR")`) já existe em outras telas com
+campos que podem ser data pura: `Garantias.jsx` (`data_finalizado`), `Clientes.jsx` (`o.data`),
+`OperationalCosts.jsx` (`c.data`), `Reports.jsx` (`item.data`), `Stock.jsx` (`item.data_compra`) — nem
+todos esses campos são necessariamente gravados sem horário (alguns podem ter
+`datetime('now')`/`HH:MM:SS`, o que mitigaria o efeito), não auditado campo a campo nesta sessão. Os
+campos novos da V1.5 (`garantia_data_inicio`/`garantia_data_fim`, sempre `date.isoformat()`, nunca com
+horário) são afetados 100% das vezes, para qualquer usuário em fuso UTC-negativo — relevante para uma
+feature de garantia, onde a data de vencimento exibida importa para a decisão de cobrir ou não um reparo.
+Nenhum critério objetivo de interrupção de `ENGINEERING_GUIDE.md` §11 é atendido (não é mutação de dado
+persistido — só exibição; não há perda de dado nem bypass de autorização), por isso não interrompeu a
+sessão — caracterizado e registrado aqui, conforme o fluxo "não interrompa" da mesma seção.
+
+Status:
+Resolvido em 2026-07-30, no Encerramento da V1.5 (decisão do usuário — CTO, de corrigir dentro do escopo
+da própria feature em vez de adiar). Escopo cirúrgico: só o único ponto onde `garantia_data_fim` é
+exibido (`VendaDetalhe.jsx`) — as outras telas com o mesmo padrão (`Garantias.jsx`, `Clientes.jsx`,
+`OperationalCosts.jsx`, `Reports.jsx`, `Stock.jsx`) usam campos que não são exclusivos da V1.5 e ficam
+fora do escopo desta correção, registradas acima como conhecidas. Corrigido reaproveitando
+`formatDateTime()`, helper já existente no próprio arquivo (usado para `criado_em`/`cancelado_em`/eventos
+de auditoria) que já fazia o parse manual de ano/mês/dia em vez de `new Date(string)` — zero código novo,
+só trocar a chamada. Validado: venda criada com `garantia_data_fim: "2027-07-30"` (confirmado via API)
+agora exibe "até 30/07/2027" (antes: "29/07/2027").
+
+Sprint prevista:
+Não definida.
 
 Responsável:
 —

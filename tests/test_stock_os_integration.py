@@ -168,12 +168,15 @@ class TestDevolucaoAoEstoque:
         assert _saldo(peca) == 1
 
     def test_excluir_os_finalizada_nao_devolve_peca(
-        self, client, login_como, usuario_tecnico, reparo_padrao_id, criar_item_estoque
+        self, client, login_como, usuario_tecnico, reparo_padrao_id, criar_item_estoque, tipo_garantia_padrao_id
     ):
         login_como(client, usuario_tecnico)
         peca = criar_item_estoque(modelo="iPhone 13", quantidade=1)
         os_id = client.post("/api/ordens", json=_payload_os(reparo_padrao_id, pecas_ids=[peca])).get_json()["os_id"]
-        client.patch(f"/api/ordens/{os_id}/status", json={"status": "Finalizado"})
+        client.patch(
+            f"/api/ordens/{os_id}/status",
+            json={"status": "Finalizado", "garantias": {str(reparo_padrao_id): tipo_garantia_padrao_id}},
+        )
         assert _saldo(peca) == 0
 
         client.delete(f"/api/ordens/{os_id}")

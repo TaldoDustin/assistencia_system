@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Search, UserCircle, Smartphone, Check, Plus, Eye, Printer, ChevronLeft, ChevronRight } from "lucide-react";
-import { clientes as clientesApi, unidadesSerializadas as unidadesApi, vendas as vendasApi } from "@/api/client";
+import { clientes as clientesApi, unidadesSerializadas as unidadesApi, vendas as vendasApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -276,6 +276,7 @@ const EMPTY_STATE = {
   formaPagamento: "",
   observacoes: "",
   motivoDesconto: "",
+  tipoGarantiaId: "",
 };
 
 const TABS = [
@@ -292,6 +293,15 @@ function NovaVenda() {
   const [buscandoAparelho, setBuscandoAparelho] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [vendaConcluida, setVendaConcluida] = useState(null);
+  const [tiposGarantiaList, setTiposGarantiaList] = useState([]);
+
+  // V1.5 -- Garantia de Venda (BR-056): lista de tipos ativos para o select
+  // obrigatório abaixo, sem default vindo do produto do catálogo.
+  useEffect(() => {
+    tiposGarantiaApi.list().then((res) => {
+      if (res?.ok) setTiposGarantiaList(res.items || []);
+    });
+  }, []);
 
   const clienteQueryDebounced = useDebounced(form.clienteQuery);
   const aparelhoQueryDebounced = useDebounced(form.aparelhoQuery);
@@ -370,6 +380,10 @@ function NovaVenda() {
       toast.error("Informe um valor de venda válido.");
       return;
     }
+    if (!form.tipoGarantiaId) {
+      toast.error("Selecione o Tipo de Garantia.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -380,6 +394,7 @@ function NovaVenda() {
         valor_unitario: valor,
         observacoes: form.observacoes,
         motivo_desconto: form.motivoDesconto,
+        tipo_garantia_id: parseInt(form.tipoGarantiaId, 10),
       });
       if (res?.ok) {
         toast.success("Venda concluída!");
@@ -569,6 +584,24 @@ function NovaVenda() {
                     {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label htmlFor="venda-garantia">Tipo de Garantia *</Label>
+                <Select value={form.tipoGarantiaId} onValueChange={(v) => setForm((p) => ({ ...p, tipoGarantiaId: v }))}>
+                  <SelectTrigger id="venda-garantia" className="w-full"><SelectValue placeholder="Selecione o Tipo de Garantia" /></SelectTrigger>
+                  <SelectContent>
+                    {tiposGarantiaList.map((tg) => (
+                      <SelectItem key={tg.id} value={String(tg.id)}>
+                        {tg.nome} ({tg.duracao_meses === 0 ? "sem garantia" : `${tg.duracao_meses}m`})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {tiposGarantiaList.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum Tipo de Garantia cadastrado — crie um em Tipos de Garantia antes de vender.
+                  </p>
+                )}
               </div>
             </div>
 

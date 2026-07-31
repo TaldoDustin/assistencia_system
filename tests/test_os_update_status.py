@@ -241,7 +241,7 @@ class TestAtualizarOrdemPecas:
 
 class TestTransicoesDeStatus:
     def test_todas_as_transicoes_entre_status_validos_sao_permitidas(
-        self, client, login_como, usuario_tecnico, criar_os
+        self, client, login_como, usuario_tecnico, criar_os, reparo_padrao_id, tipo_garantia_padrao_id
     ):
         login_como(client, usuario_tecnico)
 
@@ -249,7 +249,11 @@ class TestTransicoesDeStatus:
             for destino in STATUS_VALIDOS:
                 os_id = criar_os(status=origem)
 
-                resp = client.patch(f"/api/ordens/{os_id}/status", json={"status": destino})
+                body = {"status": destino}
+                if destino == "Finalizado" and origem != "Finalizado":
+                    # BR-061 -- só exige garantia na transição PARA Finalizado.
+                    body["garantias"] = {str(reparo_padrao_id): tipo_garantia_padrao_id}
+                resp = client.patch(f"/api/ordens/{os_id}/status", json=body)
 
                 assert resp.status_code == 200, f"{origem} -> {destino} deveria ser aceito"
                 status_final, _ = _obter_status_e_finalizado(os_id)

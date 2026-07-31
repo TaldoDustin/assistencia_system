@@ -1,3 +1,4 @@
+import calendar
 import os
 import unicodedata
 from datetime import datetime, timedelta
@@ -96,6 +97,20 @@ def calcular_lucro_os(tipo, valor_cobrado, valor_descontado, custo):
     if tipo in {"Assistencia", "Assistência", "Upgrade"}:
         return calcular_faturamento_os(valor_cobrado, valor_descontado) - (custo or 0)
     return -(custo or 0)
+
+
+def calcular_data_fim_garantia(data_inicio, duracao_meses):
+    """V1.5 -- Garantia (BR-057/BR-062, docs/engineering/plans/PLAN-V1.5-Garantia.md). Soma meses
+    de calendário a partir de `data_inicio` (um `date`), tratando o caso do dia de origem não
+    existir no mês de destino (ex.: 31/01 + 1 mês -> 28/02 ou 29/02, nunca "03/03"). Função pura,
+    única em todo o projeto -- compartilhada entre Vendas e Assistência para nunca divergir entre
+    os dois domínios."""
+    mes_total = data_inicio.month - 1 + duracao_meses
+    ano = data_inicio.year + mes_total // 12
+    mes = mes_total % 12 + 1
+    ultimo_dia_do_mes = calendar.monthrange(ano, mes)[1]
+    dia = min(data_inicio.day, ultimo_dia_do_mes)
+    return data_inicio.replace(year=ano, month=mes, day=dia)
 
 
 def to_float(value, default=0.0):

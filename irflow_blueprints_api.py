@@ -5,7 +5,7 @@ Authentication: Flask session cookies (same-origin, credentials: 'include').
 """
 
 import contextlib
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 import re
 import secrets
@@ -39,6 +39,16 @@ def create_api_blueprint(deps):
     devolver_pecas_da_os = deps["devolver_pecas_da_os"]
     registrar_movimentacao = deps["registrar_movimentacao"]
     obter_reparos_por_os = deps["obter_reparos_por_os"]
+    buscar_reparo_ids_da_os = deps["buscar_reparo_ids_da_os"]
+    resolver_garantias_reparo = deps["resolver_garantias_reparo"]
+    gravar_garantias_reparo = deps["gravar_garantias_reparo"]
+    buscar_linhas_com_garantia_da_os = deps["buscar_linhas_com_garantia_da_os"]
+    zerar_garantia_reparo = deps["zerar_garantia_reparo"]
+    buscar_garantia_reparo = deps["buscar_garantia_reparo"]
+    corrigir_garantia_reparo = deps["corrigir_garantia_reparo"]
+    buscar_historico_garantia_reparo = deps["buscar_historico_garantia_reparo"]
+    obter_tipo_garantia = deps["obter_tipo_garantia"]
+    registrar_log_auditoria = deps["registrar_log_auditoria"]
     modelo_para_os = deps["modelo_para_os"]
     normalizar_imei = deps["normalizar_imei"]
     normalizar_modelo_iphone = deps["normalizar_modelo_iphone"]
@@ -1657,6 +1667,21 @@ def create_api_blueprint(deps):
             if status_finalizado(status):
                 data_finalizado_valor = data_finalizado_atual or datetime.now().strftime("%Y-%m-%d")
 
+            # V1.5 -- Garantia de Reparo (BR-061): mesma exigência de
+            # atualizar_status_os -- este formulário completo também pode
+            # levar a OS a Finalizado, não só o botão de status dedicado.
+            # Valida contra os `reparo_ids` NOVOS (pós-edição), já que
+            # `salvar_reparos_os` abaixo pode ter mudado a lista.
+            resolvidos = []
+            if status_finalizado(status) and not status_finalizado(status_atual):
+                garantias_payload = body.get("garantias") or {}
+                resolvidos, erro_garantia = resolver_garantias_reparo(
+                    garantias_payload, reparo_ids, lambda tid: obter_tipo_garantia(conectar, tid)
+                )
+                if erro_garantia:
+                    conn.rollback()
+                    return err(erro_garantia)
+
             cursor.execute(
                 """
                 UPDATE os SET tipo=?,cliente=?,aparelho=?,tecnico=?,reparo_id=?,status=?,
@@ -1669,6 +1694,43 @@ def create_api_blueprint(deps):
                  cor, imei, data_finalizado_valor, os_id),
             )
             salvar_reparos_os(cursor, os_id, reparo_ids)
+
+            if resolvidos:
+                data_ref = parse_data_ymd(data_finalizado_valor)
+                data_inicio = data_ref.date() if data_ref else date.today()
+                gravar_garantias_reparo(cursor, os_id, resolvidos, data_inicio)
+                for reparo_id, tipo_garantia in resolvidos:
+                    registrar_log_auditoria(
+                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_concedida",
+                        depois={
+                            "reparo_id": reparo_id,
+                            "tipo_garantia_id": tipo_garantia["id"],
+                            "garantia_nome": tipo_garantia["nome"],
+                            "garantia_duracao_meses": tipo_garantia["duracao_meses"],
+                        },
+                    )
+
+            if status_cancelado(status) and not status_cancelado(status_atual):
+                # BR-064 -- zera a Garantia de Reparo de qualquer linha já
+                # concedida, na mesma transação do cancelamento.
+                for linha in buscar_linhas_com_garantia_da_os(cursor, os_id):
+                    (
+                        reparo_id_linha, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+                        garantia_data_inicio, garantia_data_fim,
+                    ) = linha
+                    zerar_garantia_reparo(cursor, os_id, reparo_id_linha)
+                    registrar_log_auditoria(
+                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                        antes={
+                            "reparo_id": reparo_id_linha,
+                            "tipo_garantia_id": tipo_garantia_id,
+                            "garantia_nome": garantia_nome,
+                            "garantia_duracao_meses": garantia_duracao_meses,
+                            "garantia_data_inicio": garantia_data_inicio,
+                            "garantia_data_fim": garantia_data_fim,
+                        },
+                        depois=None,
+                    )
 
             if not status_cancelado(status_atual):
                 devolver_pecas_da_os(cursor, os_id, "devolucao-edicao")
@@ -1775,13 +1837,62 @@ def create_api_blueprint(deps):
             if status_finalizado(status):
                 data_finalizado_valor = data_finalizado_atual or datetime.now().strftime("%Y-%m-%d")
 
+            # V1.5 -- Garantia de Reparo (BR-061): exige um Tipo de Garantia por
+            # linha de reparo só na transição PARA Finalizado, nunca em toda
+            # atualização subsequente que mantiver o status já finalizado.
+            resolvidos = []
+            if status_finalizado(status) and not status_finalizado(status_atual):
+                reparo_ids = buscar_reparo_ids_da_os(cursor, os_id)
+                garantias_payload = body.get("garantias") or {}
+                resolvidos, erro_garantia = resolver_garantias_reparo(
+                    garantias_payload, reparo_ids, lambda tid: obter_tipo_garantia(conectar, tid)
+                )
+                if erro_garantia:
+                    conn.rollback()
+                    return err(erro_garantia)
+
             cursor.execute(
                 "UPDATE os SET status=?, data_finalizado=? WHERE id=?",
                 (status, data_finalizado_valor, os_id),
             )
 
+            if resolvidos:
+                data_ref = parse_data_ymd(data_finalizado_valor)
+                data_inicio = data_ref.date() if data_ref else date.today()
+                gravar_garantias_reparo(cursor, os_id, resolvidos, data_inicio)
+                for reparo_id, tipo_garantia in resolvidos:
+                    registrar_log_auditoria(
+                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_concedida",
+                        depois={
+                            "reparo_id": reparo_id,
+                            "tipo_garantia_id": tipo_garantia["id"],
+                            "garantia_nome": tipo_garantia["nome"],
+                            "garantia_duracao_meses": tipo_garantia["duracao_meses"],
+                        },
+                    )
+
             if status_cancelado(status) and not status_cancelado(status_atual):
                 devolver_pecas_da_os(cursor, os_id, "devolucao")
+                # BR-064 -- zera a Garantia de Reparo de qualquer linha já
+                # concedida, na mesma transação do cancelamento.
+                for linha in buscar_linhas_com_garantia_da_os(cursor, os_id):
+                    (
+                        reparo_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+                        garantia_data_inicio, garantia_data_fim,
+                    ) = linha
+                    zerar_garantia_reparo(cursor, os_id, reparo_id)
+                    registrar_log_auditoria(
+                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                        antes={
+                            "reparo_id": reparo_id,
+                            "tipo_garantia_id": tipo_garantia_id,
+                            "garantia_nome": garantia_nome,
+                            "garantia_duracao_meses": garantia_duracao_meses,
+                            "garantia_data_inicio": garantia_data_inicio,
+                            "garantia_data_fim": garantia_data_fim,
+                        },
+                        depois=None,
+                    )
 
             conn.commit()
         except Exception as exc:
@@ -1791,6 +1902,95 @@ def create_api_blueprint(deps):
             conn.close()
 
         return ok()
+
+    @api.route("/ordens/<int:os_id>/reparos/<int:reparo_id>/garantia", methods=["PATCH"])
+    def corrigir_garantia_reparo_route(os_id, reparo_id):
+        """V1.5 -- Garantia de Reparo (BR-065) -- só `admin`, sem motivo
+        obrigatório, mesmo padrão de `corrigir_garantia_item` (Vendas)."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+        if session.get("usuario_perfil") != "admin":
+            return err("Permissão negada.", 403)
+
+        body = safe_json(request)
+        tipo_garantia_id = parse_int(body.get("tipo_garantia_id"), default=None)
+        if tipo_garantia_id is None:
+            return err("tipo_garantia_id é obrigatório.")
+
+        tipo_garantia = obter_tipo_garantia(conectar, tipo_garantia_id)
+        if not tipo_garantia or not tipo_garantia["ativo"]:
+            return err("Tipo de Garantia inválido ou inativo.")
+
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            linha = buscar_garantia_reparo(cursor, os_id, reparo_id)
+            if not linha:
+                conn.rollback()
+                return err("Reparo não encontrado nesta OS.", 404)
+            (
+                tipo_garantia_id_anterior, garantia_nome_anterior, garantia_duracao_meses_anterior,
+                garantia_data_inicio_anterior, garantia_data_fim_anterior,
+            ) = linha
+
+            data_ref = parse_data_ymd(garantia_data_inicio_anterior)
+            data_inicio = data_ref.date() if data_ref else date.today()
+
+            linhas_afetadas = corrigir_garantia_reparo(cursor, os_id, reparo_id, tipo_garantia, data_inicio)
+            if linhas_afetadas == 0:
+                conn.rollback()
+                return err("OS não pode ser corrigida (cancelada ou em outro estado).")
+
+            registrar_log_auditoria(
+                cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                antes={
+                    "reparo_id": reparo_id,
+                    "tipo_garantia_id": tipo_garantia_id_anterior,
+                    "garantia_nome": garantia_nome_anterior,
+                    "garantia_duracao_meses": garantia_duracao_meses_anterior,
+                    "garantia_data_inicio": garantia_data_inicio_anterior,
+                    "garantia_data_fim": garantia_data_fim_anterior,
+                },
+                depois={
+                    "reparo_id": reparo_id,
+                    "tipo_garantia_id": tipo_garantia["id"],
+                    "garantia_nome": tipo_garantia["nome"],
+                    "garantia_duracao_meses": tipo_garantia["duracao_meses"],
+                    "garantia_data_inicio": data_inicio.isoformat(),
+                },
+            )
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            return err(str(exc))
+        finally:
+            conn.close()
+
+        return ok(os_id=os_id, reparo_id=reparo_id)
+
+    @api.route("/ordens/<int:os_id>/reparos/<int:reparo_id>/historico-garantia")
+    def historico_garantia_reparo_route(os_id, reparo_id):
+        """Histórico de correções/zeragens da Garantia de Reparo da linha
+        (BR-065) -- aberto a qualquer autenticado, mesmo padrão do histórico
+        de desconto/garantia de Vendas."""
+        if not usuario_logado():
+            return err("Não autenticado.", 401)
+
+        conn = conectar()
+        cursor = conn.cursor()
+        try:
+            rows = buscar_historico_garantia_reparo(cursor, os_id, reparo_id)
+        finally:
+            conn.close()
+
+        historico = [
+            {
+                "id": r[0], "acao": r[1], "valor_anterior": r[2], "valor_novo": r[3],
+                "criado_em": r[4], "usuario_nome": r[5] or "",
+            }
+            for r in rows
+        ]
+        return ok(historico=historico)
 
     @api.route("/ordens/historico-cliente")
     def historico_cliente():
@@ -2527,8 +2727,28 @@ def create_api_blueprint(deps):
 
     # ── WARRANTIES ─────────────────────────────────────────────────────────
 
+    def _classificar_garantia(dias_restantes):
+        if dias_restantes is None:
+            return "Sem data", "gray"
+        if dias_restantes < 0:
+            return "Vencida", "red"
+        if dias_restantes <= 7:
+            return f"Vence em {dias_restantes}d", "amber"
+        return f"{dias_restantes} dias", "green"
+
     @api.route("/garantias")
     def listar_garantias():
+        """V1.5 -- Garantia de Reparo (BR-062/BR-063): uma entrada por linha
+        de `os_reparos`, não mais uma por OS -- uma OS com 3 reparos gera até
+        3 entradas, cada uma com seu próprio prazo. Chave da resposta
+        continua `ordens` por compatibilidade com os consumidores existentes
+        (`Garantias.jsx`, `Clientes.jsx`), mesmo a granularidade tendo mudado.
+        Linhas com `tipo_garantia_id` gravado (concedidas a partir da V1.5)
+        usam o snapshot (`garantia_data_fim`) direto; linhas sem isso (dado
+        histórico, anterior à V1.5, ou isentas por BR-061 como sync do
+        Mercado Phone) caem no fallback do prazo fixo
+        (`GARANTIA_REPARO_DIAS_PADRAO`) a partir de `data_finalizado` -- nunca
+        inventa uma garantia que não foi de fato concedida."""
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
@@ -2540,49 +2760,48 @@ def create_api_blueprint(deps):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id, cliente, modelo, tecnico,
-                   COALESCE(data_finalizado,''), COALESCE(data,''), COALESCE(imei,''),
-                   COALESCE(origem_integracao,''), COALESCE(id_externo_integracao,'')
+            SELECT os.id, os.cliente, os.modelo, os.tecnico,
+                   COALESCE(os.data_finalizado,''), COALESCE(os.data,''), COALESCE(os.imei,''),
+                   COALESCE(os.origem_integracao,''), COALESCE(os.id_externo_integracao,''),
+                   os_reparos.reparo_id, COALESCE(reparos.nome,''),
+                   os_reparos.tipo_garantia_id, COALESCE(os_reparos.garantia_data_fim,'')
             FROM os
-            WHERE status='Finalizado'
-            ORDER BY id DESC
+            JOIN os_reparos ON os_reparos.os_id = os.id
+            JOIN reparos ON reparos.id = os_reparos.reparo_id
+            WHERE os.status='Finalizado'
+            ORDER BY os.id DESC, reparos.nome ASC
             """
         )
         rows = cursor.fetchall()
-        reparos_por_os = obter_reparos_por_os(cursor)
         conn.close()
 
         result = []
         for r in rows:
-            os_id, cliente, modelo, tecnico, data_fin, data_os, imei, origem_integracao, id_externo_integracao = r
+            (
+                os_id, cliente, modelo, tecnico, data_fin, data_os, imei,
+                origem_integracao, id_externo_integracao,
+                reparo_id, reparo_nome, tipo_garantia_id, garantia_data_fim_raw,
+            ) = r
             if (cliente or "").strip().lower() == "ir phones":
                 continue
-            if q and q not in f"{cliente} {modelo} {imei}".lower():
+            if q and q not in f"{cliente} {modelo} {imei} {reparo_nome}".lower():
                 continue
 
-            base = parse_data_ymd(data_fin) or parse_data_ymd(data_os)
-            dias_restantes = None
-            label = "Sem data"
-            color = "gray"
-            if base:
-                fim = (base + timedelta(days=garantia_dias)).date()
-                dias_restantes = (fim - hoje).days
-                if dias_restantes < 0:
-                    label = "Vencida"
-                    color = "red"
-                elif dias_restantes <= 7:
-                    label = f"Vence em {dias_restantes}d"
-                    color = "amber"
-                else:
-                    label = f"{dias_restantes} dias"
-                    color = "green"
+            if tipo_garantia_id is not None:
+                fim_dt = parse_data_ymd(garantia_data_fim_raw)
+                fim = fim_dt.date() if fim_dt else None
+            else:
+                base = parse_data_ymd(data_fin) or parse_data_ymd(data_os)
+                fim = (base + timedelta(days=garantia_dias)).date() if base else None
 
-            rinfo = reparos_por_os.get(os_id, {"nomes": []})
+            dias_restantes = (fim - hoje).days if fim else None
+            label, color = _classificar_garantia(dias_restantes)
+
             result.append({
-                "id": os_id, "cliente": cliente or "", "modelo": modelo or "",
+                "id": os_id, "reparo_id": reparo_id, "reparo_nome": reparo_nome or "",
+                "cliente": cliente or "", "modelo": modelo or "",
                 "tecnico": tecnico or "", "imei": imei or "",
                 "data_finalizado": data_fin or data_os,
-                "reparos": rinfo.get("nomes", []),
                 "origem_integracao": origem_integracao or "",
                 "id_externo_integracao": id_externo_integracao or "",
                 "garantia": {"dias_restantes": dias_restantes, "label": label, "color": color},

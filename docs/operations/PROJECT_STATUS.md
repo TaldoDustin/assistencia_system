@@ -5,8 +5,8 @@
 **Branch principal:** `main`  
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-29  
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3)
+**Última revisão:** 2026-07-30  
+**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
 
 ---
 
@@ -453,6 +453,31 @@ automaticamente no cancelamento, sempre com evento de auditoria; histórico dedi
 `npm run lint`/`npm run build` limpos. QA Manual via `curl` (14 cenários, autorização/ocultação/
 zeragem/histórico/criação de usuário financeiro) — todos passaram; navegador real indisponível neste
 ambiente por limitação do próprio ambiente de automação de navegador, não do produto (**KI-027**, novo).
+
+**Fix de responsividade do Dashboard em MacBook (CONCLUÍDO em 2026-07-30, branch
+`fix/dashboard-responsividade-macbook`, PR #14):** grids de KPIs e gráficos usavam contagem fixa de
+colunas por breakpoint, pulando abruptamente entre 3 e 6 colunas e deixando espaço em branco/valores
+truncados em larguras de MacBook (1366–1728px). Trocado por CSS Grid `auto-fit`/`minmax`
+(`minmax(280px,1fr)` nos KPIs — calibrado para não truncar valores monetários; `minmax(420px,1fr)` nos
+gráficos), único arquivo alterado (`Dashboard.jsx`). Validado por medição real de overflow no DOM
+(`scrollWidth`/`clientWidth`) nas 6 larguras-alvo, não só cálculo de CSS — validação visual num MacBook
+físico não foi possível nesta sessão (sem acesso a Mac). Mergeado em `main`.
+
+**V1.5 — Garantia (CONCLUÍDA em 2026-07-30, terceira feature a seguir o ciclo formal da ADR-010, branch
+`feat/vendas-v1-5-garantia`):** Garantia de Venda e Garantia de Reparo como processos independentes,
+substituindo o prazo fixo de 90 dias hardcoded do reparo por um cadastro configurável de Tipos de
+Garantia (BR-055 a BR-066). Ambas de atribuição manual obrigatória (venda/conclusão de OS) com snapshot
+histórico congelado no momento da concessão — nunca recalculado ao vivo contra o cadastro, mesmo se este
+mudar depois. Achado de implementação relevante: `salvar_reparos_os()` fazia `DELETE`+`INSERT` cego a
+cada edição de OS, o que apagaria silenciosamente a garantia já concedida de uma linha mantida numa
+edição sem relação com status — reescrita para sync não-destrutivo antes de expor o problema em
+produção. 693 testes no total, `ruff check .`/`npm run lint`/`npm run build` limpos. QA Manual completo
+com servidor real + banco isolado + navegador real via Claude in Chrome (login funcionou normalmente
+nesta sessão, ao contrário do registrado em KI-027 — ver observação atualizada nesse KI) e `curl` para o
+único fluxo sem UI (correção de Garantia de Reparo). Revisão Arquitetural (`ADR-010` etapa 6) sem
+inconsistência não documentada. Achado durante o QA Manual, corrigido no mesmo Encerramento (decisão do
+CTO): datas de garantia apareciam um dia atrasadas na tela por um bug clássico de parsing de data em JS
+(`KI-028`, resolvido).
 
 ### Escopo previsto
 

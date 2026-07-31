@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
 import ShoppingModal from "@/components/shopping/ShoppingModal";
-import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi, precos as precosApi } from "@/api/client";
+import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi, precos as precosApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,16 +38,29 @@ export default function EditOrder() {
   const [orderDisplayNumber, setOrderDisplayNumber] = useState("");
   const initialized = useRef(false);
 
+  // V1.5 -- Garantia de Reparo (BR-061): exige um Tipo de Garantia por
+  // reparo selecionado na transição para Finalizado -- tanto pelo botão
+  // dedicado quanto pelo formulário completo (troca de Status + Salvar).
+  const [statusOriginal, setStatusOriginal] = useState("");
+  const [tiposGarantiaList, setTiposGarantiaList] = useState([]);
+  const [garantiaDialogOpen, setGarantiaDialogOpen] = useState(false);
+  const [garantiaPorReparo, setGarantiaPorReparo] = useState({});
+  const [garantiaAcaoPendente, setGarantiaAcaoPendente] = useState(null);
+  const [enviandoGarantiaDialog, setEnviandoGarantiaDialog] = useState(false);
+
   useEffect(() => {
     Promise.all([
       ordensApi.get(id),
       constApi.get(),
       reparosApi.list(),
       estoqueApi.list(),
-    ]).then(([osRes, constRes, rRes, eRes]) => {
+      tiposGarantiaApi.list(),
+    ]).then(([osRes, constRes, rRes, eRes, tgRes]) => {
+      if (tgRes?.ok) setTiposGarantiaList(tgRes.items || []);
       if (osRes?.ok && osRes.ordem) {
         const os = osRes.ordem;
         setOrderDisplayNumber(getOrderDisplayNumber(os));
+        setStatusOriginal(os.status || "Em andamento");
         setForm({
           tipo: os.tipo || "Assistencia",
           cliente: os.cliente || "",
@@ -148,8 +161,11 @@ export default function EditOrder() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Transição real para Finalizado (não reafirmar um status já finalizado) --
+  // só nesse caso a Garantia de Reparo é exigida (BR-061).
+  const precisaSelecionarGarantia = form?.status === "Finalizado" && statusOriginal !== "Finalizado";
+
+  const executarSubmit = async (garantias) => {
     setSubmitting(true);
     try {
       const payload = {
@@ -158,6 +174,7 @@ export default function EditOrder() {
         valor_descontado: parseFloat(form.valor_descontado) || 0,
         reparo_ids: selectedReparos,
         pecas_ids: Object.entries(pecas).flatMap(([k, v]) => Array.from({ length: v }, () => parseInt(k, 10))),
+        ...(garantias ? { garantias } : {}),
       };
       const res = await ordensApi.update(id, payload);
       if (res?.ok) {
@@ -171,6 +188,16 @@ export default function EditOrder() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (precisaSelecionarGarantia) {
+      setGarantiaAcaoPendente("submit");
+      setGarantiaDialogOpen(true);
+      return;
+    }
+    await executarSubmit();
   };
 
   const handleCancelOrder = async () => {
@@ -189,9 +216,9 @@ export default function EditOrder() {
     }
   };
 
-  const handleFinalize = async () => {
+  const executarFinalize = async (garantias) => {
     try {
-      const res = await ordensApi.patchStatus(id, "Finalizado");
+      const res = await ordensApi.patchStatus(id, "Finalizado", garantias);
       if (res?.ok) {
         toast.success("Ordem finalizada!");
         navigate("/ordens");
@@ -200,6 +227,34 @@ export default function EditOrder() {
       }
     } catch {
       toast.error("Erro ao finalizar ordem");
+    }
+  };
+
+  const handleFinalize = async () => {
+    if (statusOriginal !== "Finalizado") {
+      setGarantiaAcaoPendente("finalize");
+      setGarantiaDialogOpen(true);
+      return;
+    }
+    await executarFinalize();
+  };
+
+  const confirmarGarantiaDialog = async () => {
+    const faltando = selectedReparos.some((rid) => !garantiaPorReparo[rid]);
+    if (faltando) {
+      toast.error("Selecione um Tipo de Garantia para cada reparo.");
+      return;
+    }
+    setEnviandoGarantiaDialog(true);
+    try {
+      if (garantiaAcaoPendente === "finalize") {
+        await executarFinalize(garantiaPorReparo);
+      } else if (garantiaAcaoPendente === "submit") {
+        await executarSubmit(garantiaPorReparo);
+      }
+      setGarantiaDialogOpen(false);
+    } finally {
+      setEnviandoGarantiaDialog(false);
     }
   };
 
@@ -578,6 +633,54 @@ export default function EditOrder() {
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Abrir checklist
               </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={garantiaDialogOpen} onOpenChange={(open) => !open && setGarantiaDialogOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Garantia de Reparo</DialogTitle>
+            <DialogDescription>
+              Selecione o Tipo de Garantia para cada reparo antes de concluir a OS.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedReparos.map((rid) => {
+              const reparo = reparosList.find((r) => r.id === rid);
+              return (
+                <div key={rid} className="space-y-1.5">
+                  <Label>{reparo?.nome || `Reparo #${rid}`}</Label>
+                  <Select
+                    value={garantiaPorReparo[rid] ? String(garantiaPorReparo[rid]) : ""}
+                    onValueChange={(v) => setGarantiaPorReparo((prev) => ({ ...prev, [rid]: parseInt(v, 10) }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione o Tipo de Garantia" /></SelectTrigger>
+                    <SelectContent>
+                      {tiposGarantiaList.map((tg) => (
+                        <SelectItem key={tg.id} value={String(tg.id)}>
+                          {tg.nome} ({tg.duracao_meses === 0 ? "sem garantia" : `${tg.duracao_meses}m`})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+            {tiposGarantiaList.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum Tipo de Garantia cadastrado — crie um em Tipos de Garantia antes de concluir.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setGarantiaDialogOpen(false)} disabled={enviandoGarantiaDialog}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={confirmarGarantiaDialog} disabled={enviandoGarantiaDialog}>
+              {enviandoGarantiaDialog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar e concluir
             </Button>
           </DialogFooter>
         </DialogContent>

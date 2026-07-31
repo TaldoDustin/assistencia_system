@@ -115,8 +115,11 @@ function PerfilCliente({ cliente, onClose }) {
                 ) : (
                   <div className="space-y-1.5">
                     {garantiasCliente.map((g) => (
-                      <div key={g.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
-                        <span className="text-card-foreground">{g.modelo || "—"}</span>
+                      <div key={`${g.id}-${g.reparo_id}`} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
+                        <span className="text-card-foreground">
+                          {g.modelo || "—"}
+                          {g.reparo_nome && <span className="text-muted-foreground text-xs"> · {g.reparo_nome}</span>}
+                        </span>
                         <GarantiaBadge status={g.status_garantia} dias={g.dias_restantes} />
                       </div>
                     ))}

@@ -96,12 +96,15 @@ class TestExcluirItemEstoque:
         _limpar_os(os_id)
 
     def test_exclusao_permitida_quando_os_esta_finalizada(
-        self, client, login_como, usuario_admin, reparo_padrao_id, criar_item_estoque
+        self, client, login_como, usuario_admin, reparo_padrao_id, criar_item_estoque, tipo_garantia_padrao_id
     ):
         login_como(client, usuario_admin)
         item_id = criar_item_estoque(modelo="iPhone 13", quantidade=1)
         os_id = client.post("/api/ordens", json=_payload_os_minimo(reparo_padrao_id, [item_id])).get_json()["os_id"]
-        client.patch(f"/api/ordens/{os_id}/status", json={"status": "Finalizado"})
+        client.patch(
+            f"/api/ordens/{os_id}/status",
+            json={"status": "Finalizado", "garantias": {str(reparo_padrao_id): tipo_garantia_padrao_id}},
+        )
 
         resp = client.delete(f"/api/estoque/{item_id}")
 

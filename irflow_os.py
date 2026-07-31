@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from irflow_core import texto_limpo, to_float
+from irflow_core import STATUS_FINALIZADO, calcular_data_fim_garantia, texto_limpo, to_float
 
 
 def _consumir_lotes_fifo(cursor, estoque_id, quantidade):
@@ -95,12 +95,23 @@ def validar_reparo_ids(cursor, reparo_ids):
 
 
 def salvar_reparos_os(cursor, os_id, reparo_ids):
-    cursor.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
-    for reparo_id in reparo_ids:
-        cursor.execute(
-            "INSERT INTO os_reparos (os_id, reparo_id) VALUES (?, ?)",
-            (os_id, reparo_id),
-        )
+    """Sincroniza `os_reparos` com `reparo_ids` de forma não-destrutiva: só
+    remove linhas cujo `reparo_id` saiu da lista e só insere as que entraram
+    -- nunca um DELETE+INSERT cego de todas. Necessário desde a V1.5 (Garantia
+    de Reparo, BR-062): as colunas de snapshot de garantia vivem nesta mesma
+    linha (sem `id` substituto, chave é o par `os_id`+`reparo_id`); um
+    DELETE+INSERT cego apagaria silenciosamente a garantia já concedida de
+    qualquer linha mantida, mesmo numa edição que não mexe em status/reparos."""
+    reparo_ids = list(reparo_ids or [])
+    cursor.execute("SELECT reparo_id FROM os_reparos WHERE os_id=?", (os_id,))
+    atuais = {row[0] for row in cursor.fetchall()}
+    novos = set(reparo_ids)
+
+    for reparo_id in atuais - novos:
+        cursor.execute("DELETE FROM os_reparos WHERE os_id=? AND reparo_id=?", (os_id, reparo_id))
+    for reparo_id in novos - atuais:
+        cursor.execute("INSERT INTO os_reparos (os_id, reparo_id) VALUES (?, ?)", (os_id, reparo_id))
+
     cursor.execute(
         "UPDATE os SET reparo_id=? WHERE id=?",
         (reparo_ids[0] if reparo_ids else None, os_id),
@@ -141,6 +152,148 @@ def obter_reparos_por_os(cursor):
         if nome:
             mapa[os_id]["nomes"].append(nome)
     return mapa
+
+
+# V1.5 -- Garantia de Reparo (BR-061 a BR-065, docs/engineering/plans/PLAN-V1.5-Garantia.md).
+# `os_reparos` tem PRIMARY KEY composta (os_id, reparo_id), sem coluna `id` própria -- toda
+# consulta/gravação por linha usa esse par, nunca um id substituto. Auditoria (`audit_log`)
+# usa `entidade_id=os_id` (não o par) porque `entidade_id` é uma coluna INTEGER única; o
+# `reparo_id` de cada linha vai dentro do JSON de `antes`/`depois` e é filtrado via
+# `json_extract` -- decisão de implementação (não de regra de negócio), documentada aqui por
+# não ser óbvia given a ausência de id substituto na tabela.
+
+
+def buscar_reparo_ids_da_os(cursor, os_id):
+    cursor.execute("SELECT reparo_id FROM os_reparos WHERE os_id=?", (os_id,))
+    return [row[0] for row in cursor.fetchall()]
+
+
+def resolver_garantias_reparo(garantias_payload, reparo_ids, resolver_tipo_garantia):
+    """BR-061 -- exige um Tipo de Garantia válido e ativo para cada linha de
+    reparo da OS antes de concluí-la. `garantias_payload` é o dict
+    `{reparo_id: tipo_garantia_id}` recebido do cliente (chaves podem chegar
+    como string, via JSON); `resolver_tipo_garantia` é uma função
+    `tipo_garantia_id -> dict|None` injetada pelo chamador -- este módulo
+    permanece sem I/O de `tipos_garantia` (essa consulta vive em
+    `fluxoly_tipos_garantia_service.py`, mesma regra de camadas do resto do
+    domínio). Retorna (lista de tuplas `(reparo_id, tipo_garantia)`, erro)."""
+    resolvidos = []
+    for reparo_id in reparo_ids:
+        tipo_garantia_id = garantias_payload.get(reparo_id, garantias_payload.get(str(reparo_id)))
+        if tipo_garantia_id is None:
+            return None, f"Tipo de Garantia obrigatório para o reparo {reparo_id}."
+        tipo_garantia = resolver_tipo_garantia(tipo_garantia_id)
+        if not tipo_garantia or not tipo_garantia["ativo"]:
+            return None, f"Tipo de Garantia inválido ou inativo para o reparo {reparo_id}."
+        resolvidos.append((reparo_id, tipo_garantia))
+    return resolvidos, None
+
+
+def gravar_garantias_reparo(cursor, os_id, resolvidos, data_inicio):
+    """Snapshot completo por linha (BR-062) -- `garantia_data_fim` calculado
+    a partir de `data_inicio` (= data de finalização da OS), nunca um JOIN ao
+    vivo com `tipos_garantia`."""
+    for reparo_id, tipo_garantia in resolvidos:
+        data_fim = calcular_data_fim_garantia(data_inicio, tipo_garantia["duracao_meses"])
+        cursor.execute(
+            """
+            UPDATE os_reparos
+            SET tipo_garantia_id=?, garantia_nome=?, garantia_duracao_meses=?,
+                garantia_data_inicio=?, garantia_data_fim=?
+            WHERE os_id=? AND reparo_id=?
+            """,
+            (
+                tipo_garantia["id"], tipo_garantia["nome"], tipo_garantia["duracao_meses"],
+                data_inicio.isoformat(), data_fim.isoformat(), os_id, reparo_id,
+            ),
+        )
+
+
+def buscar_linhas_com_garantia_da_os(cursor, os_id):
+    """BR-064 -- linhas de reparo da OS com Garantia de Reparo já concedida
+    (`tipo_garantia_id` não nulo) -- usado no cancelamento pós-conclusão para
+    zerar cada uma e registrar o evento de auditoria correspondente."""
+    cursor.execute(
+        """
+        SELECT reparo_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+               garantia_data_inicio, garantia_data_fim
+        FROM os_reparos WHERE os_id=? AND tipo_garantia_id IS NOT NULL
+        """,
+        (os_id,),
+    )
+    return cursor.fetchall()
+
+
+def zerar_garantia_reparo(cursor, os_id, reparo_id):
+    """BR-064 -- invalida a Garantia de Reparo de uma linha quando a OS é
+    cancelada pós-conclusão. Zera o snapshot inteiro (mesmo padrão de
+    `fluxoly_vendas_repository.py::zerar_garantia_item`)."""
+    cursor.execute(
+        """
+        UPDATE os_reparos
+        SET tipo_garantia_id=NULL, garantia_nome=NULL, garantia_duracao_meses=NULL,
+            garantia_data_inicio=NULL, garantia_data_fim=NULL
+        WHERE os_id=? AND reparo_id=?
+        """,
+        (os_id, reparo_id),
+    )
+
+
+def buscar_garantia_reparo(cursor, os_id, reparo_id):
+    """Lê o snapshot atual da linha antes de uma correção (BR-065) --
+    necessário para o evento de auditoria registrar o valor_anterior real."""
+    cursor.execute(
+        """
+        SELECT tipo_garantia_id, garantia_nome, garantia_duracao_meses,
+               garantia_data_inicio, garantia_data_fim
+        FROM os_reparos WHERE os_id=? AND reparo_id=?
+        """,
+        (os_id, reparo_id),
+    )
+    return cursor.fetchone()
+
+
+def corrigir_garantia_reparo(cursor, os_id, reparo_id, tipo_garantia, data_inicio):
+    """BR-065 -- mesmo compare-and-swap do Ajuste Comercial/Comissão de
+    Vendas: só corrige se a OS ainda está `Finalizado` no momento da escrita
+    (uma OS cancelada já teve a garantia zerada, BR-064). Retorna o número de
+    linhas afetadas."""
+    data_fim = calcular_data_fim_garantia(data_inicio, tipo_garantia["duracao_meses"])
+    cursor.execute(
+        """
+        UPDATE os_reparos
+        SET tipo_garantia_id=?, garantia_nome=?, garantia_duracao_meses=?,
+            garantia_data_inicio=?, garantia_data_fim=?
+        WHERE os_id=? AND reparo_id=?
+          AND EXISTS (SELECT 1 FROM os WHERE id=os_reparos.os_id AND status=?)
+        """,
+        (
+            tipo_garantia["id"], tipo_garantia["nome"], tipo_garantia["duracao_meses"],
+            data_inicio.isoformat(), data_fim.isoformat(), os_id, reparo_id, STATUS_FINALIZADO,
+        ),
+    )
+    return cursor.rowcount
+
+
+def buscar_historico_garantia_reparo(cursor, os_id, reparo_id):
+    """Histórico de correções/zeragens da Garantia de Reparo da linha
+    (BR-065), mais recente primeiro -- filtra por `reparo_id` dentro do JSON
+    de `antes`/`depois` (ver nota de módulo sobre a chave de auditoria)."""
+    cursor.execute(
+        """
+        SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
+        FROM audit_log a
+        LEFT JOIN usuarios u ON a.usuario_id = u.id
+        WHERE a.entidade = 'os_reparo' AND a.entidade_id = ?
+          AND (
+              json_extract(a.valor_anterior, '$.reparo_id') = ?
+              OR json_extract(a.valor_novo, '$.reparo_id') = ?
+          )
+        ORDER BY a.id DESC
+        """,
+        (os_id, reparo_id, reparo_id),
+    )
+    return cursor.fetchall()
 
 
 # Whitelist do fragmento SQL interpolado abaixo (achado da 2a triagem Aikido,

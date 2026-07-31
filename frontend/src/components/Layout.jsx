@@ -22,6 +22,7 @@ const navItems = [
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
+  { path: "/tipos-garantia", label: "Tipos de Garantia", icon: Shield, adminOnly: true },
   { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
   { path: "/custos", label: "Custos Operacionais", icon: DollarSign, adminOnly: true },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3, adminOnly: true },

@@ -514,6 +514,14 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
 
         updates = {}
         if status and status != status_anterior:
+            # BR-061 (V1.5 -- Garantia de Reparo): esta escrita de status é
+            # deliberadamente isenta da exigência de tipo_garantia_id por
+            # linha de reparo -- não há humano no loop no momento do sync
+            # para escolher o Tipo de Garantia. Uma OS finalizada aqui fica
+            # com tipo_garantia_id NULL na linha, tratada como dado histórico
+            # por listar_garantias() (mesmo fallback de OS pré-V1.5), com
+            # correção manual disponível depois (PATCH .../reparos/<id>/garantia).
+            # Ver docs/product/BUSINESS_RULES.md BR-061 e PLAN-V1.5-Garantia.md.
             updates["status"] = status
         if cliente_novo and (not cliente_atual or cliente_atual in ("Cliente nao informado", "")):
             updates["cliente"] = cliente_novo
@@ -1115,6 +1123,10 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                 except (ValueError, TypeError):
                     pass
 
+            # BR-061 (V1.5 -- Garantia de Reparo): mesma exceção deliberada da
+            # sincronização incremental (ver importar_os_mercado_phone) --
+            # reimportação em massa também está isenta da exigência de
+            # tipo_garantia_id por linha de reparo.
             status = normalizar_status_os(
                 valor_payload(payload, ("situacaoDescricao",), ("status",))
             )

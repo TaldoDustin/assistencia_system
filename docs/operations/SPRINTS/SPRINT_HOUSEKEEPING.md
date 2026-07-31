@@ -91,6 +91,14 @@ Tabela única consolidando os achados da Fase 1:
 
 Nada é removido ou renomeado nesta fase — apenas decidido o que fazer com cada item.
 
+**Decisão de estratégia obrigatória nesta fase (achado de `AUDIT_DOCUMENTATION.md`):** `ADR-008`
+(2026-07-27, já aceita) propõe alias/fallback temporário para infraestrutura e variáveis de ambiente,
+diferente do "rename direto" inicialmente esboçado em `AUDIT_DEPENDENCIES.md`. **`ADR-008` é a fonte de
+verdade por padrão** — a Fase 4 não segue automaticamente "rename direto" só porque foi a primeira
+sugestão. Se, ao planejar, a decisão for by-passar a estratégia da ADR, **a ADR precisa ser atualizada
+antes da execução** (nova decisão registrada, não uma divergência silenciosa entre documentação e
+código).
+
 ### Fase 3 — Limpeza
 
 Commits pequenos e atômicos, `chore(...)`, cada um revisável isoladamente:

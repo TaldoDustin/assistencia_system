@@ -910,6 +910,41 @@ sempre necessário daqui pra frente.
 
 ---
 
+## KI-029
+
+Descrição:
+Dois arquivos de backup de banco de dados estão versionados no git e presentes em `main` até hoje:
+`backup-20260429-015724.db` (commit `8b69767`, 2026-04-28) e
+`database-pre-cleanup-20260517-123834.db` (commit `252815a`, 2026-05-17). Ambos parecem conter dados
+operacionais reais — o primeiro tem 74 linhas em `os` e 2 em `usuarios`; nesse snapshot a tabela
+`clientes` ainda não existia, então nomes de cliente ficavam em campo de texto livre dentro de `os`.
+Achado incidentalmente durante `AUDIT_LEGACY.md` (Sprint Housekeeping, Fase 1), ao buscar por
+`assistencia-system` como parte da varredura de nomenclatura legada.
+
+Impacto:
+Alto em potencial (dado operacional/possivelmente PII no histórico do git, acessível a qualquer clone
+do repositório), mas sem exploração confirmada — não é uma vulnerabilidade explorável remotamente, é
+exposição de dado em um artefato versionado. Contraria diretamente os princípios "O banco é sagrado" e
+"sempre manter testes isolados" do `CLAUDE.md`. As regras de `.gitignore` adicionadas depois
+(`database.db`, `backups/`) não cobrem esses dois nomes de arquivo específicos e não afetam arquivos já
+commitados de qualquer forma.
+
+Status:
+Aberto — identificado em 2026-07-31. **Nenhuma ação foi tomada** (nem remoção do working tree, nem
+reescrita de histórico) — decisão explícita necessária do usuário antes de qualquer mudança, dado que
+remover do working tree (`git rm`) não apaga do histórico, e reescrever histórico (`git filter-repo`/BFG
++ force-push) é uma operação destrutiva que exige aprovação explícita à parte, fora do fluxo normal da
+Sprint Housekeeping.
+
+Sprint prevista:
+Não definida — decisão pendente sobre remover do working tree vs. reescrever histórico vs. avaliar
+se os dados ainda são sensíveis o suficiente para justificar a operação destrutiva.
+
+Responsável:
+—
+
+---
+
 ## ~~KI-028~~ — RESOLVIDO
 
 Descrição:

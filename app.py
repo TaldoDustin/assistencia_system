@@ -2043,7 +2043,7 @@ app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conec
 # comercial de venda, domínio novo e separado de Estoque/peças de reparo)
 # ============================================================================
 
-from irflow_produtos_controller import create_produtos_blueprint  # noqa: E402
+from fluxoly_produtos_controller import create_produtos_blueprint  # noqa: E402
 
 app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
 

@@ -1,5 +1,5 @@
 """
-irflow_produtos_controller.py
+fluxoly_produtos_controller.py
 
 Camada HTTP do domínio Produtos (Blueprint Flask, prefixo `/api/produtos`).
 Recebe request, valida forma do payload, chama o service, formata resposta
@@ -18,7 +18,7 @@ excluir é `admin`, já que preço/margem é dado sensível.
 
 from flask import Blueprint, jsonify, request, session
 
-import irflow_produtos_service as service
+import fluxoly_produtos_service as service
 from irflow_validation import parse_float, parse_int, safe_json
 
 

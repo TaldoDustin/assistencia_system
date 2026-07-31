@@ -52,7 +52,7 @@ POR_PAGINA_PADRAO = 20
 
 # V1.2 -- Cancelamento (BR-032, VENDAS.md "V1.2 -- Cancelamento"): lista fechada, valor fora
 # rejeitado com erro explícito, nunca normalizado -- mesmo padrão de categoria/condicao em
-# irflow_produtos_service.py (BR-027).
+# fluxoly_produtos_service.py (BR-027).
 MOTIVOS_CANCELAMENTO_VALIDOS = {
     "cliente_desistiu", "erro_lancamento", "imei_incorreto", "venda_duplicada",
     "pagamento_nao_concluido", "produto_indisponivel", "outro",

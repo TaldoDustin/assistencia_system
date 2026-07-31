@@ -1,5 +1,5 @@
 """
-irflow_produtos_service.py
+fluxoly_produtos_service.py
 
 Regra de negócio pura do domínio Produtos — não conhece Flask, `request`
 nem `jsonify` (`docs/engineering/ENGINEERING_GUIDE.md` §3.1).
@@ -15,14 +15,14 @@ repetida aqui. `margem` nunca é persistida — sempre calculada a partir de
 `preco_venda`/`preco_custo`, mesmo princípio do `vendas.margem` especificado
 em `docs/product/features/VENDAS.md` (BR-019).
 
-Tabelas usadas: `produtos` (via `irflow_produtos_repository.py`).
+Tabelas usadas: `produtos` (via `fluxoly_produtos_repository.py`).
 
-Depende de: `irflow_produtos_repository.py` (SQL), `irflow_reference_data.py`
+Depende de: `fluxoly_produtos_repository.py` (SQL), `irflow_reference_data.py`
 (listas fechadas `PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES`), `irflow_audit.py`
 (auditoria — create/update/delete).
 """
 
-import irflow_produtos_repository as repo
+import fluxoly_produtos_repository as repo
 from irflow_audit import registrar_log_auditoria
 from irflow_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
 

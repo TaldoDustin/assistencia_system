@@ -1,5 +1,5 @@
 """
-irflow_produtos_repository.py
+fluxoly_produtos_repository.py
 
 Único ponto de acesso SQL do domínio Produtos — segue a convenção de
 `docs/engineering/ENGINEERING_GUIDE.md` §3.1 (controller → service →

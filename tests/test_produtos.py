@@ -3,7 +3,7 @@ Testes do dominio Produtos (Sprint Comercial 0.1).
 
 Escopo: GET/POST/PUT/DELETE /api/produtos* -- catalogo comercial de venda
 (iPhone/Apple Watch/AirPods/Acessorio), dominio novo e separado de Estoque
-(pecas de reparo). Ver irflow_produtos_service.py para a regra de negocio
+(pecas de reparo). Ver fluxoly_produtos_service.py para a regra de negocio
 (categoria/condicao validadas contra lista fechada, sem coercao silenciosa;
 margem calculada, nunca persistida) testada aqui via HTTP.
 """

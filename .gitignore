@@ -18,7 +18,7 @@ installer_output/
 release/
 
 # Dados locais (não versionar banco nem backups)
-database.db
+database.db*
 backups/
 data/price_tables.json
 

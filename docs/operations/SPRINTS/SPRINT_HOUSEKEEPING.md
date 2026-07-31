@@ -53,13 +53,26 @@ Ponto de restauração completo antes de tocar em qualquer arquivo.
 Documentos de auditoria por categoria em `docs/engineering/audits/` (novos, um por categoria). Apenas
 levantamento — nada é alterado nesta fase.
 
-| Documento | Escopo |
-|-----------|--------|
-| `AUDIT_REPOSITORY.md` | Estrutura geral de pastas, arquivos soltos, duplicações |
-| `AUDIT_BRANCHES.md` | Toda branch local/remota não mergeada — analisada por conteúdo antes de qualquer decisão |
-| `AUDIT_LEGACY.md` | Busca automatizada dos termos legados (lista abaixo) em código, comentários, docs, variáveis de ambiente, imports, nomes de pacote, workflows do GitHub Actions, Docker, README, templates, `.env`, URLs, títulos HTML |
-| `AUDIT_INFRA.md` | Render, Vercel, variáveis de ambiente em produção, nomes de serviço |
-| `AUDIT_DOCUMENTATION.md` | Referências a nomes legados na documentação (`docs/**`, `CLAUDE.md`) |
+Graphify configurado e validado em 2026-07-31 (`docs/engineering/GRAPHIFY.md`) — a auditoria agora
+parte do grafo em vez de grep manual arquivo por arquivo, na seguinte ordem:
+
+1. **Auditoria de nomenclatura legada** (`graphify query`) — quais módulos ainda usam `irflow_*`,
+   quais documentos citam `assistencia_system`, quais imports dependem da nomenclatura antiga
+2. **Auditoria de dependências** (`graphify query` / `graphify path`) — o que seria impactado por
+   renomear cada módulo/arquivo identificado no passo 1
+3. **Auditoria de documentação** (Graphify + inspeção manual) — referências a nomes legados que o
+   grafo não capturou (ex.: texto solto sem citação estrutural)
+4. **Auditoria de branches** (Git, manual) — não delegada ao Graphify; branches não fazem parte do
+   corpus indexado
+
+| Documento | Escopo | Fonte |
+|-----------|--------|-------|
+| `AUDIT_LEGACY.md` | Módulos/docs/imports/env vars/nomes de pacote/workflows/Docker/README/templates/`.env`/URLs/títulos HTML que citam os termos legados (lista abaixo) | Graphify (`query`/`path`) + grep de confirmação |
+| `AUDIT_DEPENDENCIES.md` | Impacto de renomear cada item da auditoria de nomenclatura — quem importa, quem chama, quem cita | Graphify (`path`/`explain`) |
+| `AUDIT_DOCUMENTATION.md` | Referências a nomes legados na documentação não capturadas estruturalmente pelo grafo | Graphify + inspeção manual |
+| `AUDIT_REPOSITORY.md` | Estrutura geral de pastas, arquivos soltos, duplicações | Inspeção manual |
+| `AUDIT_BRANCHES.md` | Toda branch local/remota não mergeada — analisada por conteúdo antes de qualquer decisão | Git (manual) |
+| `AUDIT_INFRA.md` | Render, Vercel, variáveis de ambiente em produção, nomes de serviço | Inspeção manual (fora do corpus indexado) |
 
 **Termos legados a buscar (Fase 1):** `assistencia_system`, `assistencia-system`, `IRFlow`, `irflow`,
 `IR_FLOW`, `nt-driver`, `nt_driver`, `NT Driver`.
@@ -121,6 +134,11 @@ Checklist completo antes de declarar a sprint concluída:
 - [ ] Sentry sem novos erros pós-deploy
 - [ ] Nenhum link/badge/URL/imagem quebrado em `README.md` ou docs
 - [ ] Nenhum import quebrado, nenhum script órfão referenciando nome antigo
+- [ ] **Reindexação do Graphify** (`graphify . --update` ou rebuild completo) e nova consulta pelos
+      mesmos termos legados da Fase 1 (`assistencia_system`, `IRFlow`, `irflow`, `IR_FLOW`, `nt-driver`,
+      `NT Driver`). Se a reindexação ainda encontrar referências relevantes, a migração ficou
+      incompleta — volta para a Fase 4 nesses pontos específicos antes de fechar a sprint. Isso torna
+      o grafo uma ferramenta de verificação do resultado, não só de descoberta do trabalho.
 
 Ao final: "Housekeeping Completed" registrado nesta sprint + `PROJECT_STATUS.md` + `CHANGELOG.md`.
 
@@ -134,12 +152,14 @@ Ao final: "Housekeeping Completed" registrado nesta sprint + `PROJECT_STATUS.md`
 | RS-02 | Apagar branch com trabalho não mergeado | Baixa | Alto | Regra obrigatória: investigar conteúdo antes de apagar (Fase 3) |
 | RS-03 | Variável de ambiente renomeada em código sem atualizar Render/Vercel | Média | Alto | `AUDIT_INFRA.md` mapeia todas as vars antes de qualquer rename (Fase 1) |
 | RS-04 | Sprint se estender por muitas sessões e perder contexto | Alta | Médio | Documentação (`BASELINE_HOUSEKEEPING.md`, audits, esta sprint) é a fonte de verdade, não a memória da conversa |
+| RS-05 | Auditoria de nomenclatura via Graphify não capturar 100% das referências (arestas "dangling" — ver `docs/engineering/GRAPHIFY.md`) | Média | Médio | Grep de confirmação sobre os termos legados além da consulta ao grafo (Fase 1); reindexação de validação confirma cobertura na Fase 5 |
 
 ---
 
 ## Dependências
 
-- Depende de: nenhuma sprint em andamento bloqueia isto (V1.5 Garantia e Sprint CI/CD 1.1 já concluídas)
+- Depende de: nenhuma sprint em andamento bloqueia isto (V1.5 Garantia e Sprint CI/CD 1.1 já concluídas).
+  Graphify configurado e validado em 2026-07-31 (`docs/engineering/GRAPHIFY.md`) antes do início da Fase 1.
 - Bloqueia: nada tecnicamente, mas adia o retorno a features de valor de negócio (decisão consciente do
   usuário)
 

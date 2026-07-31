@@ -921,13 +921,20 @@ operacionais reais — o primeiro tem 74 linhas em `os` e 2 em `usuarios`; nesse
 Achado incidentalmente durante `AUDIT_LEGACY.md` (Sprint Housekeeping, Fase 1), ao buscar por
 `assistencia-system` como parte da varredura de nomenclatura legada.
 
+**Atualização (2026-07-31, `AUDIT_REPOSITORY.md`):** mesmo padrão encontrado em mais dois arquivos,
+ainda presentes em `main`: `database.db-shm` (32KB — índice de memória compartilhada do modo WAL do
+SQLite, pode conter fragmentos de dados de transações recentes) e `database.db-wal` (0 bytes no momento
+da auditoria, mas já foi commitado com conteúdo em algum ponto do histórico — commits `4fef090`
+2026-06-09 e `f20521f` 2026-05-05). `database.db` em si já está no `.gitignore`, mas o padrão exato não
+cobre os sidecars `-shm`/`-wal` do modo WAL, então eles vazaram pela mesma lacuna.
+
 Impacto:
 Alto em potencial (dado operacional/possivelmente PII no histórico do git, acessível a qualquer clone
 do repositório), mas sem exploração confirmada — não é uma vulnerabilidade explorável remotamente, é
 exposição de dado em um artefato versionado. Contraria diretamente os princípios "O banco é sagrado" e
 "sempre manter testes isolados" do `CLAUDE.md`. As regras de `.gitignore` adicionadas depois
-(`database.db`, `backups/`) não cobrem esses dois nomes de arquivo específicos e não afetam arquivos já
-commitados de qualquer forma.
+(`database.db`, `backups/`) não cobrem esses nomes de arquivo específicos (nem os dois backups, nem os
+sidecars `-shm`/`-wal`) e não afetam arquivos já commitados de qualquer forma.
 
 Status:
 Aberto — identificado em 2026-07-31. **Nenhuma ação foi tomada** (nem remoção do working tree, nem
@@ -938,7 +945,9 @@ Sprint Housekeeping.
 
 Sprint prevista:
 Não definida — decisão pendente sobre remover do working tree vs. reescrever histórico vs. avaliar
-se os dados ainda são sensíveis o suficiente para justificar a operação destrutiva.
+se os dados ainda são sensíveis o suficiente para justificar a operação destrutiva. Para os dois
+sidecars `-shm`/`-wal`, a ação de baixo risco (destrackear + ajustar `.gitignore` para `database.db-*`)
+pode ser feita independentemente da decisão maior sobre os dois backups.
 
 Responsável:
 —

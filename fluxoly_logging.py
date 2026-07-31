@@ -1,5 +1,5 @@
 """
-irflow_logging.py
+fluxoly_logging.py
 
 Responsabilidade: logging estruturado em JSON, uma linha por evento, em vez
 dos `print()` espalhados pelo backend (Sprint Observabilidade, 2026-07-25).

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, send_from_directory
 
-from irflow_web import redirecionar_com_query_string
+from fluxoly_web import redirecionar_com_query_string
 
 
 def create_main_blueprint(deps):

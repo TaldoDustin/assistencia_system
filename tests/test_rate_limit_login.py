@@ -3,7 +3,7 @@ Testes de rate limiting em login (Sprint 3 — Unidade 1).
 
 Escopo: POST /api/auth/login (rota real usada pelo frontend) e POST /login
 (rota legada), ambas usando o contador em `login_attempts`
-(`irflow_rate_limit.py`) em vez de armazenamento em memória — ver
+(`fluxoly_rate_limit.py`) em vez de armazenamento em memória — ver
 docstring do módulo para o motivo (Gunicorn roda com --workers 2).
 
 Isolamento: `tests/conftest.py` limpa `login_attempts` antes de cada teste

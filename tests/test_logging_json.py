@@ -1,14 +1,14 @@
 """
 Testes do formatter de log JSON (Sprint Observabilidade, 2026-07-25).
 
-Escopo: irflow_logging.py -- formato da linha emitida e correlação com o
+Escopo: fluxoly_logging.py -- formato da linha emitida e correlação com o
 request_id de flask.g quando existe um request ativo.
 """
 
 import json
 import logging
 
-from irflow_logging import JSONFormatter, get_logger
+from fluxoly_logging import JSONFormatter, get_logger
 
 
 def _formatar(record):

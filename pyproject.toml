@@ -34,8 +34,8 @@ line_length = 120
 known_first_party = [
     "app",
     "irflow_blueprints_api",
-    "irflow_blueprints_auth",
-    "irflow_blueprints_main",
+    "fluxoly_blueprints_auth",
+    "fluxoly_blueprints_main",
     "irflow_core",
     "fluxoly_mercadophone",
     "irflow_os",
@@ -51,12 +51,12 @@ known_first_party = [
     "fluxoly_produtos_repository",
     "irflow_vendas_service",
     "fluxoly_price_tables",
-    "irflow_rate_limit",
+    "fluxoly_rate_limit",
     "fluxoly_reference_data",
-    "irflow_reports",
-    "irflow_storage",
+    "fluxoly_reports",
+    "fluxoly_storage",
     "fluxoly_validation",
-    "irflow_web",
+    "fluxoly_web",
 ]
 skip_glob = ["frontend/*", "scripts/*"]
 
@@ -77,8 +77,8 @@ addopts = [
 source = [
     "app",
     "irflow_blueprints_api",
-    "irflow_blueprints_auth",
-    "irflow_blueprints_main",
+    "fluxoly_blueprints_auth",
+    "fluxoly_blueprints_main",
     "irflow_core",
     "fluxoly_mercadophone",
     "irflow_os",
@@ -94,12 +94,12 @@ source = [
     "fluxoly_produtos_repository",
     "irflow_vendas_service",
     "fluxoly_price_tables",
-    "irflow_rate_limit",
+    "fluxoly_rate_limit",
     "fluxoly_reference_data",
-    "irflow_reports",
-    "irflow_storage",
+    "fluxoly_reports",
+    "fluxoly_storage",
     "fluxoly_validation",
-    "irflow_web",
+    "fluxoly_web",
 ]
 omit = [
     "tests/*",

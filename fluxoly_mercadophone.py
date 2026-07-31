@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
-from irflow_logging import get_logger
+from fluxoly_logging import get_logger
 
 logger = get_logger("irflow.mercadophone")
 

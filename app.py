@@ -33,7 +33,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 # ============================================================================
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest, multiprocess
 
-from irflow_logging import configurar_logging, get_logger
+from fluxoly_logging import configurar_logging, get_logger
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
@@ -97,7 +97,7 @@ from fluxoly_mercadophone import (
     sincronizar_mercado_phone,
 )
 
-from irflow_storage import (
+from fluxoly_storage import (
     carregar_configuracoes_integracoes,
     criar_backup,
     enviar_backup_email,
@@ -109,7 +109,7 @@ from irflow_storage import (
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
 # ============================================================================
-from irflow_blueprints_main import create_main_blueprint
+from fluxoly_blueprints_main import create_main_blueprint
 from fluxoly_price_tables import (
     carregar_tabelas_preco as carregar_tabelas_preco_arquivo,
     salvar_tabelas_preco as salvar_tabelas_preco_arquivo,
@@ -131,9 +131,9 @@ from fluxoly_reference_data import (
     normalizar_imei,
     normalizar_modelo_iphone,
 )
-from irflow_web import anexar_query_string
+from fluxoly_web import anexar_query_string
 
-from irflow_reports import (
+from fluxoly_reports import (
     agrupar_relatorio_custos_operacionais,
     agrupar_relatorio_ir_phones,
     agrupar_relatorio_tecnicos,
@@ -549,7 +549,7 @@ def _conn_trace_rota_atual():
 
 class _ConexaoRastreada:
     """Envolve uma sqlite3.Connection real e loga OPEN/COMMIT/ROLLBACK/CLOSE (INC-001)
-    via o logger estruturado já existente (irflow_logging.py, extra={...} -- nunca
+    via o logger estruturado já existente (fluxoly_logging.py, extra={...} -- nunca
     print() nem um pipeline de log paralelo).
 
     Transparente por requisito (C-2/C-9): qualquer atributo ou método não
@@ -1907,9 +1907,9 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
-from irflow_blueprints_auth import create_auth_blueprint  # noqa: E402
+from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
 from irflow_blueprints_api import create_api_blueprint  # noqa: E402
-from irflow_rate_limit import resolver_ip_cliente, limite_excedido, registrar_tentativa  # noqa: E402
+from fluxoly_rate_limit import resolver_ip_cliente, limite_excedido, registrar_tentativa  # noqa: E402
 
 app.register_blueprint(
     create_auth_blueprint(

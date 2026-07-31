@@ -1,5 +1,5 @@
 """
-irflow_rate_limit.py
+fluxoly_rate_limit.py
 
 Responsabilidade: limitar tentativas de login por IP, contado na tabela
 SQLite `login_attempts` em vez de armazenamento em memória de processo.

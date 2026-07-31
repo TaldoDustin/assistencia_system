@@ -98,7 +98,7 @@ class TestPermissoesListagemLegada:
 class TestPermissaoPerfilDesconhecido:
     """
     A aplicacao normaliza qualquer perfil fora de {admin, tecnico, vendedor}
-    para "tecnico" ao CRIAR/EDITAR usuarios (ver irflow_blueprints_auth.py e
+    para "tecnico" ao CRIAR/EDITAR usuarios (ver fluxoly_blueprints_auth.py e
     irflow_blueprints_api.py). Este teste confirma que, mesmo que um registro
     com perfil fora dessa whitelist exista no banco (por exemplo, dado legado
     ou editado fora da aplicacao), a checagem de autorizacao admin-only

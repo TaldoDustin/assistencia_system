@@ -10,7 +10,7 @@ import threading
 import time
 from datetime import datetime
 
-from irflow_logging import get_logger
+from fluxoly_logging import get_logger
 
 logger = get_logger("irflow.backup")
 

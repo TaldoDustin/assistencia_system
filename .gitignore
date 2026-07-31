@@ -39,6 +39,9 @@ integrations.json
 # Artefatos do graphify (knowledge graph local, não versionado)
 graphify-out/
 
+# Permissões locais do Claude Code (por máquina, não compartilhar)
+.claude/settings.local.json
+
 .openclaude-profile.json.openclaude-profile.json
 .openclaude-profile.json
 .openclaude-profile.json

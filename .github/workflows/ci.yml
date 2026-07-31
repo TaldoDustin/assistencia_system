@@ -140,5 +140,21 @@ jobs:
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Coverage (G-05) — BLOQUEANTE (threshold 40%, ver pyproject.toml)
-        run: pytest tests/ --cov --cov-report=term-missing --cov-fail-under=40
+      - name: Coverage (G-05) — BLOQUEANTE (threshold 60%, ver pyproject.toml)
+        run: pytest tests/ --cov --cov-report=term-missing --cov-fail-under=60
+
+  # ── 6. Docker ────────────────────────────────────────────────────────────────
+  # Sprint CI/CD 1.1 -- Hardening (2026-07-31): só valida que a imagem builda
+  # (Dockerfile quebrado, dependência esquecida, erro em COPY/RUN) -- não publica.
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build image (G-19) — BLOQUEANTE
+        run: docker build .

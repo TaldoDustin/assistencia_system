@@ -5,7 +5,7 @@ Não há espaço para interpretação: cada gate é verdadeiro ou falso.
 
 Um PR com qualquer gate bloqueante em **❌ FALHOU** não entra em `main`.
 
-**Última revisão:** 2026-07-06
+**Última revisão:** 2026-07-31
 
 ---
 
@@ -25,7 +25,7 @@ ruff check .
 | ✅ PASSOU | Zero erros ou avisos nas regras `E`, `F`, `W`, `I` |
 | ❌ FALHOU | Qualquer erro reportado fora das exceções documentadas em `pyproject.toml` |
 
-**Status:** Planejado para Sprint 2  
+**Status:** Ativo em CI (`.github/workflows/ci.yml`, job `Lint`), branch `main` protegida — exige este check para merge (Sprint Infra 1.1, 2026-07-27)  
 **Responsável:** CI pipeline
 
 ---
@@ -42,7 +42,7 @@ ruff format --check .
 | ❌ FALHOU | Qualquer arquivo que `ruff format` alteraria |
 
 **Nota:** `ruff format` substitui Black neste projeto. Mesmos resultados, mesma ferramenta.  
-**Status:** Planejado para Sprint 2  
+**Status:** Rodando em CI mas **não-bloqueante** (`continue-on-error: true`, junto de `isort`/`black check`) — formatação do repositório ainda não normalizada, ver `chore(style)` pendente  
 **Responsável:** CI pipeline
 
 ---
@@ -58,7 +58,7 @@ cd frontend && npm run lint
 | ✅ PASSOU | Zero erros ESLint; warnings são permitidos mas não recomendados |
 | ❌ FALHOU | Qualquer erro (`error`-level) reportado |
 
-**Status:** Ativo (ESLint configurado, CI pendente)  
+**Status:** Ativo em CI (job `Frontend Quality`), branch `main` protegida — exige este check (Sprint Infra 1.1, 2026-07-27)  
 **Responsável:** CI pipeline
 
 ---
@@ -74,7 +74,7 @@ pytest tests/ --tb=short
 | ✅ PASSOU | 100% dos testes passando — zero falhas, zero erros |
 | ❌ FALHOU | Qualquer teste com status FAILED ou ERROR |
 
-**Status:** Planejado para Sprint 2  
+**Status:** Ativo em CI (job `Backend Tests`), branch `main` protegida — exige este check (Sprint Infra 1.1, 2026-07-27)  
 **Responsável:** CI pipeline
 
 ---
@@ -82,16 +82,16 @@ pytest tests/ --tb=short
 ### G-05 — Cobertura de Testes
 
 ```bash
-pytest tests/ --cov --cov-fail-under=40
+pytest tests/ --cov --cov-fail-under=60
 ```
 
 | Estado | Critério |
 |--------|---------|
 | ✅ PASSOU | Cobertura global nos módulos alvo >= threshold configurado em `pyproject.toml` |
-| ❌ FALHOU | Cobertura caiu abaixo do threshold **ou** cobertura da área modificada < 40% |
+| ❌ FALHOU | Cobertura caiu abaixo do threshold |
 
-**Threshold atual:** 40% (sobe com cada sprint — ver tabela de evolução)  
-**Status:** Planejado para Sprint 2  
+**Threshold atual:** 60% (elevado de 40% na Sprint CI/CD 1.1 — Hardening, 2026-07-31; cobertura real medida em 65.22%/682 testes no momento da mudança — ver tabela de evolução)  
+**Status:** Ativo em CI (job `Coverage Report`), branch `main` protegida — exige este check  
 **Responsável:** CI pipeline
 
 ---
@@ -107,7 +107,7 @@ cd frontend && npm run build
 | ✅ PASSOU | Build completa sem erros |
 | ❌ FALHOU | Qualquer erro de compilação ou import inválido |
 
-**Status:** Ativo (build manual)  
+**Status:** Ativo em CI (job `Frontend Build`), branch `main` protegida — exige este check (Sprint Infra 1.1, 2026-07-27)  
 **Responsável:** CI pipeline
 
 ---
@@ -146,6 +146,23 @@ cd frontend && npm audit --audit-level=high
 | ❌ FALHOU | Qualquer vulnerabilidade High ou Critical não resolvida |
 
 **Status:** Planejado para Sprint 2  
+**Responsável:** CI pipeline
+
+---
+
+### G-19 — Build Docker
+
+```bash
+docker build .
+```
+
+| Estado | Critério |
+|--------|---------|
+| ✅ PASSOU | Imagem builda sem erros (Dockerfile válido, todas as dependências resolvidas) |
+| ❌ FALHOU | Qualquer erro em `COPY`/`RUN`/dependência ausente |
+
+**Não publica a imagem** — só valida que o build funciona, para não descobrir um `Dockerfile` quebrado só na hora do deploy.
+**Status:** Ativo em CI (job `Docker Build`), Sprint CI/CD 1.1 — Hardening (2026-07-31)  
 **Responsável:** CI pipeline
 
 ---
@@ -257,22 +274,21 @@ Aplicável a qualquer sprint de teste, QA ou validação — ver `CLAUDE.md` e `
 
 ## Evolução do Threshold de Cobertura
 
-Cobertura cresce junto com os testes — nunca à frente deles.
+Cobertura cresce junto com os testes — nunca à frente deles. Tabela original (por Sprint numerada)
+ficou obsoleta assim que o projeto migrou para o eixo de fases/V1.x — mantida abaixo só como histórico;
+as linhas com data são o que de fato aconteceu.
 
-| Sprint | Threshold | Escopo |
-|--------|-----------|--------|
-| Sprint 1 (concluída) | 0% | — |
-| **Sprint 2 (atual)** | **0%** | Infraestrutura — primeiros testes ainda sendo escritos |
-| Sprint 3 | 20% | login, usuários, sessão |
-| Sprint 4 | 40% | auth, OS, preços, shopping |
-| Sprint 5 | 60% | + segurança, checklist, estoque |
-| Sprint 6 | 70% | + módulos decompostos |
-| Sprint 7 | 80% | global |
+| Marco | Threshold | Cobertura real medida | Escopo |
+|--------|-----------|-----------------------|--------|
+| Sprint 1 (concluída) | 0% | — | — |
+| Sprint 2.7 (2026-07-11) | 40% | 43% | Meta original da Sprint 2 batida |
+| **Sprint CI/CD 1.1 — Hardening (2026-07-31)** | **60%** | **65.22%** (682 testes) | CI já validava tudo; só o gate estava frouxo demais |
+| Próximo degrau (não agendado) | 70% | — | Revisar quando a cobertura real se aproximar de 70% |
 
 O threshold é definido em `pyproject.toml`:
 ```toml
 [tool.coverage.report]
-fail_under = 0  # atualizar a cada sprint conforme tabela acima
+fail_under = 60  # ver docs/operations/PROJECT_STATUS.md para o número real medido
 ```
 
 ---
@@ -291,6 +307,7 @@ fail_under = 0  # atualizar a cada sprint conforme tabela acima
 - [ ] G-06 Build frontend passou
 - [ ] G-07 Playwright passou (ou não-bloqueante se Sprint < 3)
 - [ ] G-08 Auditoria de dependências (sem High/Critical)
+- [ ] G-19 Docker build passou
 
 ### Documentação
 - [ ] G-09 CHANGELOG atualizado (se feat/fix)
@@ -313,23 +330,28 @@ fail_under = 0  # atualizar a cada sprint conforme tabela acima
 
 ## Status Atual dos Gates
 
-| Gate | Status | Sprint de implementação |
+| Gate | Status | Implementação |
 |------|--------|------------------------|
-| G-01 Ruff lint | ❌ Ausente | Sprint 2 |
-| G-02 Ruff format | ❌ Ausente | Sprint 2 |
-| G-03 ESLint | ⚠️ Local apenas | Sprint 2 (CI) |
-| G-04 pytest | ❌ Ausente | Sprint 2 |
-| G-05 Cobertura | ❌ Ausente | Sprint 2 |
-| G-06 Build frontend | ⚠️ Manual | Sprint 2 (CI) |
-| G-07 Playwright | ⚠️ Manual | Sprint 3 (bloqueante) |
-| G-08 Dep audit | ❌ Ausente | Sprint 2 |
+| G-01 Ruff lint | ✅ Ativo em CI, bloqueante | Sprint Infra 1.1 (2026-07-27) |
+| G-02 Ruff format | ⚠️ Roda em CI, não-bloqueante | Sprint Infra 1.1 (2026-07-27) |
+| G-03 ESLint | ✅ Ativo em CI, bloqueante | Sprint Infra 1.1 (2026-07-27) |
+| G-04 pytest | ✅ Ativo em CI, bloqueante | Sprint Infra 1.1 (2026-07-27) |
+| G-05 Cobertura | ✅ Ativo em CI, bloqueante (60%) | Sprint CI/CD 1.1 — Hardening (2026-07-31) |
+| G-06 Build frontend | ✅ Ativo em CI, bloqueante | Sprint Infra 1.1 (2026-07-27) |
+| G-07 Playwright | ❌ Ausente | Não agendado |
+| G-08 Dep audit | ❌ Ausente | Não agendado |
 | G-09 CHANGELOG | ⚠️ Manual | Ativo |
 | G-10 PROJECT_STATUS | ⚠️ Manual | Ativo |
 | G-11 ADR | ⚠️ Manual | Ativo |
-| G-12 Sem segredos | ⚠️ Manual | Sprint 2 (git-secrets no CI) |
+| G-12 Sem segredos | ⚠️ Manual | Não enforçado em CI |
 | G-13 Sem debug | ⚠️ Manual | Ativo |
-| G-14 Conventional Commits | ❌ Não enforçado | Sprint 2 (commitlint) |
+| G-14 Conventional Commits | ⚠️ Manual (seguido na prática) | Não enforçado em CI |
 | G-15 DRY | ⚠️ Manual | Ativo |
 | G-16 Complexidade | ⚠️ Manual | Ativo |
-| G-17 Testes para novo código | ❌ Não enforçado | Sprint 2 |
+| G-17 Testes para novo código | ⚠️ Manual (seguido na prática) | Não enforçado em CI |
 | G-18 Hotfix para achados críticos | ⚠️ Manual | Ativo (2026-07-07, ADR-004) |
+| G-19 Docker build | ✅ Ativo em CI, bloqueante | Sprint CI/CD 1.1 — Hardening (2026-07-31) |
+
+**Branch `main` protegida** (Sprint Infra 1.1, 2026-07-27) exige G-01, G-03, G-04, G-05, G-06 e (a partir desta
+sprint) G-19 como status checks obrigatórios antes de merge — confirmado via
+`gh api repos/.../branches/main/protection`.

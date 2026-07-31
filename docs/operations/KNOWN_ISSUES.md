@@ -897,3 +897,57 @@ Próximos passos (não decidido, registrado para referência futura):
 Considerar uma variável de ambiente dedicada (ex.: `IR_FLOW_FORCE_INSECURE_COOKIE=1`) para permitir QA
 manual local com `IR_FLOW_DATA_DIR` + navegador real sem precisar de um script wrapper ad-hoc como o usado
 nesta sessão — decisão de arquitetura pequena, não tomada unilateralmente aqui.
+
+**Observação (2026-07-30, QA Manual da V1.5 — Garantia):** login e navegação autenticada via Claude in
+Chrome funcionaram normalmente nesta sessão com `IR_FLOW_DATA_DIR` setado (`IS_SERVER_RUNTIME=True`,
+cookie `Secure; SameSite=None; Partitioned`), sem nenhum wrapper/override de `SESSION_COOKIE_SECURE` —
+mesma combinação que reproduzia o 401 na sessão da UX-001. Hipótese não confirmada: `localhost`/`127.0.0.1`
+são tratados por Chrome como origens "potencialmente confiáveis" havia algumas versões, o que satisfaria o
+atributo `Secure` mesmo sem HTTPS — se essa for a causa, o sintoma pode depender da versão do Chrome usada
+pela ferramenta de automação em cada sessão, não ser 100% determinístico. Não investigado a fundo (fora do
+escopo da sessão de V1.5); registrado só para não assumir que o wrapper de `SESSION_COOKIE_SECURE` é
+sempre necessário daqui pra frente.
+
+---
+
+## ~~KI-028~~ — RESOLVIDO
+
+Descrição:
+Datas "puras" (`YYYY-MM-DD`, sem componente de horário) são exibidas um dia antes do valor real gravado
+no banco em qualquer tela que use o padrão `new Date(string).toLocaleDateString("pt-BR")`. Causa:
+`new Date("2027-07-30")` é interpretado pelo JavaScript como meia-noite UTC; `.toLocaleDateString()`
+renderiza no fuso horário local do navegador — em `America/Sao_Paulo` (UTC-3), isso sempre volta um dia
+(`29/07/2027`). Confirmado via `Intl.DateTimeFormat().resolvedOptions().timeZone` (`America/Sao_Paulo`,
+offset 180min) e comparação direta com o valor cru da API (`garantia_data_fim: "2027-07-30"` no banco vs.
+"29/07/2027" na tela). O dado persistido está sempre correto — o problema é exclusivamente de exibição.
+
+Impacto:
+Médio. Achado durante o QA Manual da V1.5 (Garantia) em `VendaDetalhe.jsx` (`garantia_data_fim`), mas o
+mesmo padrão (`new Date(<campo_date_only>).toLocaleDateString("pt-BR")`) já existe em outras telas com
+campos que podem ser data pura: `Garantias.jsx` (`data_finalizado`), `Clientes.jsx` (`o.data`),
+`OperationalCosts.jsx` (`c.data`), `Reports.jsx` (`item.data`), `Stock.jsx` (`item.data_compra`) — nem
+todos esses campos são necessariamente gravados sem horário (alguns podem ter
+`datetime('now')`/`HH:MM:SS`, o que mitigaria o efeito), não auditado campo a campo nesta sessão. Os
+campos novos da V1.5 (`garantia_data_inicio`/`garantia_data_fim`, sempre `date.isoformat()`, nunca com
+horário) são afetados 100% das vezes, para qualquer usuário em fuso UTC-negativo — relevante para uma
+feature de garantia, onde a data de vencimento exibida importa para a decisão de cobrir ou não um reparo.
+Nenhum critério objetivo de interrupção de `ENGINEERING_GUIDE.md` §11 é atendido (não é mutação de dado
+persistido — só exibição; não há perda de dado nem bypass de autorização), por isso não interrompeu a
+sessão — caracterizado e registrado aqui, conforme o fluxo "não interrompa" da mesma seção.
+
+Status:
+Resolvido em 2026-07-30, no Encerramento da V1.5 (decisão do usuário — CTO, de corrigir dentro do escopo
+da própria feature em vez de adiar). Escopo cirúrgico: só o único ponto onde `garantia_data_fim` é
+exibido (`VendaDetalhe.jsx`) — as outras telas com o mesmo padrão (`Garantias.jsx`, `Clientes.jsx`,
+`OperationalCosts.jsx`, `Reports.jsx`, `Stock.jsx`) usam campos que não são exclusivos da V1.5 e ficam
+fora do escopo desta correção, registradas acima como conhecidas. Corrigido reaproveitando
+`formatDateTime()`, helper já existente no próprio arquivo (usado para `criado_em`/`cancelado_em`/eventos
+de auditoria) que já fazia o parse manual de ano/mês/dia em vez de `new Date(string)` — zero código novo,
+só trocar a chamada. Validado: venda criada com `garantia_data_fim: "2027-07-30"` (confirmado via API)
+agora exibe "até 30/07/2027" (antes: "29/07/2027").
+
+Sprint prevista:
+Não definida.
+
+Responsável:
+—

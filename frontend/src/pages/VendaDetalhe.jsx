@@ -594,7 +594,7 @@ export default function VendaDetalhe() {
               <p className="text-sm font-medium text-card-foreground">Garantia de Venda</p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {itemPrincipal.garantia_nome
-                  ? `${itemPrincipal.garantia_nome} — até ${itemPrincipal.garantia_data_fim ? new Date(itemPrincipal.garantia_data_fim).toLocaleDateString("pt-BR") : "—"}`
+                  ? `${itemPrincipal.garantia_nome} — até ${itemPrincipal.garantia_data_fim ? formatDateTime(itemPrincipal.garantia_data_fim) : "—"}`
                   : "Sem garantia registrada"}
               </p>
             </div>

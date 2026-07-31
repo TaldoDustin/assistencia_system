@@ -324,6 +324,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ### Corrigido (2026-07-30 — KI-028, datas de garantia exibidas um dia atrasadas)
 - `VendaDetalhe.jsx`: `garantia_data_fim` era formatado com `new Date(string).toLocaleDateString("pt-BR")` — para datas puras (`YYYY-MM-DD`, sem horário), o JS interpreta como UTC-meia-noite e o navegador renderiza no fuso local, voltando um dia em fusos negativos (`America/Sao_Paulo`). Corrigido reaproveitando `formatDateTime()`, helper já existente no mesmo arquivo que faz o parse manual de ano/mês/dia. Escopo restrito ao campo novo da V1.5 — mesmo padrão em outras telas (`Garantias.jsx`, `Clientes.jsx`, `OperationalCosts.jsx`, `Reports.jsx`, `Stock.jsx`) registrado, não corrigido (fora do escopo desta feature)
 
+### Adicionado (2026-07-30 — Observabilidade: Sentry completo no backend + frontend novo)
+- `app.py`: `sentry_sdk.init()` (já existente desde 2026-07-25, inativo) ganha `environment` (produção/dev via `IS_SERVER_RUNTIME`) e `release` (`RENDER_GIT_COMMIT`, injetada automaticamente pelo Render). Fecha TD-02
+- Frontend (novo): `@sentry/react` inicializado em `main.jsx`, condicional a `VITE_SENTRY_DSN`; `App` envolvido em `Sentry.ErrorBoundary` com fallback simples em vez de tela branca crashada; `release` via `vite.config.js` (`VERCEL_GIT_COMMIT_SHA`, injetada automaticamente pela Vercel)
+- `send_default_pii=False`/`traces_sample_rate=0` (backend, já decidido em 2026-07-25) espelhados no frontend — sem PII de cliente, sem tracing de performance
+- QA Manual: exceção proposital real disparada nos dois lados contra os DSNs reais — backend confirmado via log de debug do SDK (`Sending envelope ... project:<id do projeto backend>`); frontend confirmado via 3 requisições `POST` reais (200) ao endpoint de ingest do Sentry, capturadas na aba de rede do navegador. Nenhum gatilho de teste permanece no código
+- Plano em `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md`. 693 testes (+2 novos em `test_sentry_init.py`), `ruff check .`/`npm run lint`/`npm run build` sem erros novos
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

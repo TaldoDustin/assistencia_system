@@ -132,4 +132,4 @@ Depois da Sprint Segurança 1.0 (encerrada 2026-07-25, ver `docs/security/SECURI
 | ID | Descrição | Prioridade |
 |----|-----------|-----------|
 | TD-01 | `/metrics` fica pronto mas sem nenhum Prometheus/Grafana real consumindo — decisão deliberada de não provisionar infraestrutura de monitoramento externa nesta sprint | Baixa |
-| TD-02 | Sentry integrado mas inativo (`SENTRY_DSN` vazia) até o usuário criar a conta — sem alertas reais em produção até essa ação manual | Média |
+| ~~TD-02~~ | ~~Sentry integrado mas inativo (`SENTRY_DSN` vazia) até o usuário criar a conta~~ — **resolvido em 2026-07-30**: conta criada, `environment`/`release` adicionados ao `sentry_sdk.init()`, frontend integrado (`@sentry/react`, novo em 2026-07-30 — não fazia parte do escopo original desta sprint). Ver `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md` | Média |

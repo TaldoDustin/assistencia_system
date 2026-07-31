@@ -121,9 +121,19 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
 
 #### Ordem de implementação proposta (lotes de commits, menor para maior risco)
 
-1. **Lote 1 — limpeza mecânica sem dependência de código** (`chore(repo): ...`): remover as 38+21
-   branches mergeadas; destrackear `frontend/dist/`; destrackear `database.db-shm`/`database.db-wal` e
-   ajustar `.gitignore` para `database.db-*`; remover as 3 entradas mortas de `pyproject.toml`.
+1. **✅ Lote 1 — limpeza mecânica sem dependência de código (CONCLUÍDO em 2026-07-31)**
+   (`chore(repo): ...`): 40 branches locais + 21 remotas mergeadas removidas (incluindo
+   `feat/produtos-catalogo`, que exigiu investigação individual — commit exclusivo local não pushado
+   à própria remote-tracking, mas já confirmado ancestral de `main`, removida com `-D` só depois dessa
+   confirmação); `frontend/dist/` destrackeado (`dea6fb9`); `database.db-shm`/`database.db-wal`
+   destrackeados e `.gitignore` ajustado para `database.db*` (`5291c37`, fecha a lacuna do KI-029 sem
+   tocar nos dois backups, que continuam decisão em aberto); 3 entradas mortas removidas de
+   `pyproject.toml` (`9eb9344`, confirmado antes que os módulos foram excluídos deliberadamente no
+   commit `a655695`, fix de segurança CSRF). `ruff check .` limpo e 682 testes passando após cada
+   commit. Branches restantes: `demo/commercial-preview` (preservada), `docs/company-sales-materials`
+   (decisão de Product), `chore/inc-001-instrumentacao-conexoes` + `origin/ajuste-render-webhook` +
+   `origin/refactor/system-audit` + `origin/worktree-quizzical-cuddling-stardust` (Lote 6, aguardando
+   confirmação do usuário).
 2. **Lote 2 — módulos 🟢, em grupos pequenos** (`refactor(rebrand): ...`, cada grupo = 1 commit de
    rename + 1 commit de atualização de imports em `app.py`, suíte rodada entre grupos): agrupar por
    domínio (ex.: Clientes/Produtos/Unidades Serializadas num grupo, utilitários — validation, logging,

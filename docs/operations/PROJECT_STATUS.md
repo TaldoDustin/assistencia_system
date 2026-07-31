@@ -491,6 +491,14 @@ Deploy permanece manual, sem mudança — decisão deliberada de não automatiza
 `docs/engineering/QUALITY_GATES.md` atualizado (estava desatualizado desde 2026-07-06, antes até da
 Sprint Infra 1.1 — vários gates listados como "Planejado"/"Manual" já estavam ativos há dias).
 
+**Sprint Housekeeping — Rebranding Técnico (EM PLANEJAMENTO, iniciada 2026-07-31):** endereça TD-12
+(nomenclatura legada `irflow_*`/`IR_FLOW_*`/`assistencia_system` convivendo com `fluxoly_*` desde
+ADR-008). Decisão deliberada do usuário (CTO) de priorizar esta sprint agora, antes de retomar
+funcionalidades de negócio, mesmo com TD-12 originalmente classificado como prioridade baixa — ver
+`docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md` para a estrutura completa em 6 fases (Baseline →
+Auditoria → Planejamento → Limpeza → Renomeação → Validação). Nenhuma fase executada ainda além da
+Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` existente, 682 testes).
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -571,7 +579,7 @@ Sprint Infra 1.1 — vários gates listados como "Planejado"/"Manual" já estava
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
 | ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
-| TD-12 | Nomenclatura legada `irflow_*`/`IR_FLOW_*` em código/infraestrutura, convivendo com módulos novos `fluxoly_*` desde ADR-008 (2026-07-27) — Épico de Rebranding Técnico completo (código legado + infra + variáveis de ambiente + repositório) não escopado nem agendado | Baixo (cosmético, sem risco funcional) | Baixa |
+| TD-12 | Nomenclatura legada `irflow_*`/`IR_FLOW_*` em código/infraestrutura, convivendo com módulos novos `fluxoly_*` desde ADR-008 (2026-07-27) — Épico de Rebranding Técnico completo (código legado + infra + variáveis de ambiente + repositório). **Em planejamento desde 2026-07-31** (decisão deliberada do usuário de priorizar agora — ver `docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md`) | Baixo (cosmético, sem risco funcional) | Em andamento (priorizada por decisão explícita, apesar de baixa prioridade original) |
 | TD-13 | **Infra 1.2 — Endurecer Governança do Repositório.** Proteção de `main` ativada em 2026-07-27 (R-10/R-11) cobre só o mínimo (5 status checks obrigatórios, `enforce_admins: false`). Falta: `enforce_admins: true` (a proteção hoje não vale para push direto do próprio mantenedor), `CODEOWNERS`, revisão obrigatória (`required_pull_request_reviews`) com aprovação mínima. Sugerido pelo usuário (CTO) — decisão deliberada de não fazer agora para não quebrar o fluxo atual de merge local + push direto de um mantenedor único; faz sentido quando a equipe crescer além de uma pessoa | Médio (hoje mitigado por disciplina manual de um único mantenedor; escala mal com mais colaboradores) | Baixa (sem prazo — condicionado a crescimento da equipe) |
 | TD-14 | **Evolução do modelo de autorização — perfil único → perfis + permissões por módulo.** Discovery da V1.4 (2026-07-29) propôs substituir `usuarios.perfil` (enum: admin/tecnico/vendedor/estoque/financeiro) por acesso habilitado por módulo (checkboxes: Vendas/Estoque/Assistência/Financeiro/Compras/Dashboard/Administração), evitando explosão combinatória de perfis à medida que o sistema cresce. Decisão explícita: **não fazer agora** — muda arquitetura de autorização transversalmente (checagens espalhadas em ~80 endpoints de `irflow_blueprints_api.py` + `ROUTE_PERMISSIONS` + cada controller de domínio), exigiria migração dos perfis já em produção, e hoje 5 perfis (com `financeiro` da V1.4) ainda são administráveis — a "explosão" é cenário futuro, não problema atual. Merece ADR própria + discovery dedicada quando reaberto. **Preparação de baixo custo feita na V1.4:** checagens de autorização novas encapsuladas em helper reutilizável (ex.: `usuario_pode_financeiro()`), para que uma futura migração troque a implementação do helper sem precisar reescrever os call sites | Médio (não bloqueia nada hoje; custo de migração cresce quanto mais perfis/checagens ad-hoc se acumularem antes de endereçar) | Baixa (sem prazo — reavaliar se a combinação de perfis realmente começar a se multiplicar) |
 

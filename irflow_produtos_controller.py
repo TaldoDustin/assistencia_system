@@ -8,7 +8,7 @@ Recebe request, valida forma do payload, chama o service, formata resposta
 
 Contrato de resposta segue o padrão real já usado no resto da API
 (`{"ok": ...}` / `{"ok": false, "erro": ...}`), mesmo padrão de
-`irflow_clientes_controller.py`.
+`fluxoly_clientes_controller.py`.
 
 Permissão (V1, default conservador — decisão de negócio pendente de
 validação com cliente real): listar/obter é qualquer usuário autenticado

@@ -1,5 +1,5 @@
 """
-irflow_clientes_repository.py
+fluxoly_clientes_repository.py
 
 Único ponto de acesso SQL do domínio Clientes — segue a convenção de
 `docs/engineering/ENGINEERING_GUIDE.md` §3.1 (controller → service →

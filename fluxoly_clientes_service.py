@@ -1,5 +1,5 @@
 """
-irflow_clientes_service.py
+fluxoly_clientes_service.py
 
 Regra de negócio pura do domínio Clientes — não conhece Flask, `request`
 nem `jsonify` (`docs/engineering/ENGINEERING_GUIDE.md` §3.1). Primeira
@@ -10,14 +10,14 @@ Responsabilidade: entidade Cliente — cadastro mínimo viável (nome +
 telefone ou e-mail), busca/paginação, e a regra de que um cliente com
 histórico (OS vinculada) não pode ser excluído.
 
-Tabelas usadas: `clientes` (via `irflow_clientes_repository.py`), leitura
+Tabelas usadas: `clientes` (via `fluxoly_clientes_repository.py`), leitura
 de `os.cliente_id` para checar histórico antes de excluir.
 
-Depende de: `irflow_clientes_repository.py` (SQL), `irflow_audit.py`
+Depende de: `fluxoly_clientes_repository.py` (SQL), `irflow_audit.py`
 (auditoria — create/update/delete).
 """
 
-import irflow_clientes_repository as repo
+import fluxoly_clientes_repository as repo
 from irflow_audit import registrar_log_auditoria
 
 PAGINA_PADRAO = 1

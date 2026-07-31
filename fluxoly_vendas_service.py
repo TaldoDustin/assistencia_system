@@ -29,7 +29,7 @@ unidade) rodam antes, em conexões próprias e curtas; a escrita real
 nunca fica "vendida" sem uma `venda`/`vendas_itens` real por trás, nem uma
 `venda` órfã sem a unidade marcada.
 
-Depende de: `irflow_clientes_service.py` (validar cliente),
+Depende de: `fluxoly_clientes_service.py` (validar cliente),
 `irflow_unidades_serializadas_service.py` (validar/marcar unidade --
 `marcar_como_vendida`, exclusiva deste domínio por ADR-007), `irflow_audit.py`.
 """
@@ -38,7 +38,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import date
 
-import irflow_clientes_service as clientes_service
+import fluxoly_clientes_service as clientes_service
 import irflow_unidades_serializadas_service as unidades_service
 from irflow_audit import registrar_log_auditoria
 from irflow_core import calcular_data_fim_garantia

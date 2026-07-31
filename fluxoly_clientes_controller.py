@@ -1,5 +1,5 @@
 """
-irflow_clientes_controller.py
+fluxoly_clientes_controller.py
 
 Camada HTTP do domínio Clientes (Blueprint Flask, prefixo `/api/clientes`).
 Recebe request, valida forma do payload, chama o service, formata resposta
@@ -15,7 +15,7 @@ nesta sprint.
 
 from flask import Blueprint, jsonify, request, session
 
-import irflow_clientes_service as service
+import fluxoly_clientes_service as service
 from irflow_validation import parse_int, safe_json
 
 

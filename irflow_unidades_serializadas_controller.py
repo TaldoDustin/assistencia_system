@@ -8,7 +8,7 @@ acessa o banco diretamente (`docs/engineering/ENGINEERING_GUIDE.md` §3.1).
 
 Mesmo contrato de resposta do resto da API (`{"ok": ...}` /
 `{"ok": false, "erro": ...}`), mesma justificativa de
-`irflow_clientes_controller.py`.
+`fluxoly_clientes_controller.py`.
 """
 
 from flask import Blueprint, jsonify, request, session

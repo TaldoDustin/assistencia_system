@@ -3,7 +3,7 @@ Testes do domínio Clientes (Sprint P0.1, Unidade 5).
 
 Escopo: `GET/POST/PUT/DELETE /api/clientes*` e a integração com `os.cliente_id`.
 Primeiro domínio a seguir a convenção controller/service/repository de
-`docs/engineering/ENGINEERING_GUIDE.md` §3.1 — ver também `irflow_clientes_service.py`
+`docs/engineering/ENGINEERING_GUIDE.md` §3.1 — ver também `fluxoly_clientes_service.py`
 para a regra de negócio (cadastro mínimo viável, exclusão bloqueada com
 histórico) testada aqui via HTTP.
 """

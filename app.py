@@ -2024,7 +2024,7 @@ app.register_blueprint(
 # a convenção controller/service/repository de ENGINEERING_GUIDE.md §3.1)
 # ============================================================================
 
-from irflow_clientes_controller import create_clientes_blueprint  # noqa: E402
+from fluxoly_clientes_controller import create_clientes_blueprint  # noqa: E402
 
 app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 

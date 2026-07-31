@@ -10,6 +10,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // Sprint Observabilidade -- release do Sentry via git commit, sem exigir
+    // configuração manual na Vercel (VERCEL_GIT_COMMIT_SHA já é injetada
+    // automaticamente em todo build). Ausente em build local -> "dev".
+    'import.meta.env.VITE_SENTRY_RELEASE': JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA || 'dev'),
+  },
   server: {
     proxy: {
       '/api': {

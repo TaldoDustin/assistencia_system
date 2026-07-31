@@ -252,7 +252,11 @@ logger = get_logger("app")
 # lida com dado real de cliente (nome, IMEI), não pode vazar em
 # breadcrumb/payload de erro. traces_sample_rate=0 -- só captura de erro,
 # sem tracing de performance (evita overhead/custo sem necessidade
-# confirmada; pode ser revisto depois se fizer sentido).
+# confirmada; pode ser revisto depois se fizer sentido). environment reaproveita
+# IS_SERVER_RUNTIME (mesma variável usada no resto do arquivo para distinguir
+# dev local de produção -- projeto não tem staging). release lê
+# RENDER_GIT_COMMIT, injetada automaticamente pelo Render em todo deploy, sem
+# exigir nenhuma configuração manual de versionamento.
 _sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
 if _sentry_dsn:
     import sentry_sdk
@@ -263,6 +267,8 @@ if _sentry_dsn:
         integrations=[FlaskIntegration()],
         send_default_pii=False,
         traces_sample_rate=0,
+        environment="production" if IS_SERVER_RUNTIME else "development",
+        release=os.environ.get("RENDER_GIT_COMMIT", "dev"),
     )
     logger.info("sentry_inicializado")
 

@@ -102,7 +102,7 @@ export default function Dashboard() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
             <KpiCard title="Faturamento" value={data?.faturamento_total} icon={DollarSign} color="primary" />
             <KpiCard title="Lucro Bruto" value={data?.lucro_total} icon={TrendingUp} color="green" />
             <KpiCard title="Finalizadas" value={data?.ordens_finalizadas} icon={CheckCircle} isCurrency={false} color="green" />
@@ -114,8 +114,8 @@ export default function Dashboard() {
           </div>
 
           {/* Charts */}
-          <Suspense fallback={<div className="grid lg:grid-cols-2 gap-4"><ChartFallback /><ChartFallback /></div>}>
-            <div className="grid lg:grid-cols-2 gap-4">
+          <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4"><ChartFallback /><ChartFallback /></div>}>
+            <div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4">
               <RevenueChartCard data={revenueData} />
               <TechnicianProfitChartCard data={techData} />
             </div>

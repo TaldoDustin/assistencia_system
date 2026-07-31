@@ -1,7 +1,7 @@
 # SPRINT Housekeeping — Rebranding Técnico (TD-12)
 
-**Status:** EM PLANEJAMENTO
-**Período:** A definir (início após Fase 0 — Baseline)
+**Status:** EM ANDAMENTO — Fase 1 (Auditoria) concluída em 2026-07-31, iniciando Fase 2 (Planejamento)
+**Período:** Iniciada 2026-07-31
 **Tipo:** Infraestrutura / Refatoração / Chore
 
 ---
@@ -65,14 +65,20 @@ parte do grafo em vez de grep manual arquivo por arquivo, na seguinte ordem:
 4. **Auditoria de branches** (Git, manual) — não delegada ao Graphify; branches não fazem parte do
    corpus indexado
 
-| Documento | Escopo | Fonte |
-|-----------|--------|-------|
-| `AUDIT_LEGACY.md` | Módulos/docs/imports/env vars/nomes de pacote/workflows/Docker/README/templates/`.env`/URLs/títulos HTML que citam os termos legados (lista abaixo) | Graphify (`query`/`path`) + grep de confirmação |
-| `AUDIT_DEPENDENCIES.md` | Impacto de renomear cada item da auditoria de nomenclatura — quem importa, quem chama, quem cita | Graphify (`path`/`explain`) |
-| `AUDIT_DOCUMENTATION.md` | Referências a nomes legados na documentação não capturadas estruturalmente pelo grafo | Graphify + inspeção manual |
-| `AUDIT_REPOSITORY.md` | Estrutura geral de pastas, arquivos soltos, duplicações | Inspeção manual |
-| `AUDIT_BRANCHES.md` | Toda branch local/remota não mergeada — analisada por conteúdo antes de qualquer decisão | Git (manual) |
-| `AUDIT_INFRA.md` | Render, Vercel, variáveis de ambiente em produção, nomes de serviço | Inspeção manual (fora do corpus indexado) |
+| Documento | Escopo | Fonte | Status |
+|-----------|--------|-------|--------|
+| `AUDIT_LEGACY.md` | Módulos/docs/imports/env vars/nomes de pacote/workflows/Docker/README/templates/`.env`/URLs/títulos HTML que citam os termos legados (lista abaixo) | Graphify (`query`/`path`) + grep de confirmação | ✅ Concluído |
+| `AUDIT_DEPENDENCIES.md` | Impacto de renomear cada item da auditoria de nomenclatura — quem importa, quem chama, quem cita | Graphify (`path`/`explain`) | ✅ Concluído |
+| `AUDIT_DOCUMENTATION.md` | Referências a nomes legados na documentação não capturadas estruturalmente pelo grafo | Graphify + inspeção manual | ✅ Concluído |
+| `AUDIT_REPOSITORY.md` | Estrutura geral de pastas, arquivos soltos, duplicações | Inspeção manual | ✅ Concluído |
+| `AUDIT_BRANCHES.md` | Toda branch local/remota não mergeada — analisada por conteúdo antes de qualquer decisão | Git (manual) | ✅ Concluído |
+| `AUDIT_INFRA.md` | Render, Vercel, variáveis de ambiente em produção, nomes de serviço | Inspeção manual (fora do corpus indexado) | ✅ Concluído |
+
+**Fase 1 concluída em 2026-07-31.** Todos os 6 documentos em `docs/engineering/audits/`. Nenhum arquivo
+de código alterado durante toda a fase. Achados fora do escopo de nomenclatura, registrados à parte:
+KI-029 (bancos versionados no git), decisão de estratégia pendente (`ADR-008` vs. rename direto, ver
+Fase 2), e uma lista de itens que exigem confirmação manual nos dashboards Render/Vercel
+(`AUDIT_INFRA.md` seção 4).
 
 **Termos legados a buscar (Fase 1):** `assistencia_system`, `assistencia-system`, `IRFlow`, `irflow`,
 `IR_FLOW`, `nt-driver`, `nt_driver`, `NT Driver`.

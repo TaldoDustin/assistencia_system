@@ -392,7 +392,7 @@ Ajuste Comercial (BR-043, editar desconto pós-venda) continua exclusivo do perf
 `financeiro` não ganha esse direito.
 *Fonte: `VENDAS.md` — "V1.4 — Comissão".*
 
-**BR-055 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-055 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Novo cadastro **Tipos de Garantia** (nome + duração em meses de calendário), CRUD restrito a `admin`.
 Distinção de domínio deliberada: **Tipo de Garantia** é a política configurável (o cadastro); **Garantia**
 é a instância concreta concedida a um item de venda ou a um reparo específico — os dois nunca devem ser
@@ -401,7 +401,7 @@ sistema. Não existe obrigatoriedade de um tipo "Sem garantia" (0 meses) existir
 política comercial que o `admin` cria se fizer sentido para a loja, não uma exigência técnica do sistema.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-056 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-056 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Garantia de Venda: um Tipo de Garantia é atribuído manualmente, por item de venda, **na criação da
 venda** — obrigatório (toda venda concluída precisa ter uma Garantia de Venda atribuída ao item; nenhum
 item fica sem seleção, mas o Tipo de Garantia escolhido pode ser aquele que representa "sem cobertura",
@@ -409,7 +409,7 @@ se um existir no cadastro). Sem default automático vindo do produto do catálog
 manter simples, sem tocar `produtos`.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-057 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-057 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Ao conceder a Garantia de Venda, o sistema copia para o registro do item: id do Tipo de Garantia, nome
 (snapshot), duração em meses (snapshot), data de início e `data_fim_garantia` já calculada — nunca um
 JOIN ao vivo com o cadastro. Alterações futuras no cadastro de Tipos de Garantia (ex.: "Seminovo" de 6
@@ -417,12 +417,12 @@ para 12 meses) não afetam garantias já concedidas — mesma disciplina já apl
 (V1.1), histórico de desconto (V1.3) e comissão (V1.4).
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-058 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-058 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Cancelar a venda invalida/zera a Garantia de Venda do item cancelado — mesmo padrão de BR-051 (comissão
 zerada no cancelamento).
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-059 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-059 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Corrigir uma Garantia de Venda já concedida é restrito a `admin`, com auditoria append-only (valor
 anterior, valor novo, quem concedeu, quem corrigiu, quando) — a correção é mais restrita que a
 atribuição original (`admin`/`vendedor`), mesma assimetria do Ajuste Comercial (BR-043). **Sem motivo
@@ -430,12 +430,12 @@ obrigatório** — mesmo padrão da edição de comissão (BR-049/BR-050), não 
 que exige motivo): valor anterior/novo/quem/quando já bastam como justificativa registrada.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-060 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-060 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Garantia de Venda cobre apenas vendas de `produtos` (catálogo comercial) — não o caminho legado
 `estoque`, fora de escopo desta fase.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-061 — ✅ Implementado (2026-07-30, V1.5)**
+**BR-061 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Garantia de Reparo: um Tipo de Garantia é atribuído manualmente, por linha de reparo dentro da OS
 (`os_reparos`), **na conclusão da OS** (`Finalizado`) — obrigatório, mesmo padrão de exigência de BR-056.
 Sem default automático vindo do cadastro de Tipos de Reparo (`reparos`) — decisão explícita, mesma razão
@@ -454,29 +454,29 @@ concedida. Se uma OS importada precisar de Garantia de Reparo formal depois, a c
 (`PATCH /api/ordens/<id>/reparos/<reparo_id>/garantia`, admin) continua disponível.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-062 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-062 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Mesma disciplina de snapshot de BR-057 aplicada à Garantia de Reparo, calculada a partir de
 `data_finalizado`. Se uma OS combina múltiplos reparos com Tipos de Garantia diferentes, cada linha de
 `os_reparos` mantém sua própria Garantia — não existe uma "garantia da OS" única/agregada.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-063 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-063 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Garantia de Reparo substitui o prazo fixo de 90 dias hardcoded (`GARANTIA_REPARO_DIAS_PADRAO`) — resolve
 a dívida técnica já registrada em `VENDAS.md`/`OPERATION_SYSTEM.md`. A tela de Garantias existente e o
 alerta de "perto de vencer" passam a ler a Garantia de Reparo de cada linha, não mais o valor fixo.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-064 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-064 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Cancelar a OS invalida/zera a Garantia de Reparo já concedida a qualquer linha de reparo — mesmo padrão
 de BR-058.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-065 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-065 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Corrigir uma Garantia de Reparo já concedida é restrito a `admin`, com auditoria, sem motivo obrigatório
 — mesmo padrão de BR-059.
 *Fonte: `VENDAS.md` — "V1.5 — Garantia".*
 
-**BR-066 — 🟡 Proposto (discovery 2026-07-29, V1.5) — aguardando plano técnico**
+**BR-066 — ✅ Implementado (2026-07-30, V1.5, `789797b`)**
 Garantia de Venda e Garantia de Reparo são domínios independentes — nenhum vínculo formal entre uma OS
 aberta por defeito coberto por Garantia de Venda e a venda original. A decisão de cobrar ou não a OS
 nesse caso fica manual/informal, fora do sistema (candidata a automatizar em sprint futura, se o volume

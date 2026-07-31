@@ -118,5 +118,7 @@ show_missing = true
 # Threshold evolui por sprint. Cobertura real bateu 43% ja na Sprint 2 (test_pricing.py,
 # test_shopping.py) - antecipado do cronograma original (Sprint 3=20, Sprint 4=40) para
 # refletir o que a suite ja garante, em vez de segurar o gate abaixo do real medido.
-# Sprint 2=40, Sprint 5=60, Sprint 6=70, Sprint 7=80
-fail_under = 40
+# Elevado para 60 na Sprint CI/CD 1.1 -- Hardening (2026-07-31): cobertura real medida em
+# 65.22% (682 testes), deixa ~5 pontos de margem confortavel antes de virar bloqueante de
+# verdade. Proximo degrau: 70 (ver docs/operations/PROJECT_STATUS.md).
+fail_under = 60

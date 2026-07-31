@@ -90,8 +90,8 @@ observação, não decidida por suspeita.
 | Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
 | Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente (`.github/workflows/ci.yml` — lint, testes, frontend, build). Cobertura bloqueante (`fail_under = 40`). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros). Workflow `CI` como um todo verde desde 2026-07-27 (Sprint Infra 1.1) — histórico de por que não estava, ver KI-026 (resolvida). `main` protegida, exige os 5 status checks antes de merge (R-10/R-11 mitigados, endurecimento adicional em TD-13) |
-| Cobertura de testes| 64% global (`pytest --cov`, 2026-07-27), 580 testes (ver Cobertura de Testes) |
+| CI/CD              | Presente e ativo (`.github/workflows/ci.yml` — lint, testes, frontend, build, cobertura, docker build). Cobertura bloqueante (`fail_under = 60`, elevado de 40 na Sprint CI/CD 1.1 — Hardening, 2026-07-31). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros). Workflow `CI` como um todo verde desde 2026-07-27 (Sprint Infra 1.1) — histórico de por que não estava, ver KI-026 (resolvida). `main` protegida, exige 6 status checks antes de merge (Lint, Backend Tests, Frontend Quality, Frontend Build, Coverage Report, Docker Build — R-10/R-11 mitigados, `Docker Build` adicionado na Sprint CI/CD 1.1; endurecimento adicional em TD-13) |
+| Cobertura de testes| 65.22% global (`pytest --cov`, 2026-07-31), 682 testes (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry ativo nos dois lados (backend + frontend novo, `environment`/`release` automáticos, conta criada e captura real validada em 2026-07-30) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` e `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md`. Falta configurar `SENTRY_DSN`/`VITE_SENTRY_DSN` nos dashboards Render/Vercel para ativar em produção |
@@ -479,6 +479,18 @@ inconsistência não documentada. Achado durante o QA Manual, corrigido no mesmo
 CTO): datas de garantia apareciam um dia atrasadas na tela por um bug clássico de parsing de data em JS
 (`KI-028`, resolvido).
 
+**Sprint CI/CD 1.1 — Hardening (CONCLUÍDA em 2026-07-31):** revisão do pipeline de CI/CD partiu de uma
+premissa errada (que o pipeline ainda precisava ser criado) — descoberto que o CI já estava ativo e
+bloqueante desde a Sprint Infra 1.1 (2026-07-27), com `main` protegida exigindo 5 status checks. Escopo
+real, bem menor que uma sprint de implantação: (1) `fail_under` de cobertura elevado de 40% para 60%
+(`pyproject.toml`, `ci.yml`) — cobertura real medida em 65.22%/682 testes no momento da mudança, ~5
+pontos de margem antes de virar bloqueante de verdade; (2) novo job `Docker Build` (`docker build .`,
+sem publicar) valida que a imagem builda antes do merge, não só na hora do deploy — testado localmente
+via Colima antes de subir. `main` agora exige 6 status checks (Docker Build adicionado via `gh api`).
+Deploy permanece manual, sem mudança — decisão deliberada de não automatizar nesta sprint.
+`docs/engineering/QUALITY_GATES.md` atualizado (estava desatualizado desde 2026-07-06, antes até da
+Sprint Infra 1.1 — vários gates listados como "Planejado"/"Manual" já estavam ativos há dias).
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -570,7 +582,7 @@ CTO): datas de garantia apareciam um dia atrasadas na tela por um bug clássico 
 | ID   | Risco                                                                 | Probabilidade | Impacto | Mitigação atual      |
 |------|-----------------------------------------------------------------------|---------------|---------|----------------------|
 | R-01 | SQLite em produção sem replicação — falha de disco = perda de dados  | Baixa         | Crítico | Backup automático    |
-| R-02 | Sem CI/CD — regressões chegam a produção sem detecção automática      | Alta          | Alto    | Nenhuma              |
+| ~~R-02~~ | ~~Sem CI/CD — regressões chegam a produção sem detecção automática~~ | ~~Alta~~ | ~~Alto~~ | **Mitigado (2026-07-27, Sprint Infra 1.1; reforçado 2026-07-31, Sprint CI/CD 1.1 — Hardening)** — mesmo mecanismo de R-10/R-11: CI ativo e bloqueante (6 status checks), cobertura em 60% |
 | R-03 | Chaves secretas em variáveis de ambiente sem documentação formal      | Média         | Alto    | `.env` removido do git|
 | ~~R-04~~ | ~~Sem rate limiting — `/api/auth/login` vulnerável a força bruta~~ | Baixa | Alto | **Mitigado (2026-07-11)** — `irflow_rate_limit.py`, 5 tentativas/min por identificador (KI-001) |
 | R-05 | Tokens de checklist não expiram — link público permanente             | Baixa         | Médio   | Nenhuma              |

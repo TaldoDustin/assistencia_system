@@ -331,11 +331,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - QA Manual: exceção proposital real disparada nos dois lados contra os DSNs reais — backend confirmado via log de debug do SDK (`Sending envelope ... project:<id do projeto backend>`); frontend confirmado via 3 requisições `POST` reais (200) ao endpoint de ingest do Sentry, capturadas na aba de rede do navegador. Nenhum gatilho de teste permanece no código
 - Plano em `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md`. 693 testes (+2 novos em `test_sentry_init.py`), `ruff check .`/`npm run lint`/`npm run build` sem erros novos
 
-### Em progresso
-- Infraestrutura de CI/CD com GitHub Actions
-- Testes backend com pytest e banco in-memory
-- Configuração de Ruff para lint do backend
-- Documentação de engenharia de nível profissional
+### Adicionado (2026-07-31 — Sprint CI/CD 1.1 — Hardening)
+- Cobertura mínima elevada de 40% para 60% (`pyproject.toml`, `ci.yml`) — cobertura real medida em 65.22%/682 testes no momento da mudança
+- Novo job `Docker Build` no CI (`docker build .`, sem publicar) — valida que a imagem builda antes do merge, não só na hora do deploy; testado localmente via Colima
+- `main` passa a exigir 6 status checks obrigatórios (era 5): Lint, Backend Tests, Frontend Quality, Frontend Build, Coverage Report, Docker Build
+- Revisão corrigiu uma premissa equivocada: o pipeline de CI/CD já existia e já era bloqueante desde a Sprint Infra 1.1 (2026-07-27) — esta sprint só fortalece o que já funcionava (threshold de cobertura + gate de Docker), não cria o pipeline do zero
+- `docs/engineering/QUALITY_GATES.md` atualizado — estava desatualizado desde 2026-07-06 (antes da Sprint Infra 1.1), com vários gates listados como "Planejado"/"Manual" que já estavam ativos em CI há dias
+- Deploy continua manual — decisão deliberada de não automatizar nesta sprint
 
 ---
 

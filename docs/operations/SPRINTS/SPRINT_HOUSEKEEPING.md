@@ -89,13 +89,61 @@ Branches existentes a analisar por conteúdo (situação em 2026-07-31, antes de
 
 ### Fase 2 — Planejamento
 
-Tabela única consolidando os achados da Fase 1:
+**Concluída em 2026-07-31.** Consolidação dos 6 documentos de auditoria em um plano de execução único.
+Nada foi removido, renomeado ou alterado nesta fase — apenas decidido o que fazer com cada item e em
+que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a seguir.
 
-| Item | Prioridade | Risco | Ação proposta |
-|------|-----------|-------|----------------|
-| (preencher a partir das auditorias) | | | |
+#### Tabela consolidada
 
-Nada é removido ou renomeado nesta fase — apenas decidido o que fazer com cada item.
+| Item | Origem | Prioridade | Risco | Complexidade | Estratégia | Ação | Decisão necessária | Sprint |
+|------|--------|:--:|:--:|:--:|------------|------|---------------------|--------|
+| 38 branches locais + 21 remotas já mergeadas | `AUDIT_BRANCHES` | Alta | Baixo | 🟢 | Remoção em lote (`git branch -d`) | Executar | — | Housekeeping |
+| `frontend/dist/` desatualizado (4 arquivos) | `AUDIT_REPOSITORY` | Alta | Baixo | 🟢 | Destrackear (já no `.gitignore`) | Executar | — | Housekeeping |
+| `database.db-shm`/`database.db-wal` versionados | `AUDIT_REPOSITORY` / KI-029 | Alta | Baixo (ação em si) | 🟢 | Destrackear + ajustar `.gitignore` | Executar | — | Housekeeping |
+| 3 entradas mortas em `pyproject.toml` | `AUDIT_DEPENDENCIES` | Alta | Nenhum | 🟢 | Remover direto | Executar | — | Housekeeping |
+| 18 módulos `irflow_*.py` de baixo risco | `AUDIT_DEPENDENCIES` | Alta | Baixo | 🟢 | Rename direto, em lotes pequenos + commit de imports em `app.py` | Executar | — | Housekeeping |
+| Branding residual frontend (README, `client.js`, `index.css`, senha `irflow@2024` em `app.spec.js`/`debug_shopping.py`) | `AUDIT_DEPENDENCIES` / `AUDIT_REPOSITORY` | Média | Baixo | 🟢 | Rename direto | Executar (confirmar antes que a senha não é credencial real) | — | Housekeeping |
+| `irflow_os.py` | `AUDIT_DEPENDENCIES` | Alta | Médio | 🟠 | Rename em lote, com suíte de garantia (V1.5) validada à parte | Executar (depois dos módulos 🟢) | — | Housekeeping |
+| `irflow_core.py` | `AUDIT_DEPENDENCIES` | Alta | Médio | 🟠 | Rename em lote, só depois que os dependentes já estiverem estáveis | Executar (por último entre os hubs) | — | Housekeeping |
+| `irflow_blueprints_api.py` | `AUDIT_DEPENDENCIES` | Média | Alto | 🔴 | Rename isolado + validação completa | Planejar (decidir se TD-01 vem antes) | CTO | Housekeeping |
+| Estratégia geral do rename (ADR-008 alias/fallback vs. rename direto) | `AUDIT_DOCUMENTATION` | Alta | — | — | `ADR-008` é a fonte de verdade por padrão | Confirmar/decidir antes da Fase 4 | CTO | Housekeeping |
+| `cleanup_db.py` (raiz) | `AUDIT_REPOSITORY` | Baixa | Baixo | 🟢 | Remover ou justificar | Avaliar | Usuário | Housekeeping |
+| 8 scripts em `scripts/` sem referência (prováveis pré-pytest) | `AUDIT_REPOSITORY` | Baixa | Baixo | 🟠 | Comparar cobertura com a suíte pytest atual antes de remover | Avaliar | Usuário | Housekeeping |
+| `assets/ir_flow.ico` + `build_exe.ps1`/`build_setup.ps1`/`installer.iss` | `AUDIT_REPOSITORY` / `AUDIT_DEPENDENCIES` | Baixa | Baixo | 🟠 | Remover como bloco único, se confirmado sem uso | Avaliar — distribuição desktop ainda é um canal? | Usuário | Housekeeping |
+| `FLY_DATA_DIR` código morto em `app.py` | `AUDIT_REPOSITORY` | Baixa | Baixo | 🟢 | Remover fallback de hospedagem descontinuada | Avaliar (fora do escopo de TD-12, achado incidental) | Usuário | Housekeeping |
+| `chore/inc-001-instrumentacao-conexoes` (branch) | `AUDIT_BRANCHES` | Baixa | Baixo | 🟠 | Remover (precisa `-D`, não `-d`) | Confirmar antes de forçar remoção | Usuário | Housekeeping |
+| `origin/ajuste-render-webhook`, `origin/refactor/system-audit`, `origin/worktree-quizzical-cuddling-stardust` (branches remotas) | `AUDIT_BRANCHES` | Baixa | Baixo | 🟢 | Remover (`git push origin --delete`) | Executar | — | Housekeeping |
+| `docs/company-sales-materials` (branch) | `AUDIT_BRANCHES` | Média | Baixo | 🟠 | Não é limpeza — é decisão de negócio (mergear, revisar, ou descartar deliberadamente) | Avaliar | Product Owner | Product (fora da Housekeeping) |
+| Variáveis `IR_FLOW_*` (14) | `AUDIT_LEGACY` / `AUDIT_INFRA` | Média | Alto | 🔴 | Alias `FLUXOLY_*` com fallback (`ADR-008`) | Adiar — janela coordenada com o Render | CTO / DevOps | Pós-Housekeeping |
+| Repositório GitHub + URLs Render/Vercel | `AUDIT_DEPENDENCIES` / `AUDIT_DOCUMENTATION` | Baixa (sem prazo definido) | Alto | 🔴 | Janela de manutenção antes do lançamento comercial (já em `ADR-006`/`ADR-008`/`BRAND_IDENTITY.md`) | Adiar | CTO | Ligado a `RELEASE_1.0_MASTER_CHECKLIST.md`, não à Housekeeping |
+| Confirmação manual Render/Vercel (`IR_FLOW_DATA_DIR` setada?, build settings, webhooks MercadoPhone) | `AUDIT_INFRA` | Média | — | — | Levantamento nos dashboards | Confirmar | DevOps | Pós-Housekeeping |
+| Bancos versionados no git (KI-029, incl. `-shm`/`-wal`) | `AUDIT_REPOSITORY` | Alta (mas não é execução mecânica) | Alto | 🔴 | Decidir: `git rm` vs. reescrever histórico vs. avaliar sensibilidade real | Adiar — iniciativa própria de segurança | CTO / Segurança | Fora da Housekeeping (ver KI-029) |
+
+#### Ordem de implementação proposta (lotes de commits, menor para maior risco)
+
+1. **Lote 1 — limpeza mecânica sem dependência de código** (`chore(repo): ...`): remover as 38+21
+   branches mergeadas; destrackear `frontend/dist/`; destrackear `database.db-shm`/`database.db-wal` e
+   ajustar `.gitignore` para `database.db-*`; remover as 3 entradas mortas de `pyproject.toml`.
+2. **Lote 2 — módulos 🟢, em grupos pequenos** (`refactor(rebrand): ...`, cada grupo = 1 commit de
+   rename + 1 commit de atualização de imports em `app.py`, suíte rodada entre grupos): agrupar por
+   domínio (ex.: Clientes/Produtos/Unidades Serializadas num grupo, utilitários — validation, logging,
+   web, rate_limit, reports, storage, audit, reference_data, price_tables — noutro).
+3. **Lote 3 — branding frontend** (`refactor(rebrand): ...`, pode rodar em paralelo aos lotes 2-4, sem
+   dependência de ordem): README, `client.js`, `index.css`, senha de teste.
+4. **Lote 4 — hubs 🟠**: `irflow_os.py` primeiro, depois `irflow_core.py` (só depois que os módulos que
+   dependem dele já estiverem no padrão novo), comentários frontend que citam esses dois módulos
+   atualizados junto.
+5. **Lote 5 — `irflow_blueprints_api.py` (🔴)**: isolado, sozinho, com validação completa antes de
+   seguir — decisão prévia sobre TD-01 necessária.
+6. **Lote 6 — itens que exigem confirmação do usuário antes de executar**: `cleanup_db.py`, scripts de
+   `scripts/`, bloco de build desktop, `FLY_DATA_DIR`, as 4 branches que precisam de remoção forçada ou
+   confirmação.
+7. **Fora desta sprint** (registrados, não executados aqui): env vars `IR_FLOW_*` + infraestrutura
+   externa (janela de manutenção própria, ligada ao lançamento comercial), `docs/company-sales-materials`
+   (decisão de Product), KI-029 (iniciativa de segurança própria).
+
+Cada lote passa pela suíte de testes antes do próximo começar — nunca acumular múltiplos lotes em
+trânsito simultaneamente (mesma disciplina já aplicada em `AUDIT_DEPENDENCIES.md`).
 
 **Decisão de estratégia obrigatória nesta fase (achado de `AUDIT_DOCUMENTATION.md`):** `ADR-008`
 (2026-07-27, já aceita) propõe alias/fallback temporário para infraestrutura e variáveis de ambiente,

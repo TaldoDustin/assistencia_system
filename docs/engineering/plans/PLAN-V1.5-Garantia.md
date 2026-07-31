@@ -12,11 +12,14 @@
 
 - [x] Discovery — aprovada (BR-055 a BR-066, `docs/product/BUSINESS_RULES.md`, commits `9a12d03`/`2e91c5e`)
 - [x] Plano Técnico — aprovado (2026-07-29)
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
-- [ ] Revisão Arquitetural — obrigatória (toca mais de 3 arquivos e substitui um comportamento existente
-      — o prazo fixo de 90 dias — pela nova regra, mesmo perfil de risco que motivou a etapa na V1.4)
+- [x] Implementação — concluída (commits `ea53bbb`..`0551339`, ver branch `feat/vendas-v1-5-garantia`)
+- [x] Testes — 693 testes no total (14 em `tests/test_tipos_garantia.py`, mais os de
+      `test_garantia_reparo.py`/`test_listar_garantias.py`/`test_vendas.py`), `ruff check .` limpo,
+      `npm run lint`/`npm run build` sem erros novos. 1 falha pré-existente e não relacionada
+      (`tests/test_sentry_init.py`, erro de ambiente Windows ao carregar `_overlapped`/asyncio, não
+      reproduz em CI/produção)
+- [x] QA Manual — concluído em 2026-07-30, ver seção "QA Manual" abaixo
+- [x] Revisão Arquitetural — concluída em 2026-07-30, ver seção "Revisão Arquitetural" abaixo
 - [ ] Encerramento
 
 ---
@@ -255,6 +258,96 @@ pediu para resolver, "sem duplicar regra de negócio").
 Aditivo em ambos os lados (tabela nova + colunas novas) — reverter o código é suficiente; nenhuma coluna
 precisa ser recriada. `tipos_garantia` pode permanecer no schema sem uso se o revert acontecer, mesmo
 padrão já aceito no projeto.
+
+---
+
+## QA Manual
+
+Executado em 2026-07-30, servidor Flask real + Vite real + banco isolado (`IR_FLOW_DATA_DIR`, nunca
+`database.db`), navegador real via Claude in Chrome para os fluxos com UI e `curl` para o único fluxo sem
+UI (correção de Garantia de Reparo, ver "Impacto no Frontend" — não incluído no escopo original).
+
+- **Tipos de Garantia (BR-055):** criado "Garantia Padrão" (12m) e "Sem Garantia" (0m) via UI; lista,
+  duração formatada ("Sem garantia" para 0m), badge Ativo/Inativo corretos.
+- **Garantia de Venda obrigatória (BR-056):** `Nova Venda` bloqueia com toast "Selecione o Tipo de
+  Garantia." se o campo não for preenchido; venda concluída com sucesso após selecionar.
+- **Snapshot e correção (BR-057/BR-059):** `VendaDetalhe.jsx` exibe "Garantia Padrão — até
+  <data>" corretamente; correção pelo admin (Garantia Padrão → Sem Garantia) recalcula
+  `garantia_data_fim` a partir da `garantia_data_inicio` original (não reemite a partir de hoje) e
+  registra 2º evento no histórico.
+- **Cancelamento zera a garantia (BR-058):** cancelar a venda zera o snapshot (`Sem garantia
+  registrada`) e o botão "Corrigir garantia" desaparece (correção só permitida em venda `concluida`).
+- **Garantia de Reparo obrigatória por linha (BR-061):** dialog "Garantia de Reparo" ao clicar
+  "Finalizar OS" bloqueia com toast se qualquer reparo ficar sem seleção; testado com 2 reparos
+  (Troca de Bateria/Troca de Tela) recebendo tipos de garantia diferentes (BR-062) — confirmado que
+  cada linha mantém seu próprio prazo.
+- **`listar_garantias()` por linha (BR-062/BR-063):** `Garantias.jsx` mostra 2 entradas para a mesma OS,
+  agrupadas visualmente (OS/Cliente/Modelo/Data não repetidos na 2ª linha), cada uma com o badge de
+  prazo correto (`365d restantes` para 12m, `Vencendo (0d)` para 0m).
+- **Cancelamento pós-conclusão zera a Garantia de Reparo (BR-064):** cancelar a OS Finalizada remove
+  as linhas de `Garantias.jsx` (a query já filtra `status='Finalizado'`) — confirmado via API que o
+  snapshot foi zerado, não só que a OS saiu do status.
+- **Correção da Garantia de Reparo (BR-065), via `curl` (sem UI no escopo do plano):** `vendedor`
+  recebe 403; `admin` corrige com sucesso (200) e o histórico registra o evento com `valor_anterior`/
+  `valor_novo` completos — validado contra o servidor real, não só o `flask.testing` client.
+- **Reasserir Finalizado não exige garantia de novo / edição preserva snapshot:** editada a OS #2
+  (já Finalizada) alterando só `valor_cobrado`, sem tocar Status — nenhum dialog de garantia apareceu
+  e a garantia já corrigida (Sem Garantia) permaneceu intacta após salvar. Valida na prática o rewrite
+  de `salvar_reparos_os` (DELETE+INSERT cego → sync não-destrutivo) feito especificamente para não
+  apagar esse snapshot numa edição comum.
+- **Caso de borda investigado (não é um gap):** cogitou-se que uma OS finalizada sem nenhum reparo
+  selecionado desapareceria silenciosamente de `listar_garantias()` (o `JOIN` com `os_reparos` virou
+  `INNER JOIN`). Testado diretamente: `criar_ordem` já rejeita `"Selecione ao menos um reparo."` — uma
+  OS sem reparo nunca existe, então o cenário é impossível por construção. Nenhuma ação necessária.
+
+**Achado (KI-028, registrado em `KNOWN_ISSUES.md`, não corrigido nesta sessão):** `garantia_data_fim`/
+`garantia_data_inicio` (datas puras, sem horário) aparecem um dia antes do valor real gravado no banco em
+qualquer tela — `new Date("2027-07-30").toLocaleDateString("pt-BR")` é interpretado como UTC-meia-noite e
+renderizado no fuso local (`America/Sao_Paulo`, UTC-3). O dado no banco está sempre correto; é só exibição.
+Mesmo padrão já existe em outras telas (`Garantias.jsx`, `Clientes.jsx`, `OperationalCosts.jsx`,
+`Reports.jsx`, `Stock.jsx`), mas os campos de garantia são sempre data pura, então o efeito é
+determinístico. Não atende nenhum critério objetivo de interrupção (`ENGINEERING_GUIDE.md` §11) — não
+interrompeu o QA, foi caracterizado e reportado ao usuário (CTO) para decisão sobre corrigir agora ou
+depois.
+
+---
+
+## Revisão Arquitetural
+
+Aplicadas as 4 perguntas de `docs/engineering/adr/ADR-010.md` "Etapa 6":
+
+1. **Coerência do domínio** — a V1.5 não revoga nenhuma regra existente; ela *substitui* o prazo fixo de
+   90 dias para reparos novos, mantendo `GARANTIA_REPARO_DIAS_PADRAO` deliberadamente vivo só como
+   fallback de dado histórico (`tipo_garantia_id IS NULL`), documentado em comentário no código e na
+   seção "Estratégia de Migração" deste plano. Não há leitura/escrita órfã de uma regra descontinuada.
+2. **Autorização centralizada** — `corrigir_garantia_item` (Vendas) e `corrigir_garantia_reparo_route`
+   (Assistência) checam `usuario_perfil != "admin"` inline, cada uma no seu próprio módulo — mesmo padrão
+   já usado por Ajuste Comercial e Comissão (não há uma função de autorização única no projeto para isso
+   hoje; a V1.5 não piora nem resolve essa característica pré-existente).
+3. **Risco de vazamento de dado** — Garantia de Venda é **deliberadamente aberta** a qualquer perfil
+   autenticado (diferente da Comissão, que é ocultada) — decisão de BR-057 confirmada no código
+   (`_item_para_dict` sempre inclui os campos de garantia, sem função de ocultação). Nenhum vazamento:
+   é o comportamento pretendido, não um esquecimento.
+4. **Consistência da máquina de estados** — validado no QA Manual: cancelamento (venda ou OS) zera a
+   garantia na mesma transação; correção só é aceita em venda `concluida`/OS `Finalizado` (compare-and-
+   swap); reasserir um status já `Finalizado` não reabre a exigência de garantia; editar uma OS já
+   Finalizada preserva o snapshot já concedido (fix deliberado em `salvar_reparos_os`, sem o qual um
+   DELETE+INSERT cego apagaria a garantia em qualquer edição não relacionada a status).
+
+**Achado adicional (fora das 4 perguntas, documentado aqui por não ser bug de regra de negócio):**
+`vendas_itens.garantia_data_inicio`/`os_reparos.garantia_data_inicio` usam `date.today()` (Python, fuso
+local do processo), enquanto `vendas.criado_em`/`os.data_finalizado` usam `datetime('now')` do SQLite
+(UTC). Os dois podem divergir por um dia perto da virada de meia-noite UTC (observado nesta sessão: venda
+com `criado_em` "31/07/2026 00:10" e `garantia_data_inicio` "2026-07-30"). Não é um bug de regra de
+negócio — cada campo está internamente correto para a sua própria definição de "hoje" — mas é uma
+inconsistência de fonte de tempo que já existia antes da V1.5 (outros campos `data`/`data_finalizado` no
+projeto também vêm de `datetime('now')` UTC) e que a V1.5 não introduz de propósito nem piora
+estruturalmente. Registrado aqui como observação, não como ação — combinado com KI-028, é o tipo de
+detalhe que fica mais visível quando datas puras são exibidas de forma inconsistente entre telas.
+
+**Gate:** nenhuma inconsistência transversal ficou sem documentação — coerência do domínio, autorização e
+vazamento de dado confirmados sem achado; máquina de estados confirmada consistente; os dois achados
+(KI-028 e a divergência de fonte de tempo UTC vs. local) estão registrados, não deixados implícitos.
 
 ---
 

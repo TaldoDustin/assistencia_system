@@ -311,6 +311,19 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `KpiCard.jsx` e os 3 cartões de gráfico já eram fluidos (`ResponsiveContainer width="100%"`, truncamento de valor do fix de 2026-07-26) — não precisaram de mudança
 - Validação visual num MacBook real não foi possível nesta sessão (sem acesso físico a Mac); validação por medição real de overflow no DOM (`scrollWidth`/`clientWidth`), não só cálculo de CSS
 
+### Adicionado (2026-07-30 — V1.5, Garantia de Venda e Garantia de Reparo)
+- Novo cadastro **Tipos de Garantia** (nome + duração em meses), `admin`-only para escrita, leitura aberta a qualquer autenticado — compartilhado entre Vendas e Assistência (`fluxoly_tipos_garantia_controller/service/repository.py`, BR-055)
+- Garantia de Venda: `tipo_garantia_id` obrigatório em `POST /api/vendas` (BR-056); snapshot completo (nome/duração/datas) congelado no momento da venda, nunca recalculado ao vivo (BR-057); cancelamento zera o snapshot com auditoria (BR-058); correção restrita a `admin`, sem motivo (`PATCH /api/vendas/<id>/itens/<id>/garantia`, BR-059)
+- Garantia de Reparo: `tipo_garantia_id` obrigatório por linha de reparo (`os_reparos`) na transição da OS para `Finalizado` (BR-061), mesmo padrão de snapshot (BR-062) e correção admin-only (`PATCH /api/ordens/<id>/reparos/<reparo_id>/garantia`, BR-065). `salvar_reparos_os()` reescrita de `DELETE`+`INSERT` cego para sync não-destrutivo — necessário para não apagar a garantia já concedida de uma linha mantida ao editar a OS sem mexer no status
+- `irflow_core.py::calcular_data_fim_garantia()` — soma meses de calendário tratando dia inexistente no mês de destino (ex.: 31/01 + 1 mês → 28/02), função pura compartilhada entre Vendas e Assistência
+- `listar_garantias()` (`/api/garantias`) reescrita para gerar uma entrada por linha de reparo (não mais por OS inteira), substituindo o prazo fixo de 90 dias (`GARANTIA_REPARO_DIAS_PADRAO`) para dados novos — fallback preservado para dados históricos (`tipo_garantia_id NULL`), nunca inventa garantia que não foi concedida
+- Frontend: página **Tipos de Garantia** (CRUD, `admin`-only); campo obrigatório em `Vendas.jsx`; seção de garantia + correção + histórico em `VendaDetalhe.jsx`; dialog de seleção por reparo em `EditOrder.jsx` ao concluir OS; `Garantias.jsx` reagrupada por linha de reparo (OS/Cliente/Modelo não repetidos em linhas consecutivas da mesma OS); `Clientes.jsx` ajustado ao novo formato
+- Ciclo completo do ADR-010 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento), plano em `docs/engineering/plans/PLAN-V1.5-Garantia.md`. QA Manual com servidor real + banco isolado + navegador real (login funcionou normalmente nesta sessão — ver observação em KI-027); Revisão Arquitetural sem inconsistência não documentada
+- 693 testes no total, `ruff check .` limpo, `npm run lint`/`npm run build` sem erros novos
+
+### Corrigido (2026-07-30 — KI-028, datas de garantia exibidas um dia atrasadas)
+- `VendaDetalhe.jsx`: `garantia_data_fim` era formatado com `new Date(string).toLocaleDateString("pt-BR")` — para datas puras (`YYYY-MM-DD`, sem horário), o JS interpreta como UTC-meia-noite e o navegador renderiza no fuso local, voltando um dia em fusos negativos (`America/Sao_Paulo`). Corrigido reaproveitando `formatDateTime()`, helper já existente no mesmo arquivo que faz o parse manual de ano/mês/dia. Escopo restrito ao campo novo da V1.5 — mesmo padrão em outras telas (`Garantias.jsx`, `Clientes.jsx`, `OperationalCosts.jsx`, `Reports.jsx`, `Stock.jsx`) registrado, não corrigido (fora do escopo desta feature)
+
 ### Em progresso
 - Infraestrutura de CI/CD com GitHub Actions
 - Testes backend com pytest e banco in-memory

@@ -1,5 +1,5 @@
 """
-irflow_unidades_serializadas_controller.py
+fluxoly_unidades_serializadas_controller.py
 
 Camada HTTP do domínio `unidades_serializadas` (Blueprint Flask, prefixo
 `/api/unidades-serializadas`). Recebe request, valida forma do payload,
@@ -13,7 +13,7 @@ Mesmo contrato de resposta do resto da API (`{"ok": ...}` /
 
 from flask import Blueprint, jsonify, request, session
 
-import irflow_unidades_serializadas_service as service
+import fluxoly_unidades_serializadas_service as service
 from irflow_validation import parse_int, safe_json
 
 

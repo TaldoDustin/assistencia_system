@@ -15,7 +15,7 @@ ADR-009 para o plano de evolução dessa proteção quando cancelamento existir)
 Sprint Vendas 1.1 (Histórico + Detalhe): só consulta, nenhuma mudança de
 schema. `nome` de cliente/vendedor e `imei` do item são obtidos via LEFT JOIN
 em `clientes`/`usuarios`/`unidades_serializadas` só para exibição -- mesma
-justificativa já usada em `irflow_unidades_serializadas_repository.py`
+justificativa já usada em `fluxoly_unidades_serializadas_repository.py`
 (join de origem) e `shopping_list_logs` (join de usuário para nome).
 """
 
@@ -139,7 +139,7 @@ def recalcular_valor_total_venda(cursor, venda_id):
 def buscar_historico_desconto_item(cursor, item_id):
     """Histórico de ajustes comerciais do item (BR-043), mais recente
     primeiro -- mesmo padrão de
-    `irflow_unidades_serializadas_repository.py::buscar_historico`."""
+    `fluxoly_unidades_serializadas_repository.py::buscar_historico`."""
     cursor.execute(
         """
         SELECT a.id, a.acao, a.valor_anterior, a.valor_novo, a.criado_em, COALESCE(u.nome, '')
@@ -430,7 +430,7 @@ def buscar_itens_por_vendas(cursor, venda_ids):
 def cancelar_venda(cursor, venda_id, motivo, observacao, usuario_id):
     """V1.2 -- Cancelamento (BR-031 a BR-036). `WHERE status = 'concluida'` é compare-and-swap
     contra cancelamento concorrente da mesma venda (mesmo padrão de
-    `irflow_unidades_serializadas_repository.py::marcar_vendida`) -- também é o que impede
+    `fluxoly_unidades_serializadas_repository.py::marcar_vendida`) -- também é o que impede
     "descancelar", já que só há caminho de `concluida` para `cancelada`, nunca o inverso
     (Princípio da Imutabilidade da Venda). Retorna o número de linhas afetadas -- 0 significa
     que a venda não estava mais `concluida` (já cancelada ou estado mudou)."""

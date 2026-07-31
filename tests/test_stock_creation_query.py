@@ -251,7 +251,7 @@ class TestCriarItemEstoque:
 
 class TestRastreabilidadeIndividualEstoque:
     """`requer_imei` é a flag que habilita rastreamento por unidade
-    (`unidades_serializadas.estoque_id`, ver `irflow_unidades_serializadas_service.py`).
+    (`unidades_serializadas.estoque_id`, ver `fluxoly_unidades_serializadas_service.py`).
     O conceito é rastreabilidade individual do item -- hoje via IMEI/serial, o nome
     da coluna é histórico (mantido por compatibilidade)."""
 

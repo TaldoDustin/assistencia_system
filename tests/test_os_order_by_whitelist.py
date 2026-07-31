@@ -4,7 +4,7 @@ o parâmetro `order_by` era interpolado via f-string direto na cláusula ORDER B
 validação dentro da função -- seguro hoje porque os únicos 2 chamadores (irflow_blueprints_api.py)
 passam sempre o mesmo literal fixo "os.id DESC", mas nada impedia um chamador futuro de
 repassar algo vindo de request.args. Corrigido com whitelist (_ORDENACOES_OS), mesmo padrão
-já usado em irflow_unidades_serializadas_repository.py. Ver docs/security/SECURITY_AUDIT_2026-07.md.
+já usado em fluxoly_unidades_serializadas_repository.py. Ver docs/security/SECURITY_AUDIT_2026-07.md.
 """
 
 import app as _app

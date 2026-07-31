@@ -1,5 +1,5 @@
 """
-irflow_unidades_serializadas_repository.py
+fluxoly_unidades_serializadas_repository.py
 
 Único ponto de acesso SQL do domínio `unidades_serializadas` (rastreamento
 individual por IMEI/serial, `docs/product/features/IMEI.md`, evoluído na

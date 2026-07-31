@@ -1,5 +1,5 @@
 """
-irflow_unidades_serializadas_service.py
+fluxoly_unidades_serializadas_service.py
 
 Regra de negócio pura do domínio `unidades_serializadas` (rastreamento
 individual por IMEI/serial) — não conhece Flask, `request` nem `jsonify`
@@ -16,14 +16,14 @@ função aqui produz ou aceita esses estados — só `disponivel`, `em_reparo` e
 `devolvido` são alcançáveis nesta sprint.
 
 Tabelas usadas: `unidades_serializadas` (via
-`irflow_unidades_serializadas_repository.py`), leitura de
+`fluxoly_unidades_serializadas_repository.py`), leitura de
 `estoque.requer_imei` e `produtos.requer_rastreio_unidade`.
 
-Depende de: `irflow_unidades_serializadas_repository.py` (SQL),
+Depende de: `fluxoly_unidades_serializadas_repository.py` (SQL),
 `irflow_audit.py` (auditoria — create/status_change).
 """
 
-import irflow_unidades_serializadas_repository as repo
+import fluxoly_unidades_serializadas_repository as repo
 from irflow_audit import registrar_log_auditoria
 
 PAGINA_PADRAO = 1

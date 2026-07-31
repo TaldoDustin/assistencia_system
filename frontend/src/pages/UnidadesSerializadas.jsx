@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 
 // Mesma máquina de estados de TRANSICOES_VALIDAS em
-// irflow_unidades_serializadas_service.py — usada só para popular o select
+// fluxoly_unidades_serializadas_service.py — usada só para popular o select
 // de status no modo de edição (o backend valida de novo, esta cópia é só UX).
 const TRANSICOES_VALIDAS = {
   disponivel: ["em_reparo"],
@@ -21,7 +21,7 @@ const TRANSICOES_VALIDAS = {
 };
 
 // Estados alcançáveis nesta sprint — mesmo domínio de `TRANSICOES_VALIDAS`
-// em irflow_unidades_serializadas_service.py. 'reservado'/'vendido' existem
+// em fluxoly_unidades_serializadas_service.py. 'reservado'/'vendido' existem
 // no schema mas não são produzidos por nenhum fluxo ainda (aguardam Vendas).
 const STATUS_BADGE = {
   disponivel: { label: "Disponível", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },

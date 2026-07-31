@@ -21,7 +21,7 @@ from werkzeug.security import generate_password_hash
 
 import app as _app
 import fluxoly_vendas_repository as vendas_repo
-import irflow_unidades_serializadas_service as unidades_service
+import fluxoly_unidades_serializadas_service as unidades_service
 
 SENHA_PADRAO = "senha_teste_123"
 

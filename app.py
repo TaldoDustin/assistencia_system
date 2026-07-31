@@ -2034,7 +2034,7 @@ app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
 # verdade para unidades originadas de Estoque OU de Produtos)
 # ============================================================================
 
-from irflow_unidades_serializadas_controller import create_unidades_serializadas_blueprint  # noqa: E402
+from fluxoly_unidades_serializadas_controller import create_unidades_serializadas_blueprint  # noqa: E402
 
 app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conectar}))
 

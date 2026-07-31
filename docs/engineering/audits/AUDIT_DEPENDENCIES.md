@@ -30,32 +30,32 @@ foi alterado nesta etapa.
 
 ## 1. Módulos Python `irflow_*.py`
 
-| Item | Dependências (código+testes) | Risco | Complexidade | Observação |
-|------|:--:|:--:|:--:|------------|
-| `irflow_blueprints_api.py` | 1 | Alto | 🔴 Planejamento | Só `app.py` importa, mas o arquivo tem ~130KB (TD-01) e recebe funções de outros módulos por injeção de parâmetro em `create_api_blueprint()` — grep de import não captura essa superfície. Renomear é trivial; **revisar o diff** não é. Considerar se a quebra em módulos menores (TD-01) deveria vir antes do rename, para não renomear um arquivo que via ser dividido logo depois |
-| `irflow_core.py` | 10 (5 módulos de código + 3 testes + `test_sync.py`) | Médio | 🟠 Coordenação | Hub real: `app.py`, `irflow_os.py`, `irflow_reports.py`, `irflow_price_tables.py`, `irflow_reference_data.py` importam dele — **e também `fluxoly_vendas_service.py`** (um módulo já `fluxoly_*` depende de um módulo `irflow_*`; renomear não quebra nada, mas vale registrar o acoplamento cruzado) |
-| `irflow_os.py` | 4 (`app.py`, `irflow_reports.py`, 2 testes) | Médio | 🟠 Coordenação | Domínio central de OS — poucas dependências diretas, mas concentra lógica de garantia de reparo (V1.5) adicionada recentemente; testar bem depois do rename |
-| `irflow_validation.py` | 7 | Baixo | 🟢 Mecânico | Muitas dependências mas puramente utilitário (`parse_float`/`parse_int`/`safe_json`) — baixo risco de quebra semântica |
-| `irflow_audit.py` | 6 | Baixo | 🟢 Mecânico | Auditoria central reutilizável — bem testado (`test_audit_log.py`) |
-| `irflow_reference_data.py` | 4 | Baixo | 🟢 Mecânico | |
-| `irflow_mercadophone.py` | 3 | Médio | 🟢 Mecânico | Poucas dependências diretas, mas é o maior módulo do projeto (667 linhas, cobertura 27% — ver `PROJECT_STATUS.md`); rename em si é seguro, cobertura baixa é risco pré-existente, não causado pelo rename |
-| `irflow_price_tables.py` | 3 | Baixo | 🟢 Mecânico | |
-| `irflow_unidades_serializadas_service.py` | 3 | Baixo | 🟢 Mecânico | |
-| `irflow_logging.py` | 4 | Baixo | 🟢 Mecânico | |
-| `irflow_clientes_service.py` | 2 | Baixo | 🟢 Mecânico | |
-| `irflow_web.py` | 2 | Baixo | 🟢 Mecânico | |
-| `irflow_blueprints_auth.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_blueprints_main.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_clientes_controller.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_clientes_repository.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_produtos_controller.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_produtos_repository.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_produtos_service.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_rate_limit.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_reports.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_storage.py` | 1 | Baixo | 🟢 Mecânico | Cobertura 25% (ver `PROJECT_STATUS.md`) — mesma observação de `irflow_mercadophone.py`: risco pré-existente, não introduzido pelo rename |
-| `irflow_unidades_serializadas_controller.py` | 1 | Baixo | 🟢 Mecânico | |
-| `irflow_unidades_serializadas_repository.py` | 1 | Baixo | 🟢 Mecânico | |
+| Item | Dependências (código+testes) | Risco | Complexidade | Estratégia | Observação |
+|------|:--:|:--:|:--:|------------|------------|
+| `irflow_blueprints_api.py` | 1 | Alto | 🔴 Planejamento | Rename isolado + validação completa (sozinho no lote, fora dos commits em série) | Só `app.py` importa, mas o arquivo tem ~130KB (TD-01) e recebe funções de outros módulos por injeção de parâmetro em `create_api_blueprint()` — grep de import não captura essa superfície. Renomear é trivial; **revisar o diff** não é. Considerar se a quebra em módulos menores (TD-01) deveria vir antes do rename, para não renomear um arquivo que via ser dividido logo depois |
+| `irflow_core.py` | 10 (5 módulos de código + 3 testes + `test_sync.py`) | Médio | 🟠 Coordenação | Rename em lote, só depois que `irflow_os.py`/`irflow_reports.py`/`irflow_price_tables.py`/`irflow_reference_data.py`/`fluxoly_vendas_service.py` já estiverem estáveis | Hub real: `app.py`, `irflow_os.py`, `irflow_reports.py`, `irflow_price_tables.py`, `irflow_reference_data.py` importam dele — **e também `fluxoly_vendas_service.py`** (um módulo já `fluxoly_*` depende de um módulo `irflow_*`; renomear não quebra nada, mas vale registrar o acoplamento cruzado) |
+| `irflow_os.py` | 4 (`app.py`, `irflow_reports.py`, 2 testes) | Médio | 🟠 Coordenação | Rename em lote, com suíte de garantia (V1.5) rodada isoladamente antes/depois | Domínio central de OS — poucas dependências diretas, mas concentra lógica de garantia de reparo (V1.5) adicionada recentemente; testar bem depois do rename |
+| `irflow_validation.py` | 7 | Baixo | 🟢 Mecânico | Rename direto | Muitas dependências mas puramente utilitário (`parse_float`/`parse_int`/`safe_json`) — baixo risco de quebra semântica |
+| `irflow_audit.py` | 6 | Baixo | 🟢 Mecânico | Rename direto | Auditoria central reutilizável — bem testado (`test_audit_log.py`) |
+| `irflow_reference_data.py` | 4 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_mercadophone.py` | 3 | Médio | 🟢 Mecânico | Rename direto + rodar suíte de integração Mercado Phone isolada | Poucas dependências diretas, mas é o maior módulo do projeto (667 linhas, cobertura 27% — ver `PROJECT_STATUS.md`); rename em si é seguro, cobertura baixa é risco pré-existente, não causado pelo rename |
+| `irflow_price_tables.py` | 3 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_unidades_serializadas_service.py` | 3 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_logging.py` | 4 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_clientes_service.py` | 2 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_web.py` | 2 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_blueprints_auth.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_blueprints_main.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_clientes_controller.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_clientes_repository.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_produtos_controller.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_produtos_repository.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_produtos_service.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_rate_limit.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_reports.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_storage.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | Cobertura 25% (ver `PROJECT_STATUS.md`) — mesma observação de `irflow_mercadophone.py`: risco pré-existente, não introduzido pelo rename |
+| `irflow_unidades_serializadas_controller.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
+| `irflow_unidades_serializadas_repository.py` | 1 | Baixo | 🟢 Mecânico | Rename direto | |
 
 **`app.py` não é um item de rename** (é o entrypoint Flask, não carrega prefixo `irflow_`), mas é o nó
 mais central do grafo (degree 170) e **é tocado em praticamente todo item acima** — importa 17 módulos
@@ -76,11 +76,11 @@ aumenta o número de arquivos tocados quando o antigo finalmente for renomeado.
 
 ## 2. Configuração órfã em `pyproject.toml`
 
-| Item | Dependências | Risco | Complexidade |
-|------|:--:|:--:|:--:|
-| `irflow_blueprints_admin` (isort `known_first_party` + coverage `source`) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico — remover a entrada |
-| `irflow_blueprints_inventory` (idem) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico — remover a entrada |
-| `irflow_blueprints_orders` (idem) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico — remover a entrada |
+| Item | Dependências | Risco | Complexidade | Estratégia |
+|------|:--:|:--:|:--:|------------|
+| `irflow_blueprints_admin` (isort `known_first_party` + coverage `source`) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico | Remover a entrada direto |
+| `irflow_blueprints_inventory` (idem) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico | Remover a entrada direto |
+| `irflow_blueprints_orders` (idem) | 0 (arquivo não existe) | Nenhum | 🟢 Mecânico | Remover a entrada direto |
 
 Sem risco de execução (a linha só afeta isort/coverage, não o runtime), mas vale confirmar antes que
 esses três módulos foram de fato consolidados em `irflow_blueprints_api.py` e não apenas perdidos —
@@ -90,30 +90,30 @@ checar `git log --follow` se restar dúvida.
 
 ## 3. Variáveis de ambiente `IR_FLOW_*`
 
-| Item | Dependências | Risco | Complexidade |
-|------|:--:|:--:|:--:|
-| 14 variáveis `IR_FLOW_*` (ver `AUDIT_LEGACY.md` seção 2) | `app.py`, `irflow_blueprints_api.py`, `irflow_core.py`, `.env.example`, `tests/conftest.py` + 4 arquivos de teste, `frontend/playwright.config.js`, `DEPLOY.md` | Alto | 🔴 Planejamento | `IR_FLOW_DATA_DIR` ativa `IS_SERVER_RUNTIME` — se o Render tiver essa variável configurada no dashboard e o código for renomeado sem atualizar o dashboard no mesmo instante, a detecção de runtime quebra silenciosamente (mesma classe de causa-raiz do KI-027 já registrado). **Não fazer como parte dos commits mecânicos da Fase 4** — precisa de uma janela coordenada: atualizar código e dashboard do Render na mesma operação, testar em produção logo em seguida |
+| Item | Dependências | Risco | Complexidade | Estratégia |
+|------|:--:|:--:|:--:|------------|
+| 14 variáveis `IR_FLOW_*` (ver `AUDIT_LEGACY.md` seção 2) | `app.py`, `irflow_blueprints_api.py`, `irflow_core.py`, `.env.example`, `tests/conftest.py` + 4 arquivos de teste, `frontend/playwright.config.js`, `DEPLOY.md` | Alto | 🔴 Planejamento | Fora desta sprint — janela de manutenção dedicada, coordenada com o dashboard do Render no mesmo instante da mudança de código. `IR_FLOW_DATA_DIR` ativa `IS_SERVER_RUNTIME` — renomear sem atualizar o dashboard quebra a detecção de runtime silenciosamente (mesma classe de causa-raiz do KI-027 já registrado) |
 
 ---
 
 ## 4. Infraestrutura externa (fora do repositório)
 
-| Item | Dependências | Risco | Complexidade |
-|------|:--:|:--:|:--:|
-| Nome do repositório GitHub | Clones locais, CI, possíveis webhooks/integrações externas | Alto | 🔴 Planejamento — já deferido conscientemente em ADR-006/ADR-008 |
-| URL de produção Render (`irflow-backend.onrender.com`) | CORS, DNS/bookmarks, qualquer client externo (MercadoPhone?) | Alto | 🔴 Planejamento — idem |
-| URL de produção Vercel (`assistencia-system.vercel.app`) | CORS, DNS/bookmarks | Alto | 🔴 Planejamento — idem |
-| `assets/ir_flow.ico` + `build_exe.ps1` + `build_setup.ps1` + `installer.iss` | 0 arquivos ativos referenciam esses scripts (nenhum CI/doc aponta para eles) | Baixo | 🟠 Coordenação — não é rename, é decisão de manter/remover (candidato a `AUDIT_REPOSITORY.md`, não Fase 4) |
+| Item | Dependências | Risco | Complexidade | Estratégia |
+|------|:--:|:--:|:--:|------------|
+| Nome do repositório GitHub | Clones locais, CI, possíveis webhooks/integrações externas | Alto | 🔴 Planejamento | Fora desta sprint — já deferido conscientemente em ADR-006/ADR-008 |
+| URL de produção Render (`irflow-backend.onrender.com`) | CORS, DNS/bookmarks, qualquer client externo (MercadoPhone?) | Alto | 🔴 Planejamento | Fora desta sprint — idem |
+| URL de produção Vercel (`assistencia-system.vercel.app`) | CORS, DNS/bookmarks | Alto | 🔴 Planejamento | Fora desta sprint — idem |
+| `assets/ir_flow.ico` + `build_exe.ps1` + `build_setup.ps1` + `installer.iss` | 0 arquivos ativos referenciam esses scripts (nenhum CI/doc aponta para eles) | Baixo | 🟠 Coordenação | Investigar necessidade antes de decidir (candidato a `AUDIT_REPOSITORY.md`, não é rename) |
 
 ---
 
 ## 5. Frontend — branding e testes
 
-| Item | Dependências | Risco | Complexidade |
-|------|:--:|:--:|:--:|
-| `frontend/README.md`, `frontend/src/api/client.js`, `frontend/src/index.css` (comentários/strings) | Nenhuma — são strings/comentários, não afetam build | Baixo | 🟢 Mecânico |
-| `frontend/tests/e2e/app.spec.js` (`ADMIN_PASS = "irflow@2024"`) | 1 arquivo de teste E2E | Baixo | 🟢 Mecânico — confirmar que não é senha real de nenhum ambiente antes de trocar |
-| `frontend/dist/` desatualizado (título ainda "IR Flow") | Servido publicamente se a Vercel usar o `dist/` commitado em vez de buildar do fonte | Médio | 🟢 Mecânico — só rodar `npm run build` e recommitar; **confirmar antes se a Vercel builda do fonte ou serve o dist commitado** (se for o segundo caso, isso é um achado de produção, não só de repositório) |
+| Item | Dependências | Risco | Complexidade | Estratégia |
+|------|:--:|:--:|:--:|------------|
+| `frontend/README.md`, `frontend/src/api/client.js`, `frontend/src/index.css` (comentários/strings) | Nenhuma — são strings/comentários, não afetam build | Baixo | 🟢 Mecânico | Rename direto |
+| `frontend/tests/e2e/app.spec.js` (`ADMIN_PASS = "irflow@2024"`) | 1 arquivo de teste E2E | Baixo | 🟢 Mecânico | Confirmar que não é senha real de nenhum ambiente, depois rename direto |
+| `frontend/dist/` desatualizado (título ainda "IR Flow") | Servido publicamente se a Vercel usar o `dist/` commitado em vez de buildar do fonte | Médio | 🟢 Mecânico | Rebuild direto (`npm run build`); confirmar antes se a Vercel builda do fonte ou serve o dist commitado (se for o segundo caso, é achado de produção, não só de repositório) |
 
 ---
 

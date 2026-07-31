@@ -17,14 +17,14 @@ em `docs/product/features/VENDAS.md` (BR-019).
 
 Tabelas usadas: `produtos` (via `fluxoly_produtos_repository.py`).
 
-Depende de: `fluxoly_produtos_repository.py` (SQL), `irflow_reference_data.py`
-(listas fechadas `PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES`), `irflow_audit.py`
+Depende de: `fluxoly_produtos_repository.py` (SQL), `fluxoly_reference_data.py`
+(listas fechadas `PRODUTOS_CATEGORIAS`/`PRODUTOS_CONDICOES`), `fluxoly_audit.py`
 (auditoria — create/update/delete).
 """
 
 import fluxoly_produtos_repository as repo
-from irflow_audit import registrar_log_auditoria
-from irflow_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
+from fluxoly_audit import registrar_log_auditoria
+from fluxoly_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
 
 PAGINA_PADRAO = 1
 POR_PAGINA_PADRAO = 20

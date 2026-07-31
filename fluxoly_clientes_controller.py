@@ -16,7 +16,7 @@ nesta sprint.
 from flask import Blueprint, jsonify, request, session
 
 import fluxoly_clientes_service as service
-from irflow_validation import parse_int, safe_json
+from fluxoly_validation import parse_int, safe_json
 
 
 def create_clientes_blueprint(deps: dict):

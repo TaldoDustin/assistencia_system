@@ -16,7 +16,7 @@ MVP).
 from flask import Blueprint, jsonify, request, session
 
 import fluxoly_vendas_service as service
-from irflow_validation import parse_float, parse_int, safe_json
+from fluxoly_validation import parse_float, parse_int, safe_json
 
 ORDENACOES_VALIDAS = {"recente", "antigo"}
 

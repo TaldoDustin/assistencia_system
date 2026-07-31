@@ -249,7 +249,7 @@ class TestCriarOrdemDependencias:
     def test_tecnico_fora_da_lista_canonica_e_aceito(self, client, login_como, usuario_tecnico, payload_os_valido):
         """
         Diferente de vendedor, técnico não é validado contra a lista TECNICOS
-        (irflow_reference_data.py) — só precisa ser não-vazio.
+        (fluxoly_reference_data.py) — só precisa ser não-vazio.
         """
         login_como(client, usuario_tecnico)
 

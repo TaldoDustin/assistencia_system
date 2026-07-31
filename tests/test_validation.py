@@ -1,10 +1,10 @@
 """
-Testes unitarios da camada compartilhada de parsing (irflow_validation.py).
+Testes unitarios da camada compartilhada de parsing (fluxoly_validation.py).
 
 Sem banco de dados, sem app Flask, sem chamadas HTTP — puramente funcional.
 """
 
-from irflow_validation import parse_float, parse_int, safe_json, validate_positive_number
+from fluxoly_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
 class _FakeRequest:

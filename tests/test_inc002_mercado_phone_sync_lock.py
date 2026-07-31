@@ -8,7 +8,7 @@ dois processos podiam rodar sincronizar_mercado_phone() ao mesmo tempo e, por o
 importador so fazer SELECT-antes-de-INSERT (sem UNIQUE constraint como cinto de
 seguranca), duplicar a mesma OS.
 
-Este teste cobre o lock cross-processo adicionado em irflow_mercadophone.py:
+Este teste cobre o lock cross-processo adicionado em fluxoly_mercadophone.py:
 adquirir_lock_sync_mercado_phone/liberar_lock_sync_mercado_phone, usando a tabela
 integracao_sync_estado (ja existente) como lease com expiracao.
 """
@@ -17,7 +17,7 @@ import threading
 import time
 
 import app as _app
-from irflow_mercadophone import (
+from fluxoly_mercadophone import (
     adquirir_lock_sync_mercado_phone,
     liberar_lock_sync_mercado_phone,
     sincronizar_mercado_phone,

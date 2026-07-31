@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from irflow_core import texto_limpo, normalizar_busca_texto, normalizar_status_os
 from irflow_os import obter_ou_criar_reparo, salvar_reparos_os
-from irflow_mercadophone import (
+from fluxoly_mercadophone import (
     listar_os_mercado_phone,
     detalhar_os_mercado_phone,
     importar_os_mercado_phone,

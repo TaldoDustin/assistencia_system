@@ -20,11 +20,11 @@ Tabelas usadas: `unidades_serializadas` (via
 `estoque.requer_imei` e `produtos.requer_rastreio_unidade`.
 
 Depende de: `fluxoly_unidades_serializadas_repository.py` (SQL),
-`irflow_audit.py` (auditoria — create/status_change).
+`fluxoly_audit.py` (auditoria — create/status_change).
 """
 
 import fluxoly_unidades_serializadas_repository as repo
-from irflow_audit import registrar_log_auditoria
+from fluxoly_audit import registrar_log_auditoria
 
 PAGINA_PADRAO = 1
 POR_PAGINA_PADRAO = 20

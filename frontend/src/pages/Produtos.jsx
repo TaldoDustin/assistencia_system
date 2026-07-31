@@ -17,7 +17,7 @@ import {
 import { formatCurrency } from "@/lib/constants";
 
 // Fallback caso /api/constantes não retorne as listas (rede/erro) — espelha
-// `irflow_reference_data.py` (PRODUTOS_CATEGORIAS/CONDICOES), mesmo padrão de
+// `fluxoly_reference_data.py` (PRODUTOS_CATEGORIAS/CONDICOES), mesmo padrão de
 // Stock.jsx para tipo/qualidade de estoque. Fonte de verdade real é a API.
 const CATEGORIA_OPTIONS_FALLBACK = ["iPhone", "Apple Watch", "AirPods", "Acessorio"];
 const CONDICAO_OPTIONS_FALLBACK = ["Novo", "Seminovo", "Vitrine"];

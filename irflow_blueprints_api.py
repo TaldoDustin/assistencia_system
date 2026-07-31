@@ -16,8 +16,8 @@ import threading
 from flask import Blueprint, jsonify, request, session, send_from_directory, Response
 import os
 
-from irflow_price_tables import sugerir_preco_tabela
-from irflow_validation import parse_float, parse_int, safe_json, validate_positive_number
+from fluxoly_price_tables import sugerir_preco_tabela
+from fluxoly_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
 def create_api_blueprint(deps):

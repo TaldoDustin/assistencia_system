@@ -3,7 +3,7 @@ INC-002 — OS duplicada apos sincronizacao com Mercado Phone
 (docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md).
 
 Ultima camada de protecao: UNIQUE INDEX em os(origem_integracao, id_externo_integracao)
-(app.py::criar_tabelas). O lock cross-processo (irflow_mercadophone.py) corrige o
+(app.py::criar_tabelas). O lock cross-processo (fluxoly_mercadophone.py) corrige o
 mecanismo mais provavel do bug, mas este indice e a garantia definitiva no banco,
 valendo contra qualquer outro caminho futuro de escrita.
 """

@@ -23,9 +23,9 @@ with open("frontend/src/pages/Orders.jsx", "r") as f:
 
 print()
 
-# 2. Verificar mudanças no irflow_mercadophone.py
-print("2️⃣  Verificando mudanças no backend (irflow_mercadophone.py)...")
-with open("irflow_mercadophone.py", "r") as f:
+# 2. Verificar mudanças no fluxoly_mercadophone.py
+print("2️⃣  Verificando mudanças no backend (fluxoly_mercadophone.py)...")
+with open("fluxoly_mercadophone.py", "r") as f:
     content = f.read()
     
     if "status != status_anterior" in content:

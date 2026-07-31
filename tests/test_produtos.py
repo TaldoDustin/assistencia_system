@@ -259,7 +259,7 @@ class TestConstantesExpoeCategoriaCondicao:
     precisam estar em GET /api/constantes para o frontend nao manter copia propria."""
 
     def test_constantes_inclui_categorias_e_condicoes_de_produtos(self, client, login_como, usuario_tecnico):
-        from irflow_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
+        from fluxoly_reference_data import PRODUTOS_CATEGORIAS, PRODUTOS_CONDICOES
 
         login_como(client, usuario_tecnico)
         resp = client.get("/api/constantes")

@@ -1,5 +1,5 @@
 """
-irflow_audit.py
+fluxoly_audit.py
 
 Auditoria central reutilizável — uma tabela genérica (`audit_log`) em vez de
 uma tabela de log por domínio (padrão já usado em `shopping_list_logs`,

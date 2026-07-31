@@ -15,7 +15,7 @@ domínios, por isso nasce como blueprint próprio (ADR-008, prefixo
 from flask import Blueprint, jsonify, request, session
 
 import fluxoly_tipos_garantia_service as service
-from irflow_validation import parse_int, safe_json
+from fluxoly_validation import parse_int, safe_json
 
 
 def create_tipos_garantia_blueprint(deps: dict):

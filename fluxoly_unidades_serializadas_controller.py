@@ -14,7 +14,7 @@ Mesmo contrato de resposta do resto da API (`{"ok": ...}` /
 from flask import Blueprint, jsonify, request, session
 
 import fluxoly_unidades_serializadas_service as service
-from irflow_validation import parse_int, safe_json
+from fluxoly_validation import parse_int, safe_json
 
 
 def create_unidades_serializadas_blueprint(deps: dict):

@@ -31,7 +31,7 @@ nunca fica "vendida" sem uma `venda`/`vendas_itens` real por trás, nem uma
 
 Depende de: `fluxoly_clientes_service.py` (validar cliente),
 `fluxoly_unidades_serializadas_service.py` (validar/marcar unidade --
-`marcar_como_vendida`, exclusiva deste domínio por ADR-007), `irflow_audit.py`.
+`marcar_como_vendida`, exclusiva deste domínio por ADR-007), `fluxoly_audit.py`.
 """
 
 import sqlite3
@@ -40,7 +40,7 @@ from datetime import date
 
 import fluxoly_clientes_service as clientes_service
 import fluxoly_unidades_serializadas_service as unidades_service
-from irflow_audit import registrar_log_auditoria
+from fluxoly_audit import registrar_log_auditoria
 from irflow_core import calcular_data_fim_garantia
 
 import fluxoly_tipos_garantia_service as tipos_garantia_service

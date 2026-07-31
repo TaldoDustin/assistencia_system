@@ -1,7 +1,7 @@
 """
 Testes de auditoria central (Sprint 3 — Unidade 3).
 
-Escopo: `irflow_audit.py::registrar_log_auditoria` e a tabela `audit_log`.
+Escopo: `fluxoly_audit.py::registrar_log_auditoria` e a tabela `audit_log`.
 Testado no nível de service (sem HTTP) — nenhum endpoint real consome isso
 ainda; Clientes e `estoque_unidades` (Unidades 5 e 6) serão os primeiros
 consumidores.
@@ -11,7 +11,7 @@ própria tabela/helper (`_log_shopping`), sem migração.
 """
 
 import app as _app
-from irflow_audit import registrar_log_auditoria
+from fluxoly_audit import registrar_log_auditoria
 
 
 def _buscar_logs(entidade, entidade_id=None):

@@ -13,12 +13,12 @@ histórico (OS vinculada) não pode ser excluído.
 Tabelas usadas: `clientes` (via `fluxoly_clientes_repository.py`), leitura
 de `os.cliente_id` para checar histórico antes de excluir.
 
-Depende de: `fluxoly_clientes_repository.py` (SQL), `irflow_audit.py`
+Depende de: `fluxoly_clientes_repository.py` (SQL), `fluxoly_audit.py`
 (auditoria — create/update/delete).
 """
 
 import fluxoly_clientes_repository as repo
-from irflow_audit import registrar_log_auditoria
+from fluxoly_audit import registrar_log_auditoria
 
 PAGINA_PADRAO = 1
 POR_PAGINA_PADRAO = 20

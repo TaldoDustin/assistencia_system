@@ -1,13 +1,13 @@
 """
 Testes de tabela de preços (Sprint 2 — Restante).
 
-Escopo: lógica pura de sugestão de preço (`irflow_price_tables.py`) e o endpoint
+Escopo: lógica pura de sugestão de preço (`fluxoly_price_tables.py`) e o endpoint
 GET /api/precos/sugerir, mais os endpoints administrativos GET/POST /api/precos e
 POST /api/precos/excluir.
 
 Divide-se em duas frentes, seguindo `ENGINEERING_GUIDE.md` (testar regra de negócio pura
 sem subir servidor sempre que possível):
-- Testes unitários diretos de `irflow_price_tables.py` — sem Flask, sem banco.
+- Testes unitários diretos de `fluxoly_price_tables.py` — sem Flask, sem banco.
 - Testes de integração via `client` — confirmam autenticação, autorização e o contrato
   HTTP da rota, não repetem a cobertura de regra já feita nos testes unitários.
 """
@@ -16,7 +16,7 @@ import json
 import uuid
 
 import app as _app
-from irflow_price_tables import (
+from fluxoly_price_tables import (
     carregar_tabelas_preco,
     encontrar_servico_tabela,
     salvar_tabelas_preco,
@@ -25,7 +25,7 @@ from irflow_price_tables import (
 )
 
 # ============================================================================
-# Unitários — irflow_price_tables.py
+# Unitários — fluxoly_price_tables.py
 # ============================================================================
 
 

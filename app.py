@@ -85,10 +85,10 @@ from irflow_os import (
     zerar_garantia_reparo,
 )
 
-from irflow_audit import registrar_log_auditoria
+from fluxoly_audit import registrar_log_auditoria
 from fluxoly_tipos_garantia_service import obter_tipo_garantia
 
-from irflow_mercadophone import (
+from fluxoly_mercadophone import (
     detalhar_os_mercado_phone,
     importar_os_mercado_phone,
     loop_sincronizacao_mercado_phone,
@@ -110,11 +110,11 @@ from irflow_storage import (
 # IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
 # ============================================================================
 from irflow_blueprints_main import create_main_blueprint
-from irflow_price_tables import (
+from fluxoly_price_tables import (
     carregar_tabelas_preco as carregar_tabelas_preco_arquivo,
     salvar_tabelas_preco as salvar_tabelas_preco_arquivo,
 )
-from irflow_reference_data import (
+from fluxoly_reference_data import (
     CATEGORIAS_CUSTOS_OPERACIONAIS,
     IPHONE_COLORS,
     IPHONE_MODELS,
@@ -1157,7 +1157,7 @@ def criar_tabelas():
             # INC-002 (docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md): sem
             # essa restricao, duas OS podiam ser importadas com o mesmo id_externo_integracao
             # (achado: sync do Mercado Phone rodando em mais de um worker do Gunicorn ao mesmo
-            # tempo, sem coordenacao). O lock cross-processo (irflow_mercadophone.py) corrige o
+            # tempo, sem coordenacao). O lock cross-processo (fluxoly_mercadophone.py) corrige o
             # mecanismo mais provavel do bug; este indice e a garantia definitiva no banco,
             # valendo contra qualquer outro caminho futuro de escrita (bug humano, script,
             # nova integracao). SQLite trata cada NULL como distinto em indices UNIQUE, entao

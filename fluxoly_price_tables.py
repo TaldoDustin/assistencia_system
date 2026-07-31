@@ -3,7 +3,7 @@ import os
 import re
 
 from irflow_core import normalizar_busca_texto, texto_limpo
-from irflow_reference_data import IPHONE_ALIAS_MAP, normalizar_modelo_iphone
+from fluxoly_reference_data import IPHONE_ALIAS_MAP, normalizar_modelo_iphone
 
 
 def tabelas_preco_vazias():

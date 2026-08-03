@@ -1,8 +1,9 @@
 # SPRINT Housekeeping — Rebranding Técnico (TD-12)
 
-**Status:** EM ANDAMENTO — Fases 0-2 concluídas em 2026-07-31; Fase 3 (Limpeza/Renomeação) em execução:
-Lote 1, Lote 2 e Lote 4 concluídos (2026-08-03); Lote 3 parcial (Categoria B pendente); só resta
-`irflow_blueprints_api.py` (Lote 5) com prefixo legado entre os módulos `.py`
+**Status:** EM ANDAMENTO — Fases 0-2 concluídas em 2026-07-31; Fase 3 (Limpeza/Renomeação): Lote 1, Lote 2,
+Lote 4 e Lote 5 concluídos (2026-08-03) — **todos os módulos `.py` já seguem `fluxoly_*`**. Pendências:
+Lote 3 Categoria B (senha de seed, decisão do CTO) e Fase 5 (Validação final). Decomposição de
+`fluxoly_blueprints_api.py` (TD-01) formalmente fora do escopo desta sprint — ver `ADR-011`
 **Período:** Iniciada 2026-07-31
 **Tipo:** Infraestrutura / Refatoração / Chore
 
@@ -140,8 +141,9 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
    um commit por grupo de domínio): `clientes` (`8a085f8`), `produtos` (`468315b`), `unidades_serializadas`
    (`558a47c`), `validation`/`audit`/`reference_data`/`price_tables`/`mercadophone` (`f301d62`),
    `logging`/`web`/`blueprints_auth`/`blueprints_main`/`rate_limit`/`reports`/`storage` (`c04bd29`).
-   Todos os 18 módulos 🟢 identificados em `AUDIT_DEPENDENCIES.md` estão renomeados; só restam
-   `irflow_core.py`, `irflow_os.py` (Lote 4) e `irflow_blueprints_api.py` (Lote 5) com o prefixo legado.
+   Todos os 18 módulos 🟢 identificados em `AUDIT_DEPENDENCIES.md` estão renomeados. `irflow_core.py`/
+   `irflow_os.py` (Lote 4) e `irflow_blueprints_api.py` (Lote 5) — ambos concluídos em 2026-08-03, ver
+   abaixo.
 3. **Lote 3 — branding frontend (parcial, concluído em 2026-08-03)** (`refactor(rebrand): ...`):
    - ✅ **Categoria A — texto/comentários puros** (`06264d7`): título de `frontend/README.md`,
      comentário da paleta em `frontend/src/index.css`, comentário de cabeçalho e 5 prefixos de log
@@ -167,8 +169,13 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
    `ruff check .`, suíte completa (681 passed / 1 failed — KI-030, ambiente, não relacionado) e
    reindexação do Graphify confirmando o mesmo grafo. Comentários frontend que citavam os dois módulos
    (`Users.jsx`, `constants.js`) atualizados junto de cada rename.
-5. **Lote 5 — `irflow_blueprints_api.py` (🔴)**: isolado, sozinho, com validação completa antes de
-   seguir — decisão prévia sobre TD-01 necessária.
+5. **✅ Lote 5 — `irflow_blueprints_api.py` → `fluxoly_blueprints_api.py` (🔴, CONCLUÍDO em 2026-08-03,
+   `02e856c`)**: rename isolado e mecânico, sem decomposição — decidido via Revisão Arquitetural
+   dedicada (Graphify + leitura estruturada do arquivo: 70 rotas, 78 dependências injetadas, 13
+   domínios) que confirmou `ADR-002` como decisão de fundo válida mas desatualizada em escopo. Resultado
+   formalizado em `ADR-011`: rename executado agora, decomposição (TD-01) adiada para sprint própria,
+   fora do escopo da Housekeeping. Mesma validação dos Lotes 4a/4b (Graphify antes/depois, grep de
+   confirmação, `ruff check .`, suíte completa — 681 passed / 1 failed, KI-030 não relacionado).
 6. **Lote 6 — itens que exigem confirmação do usuário antes de executar**: `cleanup_db.py`, scripts de
    `scripts/`, bloco de build desktop, `FLY_DATA_DIR`, as 4 branches que precisam de remoção forçada ou
    confirmação.

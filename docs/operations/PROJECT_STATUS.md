@@ -568,7 +568,7 @@ Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` exis
 
 | ID   | Descrição                                                              | Impacto | Prioridade |
 |------|------------------------------------------------------------------------|---------|------------|
-| TD-01 | `irflow_blueprints_api.py` com ~130KB — módulo demasiado grande        | Alto    | Alta       |
+| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Decisão de decomposição confirmada (`ADR-002`/`ADR-011`), sem sprint agendada | Alto    | Alta       |
 | TD-02 | `app.py` acumula inicialização, DB e lógica misturadas                 | Alto    | Alta       |
 | TD-03 | Ausência de migrations formais (usa `ALTER TABLE` com try/except)      | Alto    | Alta       |
 | TD-04 | Sem injeção de dependências no backend — acoplamento direto ao SQLite  | Médio   | Média      |
@@ -607,15 +607,15 @@ Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` exis
 
 | Arquivo                          | Papel                                                         | Risco de tocar |
 |----------------------------------|---------------------------------------------------------------|----------------|
-| `irflow_blueprints_api.py`       | Todos os endpoints REST (~80+) — núcleo do sistema           | Muito alto     |
+| `fluxoly_blueprints_api.py`      | Todos os endpoints REST (70) — núcleo do sistema (TD-01)       | Muito alto     |
 | `app.py`                         | Inicialização Flask, schema DB, registro de blueprints        | Muito alto     |
-| `irflow_os.py`                   | Lógica de negócio das Ordens de Serviço                       | Alto           |
-| `irflow_storage.py`              | Backup automático e Google Drive                              | Alto           |
-| `irflow_mercadophone.py`         | Integração com sistema externo MercadoPhone                   | Alto           |
+| `fluxoly_os.py`                  | Lógica de negócio das Ordens de Serviço                       | Alto           |
+| `fluxoly_storage.py`             | Backup automático e Google Drive                              | Alto           |
+| `fluxoly_mercadophone.py`        | Integração com sistema externo MercadoPhone                   | Alto           |
 | `frontend/src/api/client.js`     | Centraliza todas as chamadas de API do frontend               | Alto           |
 | `frontend/src/App.jsx`           | Roteamento, guards de autenticação, layout global             | Alto           |
 | `frontend/src/contexts/AuthContext.jsx` | Estado global de autenticação                          | Alto           |
-| `irflow_core.py`                 | Constantes de status e utilitários compartilhados             | Médio          |
+| `fluxoly_core.py`                | Constantes de status e utilitários compartilhados             | Médio          |
 | `frontend/src/pages/NewOrder.jsx`| Fluxo crítico de criação de OS com auto-price                 | Médio          |
 | `frontend/src/pages/EditOrder.jsx`| Fluxo crítico de edição de OS                                | Médio          |
 
@@ -648,7 +648,7 @@ Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` exis
 7. **[Backlog — process]** Adicionar critério **C-05 — Consulta incorreta em fluxo oficial** a `docs/engineering/ENGINEERING_GUIDE.md` §11 (ou ADR dedicada). Motivação: o hotfix `44be10c` (Sprint 2.5 — ordem de parâmetros SQL quebrava todo filtro de `GET /api/estoque`) não se encaixava nos critérios C-01–C-04 existentes, que cobrem mutação de dado, não leitura incorreta em rota de consulta usada pelo frontend. Rascunho de critério: *"O achado faz uma rota de consulta (GET) oficialmente usada pelo frontend retornar dado incorreto, incompleto ou vazio de forma sistemática (não um erro pontual de um registro), sem sinalizar erro ao chamador?"* Avaliar junto de C-01–C-04 na próxima ocorrência similar antes de formalizar a redação final.
 
 ### Médio prazo (Sprint 3–4)
-1. Quebrar `irflow_blueprints_api.py` em módulos menores
+1. Quebrar `fluxoly_blueprints_api.py` em módulos menores (TD-01 — decisão confirmada em `ADR-002`/`ADR-011`, sprint própria ainda sem data)
 2. Implementar migrations formais (Alembic ou scripts versionados)
 3. Adicionar rate limiting em `/api/auth/login`
 4. Implementar expiração de tokens de checklist

@@ -51,16 +51,19 @@ Responsável:
 ## KI-003
 
 Descrição:
-O módulo `irflow_blueprints_api.py` possui ~130KB e concentra mais de 80 endpoints sem separação por domínio de negócio.
+O módulo `fluxoly_blueprints_api.py` (renomeado de `irflow_blueprints_api.py` na Sprint Housekeeping,
+2026-08-03) possui ~130KB e concentra 70 rotas em 13 domínios de negócio sem separação — contagem exata
+e mapeamento de acoplamento (78 dependências injetadas via `create_api_blueprint(deps)`) levantados em
+`ADR-011`.
 
 Impacto:
 Alto. Dificulta manutenção, aumenta risco de regressão em qualquer alteração e torna o onboarding de novos colaboradores mais lento.
 
 Status:
-Aberto — aguardando Sprint 4.
+Aberto — decisão de decomposição confirmada em `ADR-002`/`ADR-011`, mas sem sprint agendada.
 
 Sprint prevista:
-Sprint 4 — Decomposição do Módulo API e Migrations Formais.
+Não definida — TD-01, deliberadamente fora do escopo da Sprint Housekeeping (`ADR-011`, 2026-08-03).
 
 Responsável:
 —

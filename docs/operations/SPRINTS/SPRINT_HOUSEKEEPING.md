@@ -1,6 +1,8 @@
 # SPRINT Housekeeping — Rebranding Técnico (TD-12)
 
-**Status:** EM ANDAMENTO — Fase 1 (Auditoria) concluída em 2026-07-31, iniciando Fase 2 (Planejamento)
+**Status:** EM ANDAMENTO — Fases 0-2 concluídas em 2026-07-31; Fase 3 (Limpeza/Renomeação) em execução:
+Lote 1 e Lote 2 concluídos, Lote 3 (branding frontend) e Lote 4 (hubs `irflow_core.py`/`irflow_os.py`)
+pendentes
 **Período:** Iniciada 2026-07-31
 **Tipo:** Infraestrutura / Refatoração / Chore
 
@@ -134,12 +136,14 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
    (decisão de Product), `chore/inc-001-instrumentacao-conexoes` + `origin/ajuste-render-webhook` +
    `origin/refactor/system-audit` + `origin/worktree-quizzical-cuddling-stardust` (Lote 6, aguardando
    confirmação do usuário).
-2. **Lote 2 — módulos 🟢, em grupos pequenos** (`refactor(rebrand): ...`, cada grupo = 1 commit de
-   rename + 1 commit de atualização de imports em `app.py`, suíte rodada entre grupos): agrupar por
-   domínio (ex.: Clientes/Produtos/Unidades Serializadas num grupo, utilitários — validation, logging,
-   web, rate_limit, reports, storage, audit, reference_data, price_tables — noutro).
-3. **Lote 3 — branding frontend** (`refactor(rebrand): ...`, pode rodar em paralelo aos lotes 2-4, sem
-   dependência de ordem): README, `client.js`, `index.css`, senha de teste.
+2. **✅ Lote 2 — módulos 🟢, em grupos pequenos (CONCLUÍDO em 2026-08-03)** (`refactor(rebrand): ...`,
+   um commit por grupo de domínio): `clientes` (`8a085f8`), `produtos` (`468315b`), `unidades_serializadas`
+   (`558a47c`), `validation`/`audit`/`reference_data`/`price_tables`/`mercadophone` (`f301d62`),
+   `logging`/`web`/`blueprints_auth`/`blueprints_main`/`rate_limit`/`reports`/`storage` (`c04bd29`).
+   Todos os 18 módulos 🟢 identificados em `AUDIT_DEPENDENCIES.md` estão renomeados; só restam
+   `irflow_core.py`, `irflow_os.py` (Lote 4) e `irflow_blueprints_api.py` (Lote 5) com o prefixo legado.
+3. **Lote 3 — branding frontend (pendente)** (`refactor(rebrand): ...`, pode rodar em paralelo aos
+   lotes 2-4, sem dependência de ordem): README, `client.js`, `index.css`, senha de teste.
 4. **Lote 4 — hubs 🟠**: `irflow_os.py` primeiro, depois `irflow_core.py` (só depois que os módulos que
    dependem dele já estiverem no padrão novo), comentários frontend que citam esses dois módulos
    atualizados junto.

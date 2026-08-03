@@ -142,8 +142,24 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
    `logging`/`web`/`blueprints_auth`/`blueprints_main`/`rate_limit`/`reports`/`storage` (`c04bd29`).
    Todos os 18 módulos 🟢 identificados em `AUDIT_DEPENDENCIES.md` estão renomeados; só restam
    `irflow_core.py`, `irflow_os.py` (Lote 4) e `irflow_blueprints_api.py` (Lote 5) com o prefixo legado.
-3. **Lote 3 — branding frontend (pendente)** (`refactor(rebrand): ...`, pode rodar em paralelo aos
-   lotes 2-4, sem dependência de ordem): README, `client.js`, `index.css`, senha de teste.
+3. **Lote 3 — branding frontend (parcial, concluído em 2026-08-03)** (`refactor(rebrand): ...`):
+   - ✅ **Categoria A — texto/comentários puros** (`06264d7`): título de `frontend/README.md`,
+     comentário da paleta em `frontend/src/index.css`, comentário de cabeçalho e 5 prefixos de log
+     `[IR Flow]` → `[Fluxoly]` em `frontend/src/api/client.js`. Zero risco funcional, sem mudança de
+     comportamento.
+   - ⏸️ **Categoria B — senha de seed `irflow@2024` (pendente, decisão do CTO)**: toca `app.py:1346`
+     (seed do usuário `admin` padrão) além de `scripts/debug_shopping.py`, `smoke_test_full.py`,
+     `test_routes.py`, `test_shopping_list.py`, `frontend/tests/e2e/app.spec.js` e
+     `docs/engineering/TESTING.md:187`. Confirmado como senha de seed local/dev (não é credencial real
+     de nenhum ambiente — `TESTING.md` já a documenta como tal), mas como muda o valor efetivo da
+     senha padrão e toca `app.py`, requer plano apresentado e aprovação explícita antes de executar
+     (regra do `CLAUDE.md` para mudanças em `app.py`), incluindo decidir a nova senha de seed.
+   - Fora do Lote 3 (não confundir com branding): `frontend/playwright.config.js`
+     (`IR_FLOW_NO_BROWSER`/`IR_FLOW_PORT`) pertence ao grupo de variáveis `IR_FLOW_*` adiado para
+     janela pós-Housekeeping; comentários em `frontend/src/lib/constants.js` e
+     `frontend/src/pages/Users.jsx` que citam `irflow_core.py` pelo nome pertencem ao Lote 4, junto do
+     rename do próprio arquivo; a URL `irflow-backend.onrender.com` em `README.md` (raiz) é
+     infraestrutura Render, fora do escopo desta sprint.
 4. **Lote 4 — hubs 🟠**: `irflow_os.py` primeiro, depois `irflow_core.py` (só depois que os módulos que
    dependem dele já estiverem no padrão novo), comentários frontend que citam esses dois módulos
    atualizados junto.

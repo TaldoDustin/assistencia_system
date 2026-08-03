@@ -1,8 +1,8 @@
 # SPRINT Housekeeping — Rebranding Técnico (TD-12)
 
 **Status:** EM ANDAMENTO — Fases 0-2 concluídas em 2026-07-31; Fase 3 (Limpeza/Renomeação) em execução:
-Lote 1 e Lote 2 concluídos, Lote 3 (branding frontend) e Lote 4 (hubs `irflow_core.py`/`irflow_os.py`)
-pendentes
+Lote 1, Lote 2 e Lote 4 concluídos (2026-08-03); Lote 3 parcial (Categoria B pendente); só resta
+`irflow_blueprints_api.py` (Lote 5) com prefixo legado entre os módulos `.py`
 **Período:** Iniciada 2026-07-31
 **Tipo:** Infraestrutura / Refatoração / Chore
 
@@ -160,9 +160,13 @@ que ordem. A execução em si é a Fase 3 (Limpeza) e a Fase 4 (Renomeação), a
      `frontend/src/pages/Users.jsx` que citam `irflow_core.py` pelo nome pertencem ao Lote 4, junto do
      rename do próprio arquivo; a URL `irflow-backend.onrender.com` em `README.md` (raiz) é
      infraestrutura Render, fora do escopo desta sprint.
-4. **Lote 4 — hubs 🟠**: `irflow_os.py` primeiro, depois `irflow_core.py` (só depois que os módulos que
-   dependem dele já estiverem no padrão novo), comentários frontend que citam esses dois módulos
-   atualizados junto.
+4. **✅ Lote 4 — hubs 🟠 (CONCLUÍDO em 2026-08-03)**: `irflow_os.py` → `fluxoly_os.py` primeiro
+   (`80a3b31`), depois `irflow_core.py` → `fluxoly_core.py` (`f51e195`), cada um em commit isolado.
+   Antes de cada rename, `graphify explain` + grep de confirmação validaram o mapa de dependências
+   contra `AUDIT_DEPENDENCIES.md` (nenhuma divergência nas duas rodadas); depois de cada rename,
+   `ruff check .`, suíte completa (681 passed / 1 failed — KI-030, ambiente, não relacionado) e
+   reindexação do Graphify confirmando o mesmo grafo. Comentários frontend que citavam os dois módulos
+   (`Users.jsx`, `constants.js`) atualizados junto de cada rename.
 5. **Lote 5 — `irflow_blueprints_api.py` (🔴)**: isolado, sozinho, com validação completa antes de
    seguir — decisão prévia sobre TD-01 necessária.
 6. **Lote 6 — itens que exigem confirmação do usuário antes de executar**: `cleanup_db.py`, scripts de

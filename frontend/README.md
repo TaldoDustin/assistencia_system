@@ -1,4 +1,4 @@
-# Frontend IR Flow
+# Frontend Fluxoly
 
 Aplicação React + Vite servida pelo Flask em `/app`.
 

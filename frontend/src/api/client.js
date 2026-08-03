@@ -1,5 +1,5 @@
 /**
- * IR Flow API Client
+ * Fluxoly API Client
  * Talks to Flask backend at /api/*.
  * Uses session cookies — credentials: 'include' on every request.
  * In Vite dev mode, the proxy in vite.config.js forwards /api → http://localhost:5080.
@@ -15,7 +15,7 @@ const BASE = ENV_BASE || (IS_VERCEL ? GUESSED_RENDER_BASE : "/api");
 
 if (IS_BROWSER && IS_VERCEL && !ENV_BASE) {
   console.warn(
-    "[IR Flow] VITE_API_URL não configurado no Vercel. Usando fallback automático:",
+    "[Fluxoly] VITE_API_URL não configurado no Vercel. Usando fallback automático:",
     BASE,
     "| Recomendado: configurar VITE_API_URL com a URL real do backend (/api).",
   );
@@ -119,7 +119,7 @@ async function request(method, path, body) {
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    console.error("[IR Flow] Resposta não-JSON da API", {
+    console.error("[Fluxoly] Resposta não-JSON da API", {
       method,
       url,
       status: res.status,
@@ -128,7 +128,7 @@ async function request(method, path, body) {
   }
 
   if (!res.ok) {
-    console.error("[IR Flow] Erro HTTP na API", {
+    console.error("[Fluxoly] Erro HTTP na API", {
       method,
       url,
       status: res.status,
@@ -417,7 +417,7 @@ export const relatorios = {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error("[IR Flow] Erro ao baixar PDF:", error);
+      console.error("[Fluxoly] Erro ao baixar PDF:", error);
       throw error;
     }
   },
@@ -465,7 +465,7 @@ export const backup = {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error("[IR Flow] Erro ao baixar backup:", error);
+      console.error("[Fluxoly] Erro ao baixar backup:", error);
       throw error;
     }
   },

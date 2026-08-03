@@ -995,3 +995,38 @@ Não definida.
 
 Responsável:
 —
+
+---
+
+## KI-030
+
+Descrição:
+`tests/test_sentry_init.py::test_com_sentry_dsn_valido_inicializa_sem_erro` falha localmente em ambiente
+Windows com Python 3.14: `import app` (via subprocess) carrega `sentry_sdk`, que importa `asyncio`, que
+em `asyncio/windows_events.py` tenta importar `_overlapped` e recebe `OSError: [WinError 10106] O
+provedor de serviços solicitado não pôde ser carregado ou inicializado` — falha ao inicializar um
+provedor de rede do Winsock nesta máquina, não um bug de código. Achado durante a suíte completa rodada
+antes do commit do Lote 4a (Sprint Housekeeping, rename `irflow_os.py` → `fluxoly_os.py`); confirmado via
+`git stash` que o teste já falhava da mesma forma em `main` antes do rename — não é uma regressão
+introduzida por ele.
+
+Impacto:
+Baixo. Nenhum critério objetivo de `ENGINEERING_GUIDE.md` §11 é atendido — não muta dado, não perde dado,
+não faz bypass de autorização, e o código do teste em si (`import asyncio` dentro do `sentry_sdk`) não é
+um caminho de produção real acessado pelo frontend. CI roda em runner Linux (GitHub Actions), onde
+`asyncio/windows_events.py` nunca é importado — não deve reproduzir lá. Efeito prático: mais um teste
+"vermelho" a ignorar mentalmente ao rodar a suíte localmente nesta máquina, o que atrapalha
+`ENGINEERING_GUIDE.md` "nunca ignorar testes falhando" se não for documentado.
+
+Status:
+Aberto — não investigado a fundo (causa provável: driver/serviço Winsock ausente ou desabilitado nesta
+instalação Windows, ou incompatibilidade do módulo `_overlapped` com Python 3.14 especificamente).
+Nenhuma ação tomada; suíte segue sendo tratada como "681 passed, 1 failed (ambiente)" nesta máquina até
+confirmação em CI ou outro ambiente.
+
+Sprint prevista:
+Não definida — não bloqueia a Sprint Housekeeping (achado incidental, caracterizado e reportado aqui,
+conforme o fluxo "não interrompa" de `ENGINEERING_GUIDE.md` §11).
+
+Responsável:
+—

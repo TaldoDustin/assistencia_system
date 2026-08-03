@@ -5,7 +5,7 @@ Escopo: consumo automático de peças ao criar/editar OS (POST/PUT
 /api/ordens), devolução ao estoque (cancelamento via PATCH .../status,
 exclusão via DELETE), alteração/remoção/substituição de peças numa OS já
 existente, concorrência entre OS pelo mesmo item, e compatibilidade de
-peça por modelo (modelo_compativel em irflow_os.py).
+peça por modelo (modelo_compativel em fluxoly_os.py).
 
 Cria e limpa suas próprias Ordens de Serviço via API (não usa um fixture
 de bypass do banco) — é exatamente o caminho de integração real sendo

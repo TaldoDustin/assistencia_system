@@ -14,7 +14,7 @@ from irflow_core import (
     calcular_lucro_os,
     normalizar_status_os,
 )
-from irflow_os import obter_reparos_por_os
+from fluxoly_os import obter_reparos_por_os
 
 MESES_PT = {
     "01": "Janeiro",

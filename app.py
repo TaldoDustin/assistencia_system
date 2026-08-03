@@ -62,7 +62,7 @@ from irflow_core import (
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - OS, STORAGE, MERCADOPHONE
 # ============================================================================
-from irflow_os import (
+from fluxoly_os import (
     adicionar_peca_os_sem_consumir,
     buscar_garantia_reparo,
     buscar_historico_garantia_reparo,

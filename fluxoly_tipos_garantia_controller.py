@@ -7,7 +7,7 @@ service, formata resposta -- nunca contém regra de negócio nem acessa o
 banco diretamente (`docs/engineering/ENGINEERING_GUIDE.md` §3.1).
 
 Módulo compartilhado entre Vendas (Garantia de Venda) e Assistência
-(Garantia de Reparo, `irflow_os.py`) -- não pertence a nenhum dos dois
+(Garantia de Reparo, `fluxoly_os.py`) -- não pertence a nenhum dos dois
 domínios, por isso nasce como blueprint próprio (ADR-008, prefixo
 `fluxoly_`, `PLAN-V1.5-Garantia.md`).
 """

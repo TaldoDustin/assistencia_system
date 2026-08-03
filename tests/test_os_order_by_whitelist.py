@@ -1,5 +1,5 @@
 """
-Teste do achado da 2a triagem Aikido (2026-07-25) em irflow_os.py::carregar_os_com_relacoes:
+Teste do achado da 2a triagem Aikido (2026-07-25) em fluxoly_os.py::carregar_os_com_relacoes:
 o parâmetro `order_by` era interpolado via f-string direto na cláusula ORDER BY sem
 validação dentro da função -- seguro hoje porque os únicos 2 chamadores (irflow_blueprints_api.py)
 passam sempre o mesmo literal fixo "os.id DESC", mas nada impedia um chamador futuro de
@@ -8,7 +8,7 @@ já usado em fluxoly_unidades_serializadas_repository.py. Ver docs/security/SECU
 """
 
 import app as _app
-from irflow_os import carregar_os_com_relacoes
+from fluxoly_os import carregar_os_com_relacoes
 
 
 class TestOrderByWhitelist:

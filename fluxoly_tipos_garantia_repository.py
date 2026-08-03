@@ -10,7 +10,7 @@ de `docs/engineering/ENGINEERING_GUIDE.md` §3.1.
 
 `tipos_garantia` é o cadastro de política (nome + duração), nunca a garantia
 concedida em si -- a instância concreta vive como snapshot em
-`vendas_itens`/`os_reparos` (ver `fluxoly_vendas_repository.py`/`irflow_os.py`),
+`vendas_itens`/`os_reparos` (ver `fluxoly_vendas_repository.py`/`fluxoly_os.py`),
 nunca lida ao vivo daqui depois de concedida.
 """
 

@@ -259,7 +259,7 @@ def marcar_como_vendida(cursor, unidade_id, venda_id, usuario_id):
     Responsabilidade de Transição, ADR-007). Recebe `cursor` (não `conectar`) --
     exceção deliberada ao padrão do resto deste arquivo, porque precisa viver na
     MESMA transação de `fluxoly_vendas_service.py::iniciar_venda` (cliente ->
-    venda -> item -> unidade -> commit único), mesmo motivo de `irflow_os.py`
+    venda -> item -> unidade -> commit único), mesmo motivo de `fluxoly_os.py`
     já citado em `ENGINEERING_GUIDE.md` §3.1 para funções compartilhadas entre
     domínios.
 

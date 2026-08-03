@@ -3,7 +3,7 @@ fluxoly_tipos_garantia_service.py
 
 Regra de negócio do cadastro Tipos de Garantia (BR-055,
 docs/product/features/VENDAS.md "V1.5 -- Garantia"). Consumido por
-`fluxoly_vendas_service.py` (Garantia de Venda) e `irflow_os.py` (Garantia de
+`fluxoly_vendas_service.py` (Garantia de Venda) e `fluxoly_os.py` (Garantia de
 Reparo) via `obter_tipo_garantia` -- nenhum dos dois acessa
 `fluxoly_tipos_garantia_repository.py` diretamente (service a service, nunca
 repository a repository, `ENGINEERING_GUIDE.md` §3.1).

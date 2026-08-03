@@ -38,7 +38,7 @@ from fluxoly_logging import configurar_logging, get_logger
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
 # ============================================================================
-from irflow_core import (
+from fluxoly_core import (
     GARANTIA_REPARO_DIAS_PADRAO,
     OS_TIPOS_OPCOES,
     PERFIS_OPCOES,

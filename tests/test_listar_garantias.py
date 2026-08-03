@@ -13,7 +13,7 @@ fallback do prazo fixo de 90 dias a partir de `data_finalizado`.
 from datetime import date, timedelta
 
 import app as _app
-from irflow_core import GARANTIA_REPARO_DIAS_PADRAO
+from fluxoly_core import GARANTIA_REPARO_DIAS_PADRAO
 
 
 def _gravar_garantia_reparo(os_id, reparo_id, duracao_meses, data_inicio, data_fim):

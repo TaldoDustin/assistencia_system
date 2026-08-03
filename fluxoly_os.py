@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from irflow_core import STATUS_FINALIZADO, calcular_data_fim_garantia, texto_limpo, to_float
+from fluxoly_core import STATUS_FINALIZADO, calcular_data_fim_garantia, texto_limpo, to_float
 
 
 def _consumir_lotes_fifo(cursor, estoque_id, quantidade):

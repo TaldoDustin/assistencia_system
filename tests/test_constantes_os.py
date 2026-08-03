@@ -2,12 +2,12 @@
 Sprint técnica de centralização de referências (2026-07-23).
 
 Escopo: GET /api/constantes expõe os_tipos/garantia_dias a partir de
-constantes nomeadas em irflow_core.py (OS_TIPOS_OPCOES,
+constantes nomeadas em fluxoly_core.py (OS_TIPOS_OPCOES,
 GARANTIA_REPARO_DIAS_PADRAO) — antes eram literais soltos duplicados em
 mais de um lugar do próprio irflow_blueprints_api.py.
 """
 
-from irflow_core import GARANTIA_REPARO_DIAS_PADRAO, OS_TIPOS_OPCOES
+from fluxoly_core import GARANTIA_REPARO_DIAS_PADRAO, OS_TIPOS_OPCOES
 
 
 class TestConstantesExpoeDadosDeOS:

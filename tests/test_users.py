@@ -232,7 +232,7 @@ class TestCriarUsuario:
 
     def test_criar_usuario_com_perfil_estoque_e_aceito(self, client, login_como, usuario_admin):
         """Sprint Segurança 1.0 (2026-07-25): perfil "estoque" adicionado — ver
-        docs/security/SECURITY_AUDIT_2026-07.md e irflow_core.py::PERFIS_OPCOES."""
+        docs/security/SECURITY_AUDIT_2026-07.md e fluxoly_core.py::PERFIS_OPCOES."""
         login_como(client, usuario_admin)
         login_novo = f"novo_{uuid.uuid4().hex[:8]}"
 

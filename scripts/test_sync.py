@@ -12,7 +12,7 @@ from datetime import datetime
 # Adicionar o diretório ao path
 sys.path.insert(0, os.path.dirname(__file__))
 
-from irflow_core import texto_limpo, normalizar_busca_texto, normalizar_status_os
+from fluxoly_core import texto_limpo, normalizar_busca_texto, normalizar_status_os
 from fluxoly_os import obter_ou_criar_reparo, salvar_reparos_os
 from fluxoly_mercadophone import (
     listar_os_mercado_phone,

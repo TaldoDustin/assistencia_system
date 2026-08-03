@@ -1,5 +1,5 @@
 // Fallback caso /api/constantes não retorne as listas (rede/erro) — espelha
-// STATUS_OS_OPCOES/OS_TIPOS_OPCOES (irflow_core.py). Fonte de verdade real é
+// STATUS_OS_OPCOES/OS_TIPOS_OPCOES (fluxoly_core.py). Fonte de verdade real é
 // a API — mesmo padrão de Produtos.jsx/Stock.jsx.
 export const STATUS_OPTIONS_FALLBACK = ["Em andamento", "Aguardando peca", "Finalizado", "Cancelado"];
 export const OS_TYPES_FALLBACK = ["Assistencia", "Garantia", "Upgrade"];

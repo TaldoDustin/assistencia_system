@@ -1,6 +1,6 @@
 import re
 
-from irflow_core import normalizar_busca_texto, texto_limpo
+from fluxoly_core import normalizar_busca_texto, texto_limpo
 
 
 # IMPORTANTE

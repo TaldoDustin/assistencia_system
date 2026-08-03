@@ -8,7 +8,7 @@ from datetime import datetime
 import unicodedata
 from collections import defaultdict
 
-from irflow_core import (
+from fluxoly_core import (
     STATUS_FINALIZADO,
     calcular_faturamento_os,
     calcular_lucro_os,

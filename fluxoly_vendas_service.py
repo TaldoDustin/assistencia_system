@@ -41,7 +41,7 @@ from datetime import date
 import fluxoly_clientes_service as clientes_service
 import fluxoly_unidades_serializadas_service as unidades_service
 from fluxoly_audit import registrar_log_auditoria
-from irflow_core import calcular_data_fim_garantia
+from fluxoly_core import calcular_data_fim_garantia
 
 import fluxoly_tipos_garantia_service as tipos_garantia_service
 import fluxoly_vendas_repository as repo

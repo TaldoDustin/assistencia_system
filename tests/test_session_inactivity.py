@@ -1,7 +1,7 @@
 """
 Testes de expiração de sessão por inatividade (Sprint 3 — Unidade 2).
 
-Escopo: `irflow_core.py::sessao_ainda_ativa`, aplicada em `verificar_autenticacao()`
+Escopo: `fluxoly_core.py::sessao_ainda_ativa`, aplicada em `verificar_autenticacao()`
 (`app.py`, `before_request` global) — cobre tanto rotas `/api/*` quanto views
 legadas, já que o `before_request` dispara para ambas antes de qualquer bypass.
 
@@ -78,14 +78,14 @@ class TestInatividadeSessaoApi:
 
 class TestSessaoAindaAtivaUnitario:
     def test_primeira_chamada_sem_marca_define_e_retorna_true(self):
-        from irflow_core import sessao_ainda_ativa
+        from fluxoly_core import sessao_ainda_ativa
 
         sess = {}
         assert sessao_ainda_ativa(sess) is True
         assert "_ultima_atividade" in sess
 
     def test_dentro_do_limite_retorna_true_e_atualiza(self):
-        from irflow_core import sessao_ainda_ativa
+        from fluxoly_core import sessao_ainda_ativa
 
         agora = datetime.now()
         sess = {"_ultima_atividade": (agora - timedelta(minutes=10)).isoformat()}
@@ -93,7 +93,7 @@ class TestSessaoAindaAtivaUnitario:
         assert sess["_ultima_atividade"] == agora.isoformat()
 
     def test_acima_do_limite_retorna_false_sem_atualizar(self):
-        from irflow_core import sessao_ainda_ativa
+        from fluxoly_core import sessao_ainda_ativa
 
         agora = datetime.now()
         marca_antiga = (agora - timedelta(minutes=31)).isoformat()
@@ -102,7 +102,7 @@ class TestSessaoAindaAtivaUnitario:
         assert sess["_ultima_atividade"] == marca_antiga
 
     def test_limite_configuravel_via_env_var(self, monkeypatch):
-        from irflow_core import sessao_ainda_ativa
+        from fluxoly_core import sessao_ainda_ativa
 
         monkeypatch.setenv("IR_FLOW_SESSION_INACTIVITY_MINUTES", "5")
         agora = datetime.now()

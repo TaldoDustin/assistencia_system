@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Sprint Segurança 1.0 (2026-07-25): "estoque" adicionado — ver
-// docs/security/SECURITY_AUDIT_2026-07.md e irflow_core.py::PERFIS_OPCOES.
+// docs/security/SECURITY_AUDIT_2026-07.md e fluxoly_core.py::PERFIS_OPCOES.
 // "financeiro" adicionado em 2026-07-29 (V1.4 -- Comissão, BR-044).
 const PERFIS = ["admin", "tecnico", "vendedor", "estoque", "financeiro"];
 

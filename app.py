@@ -1867,7 +1867,7 @@ def verificar_autenticacao():
     # Expiração de sessão por inatividade — roda para TODA rota autenticada,
     # inclusive /api/*, já que este before_request dispara antes do bypass
     # abaixo. Limpar a sessão aqui é suficiente para /api/* também: o
-    # usuario_logado() de irflow_blueprints_api.py checa session["usuario_id"],
+    # usuario_logado() de fluxoly_blueprints_api.py checa session["usuario_id"],
     # que já estará vazio quando a view rodar.
     if session.get("usuario_id") and not sessao_ainda_ativa(session):
         session.clear()
@@ -1908,7 +1908,7 @@ def verificar_autenticacao():
 # ============================================================================
 
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
-from irflow_blueprints_api import create_api_blueprint  # noqa: E402
+from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_rate_limit import resolver_ip_cliente, limite_excedido, registrar_tentativa  # noqa: E402
 
 app.register_blueprint(

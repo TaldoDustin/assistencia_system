@@ -3,7 +3,7 @@ fluxoly_audit.py
 
 Auditoria central reutilizável — uma tabela genérica (`audit_log`) em vez de
 uma tabela de log por domínio (padrão já usado em `shopping_list_logs`,
-`irflow_blueprints_api.py::_log_shopping`, que não é tocado por este módulo
+`fluxoly_blueprints_api.py::_log_shopping`, que não é tocado por este módulo
 e continua como está).
 
 Novos domínios (Clientes, Estoque/IMEI e futuramente outros) chamam

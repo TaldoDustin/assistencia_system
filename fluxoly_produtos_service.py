@@ -5,7 +5,7 @@ Regra de negócio pura do domínio Produtos — não conhece Flask, `request`
 nem `jsonify` (`docs/engineering/ENGINEERING_GUIDE.md` §3.1).
 
 Responsabilidade: catálogo comercial (SKU de venda — iPhone, Apple Watch,
-AirPods, Acessório), distinto do domínio Estoque (`irflow_blueprints_api.py`,
+AirPods, Acessório), distinto do domínio Estoque (`fluxoly_blueprints_api.py`,
 peças de reparo — `Tela`/`Bateria`/etc.). `categoria` e `condicao` são
 validadas contra lista fechada e **rejeitadas** (não normalizadas) quando
 inválidas — ao contrário de `_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`,

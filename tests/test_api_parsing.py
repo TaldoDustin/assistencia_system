@@ -1,5 +1,5 @@
 """
-Testes de regressao para o parsing de entrada nas rotas de irflow_blueprints_api.py
+Testes de regressao para o parsing de entrada nas rotas de fluxoly_blueprints_api.py
 (Sprint 2.6 — fix: substituir int()/float() nao tratados por parse_int/parse_float).
 
 Antes da correcao, um valor nao numerico nesses campos derrubava a rota com

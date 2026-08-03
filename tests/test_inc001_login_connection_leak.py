@@ -1,7 +1,7 @@
 """
 INC-001 — database is locked (docs/operations/INCIDENTS/INC-001-database-is-locked.md).
 
-Escopo: POST /api/auth/login (irflow_blueprints_api.py::auth_login) era a rota
+Escopo: POST /api/auth/login (fluxoly_blueprints_api.py::auth_login) era a rota
 de escrita de maior frequência do sistema sem try/except/finally — uma
 exceção entre abrir e fechar a conexão vazava o objeto com a transação de
 escrita ainda aberta, bloqueando todo escritor seguinte em WAL até o

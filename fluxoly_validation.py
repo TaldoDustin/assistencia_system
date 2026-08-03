@@ -1,7 +1,7 @@
 """
 Camada compartilhada de parsing e validação de entrada para rotas Flask.
 
-Usada pelos endpoints JSON de `irflow_blueprints_api.py`. Os blueprints
+Usada pelos endpoints JSON de `fluxoly_blueprints_api.py`. Os blueprints
 HTML (admin/inventory/orders/auth) usam fluxo `flash()`/`redirect()` e não
 consomem estes utilitários.
 """

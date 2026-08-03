@@ -33,7 +33,7 @@ profile = "black"
 line_length = 120
 known_first_party = [
     "app",
-    "irflow_blueprints_api",
+    "fluxoly_blueprints_api",
     "fluxoly_blueprints_auth",
     "fluxoly_blueprints_main",
     "fluxoly_core",
@@ -76,7 +76,7 @@ addopts = [
 [tool.coverage.run]
 source = [
     "app",
-    "irflow_blueprints_api",
+    "fluxoly_blueprints_api",
     "fluxoly_blueprints_auth",
     "fluxoly_blueprints_main",
     "fluxoly_core",

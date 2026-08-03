@@ -236,7 +236,7 @@ class TestCriarOrdemDependencias:
     def test_vendedor_invalido_e_ignorado_quando_cliente_e_ir_phones(
         self, client, login_como, usuario_tecnico, payload_os_valido
     ):
-        """vendedor_valido() só é checado quando cliente != 'IR Phones' (irflow_blueprints_api.py::criar_ordem)."""
+        """vendedor_valido() só é checado quando cliente != 'IR Phones' (fluxoly_blueprints_api.py::criar_ordem)."""
         login_como(client, usuario_tecnico)
 
         resp = client.post(

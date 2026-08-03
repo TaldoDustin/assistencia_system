@@ -205,7 +205,7 @@ Avalie antes de implementar qual nível de aprovação é necessário:
 - Refatoração dentro de um único arquivo com testes cobrindo
 
 ### Requer apresentar plano e aguardar aprovação
-- Qualquer mudança em `app.py` ou `irflow_blueprints_api.py`
+- Qualquer mudança em `app.py` ou `fluxoly_blueprints_api.py`
 - Qualquer alteração no schema do banco de dados
 - Adição ou remoção de dependências (`requirements.txt`, `package.json`)
 - Mudança em qualquer fluxo de autenticação ou autorização

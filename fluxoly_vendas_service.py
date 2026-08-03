@@ -194,7 +194,7 @@ def iniciar_venda(
             raise VendaConflitoError(erro)
 
         # V1.5 -- Garantia de Venda (BR-057): evento de concessão original,
-        # mesmo padrão do lado de Garantia de Reparo (irflow_blueprints_api.py).
+        # mesmo padrão do lado de Garantia de Reparo (fluxoly_blueprints_api.py).
         registrar_log_auditoria(
             cursor,
             "venda_item",

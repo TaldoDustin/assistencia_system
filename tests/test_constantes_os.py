@@ -4,7 +4,7 @@ Sprint técnica de centralização de referências (2026-07-23).
 Escopo: GET /api/constantes expõe os_tipos/garantia_dias a partir de
 constantes nomeadas em fluxoly_core.py (OS_TIPOS_OPCOES,
 GARANTIA_REPARO_DIAS_PADRAO) — antes eram literais soltos duplicados em
-mais de um lugar do próprio irflow_blueprints_api.py.
+mais de um lugar do próprio fluxoly_blueprints_api.py.
 """
 
 from fluxoly_core import GARANTIA_REPARO_DIAS_PADRAO, OS_TIPOS_OPCOES

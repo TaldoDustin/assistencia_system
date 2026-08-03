@@ -7,7 +7,7 @@ Recebe request, valida forma do payload, chama o service, formata resposta
 (`docs/engineering/ENGINEERING_GUIDE.md` §3.1).
 
 Contrato de resposta segue o padrão real já usado no resto da API
-(`{"ok": ...}` / `{"ok": false, "erro": ...}`, `irflow_blueprints_api.py`),
+(`{"ok": ...}` / `{"ok": false, "erro": ...}`, `fluxoly_blueprints_api.py`),
 não o exemplo `{"data": ...}` do `ENGINEERING_GUIDE.md` — inconsistência
 pré-existente entre a documentação e o código, fora de escopo corrigir
 nesta sprint.

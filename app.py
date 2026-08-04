@@ -22,6 +22,22 @@ import weakref
 import webbrowser
 from datetime import UTC, datetime, timedelta
 
+from dotenv import load_dotenv
+
+# Carrega .env em dev local antes de qualquer leitura de os.environ abaixo.
+# Não sobrescreve variáveis já definidas no processo. Pulado quando os mesmos
+# sinais de IS_SERVER_RUNTIME (definida adiante) já estão presentes: produção
+# nunca tem .env de qualquer forma (Dockerfile não copia, .gitignore exclui),
+# mas testes que simulam runtime de servidor num subprocesso isolado, rodando
+# com cwd na raiz do repo, encontrariam o .env real do desenvolvedor e
+# mascarariam a checagem obrigatória de FLASK_SECRET_KEY (ver
+# tests/test_security_flask_secret_key_fallback.py).
+if not any(
+    os.environ.get(var)
+    for var in ("IR_FLOW_DATA_DIR", "FLY_DATA_DIR", "RENDER_DISK_PATH", "RENDER", "RENDER_SERVICE_ID")
+):
+    load_dotenv()
+
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================

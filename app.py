@@ -18,22 +18,27 @@ import threading
 import time
 import traceback
 import uuid
-import webbrowser
 import weakref
+import webbrowser
 from datetime import UTC, datetime, timedelta
 
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, request, redirect, jsonify, flash, url_for, send_from_directory, abort, session, g
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Flask, abort, flash, g, jsonify, redirect, request, send_from_directory, session, url_for
 
 # ============================================================================
 # IMPORTS DE OBSERVABILIDADE (Sprint Observabilidade)
 # ============================================================================
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest, multiprocess
+from werkzeug.security import check_password_hash, generate_password_hash
 
-from fluxoly_logging import configurar_logging, get_logger
+from fluxoly_audit import registrar_log_auditoria
+
+# ============================================================================
+# IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
+# ============================================================================
+from fluxoly_blueprints_main import create_main_blueprint
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - CORE
@@ -57,6 +62,15 @@ from fluxoly_core import (
     status_cancelado,
     status_finalizado,
     texto_limpo,
+)
+from fluxoly_logging import configurar_logging, get_logger
+from fluxoly_mercadophone import (
+    detalhar_os_mercado_phone,
+    importar_os_mercado_phone,
+    loop_sincronizacao_mercado_phone,
+    reimportar_todas_os_mercado_phone,
+    reprocessar_todas_os_mercado_phone,
+    sincronizar_mercado_phone,
 )
 
 # ============================================================================
@@ -84,36 +98,8 @@ from fluxoly_os import (
     vendedor_valido,
     zerar_garantia_reparo,
 )
-
-from fluxoly_audit import registrar_log_auditoria
-from fluxoly_tipos_garantia_service import obter_tipo_garantia
-
-from fluxoly_mercadophone import (
-    detalhar_os_mercado_phone,
-    importar_os_mercado_phone,
-    loop_sincronizacao_mercado_phone,
-    reimportar_todas_os_mercado_phone,
-    reprocessar_todas_os_mercado_phone,
-    sincronizar_mercado_phone,
-)
-
-from fluxoly_storage import (
-    carregar_configuracoes_integracoes,
-    criar_backup,
-    enviar_backup_email,
-    garantir_pasta_backup_google_drive,
-    iniciar_thread_backup_automatico,
-    salvar_configuracoes_integracoes,
-)
-
-# ============================================================================
-# IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
-# ============================================================================
-from fluxoly_blueprints_main import create_main_blueprint
-from fluxoly_price_tables import (
-    carregar_tabelas_preco as carregar_tabelas_preco_arquivo,
-    salvar_tabelas_preco as salvar_tabelas_preco_arquivo,
-)
+from fluxoly_price_tables import carregar_tabelas_preco as carregar_tabelas_preco_arquivo
+from fluxoly_price_tables import salvar_tabelas_preco as salvar_tabelas_preco_arquivo
 from fluxoly_reference_data import (
     CATEGORIAS_CUSTOS_OPERACIONAIS,
     IPHONE_COLORS,
@@ -131,8 +117,6 @@ from fluxoly_reference_data import (
     normalizar_imei,
     normalizar_modelo_iphone,
 )
-from fluxoly_web import anexar_query_string
-
 from fluxoly_reports import (
     agrupar_relatorio_custos_operacionais,
     agrupar_relatorio_ir_phones,
@@ -144,6 +128,16 @@ from fluxoly_reports import (
     montar_pdf_texto,
     texto_reparos_os,
 )
+from fluxoly_storage import (
+    carregar_configuracoes_integracoes,
+    criar_backup,
+    enviar_backup_email,
+    garantir_pasta_backup_google_drive,
+    iniciar_thread_backup_automatico,
+    salvar_configuracoes_integracoes,
+)
+from fluxoly_tipos_garantia_service import obter_tipo_garantia
+from fluxoly_web import anexar_query_string
 
 # ============================================================================
 # CONFIGURAÇÃO DE AMBIENTE E CAMINHOS
@@ -160,9 +154,7 @@ else:
     # Em produção (Fly/Render), usa diretório persistente quando configurado.
     # Em desenvolvimento local, usa o próprio diretório da app.
     SERVER_DATA_DIR = (
-        os.environ.get("IR_FLOW_DATA_DIR")
-        or os.environ.get("FLY_DATA_DIR")
-        or os.environ.get("RENDER_DISK_PATH")
+        os.environ.get("IR_FLOW_DATA_DIR") or os.environ.get("FLY_DATA_DIR") or os.environ.get("RENDER_DISK_PATH")
     )
     if not SERVER_DATA_DIR and os.path.isdir("/data"):
         SERVER_DATA_DIR = "/data"
@@ -191,7 +183,12 @@ IS_SERVER_RUNTIME = bool(
     or os.environ.get("RENDER")
     or os.environ.get("RENDER_SERVICE_ID")
 )
-BACKGROUND_JOBS_ENABLED = (os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower() not in {"0", "false", "nao", "off"})
+BACKGROUND_JOBS_ENABLED = os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower() not in {
+    "0",
+    "false",
+    "nao",
+    "off",
+}
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 VERCEL_URL = (os.environ.get("VERCEL_URL") or "").strip()  # Ex: https://assistencia-system.vercel.app
@@ -206,7 +203,9 @@ def _normalizar_url_publica(valor):
     return f"https://{texto}"
 
 
-PUBLIC_BASE_URL = _normalizar_url_publica(os.environ.get("IR_FLOW_PUBLIC_BASE_URL")) or _normalizar_url_publica(VERCEL_URL)
+PUBLIC_BASE_URL = _normalizar_url_publica(os.environ.get("IR_FLOW_PUBLIC_BASE_URL")) or _normalizar_url_publica(
+    VERCEL_URL
+)
 GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
 
 # Configuração de e-mail para envio automático de backup
@@ -573,7 +572,9 @@ class _ConexaoRastreada:
         stack_resumida = "".join(traceback.format_stack()[:-1][-5:])
         conn_id, rota, thread_name, thread_ident = self._id, self._rota, self._thread_name, self._thread_ident
 
-        def _ao_coletar(_ref, conn_id=conn_id, rota=rota, thread_name=thread_name, thread_ident=thread_ident, stack=stack_resumida):
+        def _ao_coletar(
+            _ref, conn_id=conn_id, rota=rota, thread_name=thread_name, thread_ident=thread_ident, stack=stack_resumida
+        ):
             logger.warning(
                 "INC-001: conexão coletada pelo GC sem close() explícito",
                 extra={
@@ -647,7 +648,16 @@ class _ConexaoRastreada:
         return getattr(self._conn, nome)
 
     def __setattr__(self, nome, valor):
-        if nome in ("_conn", "_id", "_rota", "_thread_name", "_thread_ident", "_abertura_monotonic", "_aberta_em", "_finalizer"):
+        if nome in (
+            "_conn",
+            "_id",
+            "_rota",
+            "_thread_name",
+            "_thread_ident",
+            "_abertura_monotonic",
+            "_aberta_em",
+            "_finalizer",
+        ):
             object.__setattr__(self, nome, valor)
         else:
             setattr(self._conn, nome, valor)
@@ -679,14 +689,17 @@ def criar_tabelas():
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS reparos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS os (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tipo TEXT,
@@ -700,9 +713,11 @@ def criar_tabelas():
                 custo_pecas REAL,
                 data TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS estoque (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 descricao TEXT,
@@ -715,9 +730,11 @@ def criar_tabelas():
                 tipo TEXT,
                 qualidade TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS estoque_lotes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 estoque_id INTEGER NOT NULL,
@@ -729,9 +746,11 @@ def criar_tabelas():
                 observacoes TEXT,
                 criado_em TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS os_pecas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 os_id INTEGER,
@@ -739,17 +758,21 @@ def criar_tabelas():
                 quantidade INTEGER,
                 valor REAL
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS os_reparos (
                 os_id INTEGER NOT NULL,
                 reparo_id INTEGER NOT NULL,
                 PRIMARY KEY (os_id, reparo_id)
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS movimentacoes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 estoque_id INTEGER,
@@ -757,9 +780,11 @@ def criar_tabelas():
                 quantidade INTEGER,
                 data TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS custos_operacionais (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 descricao TEXT NOT NULL,
@@ -768,25 +793,31 @@ def criar_tabelas():
                 data TEXT,
                 observacoes TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS integracao_sync_estado (
                 chave TEXT PRIMARY KEY,
                 valor TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS integracao_os_vistas (
                 origem TEXT NOT NULL,
                 id_externo TEXT NOT NULL,
                 primeira_visualizacao TEXT,
                 PRIMARY KEY (origem, id_externo)
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS compras (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 produto TEXT NOT NULL,
@@ -796,9 +827,11 @@ def criar_tabelas():
                 criado_em TEXT DEFAULT '',
                 atualizado_em TEXT DEFAULT ''
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -807,9 +840,11 @@ def criar_tabelas():
                 perfil TEXT NOT NULL DEFAULT 'tecnico',
                 ativo INTEGER NOT NULL DEFAULT 1
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS os_checklists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 os_id INTEGER NOT NULL UNIQUE,
@@ -826,16 +861,19 @@ def criar_tabelas():
                 criado_em TEXT NOT NULL DEFAULT '',
                 atualizado_em TEXT NOT NULL DEFAULT ''
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS login_attempts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 identificador TEXT NOT NULL,
                 sucesso INTEGER NOT NULL,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute(
                 """
@@ -844,7 +882,8 @@ def criar_tabelas():
                 """
             )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS audit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 entidade TEXT NOT NULL,
@@ -855,7 +894,8 @@ def criar_tabelas():
                 valor_novo TEXT,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute(
                 """
@@ -864,7 +904,8 @@ def criar_tabelas():
                 """
             )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 usuario_id INTEGER NOT NULL,
@@ -874,7 +915,8 @@ def criar_tabelas():
                 usado_em TEXT,
                 criado_por INTEGER
             )
-            """)
+            """
+            )
 
             cursor.execute(
                 """
@@ -883,7 +925,8 @@ def criar_tabelas():
                 """
             )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS clientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -894,13 +937,15 @@ def criar_tabelas():
                 criado_em TEXT NOT NULL DEFAULT (datetime('now')),
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_telefone ON clientes (telefone)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_cpf_cnpj ON clientes (cpf_cnpj)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes (nome)")
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS unidades_serializadas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 estoque_id INTEGER,
@@ -916,7 +961,8 @@ def criar_tabelas():
                 criado_em TEXT NOT NULL DEFAULT (datetime('now')),
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_estoque_id ON unidades_serializadas (estoque_id)"
@@ -927,11 +973,10 @@ def criar_tabelas():
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_status ON unidades_serializadas (status)"
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_imei ON unidades_serializadas (imei)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_unidades_serializadas_imei ON unidades_serializadas (imei)")
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS produtos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 categoria TEXT NOT NULL,
@@ -951,7 +996,8 @@ def criar_tabelas():
                 criado_em TEXT NOT NULL DEFAULT (datetime('now')),
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_categoria ON produtos (categoria)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_produtos_sku ON produtos (sku)")
@@ -963,7 +1009,8 @@ def criar_tabelas():
             # "O que ainda está em aberto"). status='concluida' é deliberadamente distinto de um
             # futuro conceito de status de pagamento (pago/pendente/estornado) — venda e
             # pagamento são conceitos diferentes, não misturados aqui.
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS vendas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cliente_id INTEGER NOT NULL,
@@ -974,7 +1021,8 @@ def criar_tabelas():
                 observacoes TEXT NOT NULL DEFAULT '',
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_cliente_id ON vendas (cliente_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_vendedor_id ON vendas (vendedor_id)")
 
@@ -987,7 +1035,8 @@ def criar_tabelas():
             # unidade_serializada_id é UNIQUE: nunca a mesma unidade em duas vendas -- o
             # verdadeiro guardião contra a corrida de duas vendas simultâneas do mesmo
             # aparelho, no nível do banco, não só na validação da aplicação.
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS vendas_itens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 venda_id INTEGER NOT NULL,
@@ -1001,7 +1050,8 @@ def criar_tabelas():
                 subtotal REAL NOT NULL,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_vendas_itens_venda_id ON vendas_itens (venda_id)")
 
             # V1.2 -- Cancelamento (BR-031 a BR-036, VENDAS.md "V1.2 -- Cancelamento"): cancelar uma
@@ -1071,7 +1121,8 @@ def criar_tabelas():
             # política (Tipo de Garantia) separado da instância concedida (Garantia) -- nunca
             # confundir os dois no código. `ativo` permite ao admin aposentar uma política sem
             # apagá-la; nunca afeta garantias já concedidas, que são snapshot (colunas abaixo).
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS tipos_garantia (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -1080,7 +1131,8 @@ def criar_tabelas():
                 criado_em TEXT NOT NULL DEFAULT (datetime('now')),
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             # Garantia de Venda (BR-056/BR-057): atribuída manualmente por item, na criação da
             # venda -- sem default vindo do produto. Snapshot completo (id do tipo, nome,
@@ -1263,7 +1315,8 @@ def criar_tabelas():
             )
 
             # Shopping list tables
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS shopping_list (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 os_id INTEGER,
@@ -1282,9 +1335,11 @@ def criar_tabelas():
                 received_at TEXT,
                 cancelled_at TEXT
             )
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS shopping_list_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shopping_list_id INTEGER NOT NULL,
@@ -1294,7 +1349,8 @@ def criar_tabelas():
                 valor_novo TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            """)
+            """
+            )
 
             cursor.execute(
                 """
@@ -1361,10 +1417,24 @@ criar_admin_padrao()
 
 INTEGRATIONS_CONFIG = carregar_configuracoes_integracoes(INTEGRATIONS_CONFIG_PATH)
 MERCADO_PHONE_CONFIG = INTEGRATIONS_CONFIG.get("mercado_phone", {}) if isinstance(INTEGRATIONS_CONFIG, dict) else {}
-MERCADO_PHONE_API_TOKEN = os.environ.get("MERCADO_PHONE_API_TOKEN", "") or texto_limpo(MERCADO_PHONE_CONFIG.get("api_token"))
-MERCADO_PHONE_SYNC_ENABLED = (texto_limpo(str(MERCADO_PHONE_CONFIG.get("sync_enabled", MERCADO_PHONE_SYNC_ENABLED))).lower() not in {"0", "false", "nao", "off"}) if MERCADO_PHONE_API_TOKEN else False
-MERCADO_PHONE_SYNC_INTERVAL_SECONDS = int(MERCADO_PHONE_CONFIG.get("sync_interval_seconds", MERCADO_PHONE_SYNC_INTERVAL_SECONDS) or MERCADO_PHONE_SYNC_INTERVAL_SECONDS)
-MERCADO_PHONE_SYNC_START_DATE = texto_limpo(MERCADO_PHONE_CONFIG.get("sync_start_date", MERCADO_PHONE_SYNC_START_DATE)) or "2026-04-01"
+MERCADO_PHONE_API_TOKEN = os.environ.get("MERCADO_PHONE_API_TOKEN", "") or texto_limpo(
+    MERCADO_PHONE_CONFIG.get("api_token")
+)
+MERCADO_PHONE_SYNC_ENABLED = (
+    (
+        texto_limpo(str(MERCADO_PHONE_CONFIG.get("sync_enabled", MERCADO_PHONE_SYNC_ENABLED))).lower()
+        not in {"0", "false", "nao", "off"}
+    )
+    if MERCADO_PHONE_API_TOKEN
+    else False
+)
+MERCADO_PHONE_SYNC_INTERVAL_SECONDS = int(
+    MERCADO_PHONE_CONFIG.get("sync_interval_seconds", MERCADO_PHONE_SYNC_INTERVAL_SECONDS)
+    or MERCADO_PHONE_SYNC_INTERVAL_SECONDS
+)
+MERCADO_PHONE_SYNC_START_DATE = (
+    texto_limpo(MERCADO_PHONE_CONFIG.get("sync_start_date", MERCADO_PHONE_SYNC_START_DATE)) or "2026-04-01"
+)
 
 MERCADO_PHONE_RUNTIME_CONFIG = {
     "api_token": MERCADO_PHONE_API_TOKEN,
@@ -1502,13 +1572,16 @@ def receber_os_mercado_phone():
         resultado = importar_os_mercado_phone(cursor, payload, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS)
         conn.commit()
         status_code = 200 if resultado["duplicada"] else 201
-        return jsonify(
-            {
-                "ok": True,
-                "duplicada": resultado["duplicada"],
-                "os_id": resultado["os_id"],
-            }
-        ), status_code
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "duplicada": resultado["duplicada"],
+                    "os_id": resultado["os_id"],
+                }
+            ),
+            status_code,
+        )
     except ValueError as exc:
         # Alguns webhooks de edição vêm com payload parcial (apenas id/status).
         # Nesses casos, busca o detalhe por ID para salvar corretamente no Fluxoly.
@@ -1530,14 +1603,17 @@ def receber_os_mercado_phone():
                     )
                     conn.commit()
                     status_code = 200 if resultado["duplicada"] else 201
-                    return jsonify(
-                        {
-                            "ok": True,
-                            "duplicada": resultado["duplicada"],
-                            "os_id": resultado["os_id"],
-                            "fallback_por_id": True,
-                        }
-                    ), status_code
+                    return (
+                        jsonify(
+                            {
+                                "ok": True,
+                                "duplicada": resultado["duplicada"],
+                                "os_id": resultado["os_id"],
+                                "fallback_por_id": True,
+                            }
+                        ),
+                        status_code,
+                    )
             except Exception:
                 pass
 
@@ -1760,7 +1836,9 @@ app.register_blueprint(
             "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
             "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
             "formatar_periodo_relatorio": formatar_periodo_relatorio,
-            "montar_linhas_relatorio_ir_phones": functools.partial(montar_linhas_relatorio_ir_phones, conectar=conectar),
+            "montar_linhas_relatorio_ir_phones": functools.partial(
+                montar_linhas_relatorio_ir_phones, conectar=conectar
+            ),
             "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
             "montar_pdf_texto": montar_pdf_texto,
             "obter_reparos_por_os": obter_reparos_por_os,
@@ -1907,9 +1985,9 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
-from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
-from fluxoly_rate_limit import resolver_ip_cliente, limite_excedido, registrar_tentativa  # noqa: E402
+from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
+from fluxoly_rate_limit import limite_excedido, registrar_tentativa, resolver_ip_cliente  # noqa: E402
 
 app.register_blueprint(
     create_auth_blueprint(
@@ -1969,11 +2047,17 @@ app.register_blueprint(
             "salvar_tabelas_preco": salvar_tabelas_preco,
             "texto_reparos_os": texto_reparos_os,
             "listar_custos_operacionais": listar_custos_operacionais,
-            "agrupar_relatorio_custos_operacionais": functools.partial(agrupar_relatorio_custos_operacionais, conectar=conectar),
+            "agrupar_relatorio_custos_operacionais": functools.partial(
+                agrupar_relatorio_custos_operacionais, conectar=conectar
+            ),
             "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
             "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
-            "montar_linhas_relatorio_custos_operacionais": functools.partial(montar_linhas_relatorio_custos_operacionais, conectar=conectar),
-            "montar_linhas_relatorio_ir_phones": functools.partial(montar_linhas_relatorio_ir_phones, conectar=conectar),
+            "montar_linhas_relatorio_custos_operacionais": functools.partial(
+                montar_linhas_relatorio_custos_operacionais, conectar=conectar
+            ),
+            "montar_linhas_relatorio_ir_phones": functools.partial(
+                montar_linhas_relatorio_ir_phones, conectar=conectar
+            ),
             "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
             "montar_pdf_texto": montar_pdf_texto,
             "formatar_periodo_relatorio": formatar_periodo_relatorio,

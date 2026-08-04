@@ -1,5 +1,5 @@
 """
-IR Flow - Blueprint de Autenticação
+Fluxoly - Blueprint de Autenticação
 Login e logout via formulário legado.
 
 Gestão de usuários por formulário (`/usuarios/novo`, `/usuarios/editar`,

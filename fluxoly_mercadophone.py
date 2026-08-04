@@ -7,7 +7,7 @@ from urllib import request as urllib_request
 
 from fluxoly_logging import get_logger
 
-logger = get_logger("irflow.mercadophone")
+logger = get_logger("fluxoly.mercadophone")
 
 
 def valor_payload(payload, *caminhos):

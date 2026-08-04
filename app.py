@@ -1,5 +1,5 @@
 ﻿"""
-IR Flow - Sistema de Gestão de Assistência Técnica
+Fluxoly - Sistema de Gestão de Assistência Técnica
 Application main module - Flask app bootstrap, configuration, and core functionality
 """
 
@@ -1511,7 +1511,7 @@ def receber_os_mercado_phone():
         ), status_code
     except ValueError as exc:
         # Alguns webhooks de edição vêm com payload parcial (apenas id/status).
-        # Nesses casos, busca o detalhe por ID para salvar corretamente no IR Flow.
+        # Nesses casos, busca o detalhe por ID para salvar corretamente no Fluxoly.
         if (
             external_id
             and "dados suficientes" in str(exc).lower()

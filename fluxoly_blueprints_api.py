@@ -1,5 +1,5 @@
 """
-IR Flow - API Blueprint (JSON endpoints)
+Fluxoly - API Blueprint (JSON endpoints)
 All routes under /api/* — consumed by the React SPA frontend.
 Authentication: Flask session cookies (same-origin, credentials: 'include').
 """

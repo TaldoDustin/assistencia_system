@@ -12,7 +12,7 @@ from datetime import datetime
 
 from fluxoly_logging import get_logger
 
-logger = get_logger("irflow.backup")
+logger = get_logger("fluxoly.backup")
 
 
 def carregar_configuracoes_integracoes(integrations_config_path):
@@ -165,10 +165,10 @@ def enviar_backup_email(caminho_arquivo, email_remetente, email_senha_app, email
     msg = email.mime.multipart.MIMEMultipart()
     msg["From"] = email_remetente
     msg["To"] = email_destino
-    msg["Subject"] = f"[IR Flow] Backup automático — {data_str}"
+    msg["Subject"] = f"[Fluxoly] Backup automático — {data_str}"
 
     corpo = (
-        f"Backup automático do IR Flow gerado em {data_str}.\n\n"
+        f"Backup automático do Fluxoly gerado em {data_str}.\n\n"
         f"Arquivo: {nome_arquivo}\n"
         f"Tamanho: {os.path.getsize(caminho_arquivo) / 1024:.1f} KB\n\n"
         "Este e-mail foi gerado automaticamente."

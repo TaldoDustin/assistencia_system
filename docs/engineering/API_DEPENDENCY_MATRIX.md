@@ -10,13 +10,26 @@ de `deps` cruzado contra os imports de `app.py`.
 conferir a linha correspondente antes de considerar o domínio concluído (ver checklist de Definition of
 Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 
+> **Correção pós-extração de Shopping (2026-08-04):** o scan original desta matriz só cobriu as ~25
+> funções auxiliares definidas no bloco antes da primeira rota (linhas 104-421). A extração real de
+> Shopping List encontrou `_log_shopping()` (helper específico do domínio, definido na linha 707 —
+> **fora** desse bloco, imediatamente antes das rotas de Shopping) mais duas constantes locais
+> (`SHOPPING_STATUSES`/`SHOPPING_PRIORITIES`, linhas 704-705). Um scan completo do arquivo (todo `def`
+> de 4 espaços não precedido por `@api.route`) encontrou **33 helpers no total**, não 25 — os 8
+> adicionais (`_sanitize_list`/`_sanitize_nested_obj` → Sistema; `_os_row_to_dict`/
+> `_ordem_lista_por_id_desc` → OS; `_log_shopping` → Shopping, já extraído; `_classificar_garantia` →
+> Garantias; `_password_reset_token_horas` → Usuários) estão espalhados perto das rotas que os usam, não
+> no bloco inicial. **Cada domínio ainda não extraído deve refazer esse scan completo na sua própria
+> Discovery Local** — não confiar só na contagem de helpers desta tabela para domínios ainda não
+> tocados.
+
 ---
 
 ## Tabela resumo
 
 | Módulo | Rotas | Helpers usados | Deps usadas | Serviços externos tocados |
 |---|--:|--:|--:|---|
-| `api_shopping.py` | 9 | 3 | 1 | (nenhum) |
+| `api_shopping.py` ✅ extraído | 9 | 4 (3 genéricos + `_log_shopping`) | 1 | (nenhum) |
 | `api_garantias.py` | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
 | `api_costs.py` | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
@@ -98,10 +111,13 @@ próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encon
 - **Deps (3):** `conectar`, `normalizar_modelo_iphone`, `registrar_movimentacao`
 - **Serviços:** `fluxoly_os`, `fluxoly_reference_data`
 
-### `api_shopping.py`
-- **Helpers:** `err`, `ok`, `usuario_logado`
+### `api_shopping.py` ✅ extraído em 2026-08-04 (commit a seguir)
+- **Helpers:** `err`, `ok`, `usuario_logado` (movidos para `fluxoly_api_helpers.py`, primeiro uso —
+  comprovado usado por 2+ domínios); `_log_shopping()` (específico do domínio, não estava no scan
+  original desta matriz — ver correção no topo do documento)
 - **Deps (1):** `conectar`
 - **Serviços:** (nenhum)
+- **Constantes locais movidas junto:** `SHOPPING_STATUSES`, `SHOPPING_PRIORITIES`
 
 ### `api_reports.py`
 - **Helpers:** `err`, `ok`, `usuario_logado`

@@ -271,8 +271,8 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** NÃO INICIADA. Regras de execução já definidas (Phase 1), para não decidir mecânica no meio
-da extração:
+**Status:** EM ANDAMENTO — 1 de 12 domínios extraídos (Shopping List, 2026-08-04). Regras de execução
+definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
 segue sempre a mesma sequência interna: helpers do domínio → `deps` parcial → `Blueprint` novo → suíte
@@ -289,6 +289,26 @@ multiplicaria o número de vezes que a suíte completa precisa rodar sem reduzir
 - [ ] Nenhuma referência residual ao domínio em `fluxoly_blueprints_api.py` (nem rota, nem helper específico, nem menção em comentário desatualizado)
 
 Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "Ordem de extração revisada".
+
+### Log de execução
+
+**1. Shopping List (2026-08-04) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_shopping.py` criado (9 rotas), `fluxoly_api_helpers.py` criado (primeiro uso — `err`/`ok`/
+  `usuario_logado`, comprovadamente usados por múltiplos domínios já na matriz da Phase 1).
+- **Achado durante a Discovery Local** (não estava na `API_DEPENDENCY_MATRIX.md` original): `_log_shopping()`
+  é um helper específico do domínio definido na linha 707, fora do bloco de helpers mapeado na Phase 1
+  (linhas 104-421). Motivou um re-scan completo do arquivo, que encontrou **33 helpers reais, não 25** —
+  matriz corrigida com a lista completa e um aviso para as próximas extrações refazerem esse scan.
+  `_ordem_lista_por_id_desc()` (linha 1182, logo após o bloco de Shopping) foi identificada como
+  pertencente a OS, não a Shopping — não migrou.
+- Suíte completa (682 testes) passando após a extração, sem alteração de nenhum teste.
+- `graphify . --code-only` (primeira indexação real do repo, código apenas — sem custo de LLM) +
+  `graphify explain "api_shopping"` (conexões esperadas: `fluxoly_api_helpers`, `fluxoly_validation`,
+  importado por `app.py`) + `graphify affected "fluxoly_blueprints_api.py"` (nenhuma referência residual
+  específica de Shopping — só consumidores legítimos do restante do arquivo, 61 rotas remanescentes).
+- Zero referência residual a `shopping`/`SHOPPING_`/`_log_shopping` em `fluxoly_blueprints_api.py`
+  (as únicas menções de `shopping_list` remanescentes são consultas SQL diretas do `/api/dashboard`,
+  domínio Sistema — leitura de dado cross-domínio já esperada, não acoplamento de código).
 
 ## Phase 3 — Cleanup
 

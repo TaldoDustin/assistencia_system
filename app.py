@@ -2001,6 +2001,7 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
+from api_shopping import create_api_shopping_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
 from fluxoly_rate_limit import limite_excedido, registrar_tentativa, resolver_ip_cliente  # noqa: E402
@@ -2022,6 +2023,19 @@ app.register_blueprint(
 # ============================================================================
 # REGISTRO DO BLUEPRINT DE API (JSON — consumido pelo frontend React)
 # ============================================================================
+
+# TD-01 Phase 2 -- 1º domínio extraído do monólito (ver
+# docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md). Mesmo url_prefix="/api"
+# do blueprint "api" abaixo, nome de blueprint distinto ("api_shopping") -- Flask
+# aceita múltiplos blueprints com o mesmo prefixo, já é o padrão do projeto
+# (auth_views/main_views coexistem hoje).
+app.register_blueprint(
+    create_api_shopping_blueprint(
+        {
+            "conectar": conectar,
+        }
+    )
+)
 
 app.register_blueprint(
     create_api_blueprint(

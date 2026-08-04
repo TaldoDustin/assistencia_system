@@ -339,6 +339,14 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/engineering/QUALITY_GATES.md` atualizado — estava desatualizado desde 2026-07-06 (antes da Sprint Infra 1.1), com vários gates listados como "Planejado"/"Manual" que já estavam ativos em CI há dias
 - Deploy continua manual — decisão deliberada de não automatizar nesta sprint
 
+### Refatorado (2026-08-03 — Sprint Housekeeping, Rebranding Técnico TD-12)
+- Todos os módulos `.py` renomeados de `irflow_*` para `fluxoly_*` (18 módulos + 2 hubs de risco médio + `fluxoly_blueprints_api.py`, o último com prefixo legado), um lote por commit, cada um validado com Graphify, `ruff` e suíte completa antes de avançar
+- Branding residual "IR Flow" corrigido em frontend (README, `index.css`, `client.js`), `app.py` e demais módulos (docstrings, nomes de logger, texto de e-mail de backup)
+- Referência morta `irflow_vendas_service` em `pyproject.toml` corrigida para `fluxoly_vendas_service` (nunca existiu com esse nome — escapou da limpeza inicial)
+- `ADR-011` registra que a decomposição de `fluxoly_blueprints_api.py` (TD-01) — decisão já existente na `ADR-002` desde 2026-07-06, nunca executada — fica formalmente fora desta sprint, com escopo atualizado (6→13 domínios reais, 70 rotas, 78 dependências injetadas)
+- Fora do escopo, adiados com dono definido: senha de seed `irflow@2024` (toca `app.py`, muda comportamento de login — tarefa de segurança própria), variáveis `IR_FLOW_*` e infraestrutura Render/Vercel (janela de manutenção ligada a `RELEASE_1.0_MASTER_CHECKLIST.md`)
+- Achado no fechamento: auto-deploy não estava configurado no serviço Render (todos os deploys históricos eram manuais) — Manual Deploy disparado para validar o rename em produção
+
 ---
 
 ## [1.1.0] — 2026-06-21

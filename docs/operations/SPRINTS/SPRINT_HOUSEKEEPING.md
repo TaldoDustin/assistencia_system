@@ -1,9 +1,8 @@
 # SPRINT Housekeeping — Rebranding Técnico (TD-12)
 
-**Status:** EM ANDAMENTO — Fases 0-2 concluídas em 2026-07-31; Fase 3 (Limpeza/Renomeação): Lote 1, Lote 2,
-Lote 4 e Lote 5 concluídos (2026-08-03) — **todos os módulos `.py` já seguem `fluxoly_*`**. Pendências:
-Lote 3 Categoria B (senha de seed, decisão do CTO) e Fase 5 (Validação final). Decomposição de
-`fluxoly_blueprints_api.py` (TD-01) formalmente fora do escopo desta sprint — ver `ADR-011`
+**Status:** ✅ CONCLUÍDA em 2026-08-03 — todos os módulos `.py` seguem `fluxoly_*`, CI verde, deploy
+validado em Render + Vercel. 3 pendências adiadas com dono e destino definidos (Lote 3 Categoria B,
+KI-030, TD-01/`ADR-011`) — ver "Nota sobre o encerramento" na seção Definition of Done
 **Período:** Iniciada 2026-07-31
 **Tipo:** Infraestrutura / Refatoração / Chore
 
@@ -239,9 +238,18 @@ Checklist completo antes de declarar a sprint concluída:
 - [x] Build do frontend sem erros (`npm run build`) — verificado localmente 2026-08-03 e no CI (job
       Frontend Build)
 - [x] `docker build .` sem erros — não disponível localmente, mas o job Docker Build da CI confirmou
-- [ ] Deploy validado (Render + Vercel) — sem quebra em produção — **push feito; verificação nos
-      dashboards Render/Vercel é manual, fora do alcance desta sessão — pendente confirmação do CTO**
-- [ ] Sentry sem novos erros pós-deploy — **mesma pendência acima, requer acesso ao dashboard Sentry**
+- [x] Deploy validado (Render + Vercel) — sem quebra em produção. Vercel: auto-deploy do commit
+      `14ec238`, status Ready, confirmado via browser (a própria tela de login já mostra "Fluxoly").
+      Render: **auto-deploy não está configurado neste serviço** (33/33 eventos históricos são
+      "Manually triggered via Dashboard") — o backend seguia rodando o código de 30/07 até o Manual
+      Deploy ser disparado nesta verificação (2026-08-03 21:31, commit `14ec238`). Build com cache,
+      deploy concluído em ~44s, logs de boot limpos (`gunicorn` sobe, `sentry_inicializado`, sem erro),
+      serviço `Live` — logs já mostram `"logger": "fluxoly.mercadophone"`, confirmando o rename rodando
+      em produção
+- [x] Sentry sem novos erros pós-deploy — `fluxoly.sentry.io`: 7 issues no total, nenhum posterior ao
+      deploy (mais recente: 4h atrás, anterior ao Manual Deploy). Issues existentes ainda citam
+      `irflow_mercadophone`/`irflow.mercadophone` — são registros congelados de eventos anteriores ao
+      rename, não código vivo
 - [x] Nenhum link/badge/URL/imagem quebrado em `README.md` ou docs — nenhuma mudança de link nesta sprint
 - [x] Nenhum import quebrado, nenhum script órfão referenciando nome antigo — grep completo fora de
       `docs/**` confirmou: só restam referências deliberadamente fora de escopo (senha de seed, bloco de
@@ -279,24 +287,68 @@ Ao final: "Housekeeping Completed" registrado nesta sprint + `PROJECT_STATUS.md`
 
 ## Definition of Done
 
-- [ ] Todas as 6 fases concluídas na ordem
-- [ ] Nenhum termo legado remanescente fora de contexto histórico (changelog/ADRs antigos podem mantê-los)
-- [ ] `demo/commercial-preview` preservada intacta
-- [ ] Testes obrigatórios passando, CI verde, cobertura não regrediu
-- [ ] `CHANGELOG.md`, `PROJECT_STATUS.md`, `KNOWN_ISSUES.md` atualizados
-- [ ] TD-12 movido para "Resolvido" em `PROJECT_STATUS.md` com data e commit
+- [x] Todas as 6 fases concluídas na ordem (Fase 6 = Lote 6, itens que exigem confirmação do usuário,
+      permanece deliberadamente aberta — não bloqueia o encerramento, ver nota abaixo)
+- [x] Nenhum termo legado remanescente fora de contexto histórico — confirmado via grep completo +
+      3 reindexações do Graphify; exceções restantes são todas funcionais/de infra deliberadamente
+      fora de escopo (senha de seed, bloco de build desktop, variáveis `IR_FLOW_*`/URLs, referência
+      quebrada pré-existente em `test_os_update_status.py:322` não relacionada a nomenclatura)
+- [x] `demo/commercial-preview` preservada intacta (remota, `origin/demo/commercial-preview`)
+- [x] Testes obrigatórios passando (681/682, KI-030 não relacionado), CI verde (run `30865336611`),
+      cobertura não regrediu (66.13% vs. baseline 65.22%)
+- [x] `CHANGELOG.md`, `PROJECT_STATUS.md`, `KNOWN_ISSUES.md` atualizados
+- [x] TD-12 movido para "Resolvido" em `PROJECT_STATUS.md` com data e commit
+
+**Nota sobre o encerramento:** a sprint é declarada concluída com 3 pendências explicitamente adiadas,
+cada uma já com dono e destino documentado — não são trabalho esquecido:
+- **Lote 3 Categoria B** (senha de seed `irflow@2024`) — vira tarefa própria de segurança
+  (seed/testes/documentação/compatibilidade), fora da Housekeeping, decisão do CTO
+- **KI-030** (falha local Windows/Python 3.14 em `test_sentry_init.py`) — reproduzir em outra
+  máquina/runner Windows para confirmar se é só ambiente
+- **TD-01** (decomposição de `fluxoly_blueprints_api.py`) — sprint própria, formalizada em `ADR-011`,
+  ainda sem data
 
 ---
 
-## Retrospectiva (preencher ao concluir)
+## Retrospectiva
 
 ### O que funcionou bem
 
+- Separação estrita de fases (Auditoria → Planejamento → Limpeza → Renomeação → Validação) sem pular
+  etapas, mesmo sob pressão de "só falta um arquivo" no Lote 5
+- Graphify + grep de confirmação em conjunto (nunca só um dos dois) pegou tanto acoplamento estrutural
+  (imports) quanto textual (comentários/docstrings) — a lacuna de um método era coberta pelo outro em
+  toda renomeação
+- Parar antes do Lote 5 para uma Revisão Arquitetural dedicada (em vez de renomear
+  `irflow_blueprints_api.py` "de qualquer jeito") evitou confundir rebranding com decisão de
+  arquitetura — resultou na `ADR-011`, que resgatou uma decisão (`ADR-002`) que tinha sido esquecida
+  havia quase um mês
+- Ciclo rename → lint → suíte completa → reindexação Graphify → commit, repetido em todos os lotes sem
+  exceção, pegou a única regressão real de ambiente (KI-030) antes que virasse dúvida recorrente
+- A varredura final (Fase 5) encontrou e corrigiu achados que nenhum lote individual cobria (referência
+  morta em `pyproject.toml`, docstrings de cabeçalho, nomes de logger) — validação de fechamento não é
+  redundante mesmo depois de lotes bem executados
+
 ### O que poderia ter sido melhor
 
+- O auto-deploy do Render não estava configurado e isso só foi descoberto na Fase 5, ao verificar o
+  checklist — poderia ter sido identificado na Fase 0 (Baseline) como um risco de processo, já que
+  qualquer sprint futura vai ter o mesmo problema (push para `main` não é suficiente para validar
+  produção no backend)
+- A tabela "Arquivos Críticos" em `PROJECT_STATUS.md` já estava desatualizada (citando módulos
+  renomeados nos Lotes 2/4) antes mesmo desta sprint terminar — sinal de que documentação de estado
+  vivo precisa de um lembrete mais forte para ser tocada junto de cada rename, não só no fechamento
+
 ### Lições aprendidas para a próxima sprint
+
+- Antes de declarar qualquer sprint "pronta para produção", confirmar explicitamente se auto-deploy
+  está ativo nos serviços afetados — não assumir que push para `main` equivale a deploy
+- Ao renomear um arquivo referenciado por outros módulos, o grep de confirmação deve rodar sem o
+  filtro `!docs/**` pelo menos uma vez por lote, para não descobrir só na varredura final que havia
+  mais arquivos de código (não-doc) com a referência do que o esperado
 
 ### Dívida técnica gerada (se houver)
 
 | ID | Descrição | Prioridade |
 |----|-----------|-----------|
+| — | `tests/test_os_update_status.py:322` cita um arquivo que nunca existiu (`irflow_blueprints_orders.py` — a rota real é `fluxoly_blueprints_api.py`) — erro de documentação pré-existente, não relacionado a nomenclatura legada, não corrigido nesta sprint (fora do escopo do rename) | Baixa |

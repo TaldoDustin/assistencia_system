@@ -499,6 +499,16 @@ funcionalidades de negócio, mesmo com TD-12 originalmente classificado como pri
 Auditoria → Planejamento → Limpeza → Renomeação → Validação). Nenhuma fase executada ainda além da
 Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` existente, 682 testes).
 
+**Sprint Housekeeping — CONCLUÍDA em 2026-08-03:** todos os módulos `.py` renomeados de `irflow_*` para
+`fluxoly_*` (commits `8a085f8`..`14ec238`), branding residual do frontend corrigido, referências mortas
+em `pyproject.toml` limpas. CI verde (run `30865336611`, todos os 6 jobs), cobertura 66.13% (acima do
+baseline de 65.22%). Deploy validado em produção: Vercel via auto-deploy, Render via Manual Deploy
+(auto-deploy não configurado nesse serviço — achado da própria validação de fechamento), ambos sem
+erros novos no Sentry pós-deploy. `ADR-011` registra que a decomposição de `fluxoly_blueprints_api.py`
+(TD-01) e o restante do épico de rebranding (variáveis `IR_FLOW_*`, infraestrutura, repositório) ficam
+fora desta sprint, com dono e destino definidos. Ver retrospectiva completa em
+`docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md`.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -579,7 +589,8 @@ Fase 0 (baseline confirmado: `main` sincronizada, tag `v1.2-cicd-hardening` exis
 | TD-09 | Sem paginação na listagem de OS — pode degradar com volume alto        | Médio   | Média      |
 | TD-10 | Sem compressão de resposta HTTP no Flask                               | Baixo   | Baixa      |
 | ~~TD-11~~ | ~~Bloco `criar_estoque()` duplicado e morto em `irflow_blueprints_api.py` (KI-014)~~ | ~~Baixo~~ | ~~Resolvido (2026-07-20, commit `c3294a3`)~~ |
-| TD-12 | Nomenclatura legada `irflow_*`/`IR_FLOW_*` em código/infraestrutura, convivendo com módulos novos `fluxoly_*` desde ADR-008 (2026-07-27) — Épico de Rebranding Técnico completo (código legado + infra + variáveis de ambiente + repositório). **Em planejamento desde 2026-07-31** (decisão deliberada do usuário de priorizar agora — ver `docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md`) | Baixo (cosmético, sem risco funcional) | Em andamento (priorizada por decisão explícita, apesar de baixa prioridade original) |
+| ~~TD-12~~ (código) | ~~Nomenclatura legada `irflow_*` em todos os módulos `.py` — resolvido pela Sprint Housekeeping~~ | ~~Baixo~~ | ~~Resolvido (2026-08-03, commits `8a085f8`..`14ec238`, ver `docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md`)~~ |
+| TD-12 (infra) | Restante do Épico de Rebranding Técnico, deliberadamente fora da Sprint Housekeeping: variáveis `IR_FLOW_*` (14, alias `FLUXOLY_*` via `ADR-008`), URLs Render/Vercel, nome do repositório GitHub. Decomposição de `fluxoly_blueprints_api.py` (TD-01) também fora, formalizada em `ADR-011` | Baixo (cosmético, sem risco funcional) | Baixa — sem prazo; ligado a `RELEASE_1.0_MASTER_CHECKLIST.md` (janela de manutenção antes do lançamento comercial), não a esta sprint |
 | TD-13 | **Infra 1.2 — Endurecer Governança do Repositório.** Proteção de `main` ativada em 2026-07-27 (R-10/R-11) cobre só o mínimo (5 status checks obrigatórios, `enforce_admins: false`). Falta: `enforce_admins: true` (a proteção hoje não vale para push direto do próprio mantenedor), `CODEOWNERS`, revisão obrigatória (`required_pull_request_reviews`) com aprovação mínima. Sugerido pelo usuário (CTO) — decisão deliberada de não fazer agora para não quebrar o fluxo atual de merge local + push direto de um mantenedor único; faz sentido quando a equipe crescer além de uma pessoa | Médio (hoje mitigado por disciplina manual de um único mantenedor; escala mal com mais colaboradores) | Baixa (sem prazo — condicionado a crescimento da equipe) |
 | TD-14 | **Evolução do modelo de autorização — perfil único → perfis + permissões por módulo.** Discovery da V1.4 (2026-07-29) propôs substituir `usuarios.perfil` (enum: admin/tecnico/vendedor/estoque/financeiro) por acesso habilitado por módulo (checkboxes: Vendas/Estoque/Assistência/Financeiro/Compras/Dashboard/Administração), evitando explosão combinatória de perfis à medida que o sistema cresce. Decisão explícita: **não fazer agora** — muda arquitetura de autorização transversalmente (checagens espalhadas em ~80 endpoints de `irflow_blueprints_api.py` + `ROUTE_PERMISSIONS` + cada controller de domínio), exigiria migração dos perfis já em produção, e hoje 5 perfis (com `financeiro` da V1.4) ainda são administráveis — a "explosão" é cenário futuro, não problema atual. Merece ADR própria + discovery dedicada quando reaberto. **Preparação de baixo custo feita na V1.4:** checagens de autorização novas encapsuladas em helper reutilizável (ex.: `usuario_pode_financeiro()`), para que uma futura migração troque a implementação do helper sem precisar reescrever os call sites | Médio (não bloqueia nada hoje; custo de migração cresce quanto mais perfis/checagens ad-hoc se acumularem antes de endereçar) | Baixa (sem prazo — reavaliar se a combinação de perfis realmente começar a se multiplicar) |
 

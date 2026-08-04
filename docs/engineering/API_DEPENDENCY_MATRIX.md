@@ -1,0 +1,151 @@
+# API_DEPENDENCY_MATRIX — Matriz de Dependências por Domínio (TD-01)
+
+**Gerado em:** 2026-08-04 (TD-01 Phase 1, a pedido do CTO)
+**Método:** script determinístico (`grep`/regex sobre `fluxoly_blueprints_api.py`, não estimativa) —
+para cada faixa de linhas de um domínio (mapeada na Phase 0), verifica quais das 79 chaves de `deps` e
+quais dos ~25 helpers internos aparecem como uso real (não só definição). Módulo de origem de cada chave
+de `deps` cruzado contra os imports de `app.py`.
+
+**Não é documento definitivo** — é ferramenta de trabalho para a Phase 2: cada extração de domínio deve
+conferir a linha correspondente antes de considerar o domínio concluído (ver checklist de Definition of
+Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
+
+---
+
+## Tabela resumo
+
+| Módulo | Rotas | Helpers usados | Deps usadas | Serviços externos tocados |
+|---|--:|--:|--:|---|
+| `api_shopping.py` | 9 | 3 | 1 | (nenhum) |
+| `api_garantias.py` | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
+| `api_costs.py` | 4 | 4 | 2 | `fluxoly_reports` |
+| `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
+| `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
+| `api_auth.py` | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
+| `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
+| `api_reports.py` | 6 | 3 | 9 | `fluxoly_reference_data`, `fluxoly_reports` |
+| `api_backup.py` | 4 | 5 | 10 | `fluxoly_storage` |
+| `api_mercadophone.py` | 7 | 12 | 6 | `fluxoly_mercadophone`, `fluxoly_storage` |
+| `api_system.py` | 3 | 3 | 22 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports` |
+| `api_os.py` (+Reparos) | 17 | 11 | 32 | `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service` |
+
+Ordenada por complexidade real (helpers + deps), não por ordem de domínio da Phase 0.
+
+## Achado novo (corrige a Phase 0/1 anteriores)
+
+1. **`api_system.py` (dashboard) é muito mais acoplado do que a Phase 1 original estimou.** Tinha sido
+   classificado em "Tier 1 — zero acoplamento cruzado" com base só em `DOMAIN_MODEL.md`. A matriz mostra
+   22 deps e 4 serviços externos (`fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`,
+   `fluxoly_reports`) — `/api/dashboard` agrega dados de praticamente todo o sistema. **Reclassificado
+   para perto do fim da ordem de extração** (ver seção "Ordem revisada" abaixo).
+2. **Terceiro ponto de acoplamento de OS, não capturado na Phase 0: OS → MercadoPhone.**
+   `listar_ordens()` (linha 1205-1207) chama `_carregar_config_mercadophone()` e
+   `_atualizar_runtime_mercadophone()` para ler `mercado_phone_runtime_config["sync_start_date"]` e
+   filtrar OS antigas da listagem. Isso significa que os helpers `_carregar_config_mercadophone`/
+   `_atualizar_runtime_mercadophone` (originalmente presumidos específicos de `api_mercadophone.py`) são
+   **compartilhados entre `api_os.py` e `api_mercadophone.py`** — não podem simplesmente migrar
+   "junto com as rotas do domínio dono" como o resto dos helpers específicos. Decisão recomendada: mover
+   essa lógica de config para dentro de `fluxoly_mercadophone.py` (módulo de serviço já existente, fora
+   do blueprint) em vez de deixá-la como closure duplicável entre dois blueprints novos — mesma regra de
+   reuso já estabelecida em `ENGINEERING_GUIDE.md` §3 ("importa o service do domínio dono, nunca duplica
+   a lógica"). Fica registrado aqui como decisão a executar no início da extração de `api_os.py` ou
+   `api_mercadophone.py` (o que vier primeiro entre os dois).
+3. Confirma (sem alteração) os dois pontos já conhecidos: OS → Estoque (6 chamadas) e OS → Garantia
+   (14 referências), ambos só dentro de `api_os.py`.
+
+## Ordem de extração revisada
+
+A ordem original da Phase 1 (baseada em `DOMAIN_MODEL.md`) tinha `api_system.py` no primeiro tier. Com
+os dados reais da matriz, a ordem passa a ser por complexidade real crescente:
+
+```mermaid
+flowchart TD
+    A["1. Shopping List (9 rotas)<br/>0 serviços externos"] --> B["2. Garantias (1 rota)<br/>trivial, só leitura agregada"]
+    B --> C["3. Custos Operacionais (4 rotas)"]
+    C --> D["4. Preços (4 rotas)"]
+    D --> E["5. Usuários (6 rotas)"]
+    E --> F["6. Autenticação (3 rotas)<br/>baixa complexidade, mas sensível a segurança -- cautela extra"]
+    F --> G["7. Estoque (6 rotas)"]
+    G --> H["8. Relatórios (6 rotas)"]
+    H --> I["9. Backup (4 rotas)<br/>10 deps, mas maioria é config/string, não lógica"]
+    I --> J["10. MercadoPhone (7 rotas)<br/>12 helpers, baixa cobertura de teste (27%)"]
+    J --> K["11. Meta/Sistema (3 rotas)<br/>reclassificado: 22 deps, agrega quase tudo"]
+    K --> L["12. OS + Reparos (17 rotas)<br/>3 pontos de acoplamento confirmados: Estoque, Garantia, MercadoPhone"]
+```
+
+**Nota:** Shopping List assume a posição 1 (não Preços/Custos como na Phase 1 original) porque a matriz
+mostra zero serviços externos tocados — a suposição da Phase 1 original de que dependia de Estoque
+(`reposicao_sugerida_estoque`) era sobre o **frontend** consumindo um endpoint de Estoque, não sobre o
+backend de Shopping chamando código de Estoque diretamente. Ordem entre módulos de complexidade
+próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encontrar algo não mapeado aqui.
+
+---
+
+## Detalhe por módulo
+
+### `api_auth.py`
+- **Helpers:** `err`, `ok`, `usuario_logado`
+- **Deps (5):** `check_password_hash`, `conectar`, `limite_excedido`, `registrar_tentativa`, `resolver_ip_cliente`
+- **Serviços:** `fluxoly_rate_limit`, `werkzeug.security`
+
+### `api_os.py` (inclui Reparos catálogo padrão)
+- **Helpers (11):** `_atualizar_runtime_mercadophone`\*, `_buscar_checklist_por_os`, `_buscar_checklist_por_token`, `_carregar_config_mercadophone`\*, `_checklist_status`, `_garantir_checklist_os`, `_texto_limpo_local`, `err`, `ok`, `usuario_admin`, `usuario_logado` — \*ver achado #2 acima
+- **Deps (32):** `adicionar_peca_os_sem_consumir`, `buscar_garantia_reparo`, `buscar_historico_garantia_reparo`, `buscar_linhas_com_garantia_da_os`, `buscar_reparo_ids_da_os`, `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `conectar`, `consumir_peca_da_os`, `corrigir_garantia_reparo`, `devolver_pecas_da_os`, `gravar_garantias_reparo`, `mercado_phone_runtime_config`, `modelo_compativel`, `modelo_para_os`, `normalizar_imei`, `normalizar_status_os`, `obter_reparos_por_os`, `obter_tipo_garantia`, `parse_data_ymd`, `registrar_log_auditoria`, `resolver_garantias_reparo`, `salvar_reparos_os`, `status_aberto`, `status_cancelado`, `status_finalizado`, `texto_reparos_os`, `validar_reparo_ids`, `vendedor_valido`, `vendedores`, `zerar_garantia_reparo`
+- **Serviços:** `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service`
+
+### `api_stock.py`
+- **Helpers:** `_normalizar_qualidade_estoque`, `_normalizar_tipo_estoque`, `_recalcular_custo_medio`, `_status_item_estoque`, `err`, `ok`, `usuario_logado`
+- **Deps (3):** `conectar`, `normalizar_modelo_iphone`, `registrar_movimentacao`
+- **Serviços:** `fluxoly_os`, `fluxoly_reference_data`
+
+### `api_shopping.py`
+- **Helpers:** `err`, `ok`, `usuario_logado`
+- **Deps (1):** `conectar`
+- **Serviços:** (nenhum)
+
+### `api_reports.py`
+- **Helpers:** `err`, `ok`, `usuario_logado`
+- **Deps (9):** `agrupar_relatorio_custos_operacionais`, `agrupar_relatorio_ir_phones`, `agrupar_relatorio_tecnicos`, `formatar_periodo_relatorio`, `montar_linhas_relatorio_custos_operacionais`, `montar_linhas_relatorio_ir_phones`, `montar_linhas_relatorio_tecnicos`, `montar_pdf_texto`, `tecnicos`
+- **Serviços:** `fluxoly_reference_data`, `fluxoly_reports`
+
+### `api_users.py`
+- **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
+- **Deps (3):** `conectar`, `generate_password_hash`, `perfis_opcoes`
+- **Serviços:** `fluxoly_core`, `werkzeug.security`
+
+### `api_costs.py`
+- **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
+- **Deps (2):** `conectar`, `listar_custos_operacionais`
+- **Serviços:** `fluxoly_reports`
+
+### `api_prices.py`
+- **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
+- **Deps (3):** `carregar_tabelas_preco`, `conectar`, `salvar_tabelas_preco`
+- **Serviços:** `fluxoly_price_tables`
+
+### `api_backup.py`
+- **Helpers:** `_texto_limpo_local`, `err`, `ok`, `usuario_admin`, `usuario_logado`
+- **Deps (10):** `backup_dir`, `backup_email_destino`, `backup_email_remetente`, `backup_email_senha_app`, `conectar`, `criar_backup`, `db_path`, `enviar_backup_email`, `forcar_migracao_schema`, `google_drive_backup_dir`
+- **Serviços:** `fluxoly_storage` (a maioria das deps é configuração/string, não chamada de lógica — complexidade real menor do que a contagem sugere)
+
+### `api_mercadophone.py`
+- **Helpers (12):** `_atualizar_runtime_mercadophone`, `_carregar_config_mercadophone`, `_executar_reimportacao_mp_async`, `_executar_reprocessamento_mp_async`, `_snapshot_reimportacao_mp`, `_snapshot_reprocessamento_mp`, `_texto_limpo_local`, `_to_bool`, `err`, `ok`, `usuario_admin`, `usuario_logado`
+- **Deps (6):** `conectar`, `integrations_config_path`, `mercado_phone_helpers`, `mercado_phone_runtime_config`, `salvar_configuracoes_integracoes`, `sincronizar_mercado_phone`
+- **Serviços:** `fluxoly_mercadophone`, `fluxoly_storage`
+
+### `api_system.py`
+- **Helpers:** `err`, `ok`, `usuario_logado`
+- **Deps (22):** `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `categorias_custos`, `conectar`, `garantia_reparo_dias_padrao`, `iphone_colors`, `iphone_models`, `listar_custos_operacionais`, `normalizar_status_os`, `obter_alertas_sistema`, `os_tipos_opcoes`, `produtos_categorias`, `produtos_condicoes`, `reparos_padrao`, `status_aberto`, `status_cancelado`, `status_finalizado`, `status_os_opcoes`, `tecnicos`, `texto_reparos_os`, `vendedores`
+- **Serviços:** `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`
+
+### `api_garantias.py`
+- **Helpers:** `err`, `ok`, `usuario_logado`
+- **Deps (3):** `conectar`, `garantia_reparo_dias_padrao`, `parse_data_ymd`
+- **Serviços:** `fluxoly_core`, `fluxoly_reports`
+
+---
+
+## Documentos relacionados
+
+- `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` — Phase 0 (Discovery) e Phase 1 (Design)
+- `docs/engineering/adr/ADR-002.md` — decisão de fundo e módulos planejados

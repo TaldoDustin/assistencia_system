@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 0)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 não iniciada)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -102,6 +102,10 @@ como a superfície de acoplamento real, não os imports do topo do arquivo.
 - **OS → Garantia de reparo:** 14 referências a funções/conceitos de garantia dentro da mesma seção —
   confirma a observação de `ADR-011` de que a maior parte da lógica de garantia injetada só serve rotas
   de OS.
+- **OS → MercadoPhone (achado na Phase 1, não capturado aqui):** `listar_ordens()` chama
+  `_carregar_config_mercadophone()`/`_atualizar_runtime_mercadophone()` para filtrar OS por
+  `sync_start_date`. Ver `docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe e a recomendação
+  (mover essa lógica de config para `fluxoly_mercadophone.py`).
 - **`ENGINEERING_GUIDE.md` §3 já prescreve a resolução para o primeiro ponto:** a lógica de movimentação
   de estoque hoje embutida em `fluxoly_os.py` (`registrar_movimentacao`, `consumir_peca_da_os`,
   `_consumir_lotes_fifo`) é "a candidata natural a virar `irflow_estoque_service.py` formal — OS, Vendas
@@ -160,11 +164,131 @@ estratégia de migração incremental (Phase 2) precisa decidir como múltiplos 
 
 ## Phase 1 — Architecture Design
 
-_A definir. Não iniciada._
+**Status:** CONCLUÍDA (2026-08-04). Nenhum código alterado — respostas às 6 perguntas da Phase 0,
+validadas por leitura direta do código (mesmo método da Phase 0), mais um achado novo (helpers
+compartilhados) que a Phase 0 não tinha mapeado.
+
+### 0. Achado novo: helpers compartilhados (closures)
+
+Os 70 endpoints não são a superfície inteira a migrar. `create_api_blueprint` define **~25 funções
+auxiliares** antes da primeira rota, todas fechadas sobre o mesmo escopo (`deps` desestruturado). Duas
+categorias, confirmadas por leitura:
+
+- **Genéricas** (usadas por múltiplos domínios): `usuario_logado()`, `usuario_admin()`, `err(msg, code)`,
+  `ok(data, **kwargs)`, `_texto_limpo_local()`, `_to_bool()`. Precisam de um lar compartilhado — nenhum
+  dos 12 módulos novos é "dono" delas.
+- **Específicas de um domínio**: ex. `_slug_estoque`/`_normalizar_tipo_estoque`/`_gerar_sku_estoque`/
+  `_recalcular_custo_medio` (Estoque), `_parse_checklist_json`/`_checklist_status`/`_serialize_checklist`/
+  `_buscar_checklist_por_os` (OS/checklist), `_snapshot_reprocessamento_mp`/
+  `_executar_reprocessamento_mp_async` (MercadoPhone). Migram junto com as rotas do domínio dono.
+
+**Decisão:** criar `fluxoly_api_helpers.py` (módulo novo, sem prefixo de domínio) só para as funções
+genéricas. Cada `api_<dominio>.py` importa dele o que precisar. Inventário exaustivo das ~25 funções
+(qual é genérica vs. específica de qual domínio) fica para o início da Phase 2, feito uma vez por domínio
+extraído — não vale a pena enumerar as 25 aqui sem o contexto de qual domínio está sendo tocado no
+momento.
+
+**Regra de admissão (evita que `fluxoly_api_helpers.py` vire um mini-monólito novo):** nenhum helper
+migra para lá "por conveniência". Só entra quando, na extração, ficar comprovado que **dois ou mais**
+domínios já extraídos o usam de fato (mesmo teste do achado #2 da `API_DEPENDENCY_MATRIX.md`, que
+encontrou `_carregar_config_mercadophone`/`_atualizar_runtime_mercadophone` compartilhados entre OS e
+MercadoPhone). Um helper usado por um único domínio permanece nesse domínio, mesmo que pareça genérico
+pelo nome.
+
+### 1. Respostas às 6 perguntas da Phase 0
+
+| # | Pergunta | Resposta | Evidência |
+|---|---|---|---|
+| 2 | `ROUTE_PERMISSIONS` acompanha os módulos? | **Não se aplica.** Confirmado por leitura de `app.py` linha 1882: o dict só tem entradas para `auth_views.*`/`main_views.*`/`static`/o webhook do MercadoPhone — nenhuma das 70 rotas `/api/*` está lá. A autorização de `/api/*` é feita **inline**, dentro de cada handler (`if session.get("usuario_perfil") not in (...)`), ~15 padrões ligeiramente diferentes espalhados pelo arquivo. Migra junto com o handler, sem mudança de comportamento — não é uma decisão a tomar, é um não-problema que a Phase 0 registrou por precaução antes de verificar. |
+| 3 | `estoque_service.py` antes ou depois? | **Nem um nem outro — são independentes.** As funções de movimentação de estoque (`consumir_peca_da_os`, `devolver_pecas_da_os`, etc.) já vivem em `fluxoly_os.py`, não dentro do blueprint — extrair `api_os.py`/`api_stock.py` não exige mexer nelas primeiro. Formalizá-las em `estoque_service.py` (recomendação já registrada em `ENGINEERING_GUIDE.md`) é uma melhoria de camada de serviço, ortogonal a esta refatoração de blueprint. **Decisão:** fora do escopo de TD-01, registrar como item de dívida técnica separado (candidato a TD-16) para não misturar os dois tipos de refatoração no mesmo commit. |
+| 4 | Layout físico: arquivo único ou trio controller/service/repository? | **Arquivo único `api_<dominio>.py`** (um `Blueprint` por domínio, sem repository/service novos). `ENGINEERING_GUIDE.md` §3 é explícito: a convenção de camadas obrigatória vale para "qualquer domínio de negócio novo… não se aplica retroativamente aos domínios existentes… esses seguem seu próprio plano de decomposição (`ADR-002`)". Adotar o trio completo para 12 domínios de uma vez seria reescrita, não decomposição — contradiz a razão de `ADR-002` ter vencido a Opção B (FastAPI) e a Opção A (manter tudo). Um domínio pode evoluir para o trio completo depois, individualmente (mesmo caminho que Vendas/Clientes/Produtos já percorreram), mas isso é decisão de cada domínio, não desta sprint. |
+| 5 | Como coexistir rotas durante a migração incremental? | **Múltiplos `Blueprint` com o mesmo `url_prefix="/api"`, cada um com nome único.** Já é o padrão do projeto: `auth_views` e `main_views` coexistem no mesmo app Flask hoje. Mecânica por domínio extraído: (1) criar `api_<dominio>.py` com `create_api_<dominio>_blueprint(deps)` retornando `Blueprint("api_<dominio>", __name__, url_prefix="/api")`; (2) **remover** as rotas equivalentes de `fluxoly_blueprints_api.py` no mesmo commit (nunca duplicar — Flask rejeita duas regras idênticas); (3) registrar o blueprint novo em `app.py` ao lado do antigo. Testes não precisam mudar: os 6 arquivos de teste que citam `fluxoly_blueprints_api.py` fazem isso só em docstring/comentário — nenhum importa a função diretamente, todos batem em URLs via `Flask test client`. |
+| 6 | Estratégia de rollback? | **Um commit por domínio extraído, `git revert` reverte sozinho.** Cada commit de extração: move rotas + helpers específicos, atualiza `app.py` (novo dict `deps` parcial + registro do blueprint), roda a suíte completa (682+ testes) antes do merge. Se um problema aparecer depois do merge, reverter o commit único restaura o domínio inteiro no arquivo monolítico sem afetar os domínios já extraídos antes dele (branches Blueprint independentes, sem dependência estrutural entre commits de domínios diferentes). |
+| 1 | Qual domínio extrair primeiro? | Ver ordem recomendada abaixo — não é resposta única, é uma sequência. |
+
+### 2. Ordem de extração recomendada
+
+> **Superseded (2026-08-04, mesma sessão):** a versão original desta seção classificava `api_system.py`
+> no Tier 1 ("zero acoplamento"), baseada em `DOMAIN_MODEL.md`. Construir
+> `docs/engineering/API_DEPENDENCY_MATRIX.md` (a pedido do CTO, para servir de checklist objetivo da
+> Phase 2) mediu o acoplamento real por contagem de `deps`/helpers/serviços tocados e mostrou que
+> `/api/dashboard` agrega 22 dependências e 4 serviços — a suposição original estava errada. **A ordem
+> vigente é a da seção "Ordem de extração revisada" em `API_DEPENDENCY_MATRIX.md`**, não a lista abaixo,
+> mantida só para registro histórico da correção:
+
+Ordem original (não vigente): Preços → Custos → Backup → Garantias → Sistema → Usuários → Estoque →
+Shopping → Auth → MercadoPhone → Relatórios → OS. Ordem vigente (por complexidade real medida):
+Shopping → Garantias → Custos → Preços → Usuários → Auth → Estoque → Relatórios → Backup →
+MercadoPhone → **Sistema** (reclassificado) → OS. Ver `API_DEPENDENCY_MATRIX.md` para o diagrama
+completo e a justificativa item a item.
+
+### 3. Particionamento de `deps`
+
+Hoje `app.py` monta **um único dict** com 87 chaves (79 realmente lidas pelo blueprint — ver Phase 0
+seção 2 — as 8 restantes já são código morto, candidatas a limpeza na Phase 3) e passa para
+`create_api_blueprint`. **Decisão:** cada `create_api_<dominio>_blueprint(deps)` novo recebe **só as
+chaves que seu domínio usa** — não o dict inteiro. `app.py` monta um dict menor por chamada. Funções
+usadas por mais de um domínio (ex. `conectar`, `registrar_log_auditoria`) são passadas para todos os
+dicts que precisam — duplicar a passagem é aceitável (é só uma referência à mesma função), duplicar a
+lógica não seria.
+
+### 4. Diagrama — estado atual vs. estado-alvo
+
+```mermaid
+flowchart LR
+    subgraph Hoje["Estado atual"]
+        APP1["app.py<br/>(1 dict, 87 chaves)"] -->|"create_api_blueprint(deps)"| MONO["fluxoly_blueprints_api.py<br/>3.368 linhas, 70 rotas, 13 domínios"]
+    end
+    subgraph Alvo["Estado-alvo (fim da Phase 2)"]
+        APP2["app.py<br/>(12 dicts parciais)"] --> M1["api_auth.py"]
+        APP2 --> M2["api_os.py (+Reparos)"]
+        APP2 --> M3["api_garantias.py"]
+        APP2 --> M4["api_stock.py"]
+        APP2 --> M5["api_shopping.py"]
+        APP2 --> M6["api_reports.py"]
+        APP2 --> M7["api_users.py"]
+        APP2 --> M8["api_costs.py"]
+        APP2 --> M9["api_prices.py"]
+        APP2 --> M10["api_backup.py"]
+        APP2 --> M11["api_mercadophone.py"]
+        APP2 --> M12["api_system.py"]
+        M1 -.-> H["fluxoly_api_helpers.py<br/>(usuario_logado, ok/err, etc.)"]
+        M2 -.-> H
+        M4 -.-> H
+        M2 -->|"6 chamadas"| ESTOQUE["fluxoly_os.py<br/>(consumir_peca_da_os etc.)"]
+    end
+```
+
+### 5. Riscos identificados nesta Phase (além dos já registrados na Phase 0)
+
+| ID | Risco | Mitigação |
+|----|-------|-----------|
+| RS-01 | Helper genérico usado por um domínio sem ser percebido como genérico durante a extração (ex. um `_slug_estoque` sendo usado fora de Estoque sem estar mapeado) | Rodar suíte completa (682+ testes) a cada extração, não só os testes do domínio tocado |
+| RS-02 | `deps` parcial esquecer uma chave que o domínio usa, causando `KeyError` só em runtime (não em import) | Testar boot local (`python app.py` ou suíte) sempre inclui exercitar as rotas do domínio extraído, não só importar o módulo |
+| RS-03 | Extração de OS (Tier 3, por último) descobrir que o acoplamento com Estoque é mais profundo do que as 6 chamadas mapeadas | Se acontecer, é motivo para reabrir Phase 1 só para OS/Estoque, não para forçar a extração — critério de parada já coerente com a filosofia do projeto (ver `ENGINEERING_GUIDE.md` seção 11) |
+
+---
 
 ## Phase 2 — Incremental Extraction
 
-_A definir. Não iniciada._
+**Status:** NÃO INICIADA. Regras de execução já definidas (Phase 1), para não decidir mecânica no meio
+da extração:
+
+**Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
+segue sempre a mesma sequência interna: helpers do domínio → `deps` parcial → `Blueprint` novo → suíte
+completa → Graphify (`graphify update .`) → commit. Extrair rota a rota quebraria a coesão do domínio e
+multiplicaria o número de vezes que a suíte completa precisa rodar sem reduzir risco.
+
+**Definition of Done por domínio extraído** — todos os 6 critérios, sem exceção, antes do commit:
+
+- [ ] Rota(s) do domínio movidas para `api_<dominio>.py`, registrando `Blueprint("api_<dominio>", __name__, url_prefix="/api")`
+- [ ] Helpers específicos do domínio (ver `API_DEPENDENCY_MATRIX.md`) migrados junto; helpers genéricos importados de `fluxoly_api_helpers.py`
+- [ ] `deps` reduzido: `app.py` monta um dict só com as chaves daquele domínio (conferir contra a linha do domínio na matriz)
+- [ ] Suíte completa passando (682+ testes, não só os testes do domínio tocado — ver RS-01)
+- [ ] `graphify update .` rodado e validado com duas consultas: `graphify explain "api_<dominio>"` confirma que o módulo novo aparece no grafo com as arestas esperadas; `graphify affected "fluxoly_blueprints_api.py"` confirma que o arquivo monolítico não mantém nenhuma relação residual inesperada com o domínio recém-extraído
+- [ ] Nenhuma referência residual ao domínio em `fluxoly_blueprints_api.py` (nem rota, nem helper específico, nem menção em comentário desatualizado)
+
+Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "Ordem de extração revisada".
 
 ## Phase 3 — Cleanup
 
@@ -174,8 +298,9 @@ _A definir. Não iniciada._
 
 ## Documentos relacionados
 
-- `docs/engineering/adr/ADR-002.md` — decisão de fundo + módulos planejados (atualizado nesta Phase 0)
+- `docs/engineering/adr/ADR-002.md` — decisão de fundo + módulos planejados (atualizado na Phase 0 e Phase 1)
 - `docs/engineering/adr/ADR-011.md` — levantamento original (70 rotas/78 deps/13 domínios), 2026-08-03
+- `docs/engineering/API_DEPENDENCY_MATRIX.md` — matriz helpers/deps/serviços por módulo e ordem de extração revisada (Phase 1, ferramenta de checklist para a Phase 2)
 - `docs/engineering/DOMAIN_MODEL.md` — inventário de domínios existentes
 - `docs/engineering/ENGINEERING_GUIDE.md` §3 — convenção controller/service/repository para domínios
 - `docs/engineering/audits/AUDIT_DEPENDENCIES.md` — lacuna de acoplamento por injeção de parâmetro

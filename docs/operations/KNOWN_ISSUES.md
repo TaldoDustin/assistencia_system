@@ -60,10 +60,12 @@ Impacto:
 Alto. Dificulta manutenção, aumenta risco de regressão em qualquer alteração e torna o onboarding de novos colaboradores mais lento.
 
 Status:
-Aberto — decisão de decomposição confirmada em `ADR-002`/`ADR-011`, mas sem sprint agendada.
+Aberto — Sprint TD-01 iniciada em 2026-08-04, Phase 0 (Architecture Discovery) concluída. Ver
+`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`.
 
 Sprint prevista:
-Não definida — TD-01, deliberadamente fora do escopo da Sprint Housekeeping (`ADR-011`, 2026-08-03).
+TD-01, em andamento desde 2026-08-04 (Phase 0 de 4 concluída) — deliberadamente fora do escopo da
+Sprint Housekeeping (`ADR-011`, 2026-08-03).
 
 Responsável:
 —

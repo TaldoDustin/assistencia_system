@@ -578,7 +578,7 @@ fora desta sprint, com dono e destino definidos. Ver retrospectiva completa em
 
 | ID   | Descrição                                                              | Impacto | Prioridade |
 |------|------------------------------------------------------------------------|---------|------------|
-| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Decisão de decomposição confirmada (`ADR-002`/`ADR-011`), sem sprint agendada | Alto    | Alta       |
+| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Sprint própria iniciada em 2026-08-04 (Phase 0 — Architecture Discovery concluída, ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `ADR-002` atualizada); Phase 1 (Design) ainda não iniciada | Alto    | Alta       |
 | TD-02 | `app.py` acumula inicialização, DB e lógica misturadas                 | Alto    | Alta       |
 | TD-03 | Ausência de migrations formais (usa `ALTER TABLE` com try/except)      | Alto    | Alta       |
 | TD-04 | Sem injeção de dependências no backend — acoplamento direto ao SQLite  | Médio   | Média      |

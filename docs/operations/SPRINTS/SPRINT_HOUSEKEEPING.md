@@ -230,15 +230,18 @@ Checklist completo antes de declarar a sprint concluída:
       pré-existente, confirmada via `git stash` como não relacionada a nenhum commit desta sprint;
       não é um skip novo)
 - [x] Lint (Ruff) sem erros novos — `ruff check .` limpo (verificado 2026-08-03)
-- [ ] CI verde (todos os jobs bloqueantes: Lint, Backend Tests, Frontend Quality, Frontend Build,
-      Coverage Report, Docker Build) — **bloqueado: branch local 9+ commits à frente de `origin/main`,
-      ainda não pushada. Requer decisão explícita do CTO antes do push (aciona deploy automático em
-      Render/Vercel)**
-- [x] Cobertura não regrediu (mínimo 60%) — 66.13% local (baseline Fase 0: 65.22%)
-- [x] Build do frontend sem erros (`npm run build`) — verificado 2026-08-03
-- [ ] `docker build .` sem erros — **Docker não disponível nesta máquina local; só validável via CI**
-- [ ] Deploy validado (Render + Vercel) — sem quebra em produção — **depende do push**
-- [ ] Sentry sem novos erros pós-deploy — **depende do push**
+- [x] CI verde (todos os jobs bloqueantes: Lint, Backend Tests, Frontend Quality, Frontend Build,
+      Coverage Report, Docker Build) — push feito em 2026-08-03 (`9c5a830..4ec8409`), CI run
+      [30865336611](https://github.com/TaldoDustin/assistencia_system/actions/runs/30865336611), todos
+      os 6 jobs ✓
+- [x] Cobertura não regrediu (mínimo 60%) — 66.13% local (baseline Fase 0: 65.22%), confirmado também
+      no job Coverage Report da CI
+- [x] Build do frontend sem erros (`npm run build`) — verificado localmente 2026-08-03 e no CI (job
+      Frontend Build)
+- [x] `docker build .` sem erros — não disponível localmente, mas o job Docker Build da CI confirmou
+- [ ] Deploy validado (Render + Vercel) — sem quebra em produção — **push feito; verificação nos
+      dashboards Render/Vercel é manual, fora do alcance desta sessão — pendente confirmação do CTO**
+- [ ] Sentry sem novos erros pós-deploy — **mesma pendência acima, requer acesso ao dashboard Sentry**
 - [x] Nenhum link/badge/URL/imagem quebrado em `README.md` ou docs — nenhuma mudança de link nesta sprint
 - [x] Nenhum import quebrado, nenhum script órfão referenciando nome antigo — grep completo fora de
       `docs/**` confirmou: só restam referências deliberadamente fora de escopo (senha de seed, bloco de

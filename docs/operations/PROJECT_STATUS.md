@@ -1,11 +1,11 @@
 # PROJECT_STATUS
 
-**Projeto:** Fluxoly Platform  
-**Responsável:** Principal Software Engineer  
-**Branch principal:** `main`  
+**Projeto:** Fluxoly Platform
+**Responsável:** Principal Software Engineer
+**Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-30  
+**Última revisão:** 2026-07-30
 **Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
 
 ---
@@ -102,7 +102,7 @@ O sistema está em produção e cobre o ciclo completo de uma assistência técn
 
 ## Última Sprint Concluída
 
-**Sprint 1 — Shopping List & Estabilização de OS**  
+**Sprint 1 — Shopping List & Estabilização de OS**
 Período estimado: 01/06/2026 – 21/06/2026
 
 ### O que foi entregue
@@ -593,6 +593,7 @@ fora desta sprint, com dono e destino definidos. Ver retrospectiva completa em
 | TD-12 (infra) | Restante do Épico de Rebranding Técnico, deliberadamente fora da Sprint Housekeeping: variáveis `IR_FLOW_*` (14, alias `FLUXOLY_*` via `ADR-008`), URLs Render/Vercel, nome do repositório GitHub. Decomposição de `fluxoly_blueprints_api.py` (TD-01) também fora, formalizada em `ADR-011` | Baixo (cosmético, sem risco funcional) | Baixa — sem prazo; ligado a `RELEASE_1.0_MASTER_CHECKLIST.md` (janela de manutenção antes do lançamento comercial), não a esta sprint |
 | TD-13 | **Infra 1.2 — Endurecer Governança do Repositório.** Proteção de `main` ativada em 2026-07-27 (R-10/R-11) cobre só o mínimo (5 status checks obrigatórios, `enforce_admins: false`). Falta: `enforce_admins: true` (a proteção hoje não vale para push direto do próprio mantenedor), `CODEOWNERS`, revisão obrigatória (`required_pull_request_reviews`) com aprovação mínima. Sugerido pelo usuário (CTO) — decisão deliberada de não fazer agora para não quebrar o fluxo atual de merge local + push direto de um mantenedor único; faz sentido quando a equipe crescer além de uma pessoa | Médio (hoje mitigado por disciplina manual de um único mantenedor; escala mal com mais colaboradores) | Baixa (sem prazo — condicionado a crescimento da equipe) |
 | TD-14 | **Evolução do modelo de autorização — perfil único → perfis + permissões por módulo.** Discovery da V1.4 (2026-07-29) propôs substituir `usuarios.perfil` (enum: admin/tecnico/vendedor/estoque/financeiro) por acesso habilitado por módulo (checkboxes: Vendas/Estoque/Assistência/Financeiro/Compras/Dashboard/Administração), evitando explosão combinatória de perfis à medida que o sistema cresce. Decisão explícita: **não fazer agora** — muda arquitetura de autorização transversalmente (checagens espalhadas em ~80 endpoints de `irflow_blueprints_api.py` + `ROUTE_PERMISSIONS` + cada controller de domínio), exigiria migração dos perfis já em produção, e hoje 5 perfis (com `financeiro` da V1.4) ainda são administráveis — a "explosão" é cenário futuro, não problema atual. Merece ADR própria + discovery dedicada quando reaberto. **Preparação de baixo custo feita na V1.4:** checagens de autorização novas encapsuladas em helper reutilizável (ex.: `usuario_pode_financeiro()`), para que uma futura migração troque a implementação do helper sem precisar reescrever os call sites | Médio (não bloqueia nada hoje; custo de migração cresce quanto mais perfis/checagens ad-hoc se acumularem antes de endereçar) | Baixa (sem prazo — reavaliar se a combinação de perfis realmente começar a se multiplicar) |
+| TD-15 | **Code Style Cleanup — Black/isort.** Setup de ambiente de desenvolvimento (2026-08-04) encontrou 55 arquivos `.py` fora do padrão do `black` (mesma versão travada do `.pre-commit-config.yaml`, 24.4.2 — não é drift de versão, é debt pré-existente) e 9 arquivos com imports fora de ordem pelo `isort` (`app.py`, `fluxoly_blueprints_api.py` entre eles). `ruff check .` está limpo — só formatação, não lint funcional. Decisão deliberada de não corrigir junto com o setup de ambiente (evitar commit não-atômico misturando dezenas de arquivos sem relação com a tarefa) | Baixo (cosmético, não afeta comportamento; `ruff check` limpo) | Média — resolver antes de a Sprint TD-01 (modularização da API) tocar nesses mesmos arquivos, para não misturar reformatação mecânica com a refatoração estrutural |
 
 ---
 

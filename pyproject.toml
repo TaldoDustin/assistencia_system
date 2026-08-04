@@ -7,6 +7,7 @@ exclude = [
     "scripts/",
     "assets/",
     "frontend/",
+    ".venv/",
 ]
 
 [tool.ruff.lint]
@@ -22,6 +23,7 @@ target-version = ["py311"]
 exclude = '''
 /(
     \.git
+  | \.venv
   | frontend
   | scripts
   | assets

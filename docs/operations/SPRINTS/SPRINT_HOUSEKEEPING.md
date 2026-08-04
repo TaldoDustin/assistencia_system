@@ -226,22 +226,28 @@ sem validar entre eles.
 
 Checklist completo antes de declarar a sprint concluída:
 
-- [ ] Testes passando (100% da suíte, sem skip novo)
-- [ ] Lint (Ruff) sem erros novos
+- [x] Testes passando (681/682 — único vermelho é KI-030, falha de ambiente Windows/Python 3.14
+      pré-existente, confirmada via `git stash` como não relacionada a nenhum commit desta sprint;
+      não é um skip novo)
+- [x] Lint (Ruff) sem erros novos — `ruff check .` limpo (verificado 2026-08-03)
 - [ ] CI verde (todos os jobs bloqueantes: Lint, Backend Tests, Frontend Quality, Frontend Build,
-      Coverage Report, Docker Build)
-- [ ] Cobertura não regrediu (mínimo 60%, ver `pyproject.toml`)
-- [ ] Build do frontend sem erros (`npm run build`)
-- [ ] `docker build .` sem erros
-- [ ] Deploy validado (Render + Vercel) — sem quebra em produção
-- [ ] Sentry sem novos erros pós-deploy
-- [ ] Nenhum link/badge/URL/imagem quebrado em `README.md` ou docs
-- [ ] Nenhum import quebrado, nenhum script órfão referenciando nome antigo
-- [ ] **Reindexação do Graphify** (`graphify . --update` ou rebuild completo) e nova consulta pelos
-      mesmos termos legados da Fase 1 (`assistencia_system`, `IRFlow`, `irflow`, `IR_FLOW`, `nt-driver`,
-      `NT Driver`). Se a reindexação ainda encontrar referências relevantes, a migração ficou
-      incompleta — volta para a Fase 4 nesses pontos específicos antes de fechar a sprint. Isso torna
-      o grafo uma ferramenta de verificação do resultado, não só de descoberta do trabalho.
+      Coverage Report, Docker Build) — **bloqueado: branch local 9+ commits à frente de `origin/main`,
+      ainda não pushada. Requer decisão explícita do CTO antes do push (aciona deploy automático em
+      Render/Vercel)**
+- [x] Cobertura não regrediu (mínimo 60%) — 66.13% local (baseline Fase 0: 65.22%)
+- [x] Build do frontend sem erros (`npm run build`) — verificado 2026-08-03
+- [ ] `docker build .` sem erros — **Docker não disponível nesta máquina local; só validável via CI**
+- [ ] Deploy validado (Render + Vercel) — sem quebra em produção — **depende do push**
+- [ ] Sentry sem novos erros pós-deploy — **depende do push**
+- [x] Nenhum link/badge/URL/imagem quebrado em `README.md` ou docs — nenhuma mudança de link nesta sprint
+- [x] Nenhum import quebrado, nenhum script órfão referenciando nome antigo — grep completo fora de
+      `docs/**` confirmou: só restam referências deliberadamente fora de escopo (senha de seed, bloco de
+      build desktop, variáveis `IR_FLOW_*`/URLs de infra, `.TESTING_REPORT.md` histórico) — todas já
+      documentadas como pendências conhecidas, nenhuma delas é um import quebrado
+- [x] **Reindexação do Graphify** (`graphify update .`) e nova consulta pelos mesmos termos legados da
+      Fase 1 — reindexado 3x nesta sessão (Lotes 4a, 4b, 5, varredura final); único achado remanescente
+      em código são as exceções documentadas acima. Referências em `docs/**` são históricas
+      (changelogs, ADRs, sprints antigas) — mantidas por design, conforme DoD
 
 Ao final: "Housekeeping Completed" registrado nesta sprint + `PROJECT_STATUS.md` + `CHANGELOG.md`.
 

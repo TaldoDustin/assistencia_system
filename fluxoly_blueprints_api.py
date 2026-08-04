@@ -5,16 +5,16 @@ Authentication: Flask session cookies (same-origin, credentials: 'include').
 """
 
 import contextlib
-from datetime import date, datetime, timedelta
 import json
+import math
+import os
 import re
 import secrets
-import math
 import sqlite3
 import threading
+from datetime import date, datetime, timedelta
 
-from flask import Blueprint, jsonify, request, session, send_from_directory, Response
-import os
+from flask import Blueprint, Response, jsonify, request, send_from_directory, session
 
 from fluxoly_price_tables import sugerir_preco_tabela
 from fluxoly_validation import parse_float, parse_int, safe_json, validate_positive_number
@@ -130,7 +130,9 @@ def create_api_blueprint(deps):
         token_runtime = _texto_limpo_local(mercado_phone_runtime_config.get("api_token"))
         token = token_cfg or token_runtime
 
-        intervalo_cfg = mp_cfg.get("sync_interval_seconds", mercado_phone_runtime_config.get("sync_interval_seconds", 180))
+        intervalo_cfg = mp_cfg.get(
+            "sync_interval_seconds", mercado_phone_runtime_config.get("sync_interval_seconds", 180)
+        )
         timeout_cfg = mp_cfg.get("sync_timeout_seconds", mercado_phone_runtime_config.get("sync_timeout_seconds", 20))
 
         try:
@@ -143,7 +145,9 @@ def create_api_blueprint(deps):
         except (TypeError, ValueError):
             timeout = 20
 
-        start_date = _texto_limpo_local(mp_cfg.get("sync_start_date") or mercado_phone_runtime_config.get("sync_start_date") or "2026-04-01")
+        start_date = _texto_limpo_local(
+            mp_cfg.get("sync_start_date") or mercado_phone_runtime_config.get("sync_start_date") or "2026-04-01"
+        )
 
         mercado_phone_runtime_config.update(
             {
@@ -214,9 +218,7 @@ def create_api_blueprint(deps):
 
     def _executar_reimportacao_mp_async():
         try:
-            resultado = reimportar_todas_os_mercado_phone(
-                conectar, mercado_phone_runtime_config, mercado_phone_helpers
-            )
+            resultado = reimportar_todas_os_mercado_phone(conectar, mercado_phone_runtime_config, mercado_phone_helpers)
             with reimportacao_mp_lock:
                 reimportacao_mp_estado["rodando"] = False
                 reimportacao_mp_estado["finalizado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -478,16 +480,18 @@ def create_api_blueprint(deps):
         if not usuario_logado():
             return err("Não autenticado.", 401)
 
-        return ok(usuario={
-            "id": session["usuario_id"],
-            "nome": session["usuario_nome"],
-            "perfil": session["usuario_perfil"],
-        })
+        return ok(
+            usuario={
+                "id": session["usuario_id"],
+                "nome": session["usuario_nome"],
+                "perfil": session["usuario_perfil"],
+            }
+        )
 
     # ── CONSTANTS ──────────────────────────────────────────────────────────
 
     def _sanitize_list(arr):
-        if not isinstance(arr, (list, tuple)):
+        if not isinstance(arr, list | tuple):
             return arr
         out = []
         for v in arr:
@@ -507,7 +511,7 @@ def create_api_blueprint(deps):
             return obj
         out = {}
         for k, v in obj.items():
-            if isinstance(v, (list, tuple)):
+            if isinstance(v, list | tuple):
                 out[k] = _sanitize_list(v)
             else:
                 out[k] = v
@@ -601,7 +605,7 @@ def create_api_blueprint(deps):
             elif status_aberto(status):
                 ordens_abertas += 1
 
-            for reparo_nome in (reparos_por_os.get(os_id, {}).get("nomes", []) or [tipo]):
+            for reparo_nome in reparos_por_os.get(os_id, {}).get("nomes", []) or [tipo]:
                 if reparo_nome:
                     servicos_mais_feitos[reparo_nome] = servicos_mais_feitos.get(reparo_nome, 0) + 1
 
@@ -769,25 +773,27 @@ def create_api_blueprint(deps):
             rows = cursor.fetchall()
             items = []
             for r in rows:
-                items.append({
-                    "id": r[0],
-                    "os_id": r[1],
-                    "produto_id": r[2],
-                    "produto_nome": r[3],
-                    "quantidade_solicitada": int(r[4] or 0),
-                    "quantidade_comprada": int(r[5] or 0),
-                    "quantidade_recebida": int(r[6] or 0),
-                    "prioridade": r[7],
-                    "status": r[8],
-                    "responsavel_id": r[9],
-                    "responsavel_nome": r[10] or "",
-                    "observacao": r[11] or "",
-                    "created_at": r[12] or "",
-                    "updated_at": r[13] or "",
-                    "purchased_at": r[14] or "",
-                    "received_at": r[15] or "",
-                    "cancelled_at": r[16] or "",
-                })
+                items.append(
+                    {
+                        "id": r[0],
+                        "os_id": r[1],
+                        "produto_id": r[2],
+                        "produto_nome": r[3],
+                        "quantidade_solicitada": int(r[4] or 0),
+                        "quantidade_comprada": int(r[5] or 0),
+                        "quantidade_recebida": int(r[6] or 0),
+                        "prioridade": r[7],
+                        "status": r[8],
+                        "responsavel_id": r[9],
+                        "responsavel_nome": r[10] or "",
+                        "observacao": r[11] or "",
+                        "created_at": r[12] or "",
+                        "updated_at": r[13] or "",
+                        "purchased_at": r[14] or "",
+                        "received_at": r[15] or "",
+                        "cancelled_at": r[16] or "",
+                    }
+                )
             conn.close()
             return ok(items=items, total=total, page=page, per_page=per_page)
         except Exception as exc:
@@ -810,12 +816,27 @@ def create_api_blueprint(deps):
             conn.close()
             if not r:
                 return err("Item não encontrado", 404)
-            return ok(item={
-                "id": r[0], "os_id": r[1], "produto_id": r[2], "produto_nome": r[3],
-                "quantidade_solicitada": int(r[4] or 0), "quantidade_comprada": int(r[5] or 0), "quantidade_recebida": int(r[6] or 0),
-                "prioridade": r[7], "status": r[8], "responsavel_id": r[9], "responsavel_nome": r[10] or "", "observacao": r[11] or "",
-                "created_at": r[12] or "", "updated_at": r[13] or "", "purchased_at": r[14] or "", "received_at": r[15] or "", "cancelled_at": r[16] or "",
-            })
+            return ok(
+                item={
+                    "id": r[0],
+                    "os_id": r[1],
+                    "produto_id": r[2],
+                    "produto_nome": r[3],
+                    "quantidade_solicitada": int(r[4] or 0),
+                    "quantidade_comprada": int(r[5] or 0),
+                    "quantidade_recebida": int(r[6] or 0),
+                    "prioridade": r[7],
+                    "status": r[8],
+                    "responsavel_id": r[9],
+                    "responsavel_nome": r[10] or "",
+                    "observacao": r[11] or "",
+                    "created_at": r[12] or "",
+                    "updated_at": r[13] or "",
+                    "purchased_at": r[14] or "",
+                    "received_at": r[15] or "",
+                    "cancelled_at": r[16] or "",
+                }
+            )
         except Exception as exc:
             with contextlib.suppress(Exception):
                 conn.close()
@@ -850,9 +871,15 @@ def create_api_blueprint(deps):
 
             # Verifica duplicidade: mesmo produto (id ou nome) na mesma OS e status != CANCELADO
             if produto_id:
-                cursor.execute("SELECT id FROM shopping_list WHERE os_id=? AND produto_id=? AND COALESCE(status, '') != 'CANCELADO'", (os_id, produto_id))
+                cursor.execute(
+                    "SELECT id FROM shopping_list WHERE os_id=? AND produto_id=? AND COALESCE(status, '') != 'CANCELADO'",
+                    (os_id, produto_id),
+                )
             else:
-                cursor.execute("SELECT id FROM shopping_list WHERE os_id=? AND lower(produto_nome)=? AND COALESCE(status, '') != 'CANCELADO'", (os_id, produto_nome.lower()))
+                cursor.execute(
+                    "SELECT id FROM shopping_list WHERE os_id=? AND lower(produto_nome)=? AND COALESCE(status, '') != 'CANCELADO'",
+                    (os_id, produto_nome.lower()),
+                )
             if cursor.fetchone():
                 conn.close()
                 return err("Esta peça já está cadastrada nesta OS.")
@@ -865,7 +892,14 @@ def create_api_blueprint(deps):
                 (os_id or None, produto_id, produto_nome, quantidade, prioridade, observacao),
             )
             new_id = cursor.lastrowid
-            _log_shopping(cursor, new_id, session.get("usuario_id"), "create", antes=None, depois=str({"quantidade": quantidade, "prioridade": prioridade}))
+            _log_shopping(
+                cursor,
+                new_id,
+                session.get("usuario_id"),
+                "create",
+                antes=None,
+                depois=str({"quantidade": quantidade, "prioridade": prioridade}),
+            )
             conn.commit()
             conn.close()
             return ok(id=new_id)
@@ -886,7 +920,9 @@ def create_api_blueprint(deps):
 
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT quantidade_solicitada, prioridade, observacao FROM shopping_list WHERE id=?", (item_id,))
+            cursor.execute(
+                "SELECT quantidade_solicitada, prioridade, observacao FROM shopping_list WHERE id=?", (item_id,)
+            )
             row = cursor.fetchone()
             if not row:
                 conn.close()
@@ -952,24 +988,29 @@ def create_api_blueprint(deps):
                 return err("Item nao encontrado", 404)
             atual_status, atual_responsavel = row[0], row[1]
 
-        # Bloqueio de compras simultâneas
-            if atual_status == 'EM_COMPRA' and novo == 'EM_COMPRA' and atual_responsavel and atual_responsavel != usuario_id:
+            # Bloqueio de compras simultâneas
+            if (
+                atual_status == "EM_COMPRA"
+                and novo == "EM_COMPRA"
+                and atual_responsavel
+                and atual_responsavel != usuario_id
+            ):
                 # buscar nome do responsavel
                 cursor.execute("SELECT nome FROM usuarios WHERE id=?", (atual_responsavel,))
                 nome = cursor.fetchone()
-                nome = nome[0] if nome else 'Outro usuario'
+                nome = nome[0] if nome else "Outro usuario"
                 conn.close()
                 return err(f"Compra em andamento por {nome}")
 
             # Valida transições simples (não permite saltos de RECEBIDO -> PENDENTE, por exemplo)
             valid_transitions = {
-                'PENDENTE': {'EM_COTACAO', 'EM_COMPRA', 'CANCELADO', 'ARQUIVADO'},
-                'EM_COTACAO': {'EM_COMPRA', 'CANCELADO', 'ARQUIVADO'},
-                'EM_COMPRA': {'COMPRADO', 'CANCELADO', 'ARQUIVADO'},
-                'COMPRADO': {'RECEBIDO', 'ARQUIVADO'},
-                'RECEBIDO': {'ARQUIVADO'},
-                'CANCELADO': set(),
-                'ARQUIVADO': set(),
+                "PENDENTE": {"EM_COTACAO", "EM_COMPRA", "CANCELADO", "ARQUIVADO"},
+                "EM_COTACAO": {"EM_COMPRA", "CANCELADO", "ARQUIVADO"},
+                "EM_COMPRA": {"COMPRADO", "CANCELADO", "ARQUIVADO"},
+                "COMPRADO": {"RECEBIDO", "ARQUIVADO"},
+                "RECEBIDO": {"ARQUIVADO"},
+                "CANCELADO": set(),
+                "ARQUIVADO": set(),
             }
 
             # Permite idempotência (novo == atual_status nunca é bloqueado)
@@ -987,40 +1028,40 @@ def create_api_blueprint(deps):
             params = []
             now = datetime.now().isoformat()
 
-            if novo == 'EM_COMPRA':
-                updates.append('status = ?')
-                updates.append('responsavel_id = ?')
-                updates.append('updated_at = ?')
+            if novo == "EM_COMPRA":
+                updates.append("status = ?")
+                updates.append("responsavel_id = ?")
+                updates.append("updated_at = ?")
                 params.extend([novo, usuario_id, now])
-            elif novo == 'COMPRADO':
-                updates.append('status = ?')
-                updates.append('quantidade_comprada = COALESCE(quantidade_comprada,0)')
-                updates.append('purchased_at = ?')
-                updates.append('updated_at = ?')
+            elif novo == "COMPRADO":
+                updates.append("status = ?")
+                updates.append("quantidade_comprada = COALESCE(quantidade_comprada,0)")
+                updates.append("purchased_at = ?")
+                updates.append("updated_at = ?")
                 params.extend([novo, now, now])
-            elif novo == 'RECEBIDO':
+            elif novo == "RECEBIDO":
                 # pode informar quantidade_recebida
                 qrecv = parse_int(quantidade_recebida, default=None)
                 if qrecv is not None:
-                    updates.append('quantidade_recebida = ?')
+                    updates.append("quantidade_recebida = ?")
                     params.append(qrecv)
-                updates.append('status = ?')
-                updates.append('received_at = ?')
-                updates.append('updated_at = ?')
+                updates.append("status = ?")
+                updates.append("received_at = ?")
+                updates.append("updated_at = ?")
                 params.extend([novo, now, now])
-            elif novo == 'CANCELADO':
-                updates.append('status = ?')
-                updates.append('cancelled_at = ?')
-                updates.append('updated_at = ?')
+            elif novo == "CANCELADO":
+                updates.append("status = ?")
+                updates.append("cancelled_at = ?")
+                updates.append("updated_at = ?")
                 params.extend([novo, now, now])
             else:
-                updates.append('status = ?')
-                updates.append('updated_at = ?')
+                updates.append("status = ?")
+                updates.append("updated_at = ?")
                 params.extend([novo, now])
 
             params.append(item_id)
             cursor.execute(f"UPDATE shopping_list SET {', '.join(updates)} WHERE id=?", tuple(params))
-            _log_shopping(cursor, item_id, usuario_id, 'status_change', antes=str(antes), depois=novo)
+            _log_shopping(cursor, item_id, usuario_id, "status_change", antes=str(antes), depois=novo)
             conn.commit()
             conn.close()
             return ok(id=item_id, status=novo)
@@ -1047,8 +1088,11 @@ def create_api_blueprint(deps):
                 return err("Item nao encontrado", 404)
             antes = row[0]
             now = datetime.now().isoformat()
-            cursor.execute("UPDATE shopping_list SET status='CANCELADO', cancelled_at=?, updated_at=? WHERE id=?", (now, now, item_id))
-            _log_shopping(cursor, item_id, usuario_id, 'cancel', antes=antes, depois='CANCELADO')
+            cursor.execute(
+                "UPDATE shopping_list SET status='CANCELADO', cancelled_at=?, updated_at=? WHERE id=?",
+                (now, now, item_id),
+            )
+            _log_shopping(cursor, item_id, usuario_id, "cancel", antes=antes, depois="CANCELADO")
             conn.commit()
             conn.close()
             return ok(id=item_id)
@@ -1071,22 +1115,31 @@ def create_api_blueprint(deps):
             conn.close()
             result = []
             for r in rows:
-                result.append({"produto_id": r[0], "produto_nome": r[1] or "", "quantidade_total": int(r[2] or 0), "os_count": int(r[3] or 0)})
+                result.append(
+                    {
+                        "produto_id": r[0],
+                        "produto_nome": r[1] or "",
+                        "quantidade_total": int(r[2] or 0),
+                        "os_count": int(r[3] or 0),
+                    }
+                )
             return ok(grouped=result)
         except Exception as exc:
             with contextlib.suppress(Exception):
                 conn.close()
             return err(f"Erro ao agrupar: {exc}")
 
-
-    @api.route('/shopping-list/<int:item_id>/logs')
+    @api.route("/shopping-list/<int:item_id>/logs")
     def shopping_logs(item_id):
         if not usuario_logado():
             return err("Não autenticado.", 401)
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, usuario_id, acao, valor_anterior, valor_novo, created_at FROM shopping_list_logs WHERE shopping_list_id=? ORDER BY created_at DESC", (item_id,))
+            cursor.execute(
+                "SELECT id, usuario_id, acao, valor_anterior, valor_novo, created_at FROM shopping_list_logs WHERE shopping_list_id=? ORDER BY created_at DESC",
+                (item_id,),
+            )
             rows = cursor.fetchall()
             conn.close()
             logs = []
@@ -1103,30 +1156,33 @@ def create_api_blueprint(deps):
                 except Exception:
                     vn_parsed = vn
 
-                logs.append({
-                    "id": r[0],
-                    "usuario_id": r[1],
-                    "acao": r[2],
-                    "valor_anterior": va_parsed,
-                    "valor_novo": vn_parsed,
-                    "created_at": r[5],
-                })
+                logs.append(
+                    {
+                        "id": r[0],
+                        "usuario_id": r[1],
+                        "acao": r[2],
+                        "valor_anterior": va_parsed,
+                        "valor_novo": vn_parsed,
+                        "created_at": r[5],
+                    }
+                )
             return ok(logs=logs)
         except Exception as exc:
             with contextlib.suppress(Exception):
                 conn.close()
             return err(f"Erro ao listar logs: {exc}")
 
-
-    @api.route('/shopping-list/logs/export')
+    @api.route("/shopping-list/logs/export")
     def shopping_logs_export():
         if not usuario_logado():
             return err("Não autenticado.", 401)
-        fmt = (request.args.get('format') or 'json').lower()
+        fmt = (request.args.get("format") or "json").lower()
         try:
             conn = conectar()
             cursor = conn.cursor()
-            cursor.execute("SELECT l.id, l.shopping_list_id, l.usuario_id, u.nome, l.acao, l.valor_anterior, l.valor_novo, l.created_at FROM shopping_list_logs l LEFT JOIN usuarios u ON l.usuario_id = u.id ORDER BY l.created_at DESC")
+            cursor.execute(
+                "SELECT l.id, l.shopping_list_id, l.usuario_id, u.nome, l.acao, l.valor_anterior, l.valor_novo, l.created_at FROM shopping_list_logs l LEFT JOIN usuarios u ON l.usuario_id = u.id ORDER BY l.created_at DESC"
+            )
             rows = cursor.fetchall()
             conn.close()
             records = []
@@ -1142,34 +1198,62 @@ def create_api_blueprint(deps):
                 except Exception:
                     vn_parsed = vn
 
-                records.append({
-                    "id": r[0],
-                    "shopping_list_id": r[1],
-                    "usuario_id": r[2],
-                    "usuario_nome": r[3] or "",
-                    "acao": r[4],
-                    "valor_anterior": va_parsed,
-                    "valor_novo": vn_parsed,
-                    "created_at": r[7],
-                })
+                records.append(
+                    {
+                        "id": r[0],
+                        "shopping_list_id": r[1],
+                        "usuario_id": r[2],
+                        "usuario_nome": r[3] or "",
+                        "acao": r[4],
+                        "valor_anterior": va_parsed,
+                        "valor_novo": vn_parsed,
+                        "created_at": r[7],
+                    }
+                )
 
-            if fmt == 'csv':
+            if fmt == "csv":
                 # gerar CSV simples
-                import io
                 import csv
+                import io
+
                 out = io.StringIO()
                 writer = csv.writer(out)
-                writer.writerow(['id','shopping_list_id','usuario_id','usuario_nome','acao','valor_anterior','valor_novo','created_at'])
+                writer.writerow(
+                    [
+                        "id",
+                        "shopping_list_id",
+                        "usuario_id",
+                        "usuario_nome",
+                        "acao",
+                        "valor_anterior",
+                        "valor_novo",
+                        "created_at",
+                    ]
+                )
                 for rec in records:
-                    writer.writerow([
-                        rec['id'], rec['shopping_list_id'], rec['usuario_id'], rec['usuario_nome'], rec['acao'],
-                        json.dumps(rec['valor_anterior'], ensure_ascii=False) if not isinstance(rec['valor_anterior'], str) else rec['valor_anterior'],
-                        json.dumps(rec['valor_novo'], ensure_ascii=False) if not isinstance(rec['valor_novo'], str) else rec['valor_novo'],
-                        rec['created_at']
-                    ])
+                    writer.writerow(
+                        [
+                            rec["id"],
+                            rec["shopping_list_id"],
+                            rec["usuario_id"],
+                            rec["usuario_nome"],
+                            rec["acao"],
+                            (
+                                json.dumps(rec["valor_anterior"], ensure_ascii=False)
+                                if not isinstance(rec["valor_anterior"], str)
+                                else rec["valor_anterior"]
+                            ),
+                            (
+                                json.dumps(rec["valor_novo"], ensure_ascii=False)
+                                if not isinstance(rec["valor_novo"], str)
+                                else rec["valor_novo"]
+                            ),
+                            rec["created_at"],
+                        ]
+                    )
                 csv_text = out.getvalue()
-                resp = Response(csv_text, mimetype='text/csv')
-                resp.headers['Content-Disposition'] = 'attachment; filename="shopping_list_logs.csv"'
+                resp = Response(csv_text, mimetype="text/csv")
+                resp.headers["Content-Disposition"] = 'attachment; filename="shopping_list_logs.csv"'
                 return resp
             # default JSON
             return ok(records=records)
@@ -1177,7 +1261,6 @@ def create_api_blueprint(deps):
             with contextlib.suppress(Exception):
                 conn.close()
             return err(f"Erro ao exportar logs: {exc}")
-
 
     def _ordem_lista_por_id_desc(item):
         origem = (item.get("origem_integracao") or "").strip().lower()
@@ -1225,7 +1308,11 @@ def create_api_blueprint(deps):
             reparo_nome = texto_reparos_os(reparos_info, tipo)
 
             # Mantém OS antigas da integração no banco, mas oculta da listagem.
-            if origem_integracao == "mercado_phone" and mp_sync_start_date and ((not data) or (data < mp_sync_start_date)):
+            if (
+                origem_integracao == "mercado_phone"
+                and mp_sync_start_date
+                and ((not data) or (data < mp_sync_start_date))
+            ):
                 continue
 
             if q:
@@ -1296,7 +1383,14 @@ def create_api_blueprint(deps):
             (os_id,),
         )
         pecas_usadas = [
-            {"estoque_id": p[0], "descricao": p[1], "valor": p[2], "fornecedor": p[3], "quantidade": p[4], "modelo": p[5]}
+            {
+                "estoque_id": p[0],
+                "descricao": p[1],
+                "valor": p[2],
+                "fornecedor": p[3],
+                "quantidade": p[4],
+                "modelo": p[5],
+            }
             for p in cursor.fetchall()
         ]
         conn.close()
@@ -1305,24 +1399,33 @@ def create_api_blueprint(deps):
         status = normalizar_status_os(row[6])
         tipo = row[1] or ""
         custo = row[9] or 0
-        return ok(ordem={
-            "id": row[0], "tipo": tipo, "cliente": row[2] or "",
-            "aparelho": row[3] or "", "tecnico": row[4] or "",
-            "status": status,
-            "reparos": reparos_info.get("nomes", []),
-            "reparo_ids": reparos_info.get("ids", []),
-            "vendedor": row[13] or "", "cor": row[14] or "", "imei": row[15] or "",
-            "modelo": row[12] or "",
-            "valor_cobrado": row[7] or 0, "valor_descontado": row[8] or 0,
-            "custo_pecas": custo,
-            "faturamento": round(calcular_faturamento_os(row[7], row[8]), 2),
-            "lucro": round(calcular_lucro_os(tipo, row[7], row[8], custo), 2),
-            "data": row[10] or "", "observacoes": row[11] or "",
-            "origem_integracao": row[16] or "",
-            "id_externo_integracao": row[17] or "",
-            "data_finalizado": row[18] or "",
-            "pecas_usadas": pecas_usadas,
-        })
+        return ok(
+            ordem={
+                "id": row[0],
+                "tipo": tipo,
+                "cliente": row[2] or "",
+                "aparelho": row[3] or "",
+                "tecnico": row[4] or "",
+                "status": status,
+                "reparos": reparos_info.get("nomes", []),
+                "reparo_ids": reparos_info.get("ids", []),
+                "vendedor": row[13] or "",
+                "cor": row[14] or "",
+                "imei": row[15] or "",
+                "modelo": row[12] or "",
+                "valor_cobrado": row[7] or 0,
+                "valor_descontado": row[8] or 0,
+                "custo_pecas": custo,
+                "faturamento": round(calcular_faturamento_os(row[7], row[8]), 2),
+                "lucro": round(calcular_lucro_os(tipo, row[7], row[8], custo), 2),
+                "data": row[10] or "",
+                "observacoes": row[11] or "",
+                "origem_integracao": row[16] or "",
+                "id_externo_integracao": row[17] or "",
+                "data_finalizado": row[18] or "",
+                "pecas_usadas": pecas_usadas,
+            }
+        )
 
     @api.route("/ordens/<int:os_id>/checklist")
     def obter_checklist_os(os_id):
@@ -1577,8 +1680,23 @@ def create_api_blueprint(deps):
                     valor_cobrado, valor_descontado, custo_pecas, data, observacoes, modelo, vendedor, cor, imei)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
-                (tipo, cliente, aparelho, tecnico, reparo_ids[0], status,
-                 valor_cobrado, valor_descontado, 0, data, observacoes, modelo, vendedor, cor, imei),
+                (
+                    tipo,
+                    cliente,
+                    aparelho,
+                    tecnico,
+                    reparo_ids[0],
+                    status,
+                    valor_cobrado,
+                    valor_descontado,
+                    0,
+                    data,
+                    observacoes,
+                    modelo,
+                    vendedor,
+                    cor,
+                    imei,
+                ),
             )
             novo_id = cursor.lastrowid
             salvar_reparos_os(cursor, novo_id, reparo_ids)
@@ -1689,9 +1807,24 @@ def create_api_blueprint(deps):
                     cor=?,imei=?,data_finalizado=?
                 WHERE id=?
                 """,
-                (tipo, cliente, aparelho, tecnico, reparo_ids[0], status,
-                 valor_cobrado, valor_descontado, data_os, observacoes, modelo, vendedor,
-                 cor, imei, data_finalizado_valor, os_id),
+                (
+                    tipo,
+                    cliente,
+                    aparelho,
+                    tecnico,
+                    reparo_ids[0],
+                    status,
+                    valor_cobrado,
+                    valor_descontado,
+                    data_os,
+                    observacoes,
+                    modelo,
+                    vendedor,
+                    cor,
+                    imei,
+                    data_finalizado_valor,
+                    os_id,
+                ),
             )
             salvar_reparos_os(cursor, os_id, reparo_ids)
 
@@ -1701,7 +1834,11 @@ def create_api_blueprint(deps):
                 gravar_garantias_reparo(cursor, os_id, resolvidos, data_inicio)
                 for reparo_id, tipo_garantia in resolvidos:
                     registrar_log_auditoria(
-                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_concedida",
+                        cursor,
+                        "os_reparo",
+                        os_id,
+                        session.get("usuario_id"),
+                        "garantia_concedida",
                         depois={
                             "reparo_id": reparo_id,
                             "tipo_garantia_id": tipo_garantia["id"],
@@ -1715,12 +1852,20 @@ def create_api_blueprint(deps):
                 # concedida, na mesma transação do cancelamento.
                 for linha in buscar_linhas_com_garantia_da_os(cursor, os_id):
                     (
-                        reparo_id_linha, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
-                        garantia_data_inicio, garantia_data_fim,
+                        reparo_id_linha,
+                        tipo_garantia_id,
+                        garantia_nome,
+                        garantia_duracao_meses,
+                        garantia_data_inicio,
+                        garantia_data_fim,
                     ) = linha
                     zerar_garantia_reparo(cursor, os_id, reparo_id_linha)
                     registrar_log_auditoria(
-                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                        cursor,
+                        "os_reparo",
+                        os_id,
+                        session.get("usuario_id"),
+                        "garantia_alterada",
                         antes={
                             "reparo_id": reparo_id_linha,
                             "tipo_garantia_id": tipo_garantia_id,
@@ -1796,7 +1941,11 @@ def create_api_blueprint(deps):
                         INSERT OR IGNORE INTO integracao_os_vistas (origem, id_externo, primeira_visualizacao)
                         VALUES (?, ?, ?)
                         """,
-                        ("mercado_phone_bloqueada", id_externo_integracao, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        (
+                            "mercado_phone_bloqueada",
+                            id_externo_integracao,
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        ),
                     )
             cursor.execute("DELETE FROM os_pecas WHERE os_id=?", (os_id,))
             cursor.execute("DELETE FROM os_reparos WHERE os_id=?", (os_id,))
@@ -1862,7 +2011,11 @@ def create_api_blueprint(deps):
                 gravar_garantias_reparo(cursor, os_id, resolvidos, data_inicio)
                 for reparo_id, tipo_garantia in resolvidos:
                     registrar_log_auditoria(
-                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_concedida",
+                        cursor,
+                        "os_reparo",
+                        os_id,
+                        session.get("usuario_id"),
+                        "garantia_concedida",
                         depois={
                             "reparo_id": reparo_id,
                             "tipo_garantia_id": tipo_garantia["id"],
@@ -1877,12 +2030,20 @@ def create_api_blueprint(deps):
                 # concedida, na mesma transação do cancelamento.
                 for linha in buscar_linhas_com_garantia_da_os(cursor, os_id):
                     (
-                        reparo_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
-                        garantia_data_inicio, garantia_data_fim,
+                        reparo_id,
+                        tipo_garantia_id,
+                        garantia_nome,
+                        garantia_duracao_meses,
+                        garantia_data_inicio,
+                        garantia_data_fim,
                     ) = linha
                     zerar_garantia_reparo(cursor, os_id, reparo_id)
                     registrar_log_auditoria(
-                        cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                        cursor,
+                        "os_reparo",
+                        os_id,
+                        session.get("usuario_id"),
+                        "garantia_alterada",
                         antes={
                             "reparo_id": reparo_id,
                             "tipo_garantia_id": tipo_garantia_id,
@@ -1929,8 +2090,11 @@ def create_api_blueprint(deps):
                 conn.rollback()
                 return err("Reparo não encontrado nesta OS.", 404)
             (
-                tipo_garantia_id_anterior, garantia_nome_anterior, garantia_duracao_meses_anterior,
-                garantia_data_inicio_anterior, garantia_data_fim_anterior,
+                tipo_garantia_id_anterior,
+                garantia_nome_anterior,
+                garantia_duracao_meses_anterior,
+                garantia_data_inicio_anterior,
+                garantia_data_fim_anterior,
             ) = linha
 
             data_ref = parse_data_ymd(garantia_data_inicio_anterior)
@@ -1942,7 +2106,11 @@ def create_api_blueprint(deps):
                 return err("OS não pode ser corrigida (cancelada ou em outro estado).")
 
             registrar_log_auditoria(
-                cursor, "os_reparo", os_id, session.get("usuario_id"), "garantia_alterada",
+                cursor,
+                "os_reparo",
+                os_id,
+                session.get("usuario_id"),
+                "garantia_alterada",
                 antes={
                     "reparo_id": reparo_id,
                     "tipo_garantia_id": tipo_garantia_id_anterior,
@@ -1985,8 +2153,12 @@ def create_api_blueprint(deps):
 
         historico = [
             {
-                "id": r[0], "acao": r[1], "valor_anterior": r[2], "valor_novo": r[3],
-                "criado_em": r[4], "usuario_nome": r[5] or "",
+                "id": r[0],
+                "acao": r[1],
+                "valor_anterior": r[2],
+                "valor_novo": r[3],
+                "criado_em": r[4],
+                "usuario_nome": r[5] or "",
             }
             for r in rows
         ]
@@ -2020,11 +2192,16 @@ def create_api_blueprint(deps):
         ordens = []
         for r in rows:
             rinfo = reparos_por_os.get(r[0], {"nomes": []})
-            ordens.append({
-                "id": r[0], "tipo": r[1] or "", "modelo": r[2] or "",
-                "data": r[3] or "", "status": normalizar_status_os(r[4]),
-                "reparos": rinfo.get("nomes", []),
-            })
+            ordens.append(
+                {
+                    "id": r[0],
+                    "tipo": r[1] or "",
+                    "modelo": r[2] or "",
+                    "data": r[3] or "",
+                    "status": normalizar_status_os(r[4]),
+                    "reparos": rinfo.get("nomes", []),
+                }
+            )
         return ok(ordens=ordens)
 
     # ── STOCK ──────────────────────────────────────────────────────────────
@@ -2269,7 +2446,18 @@ def create_api_blueprint(deps):
                 INSERT INTO estoque (descricao, modelo, valor, fornecedor, quantidade, data_compra, sku, tipo, qualidade, requer_imei)
                 VALUES (?,?,?,?,?,?,?,?,?,?)
                 """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade), data_compra, sku, tipo, qualidade, requer_imei),
+                (
+                    descricao,
+                    modelo,
+                    valor,
+                    fornecedor,
+                    max(0, quantidade),
+                    data_compra,
+                    sku,
+                    tipo,
+                    qualidade,
+                    requer_imei,
+                ),
             )
             novo_id = cursor.lastrowid
             if quantidade > 0:
@@ -2346,7 +2534,19 @@ def create_api_blueprint(deps):
                 SET descricao=?, modelo=?, valor=?, fornecedor=?, quantidade=?, data_compra=?, sku=?, tipo=?, qualidade=?, requer_imei=?
                 WHERE id=?
                 """,
-                (descricao, modelo, valor, fornecedor, max(0, quantidade_nova), data_compra, sku, tipo, qualidade, requer_imei, item_id),
+                (
+                    descricao,
+                    modelo,
+                    valor,
+                    fornecedor,
+                    max(0, quantidade_nova),
+                    data_compra,
+                    sku,
+                    tipo,
+                    qualidade,
+                    requer_imei,
+                    item_id,
+                ),
             )
             diff = max(0, quantidade_nova) - qtd_antiga
             if diff != 0:
@@ -2449,10 +2649,12 @@ def create_api_blueprint(deps):
         )
         rows = cursor.fetchall()
         conn.close()
-        return ok(movimentacoes=[
-            {"id": r[0], "estoque_id": r[1], "tipo": r[2], "quantidade": r[3], "data": r[4], "descricao": r[5]}
-            for r in rows
-        ])
+        return ok(
+            movimentacoes=[
+                {"id": r[0], "estoque_id": r[1], "tipo": r[2], "quantidade": r[3], "data": r[4], "descricao": r[5]}
+                for r in rows
+            ]
+        )
 
     # ── REPAIR TYPES ───────────────────────────────────────────────────────
 
@@ -2778,9 +2980,19 @@ def create_api_blueprint(deps):
         result = []
         for r in rows:
             (
-                os_id, cliente, modelo, tecnico, data_fin, data_os, imei,
-                origem_integracao, id_externo_integracao,
-                reparo_id, reparo_nome, tipo_garantia_id, garantia_data_fim_raw,
+                os_id,
+                cliente,
+                modelo,
+                tecnico,
+                data_fin,
+                data_os,
+                imei,
+                origem_integracao,
+                id_externo_integracao,
+                reparo_id,
+                reparo_nome,
+                tipo_garantia_id,
+                garantia_data_fim_raw,
             ) = r
             if (cliente or "").strip().lower() == "ir phones":
                 continue
@@ -2797,15 +3009,21 @@ def create_api_blueprint(deps):
             dias_restantes = (fim - hoje).days if fim else None
             label, color = _classificar_garantia(dias_restantes)
 
-            result.append({
-                "id": os_id, "reparo_id": reparo_id, "reparo_nome": reparo_nome or "",
-                "cliente": cliente or "", "modelo": modelo or "",
-                "tecnico": tecnico or "", "imei": imei or "",
-                "data_finalizado": data_fin or data_os,
-                "origem_integracao": origem_integracao or "",
-                "id_externo_integracao": id_externo_integracao or "",
-                "garantia": {"dias_restantes": dias_restantes, "label": label, "color": color},
-            })
+            result.append(
+                {
+                    "id": os_id,
+                    "reparo_id": reparo_id,
+                    "reparo_nome": reparo_nome or "",
+                    "cliente": cliente or "",
+                    "modelo": modelo or "",
+                    "tecnico": tecnico or "",
+                    "imei": imei or "",
+                    "data_finalizado": data_fin or data_os,
+                    "origem_integracao": origem_integracao or "",
+                    "id_externo_integracao": id_externo_integracao or "",
+                    "garantia": {"dias_restantes": dias_restantes, "label": label, "color": color},
+                }
+            )
 
         total = len(result)
         ativas = len([r for r in result if r["garantia"]["color"] == "green"])
@@ -2813,8 +3031,11 @@ def create_api_blueprint(deps):
         vencidas = len([r for r in result if r["garantia"]["color"] == "red"])
 
         return ok(
-            ordens=result, total=total,
-            ativas=ativas, vencendo=vencendo, vencidas=vencidas,
+            ordens=result,
+            total=total,
+            ativas=ativas,
+            vencendo=vencendo,
+            vencidas=vencidas,
         )
 
     # ── REPORTS ────────────────────────────────────────────────────────────
@@ -2922,10 +3143,9 @@ def create_api_blueprint(deps):
         cursor.execute("SELECT id, nome, usuario, perfil, ativo FROM usuarios ORDER BY nome")
         rows = cursor.fetchall()
         conn.close()
-        return ok(usuarios=[
-            {"id": r[0], "nome": r[1], "usuario": r[2], "perfil": r[3], "ativo": bool(r[4])}
-            for r in rows
-        ])
+        return ok(
+            usuarios=[{"id": r[0], "nome": r[1], "usuario": r[2], "perfil": r[3], "ativo": bool(r[4])} for r in rows]
+        )
 
     @api.route("/usuarios", methods=["POST"])
     def criar_usuario():
@@ -3127,14 +3347,17 @@ def create_api_blueprint(deps):
                 nome_arquivo = f"backup-v{versao}-{stamp}.db"
 
             info = criar_backup(
-                backup_dir, google_drive_backup_dir,
+                backup_dir,
+                google_drive_backup_dir,
                 conectar,
                 nome_arquivo=nome_arquivo,
             )
             if backup_email_senha_app:
                 enviar_backup_email(
-                    info["destino_local"], backup_email_remetente,
-                    backup_email_senha_app, backup_email_destino,
+                    info["destino_local"],
+                    backup_email_remetente,
+                    backup_email_senha_app,
+                    backup_email_destino,
                 )
             return ok(
                 arquivo=info["nome"],
@@ -3154,12 +3377,14 @@ def create_api_blueprint(deps):
             for f in os.listdir(backup_dir):
                 if f.endswith(".db"):
                     full = os.path.join(backup_dir, f)
-                    backups.append({
-                        "nome": f,
-                        "tamanho": os.path.getsize(full),
-                        "data": datetime.fromtimestamp(os.path.getmtime(full)).strftime("%Y-%m-%d %H:%M"),
-                        "modificado_em": os.path.getmtime(full),
-                    })
+                    backups.append(
+                        {
+                            "nome": f,
+                            "tamanho": os.path.getsize(full),
+                            "data": datetime.fromtimestamp(os.path.getmtime(full)).strftime("%Y-%m-%d %H:%M"),
+                            "modificado_em": os.path.getmtime(full),
+                        }
+                    )
 
         backups.sort(key=lambda item: item["modificado_em"], reverse=True)
         for item in backups:
@@ -3187,9 +3412,10 @@ def create_api_blueprint(deps):
         if not header.startswith(b"SQLite format 3"):
             return err("Arquivo inválido: não é um banco SQLite.", 400)
         f.seek(0)
+        import shutil
         import sqlite3 as _sqlite3
         import tempfile
-        import shutil
+
         # Salva em temp para validar antes de sobrescrever. delete=False + unlink manual
         # no finally (nao um `with`) e proposital: no Windows, fechar o handle antes do
         # os.unlink() no finally abaixo falharia com PermissionError enquanto o arquivo
@@ -3216,8 +3442,6 @@ def create_api_blueprint(deps):
                 os.unlink(tmp.name)
         return ok(mensagem="Backup restaurado com sucesso.")
 
-
-
     @api.route("/integracoes/mercadophone/sincronizar", methods=["POST"])
     def sincronizar_mercadophone():
         if not usuario_logado():
@@ -3230,9 +3454,7 @@ def create_api_blueprint(deps):
             if not status_cfg["configurado"]:
                 return err("Mercado Phone não configurado. Informe o token da API.", 400)
 
-            resultado = sincronizar_mercado_phone(
-                conectar, mercado_phone_runtime_config, mercado_phone_helpers
-            )
+            resultado = sincronizar_mercado_phone(conectar, mercado_phone_runtime_config, mercado_phone_helpers)
             return ok(resultado=resultado)
         except Exception as exc:
             return err(str(exc))

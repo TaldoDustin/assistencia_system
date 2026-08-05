@@ -1024,10 +1024,15 @@ um caminho de produção real acessado pelo frontend. CI roda em runner Linux (G
 `ENGINEERING_GUIDE.md` "nunca ignorar testes falhando" se não for documentado.
 
 Status:
-Aberto — não investigado a fundo (causa provável: driver/serviço Winsock ausente ou desabilitado nesta
-instalação Windows, ou incompatibilidade do módulo `_overlapped` com Python 3.14 especificamente).
-Nenhuma ação tomada; suíte segue sendo tratada como "681 passed, 1 failed (ambiente)" nesta máquina até
-confirmação em CI ou outro ambiente.
+Aberto — não investigado a fundo. Atualização (2026-08-04, bootstrap de ambiente Windows nesta mesma
+máquina): reproduzido de forma idêntica (`WinError 10106` no mesmo ponto) numa `.venv` nova criada com
+Python 3.12.10, não só 3.14.
+
+Hipótese descartada: o problema não é específico do Python 3.14, pois foi reproduzido também em uma
+instalação limpa com Python 3.12.10. Aponta mais para driver/serviço Winsock ausente ou desabilitado
+nesta instalação Windows especificamente (afeta qualquer versão de Python nesta máquina, não é por
+versão). Nenhuma ação tomada; suíte segue sendo tratada como "681 passed, 1 failed (ambiente)" nesta
+máquina até confirmação em CI ou outro ambiente.
 
 Sprint prevista:
 Não definida — não bloqueia a Sprint Housekeeping (achado incidental, caracterizado e reportado aqui,

@@ -30,7 +30,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | Módulo | Rotas | Helpers usados | Deps usadas | Serviços externos tocados |
 |---|--:|--:|--:|---|
 | `api_shopping.py` ✅ extraído | 9 | 4 (3 genéricos + `_log_shopping`) | 1 | (nenhum) |
-| `api_garantias.py` | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
+| `api_garantias.py` | 1 | 3 | 3 | `fluxoly_core` |
 | `api_costs.py` | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
 | `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
@@ -157,7 +157,11 @@ próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encon
 ### `api_garantias.py`
 - **Helpers:** `err`, `ok`, `usuario_logado`
 - **Deps (3):** `conectar`, `garantia_reparo_dias_padrao`, `parse_data_ymd`
-- **Serviços:** `fluxoly_core`, `fluxoly_reports`
+- **Serviços:** `fluxoly_core` (`GARANTIA_REPARO_DIAS_PADRAO`). Correção (Discovery Local, ver
+  `SPRINT_TD01_MODULARIZACAO_API.md` Phase 2): `fluxoly_reports` **não** é tocado por este domínio — não
+  há chamada real a nenhuma função de `fluxoly_reports` em `listar_garantias`/`_classificar_garantia`.
+  `parse_data_ymd` é definida localmente em `app.py:501`, não é um serviço externo — só uma dep injetada
+  como as outras.
 
 ---
 

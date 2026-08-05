@@ -290,6 +290,54 @@ multiplicaria o número de vezes que a suíte completa precisa rodar sem reduzir
 
 Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "Ordem de extração revisada".
 
+### Próxima extração planejada — Garantias (2/12)
+
+**Status:** 📋 Plano levantado e documentado (2026-08-04) — **implementação ainda não iniciada**, aguardando
+aprovação explícita antes de tocar em `app.py`/`fluxoly_blueprints_api.py` (gate do `CLAUDE.md`). Este
+bloco existe para a extração poder começar direto na etapa de implementação numa sessão futura, sem
+refazer a Discovery Local.
+
+**Achado crítico — escopo é menor do que o nome sugere.** O domínio `api_garantias.py` da matriz cobre
+**uma única rota**: `GET /garantias` (`listar_garantias`). As outras duas rotas com "garantia" no path
+(`PATCH /ordens/<id>/reparos/<rid>/garantia`, `GET /ordens/<id>/reparos/<rid>/historico-garantia`) e a
+lógica de concessão/zeragem de garantia embutida em `criar_ordem` (linhas 1229-1330) e
+`atualizar_status_os` (linhas 1430-1500) pertencem ao domínio **OS** — último e mais complexo da fila
+(Tier 12), não saem nesta extração. Existe também um blueprint já decomposto "Tipos de Garantia"
+(`fluxoly_tipos_garantia_controller/_service/_repository.py`, registrado em `app.py:2179-2181`) — é o
+catálogo de tipos cadastráveis (V1.5), domínio de negócio diferente de "garantia de reparo" e fora do
+escopo desta extração.
+
+**Escopo exato a mover** (`fluxoly_blueprints_api.py`, seção `# ── WARRANTIES ──`, comentário na linha 2371):
+- `_classificar_garantia(dias_restantes)` — linhas 2373-2380 (helper específico do domínio, puro)
+- `listar_garantias()` — linhas 2382-2480 (rota `GET /api/garantias`)
+- ~110 linhas totais, removidas do monólito no mesmo commit
+
+**Arquivos a tocar:**
+1. Criar `api_garantias.py` — mesmo molde do Shopping List (commit `7b7225d`):
+   `create_api_garantias_blueprint(deps)`, `Blueprint("api_garantias", __name__, url_prefix="/api")`,
+   deps recebidas: só `conectar`, `garantia_reparo_dias_padrao`, `parse_data_ymd`
+2. Editar `app.py` — registrar o blueprint logo após o bloco "REGISTRO DO BLUEPRINT DE TIPOS DE GARANTIA"
+   (~linha 2181), antes de "HEALTH CHECKS" (~linha 2183)
+3. Editar `fluxoly_blueprints_api.py` — remover linhas 2371-2481
+4. `docs/engineering/API_DEPENDENCY_MATRIX.md` — já corrigida nesta sessão (serviço `fluxoly_reports`
+   removido da linha de `api_garantias.py`, não era tocado de verdade; ver seção do módulo para o detalhe)
+
+**Deps compartilhadas — não removidas do dict grande.** `garantia_reparo_dias_padrao` e `parse_data_ymd`
+continuam usadas por rotas de OS ainda não extraídas — mesmo padrão do Shopping, o dict principal em
+`app.py` não encolhe nesta etapa.
+
+**Testes:** zero mudança esperada. `tests/test_listar_garantias.py` usa `import app` + cliente de teste
+Flask (bate em `/api/garantias` via HTTP), não importa a função diretamente — mesma garantia que já valeu
+para Shopping List.
+
+**DoD:** os mesmos 6 critérios já definidos acima para todo domínio, aplicados a este escopo específico
+(rota + helper movidos, deps parcial, suíte completa 682+ testes, `graphify update .` +
+`graphify explain "api_garantias"` + `graphify affected "fluxoly_blueprints_api.py"`, zero referência
+residual à rota agregada no monólito — as funções de garantia de reparo que ficam em OS não contam como
+residual, são de outro domínio).
+
+Branch prevista: `refactor/td-01-extract-garantias-blueprint`.
+
 ### Log de execução
 
 **1. Shopping List (2026-08-04) — ✅ concluído, todos os 6 critérios do DoD.**

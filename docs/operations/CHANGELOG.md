@@ -29,6 +29,7 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Regra de governança de documentação registrada em `docs/README.md`: nenhum documento novo sem responder "que decisão ele ajuda a tomar?"; backlog de documentação futura identificada (`UX_GUIDELINES.md`, `FEATURE_SPEC_FINANCEIRO.md`, `FEATURE_SPEC_ESTOQUE.md`)
 - `docs/product/PRODUCT_BACKLOG.md` — fila priorizada de épicos (P0 a P3): Vendas/Clientes/IMEI Individual (P0), Financeiro/Caixa/Dashboard Executivo (P1), WhatsApp/CRM (P2), Multiempresa (P3). Status de cada épico verificado contra o código real antes de publicar (ex.: Dashboard já existe parcialmente — distinção feita entre o básico atual e o "Dashboard Executivo" completo)
 - `docs/company/RELEASE_STRATEGY.md` — proposta de versionamento (1.0 já em produção, 1.1 a 2.0 propostas), reconciliando o esboço original desta conversa com as decisões já tomadas desde então (Vendas desacoplado de Caixa/Financeiro). Marcado como proposta técnica — decisão final de nomes/escopo por versão é do Product Owner, mesmo padrão do ADR-005
+- `docs/engineering/FUTURE_TECH_EVALUATIONS.md` (2026-08-05) — ideias técnicas de longo prazo (Next.js para landing/marketing, BetterAuth, PostgreSQL, Supabase, Redis, Resend, Firebase), extraídas de uma proposta externa de evolução do Fluxoly para SaaS, cada uma com contexto/benefícios/riscos/momento recomendado de avaliação. Explicitamente não-vinculante — nasce ADR só quando houver decisão real a tomar. Indexado em `docs/README.md`
 
 ### Modificado
 - Toda a árvore `docs/` reorganizada por audiência (ver `docs/engineering/adr/ADR-006.md` para o mapeamento completo e critério de cada pasta); todos os links relativos entre documentos corrigidos
@@ -346,6 +347,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `ADR-011` registra que a decomposição de `fluxoly_blueprints_api.py` (TD-01) — decisão já existente na `ADR-002` desde 2026-07-06, nunca executada — fica formalmente fora desta sprint, com escopo atualizado (6→13 domínios reais, 70 rotas, 78 dependências injetadas)
 - Fora do escopo, adiados com dono definido: senha de seed `irflow@2024` (toca `app.py`, muda comportamento de login — tarefa de segurança própria), variáveis `IR_FLOW_*` e infraestrutura Render/Vercel (janela de manutenção ligada a `RELEASE_1.0_MASTER_CHECKLIST.md`)
 - Achado no fechamento: auto-deploy não estava configurado no serviço Render (todos os deploys históricos eram manuais) — Manual Deploy disparado para validar o rename em produção
+
+### Adicionado (2026-08-05 — Avaliação de proposta externa de evolução SaaS)
+- `docs/engineering/FUTURE_TECH_EVALUATIONS.md` — ideias técnicas de longo prazo (Next.js para landing/marketing, BetterAuth, PostgreSQL, Supabase, Redis, Resend, Firebase Cloud Messaging), extraídas de uma proposta externa de evolução do Fluxoly para SaaS. Proposta contestada antes de qualquer registro: verificado que `ADR-001` já rejeita Next.js para o sistema interno, que não existe `ADR-012` nem `frontend-next/` no repositório, e que nenhuma das tecnologias citadas tem decisão aprovada em nenhum ADR/roadmap. Cada item registrado com contexto/benefícios/riscos/momento recomendado de avaliação — documento explicitamente não-vinculante, ADR só nasce quando houver decisão real. `docs/README.md` recebeu entrada de índice
+
+### Modificado (2026-08-05 — reordenação das 6 Fases estratégicas)
+- `docs/company/RELEASE_STRATEGY.md` — Multiempresa move de Fase 3 para Fase 5, depois de Automação (Fase 3) e Inteligência (Fase 4). Decisão de priorização de negócio (validar produto via Automação/IA antes de investir em billing/planos multiempresa), não dependência técnica — a única dependência técnica de Multiempresa continua sendo a Fase 2 (Infraestrutura SaaS) pronta e a decisão pendente em `ADR-005.md`. Nova subseção "Decisão: Multiempresa adiada para depois de Automação e Inteligência" documenta o motivo
+- `docs/company/DECISION_LOG.md` — entrada de 2026-08-05 registrando as duas decisões desta sessão (reordenação das Fases 3-5; proposta de stack SaaS tratada como planejamento, não ADR)
 
 ### Adicionado (2026-08-05 — TD-01 Phase 2, 2º domínio extraído: Garantias)
 - `api_garantias.py` — `Blueprint` próprio para `GET /api/garantias` (listagem agregada de garantias),

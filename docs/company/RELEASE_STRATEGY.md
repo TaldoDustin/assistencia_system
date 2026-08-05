@@ -2,9 +2,11 @@
 
 **Status:** ✅ DECIDIDO pelo usuário (CTO/Product Owner) em 2026-07-21 — substitui integralmente a
 proposta técnica anterior (2026-07-10), que usava um esquema de numeração diferente e incompatível.
-Ampliado em 2026-07-25 com as 6 Fases estratégicas (visão de longo prazo, além da 2.0).
+Ampliado em 2026-07-25 com as 6 Fases estratégicas (visão de longo prazo, além da 2.0). Ordem das Fases
+3-5 revisada em 2026-08-05 (Multiempresa passa para o final — ver "Decisão: Multiempresa adiada para
+depois de Automação e Inteligência" abaixo).
 
-**Última revisão:** 2026-07-25
+**Última revisão:** 2026-08-05
 
 ---
 
@@ -21,9 +23,9 @@ camada de propósito acima das versões.
 Fase 0 — Estabilização da Plataforma     (agora)
 Fase 1 — Release 1.0 (primeiro cliente)
 Fase 2 — Infraestrutura SaaS
-Fase 3 — Multiempresa
-Fase 4 — Automação
-Fase 5 — Inteligência
+Fase 3 — Automação
+Fase 4 — Inteligência
+Fase 5 — Multiempresa
 ```
 
 | Fase | Objetivo de negócio | Mapeamento no versionamento abaixo |
@@ -31,9 +33,9 @@ Fase 5 — Inteligência
 | **0 — Estabilização** | "Nenhum bug crítico conhecido." Bugs (INC-001, INC-002 — ver `docs/operations/INCIDENTS/`), auditoria (permissões, SQL injection, uploads, autenticação), performance (índices, queries, paginação, cache), observabilidade (logs, métricas, monitorização) | Não é uma versão — é o gate contínuo antes de qualquer release sair. Trabalho já em andamento nesta sprint técnica |
 | **1 — Release 1.0** | "O cliente consegue operar a empresa inteira usando somente a Fluxoly." Assistência (OS, peças, estoque, garantias, histórico), Comercial (produtos, vendas, clientes, unidades serializadas, IMEI), **Financeiro mínimo** (caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples), Dashboards, Relatórios, Configurações | Cobre as versões **0.9 (Commercial Preview)** e **1.0 (Commercial Release)** abaixo — a Fase 1 é o destino, 0.9/1.0 são os incrementos até lá |
 | **2 — Infraestrutura SaaS** | "Elimina a classe de problema de concorrência antes de multiplicá-la." PostgreSQL (fim do SQLite), Redis (cache/sessões/locks/rate limit), separação de workers (API/Worker/Scheduler), filas (Mercado Phone/e-mail/WhatsApp/backups), observabilidade (Sentry/Grafana/Prometheus), backup automático versionado, CI/CD completo | Não existia como fase própria antes — estava implícita dentro da "2.0 Escala". **Adiantada para antes de Multiempresa** (decisão de 2026-07-25, corrigindo a ordem original) |
-| **3 — Multiempresa** | "Primeiros clientes reais — agora sobre infraestrutura pronta." Isolamento por `empresa_id`, planos (Starter/Professional/Enterprise), licenças, assinatura, billing, trial, cancelamento | Era a parte "Multiempresa" da versão **2.0 (Escala)** abaixo. **Bloqueada por decisão pendente em `ADR-005.md`** (alternativas técnicas já avaliadas, decisão de negócio ainda não tomada) e agora também depende da Fase 2 estar pronta |
-| **4 — Automação** | "Eliminar trabalho manual." WhatsApp, e-mail (garantias/orçamentos/cobranças), integração Mercado Livre, Nota Fiscal, APIs | Era a parte "CRM/WhatsApp" da versão **2.0 (Escala)** abaixo |
-| **5 — Inteligência** | IA respondendo perguntas de negócio (lucro, top vendedores, atraso por técnico, sugestão de compra, retenção), alertas e previsões | Novo — pilar "Inteligência" já existe em `BRAND_IDENTITY.md` seção 2, mas nunca tinha uma fase própria de execução |
+| **3 — Automação** | "Eliminar trabalho manual." WhatsApp, e-mail (garantias/orçamentos/cobranças), integração Mercado Livre, Nota Fiscal, APIs | Era a parte "CRM/WhatsApp" da versão **2.0 (Escala)** abaixo. **Adiantada para antes de Multiempresa** (decisão de 2026-08-05 — ver "Decisão: Multiempresa adiada" abaixo) |
+| **4 — Inteligência** | IA respondendo perguntas de negócio (lucro, top vendedores, atraso por técnico, sugestão de compra, retenção), alertas e previsões | Pilar "Inteligência" já existe em `BRAND_IDENTITY.md` seção 2. **Adiantada para antes de Multiempresa** (decisão de 2026-08-05) |
+| **5 — Multiempresa** | "Primeiros clientes reais — agora sobre infraestrutura pronta e produto validado por Automação/IA." Isolamento por `empresa_id`, planos (Starter/Professional/Enterprise), licenças, assinatura, billing, trial, cancelamento | Era a parte "Multiempresa" da versão **2.0 (Escala)** abaixo. **Bloqueada por decisão pendente em `ADR-005.md`** (alternativas técnicas já avaliadas, decisão de negócio ainda não tomada), depende da Fase 2 estar pronta, e agora deliberadamente feita por último (2026-08-05) |
 
 ### Decisão: Infraestrutura SaaS antes de Multiempresa
 
@@ -47,6 +49,22 @@ em SQLite — construir isolamento por `empresa_id` aumentaria exatamente esse t
 antes da migração que eliminaria o problema pela raiz. Infraestrutura primeiro: elimina definitivamente
 essa classe de problema, prepara o sistema para crescer, e deixa o desenvolvimento de Multiempresa mais
 limpo quando chegar sua vez.
+
+### Decisão: Multiempresa adiada para depois de Automação e Inteligência (2026-08-05)
+
+A ordem de 2026-07-25 tinha Multiempresa como Fase 3, logo após a Infraestrutura SaaS — antes de
+Automação e Inteligência. **Revisada em 2026-08-05**, por decisão do usuário (CTO/Product Owner), ao
+analisar uma proposta externa de evolução do Fluxoly para SaaS: Automação (WhatsApp, e-mail, integrações)
+e Inteligência (IA respondendo perguntas de negócio) entregam valor direto e mensurável aos clientes que
+a Fluxoly já tem hoje, sem exigir o investimento de meses em isolamento multiempresa, planos, licenças e
+billing — trabalho que só se paga quando já existem múltiplos clientes pagantes para atender. Adiar
+Multiempresa para depois de validar o produto com Automação/Inteligência reduz o risco de construir
+infraestrutura de escala (billing, planos, trial) antes de o produto ter demonstrado esse valor.
+
+Diferente da Fase 2 (bloqueio técnico real — escrita concorrente em SQLite), a posição de Multiempresa
+depois de Automação/Inteligência é uma **decisão de priorização de negócio**, não uma dependência técnica:
+nada em Automação ou Inteligência é pré-requisito de engenharia para Multiempresa. A dependência técnica
+que continua valendo é só a Fase 2 (Infraestrutura SaaS) e a decisão pendente em `ADR-005.md`.
 
 ### Decisão: Financeiro dividido em mínimo (1.0) e avançado (2.x)
 
@@ -114,13 +132,15 @@ na 2.x.
 
 ### Fluxoly 2.0+ — Escala
 
-Ordem revisada em 2026-07-25 (ver "As 6 Fases estratégicas" acima): **Infraestrutura SaaS** (PostgreSQL,
-Redis, workers, filas, observabilidade, CI/CD) vem antes de **Multiempresa** (P3, bloqueado por decisão
-pendente em `ADR-005.md`) dentro desta faixa de versão — não depois, como na proposta original. Também
-nesta faixa: **CRM**, **WhatsApp** (pilar "Relacionamento", depende de Clientes maduro), **Financeiro
-avançado** (DRE, centros de custo, conciliação bancária, múltiplas contas, indicadores, projeções), e
-itens sem backlog/spec/ADR hoje (API pública, Marketplace, app mobile nativo) — registrados só para não
-perder o fio, não como compromisso.
+Ordem revisada em 2026-07-25 e novamente em 2026-08-05 (ver "As 6 Fases estratégicas" acima): dentro
+desta faixa de versão, **Infraestrutura SaaS** (PostgreSQL, Redis, workers, filas, observabilidade,
+CI/CD) vem primeiro — bloqueio técnico real —, seguida de **Automação** (WhatsApp, e-mail, Mercado Livre,
+Nota Fiscal) e **Inteligência** (IA), e só depois **Multiempresa** (P5, bloqueada por decisão pendente em
+`ADR-005.md` e por decisão de priorização de negócio — validar o produto via Automação/IA antes de
+investir em billing/planos/isolamento multiempresa). Também nesta faixa: **CRM** (pilar
+"Relacionamento", depende de Clientes maduro), **Financeiro avançado** (DRE, centros de custo,
+conciliação bancária, múltiplas contas, indicadores, projeções), e itens sem backlog/spec/ADR hoje (API
+pública, Marketplace, app mobile nativo) — registrados só para não perder o fio, não como compromisso.
 
 ---
 

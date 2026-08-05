@@ -187,6 +187,29 @@ migração planejada para depois.
 **Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/company/RELEASE_STRATEGY.md` seção
 "As 6 Fases estratégicas".
 
+## 2026-08-05 — Multiempresa adiada para depois de Automação e Inteligência; ideias de stack SaaS registradas como não-decisões
+
+**Decisão:** dentro das 6 Fases estratégicas, Multiempresa passa de Fase 3 para Fase 5 — depois de
+Automação (Fase 3) e Inteligência (Fase 4), não mais logo após a Infraestrutura SaaS. Também decidido:
+uma proposta externa de evolução do Fluxoly para SaaS (Next.js, BetterAuth, Supabase, Redis, Resend,
+Firebase) **não** vira ADR agora — nenhuma dessas decisões precisa ser tomada hoje. Registradas como
+avaliação de longo prazo em `docs/engineering/FUTURE_TECH_EVALUATIONS.md`, explicitamente não-vinculante.
+**Motivo:** Automação e Inteligência entregam valor direto aos clientes já existentes sem o custo de
+meses construindo isolamento multiempresa, planos, licenças e billing — investimento que só se paga com
+múltiplos clientes pagantes. Diferente da posição da Fase 2 (bloqueio técnico real, escrita concorrente em
+SQLite — ver INC-001/INC-002), esta reordenação é priorização de negócio, não dependência de engenharia:
+a única dependência técnica de Multiempresa continua sendo a Fase 2 pronta e a decisão pendente em
+`ADR-005.md`. Sobre a proposta de stack: ADR nasce quando existe decisão concreta a registrar, não uma
+possibilidade futura (princípio já usado em `ADR-010.md`) — tratar Next.js/BetterAuth/Supabase como
+decisões agora contradiria o próprio ADR-001 (que já rejeitou Next.js) e o estado real do repositório
+(sem ADR-012, sem `frontend-next/`, verificado nesta sessão antes de responder à proposta).
+**Impacto:** `docs/company/RELEASE_STRATEGY.md` (ordem das Fases 3-5 revisada, nova subseção "Decisão:
+Multiempresa adiada..."); novo documento `docs/engineering/FUTURE_TECH_EVALUATIONS.md` (não é ADR,
+não é roadmap ativo); `docs/README.md` recebeu entrada de índice para o novo documento. Nenhuma mudança
+de código, schema ou stack nesta sessão — só planejamento e documentação.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-08-05 — proposta externa de evolução SaaS revisada
+contra o estado real do repositório antes de qualquer registro.
+
 ## 2026-07-25 — Correção same-day: Infraestrutura SaaS antes de Multiempresa; Financeiro dividido em mínimo/avançado
 
 **Decisão:** revisão da entrada anterior (mesmo dia), antes de consolidar como estratégia oficial. Duas

@@ -2001,6 +2001,7 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
+from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
@@ -2033,6 +2034,21 @@ app.register_blueprint(
     create_api_shopping_blueprint(
         {
             "conectar": conectar,
+        }
+    )
+)
+
+# TD-01 Phase 2 -- 2º domínio extraído do monólito. Mesmo padrão do api_shopping
+# acima: deps parcial, só as 3 chaves que este domínio usa (conectar,
+# garantia_reparo_dias_padrao, parse_data_ymd continuam também no dict de
+# create_api_blueprint abaixo, porque OS e Sistema ainda não foram extraídos e
+# ainda dependem deles -- duplicar a referência é aceitável, duplicar a lógica não).
+app.register_blueprint(
+    create_api_garantias_blueprint(
+        {
+            "conectar": conectar,
+            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
+            "parse_data_ymd": parse_data_ymd,
         }
     )
 )

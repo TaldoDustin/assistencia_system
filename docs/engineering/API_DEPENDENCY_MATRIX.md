@@ -30,7 +30,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | Módulo | Rotas | Helpers usados | Deps usadas | Serviços externos tocados |
 |---|--:|--:|--:|---|
 | `api_shopping.py` ✅ extraído | 9 | 4 (3 genéricos + `_log_shopping`) | 1 | (nenhum) |
-| `api_garantias.py` | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
+| `api_garantias.py` ✅ extraído | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
 | `api_costs.py` | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
 | `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
@@ -154,8 +154,9 @@ próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encon
 - **Deps (22):** `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `categorias_custos`, `conectar`, `garantia_reparo_dias_padrao`, `iphone_colors`, `iphone_models`, `listar_custos_operacionais`, `normalizar_status_os`, `obter_alertas_sistema`, `os_tipos_opcoes`, `produtos_categorias`, `produtos_condicoes`, `reparos_padrao`, `status_aberto`, `status_cancelado`, `status_finalizado`, `status_os_opcoes`, `tecnicos`, `texto_reparos_os`, `vendedores`
 - **Serviços:** `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`
 
-### `api_garantias.py`
-- **Helpers:** `err`, `ok`, `usuario_logado`
+### `api_garantias.py` ✅ extraído em 2026-08-05
+- **Helpers:** `err`, `ok`, `usuario_logado` (de `fluxoly_api_helpers.py`); `_classificar_garantia`
+  (específico do domínio, migrou junto)
 - **Deps (3):** `conectar`, `garantia_reparo_dias_padrao`, `parse_data_ymd`
 - **Serviços:** `fluxoly_core`, `fluxoly_reports`
 

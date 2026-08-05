@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 não iniciada)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 2/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -271,7 +271,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 1 de 12 domínios extraídos (Shopping List, 2026-08-04). Regras de execução
+**Status:** EM ANDAMENTO — 2 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -309,6 +309,24 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
 - Zero referência residual a `shopping`/`SHOPPING_`/`_log_shopping` em `fluxoly_blueprints_api.py`
   (as únicas menções de `shopping_list` remanescentes são consultas SQL diretas do `/api/dashboard`,
   domínio Sistema — leitura de dado cross-domínio já esperada, não acoplamento de código).
+
+**2. Garantias (2026-08-05) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_garantias.py` criado (1 rota — `GET /garantias`, listagem agregada), reaproveitando
+  `fluxoly_api_helpers.py` (nenhum helper novo compartilhado — só `_classificar_garantia`, específico
+  do domínio, migrou junto).
+- `deps` parcial confirmado exatamente como a matriz previa: `conectar`, `garantia_reparo_dias_padrao`,
+  `parse_data_ymd` — os dois últimos permanecem também no dict de `create_api_blueprint` porque OS e
+  Sistema (ainda não extraídos) continuam usando-os; duplicar a referência é aceitável (mesma decisão
+  já registrada na Phase 1), duplicar a lógica não seria.
+- Suíte completa (682 testes) passando após a extração, sem alteração de nenhum teste, incluindo
+  `tests/test_listar_garantias.py` intacto. `ruff check .` limpo.
+- `graphify update .` + `graphify explain "api_garantias"` (conexões esperadas: importado por `app.py`,
+  importa de `fluxoly_api_helpers.py`) + `graphify affected "fluxoly_blueprints_api.py"` (nenhuma
+  referência residual específica de Garantias — só consumidores legítimos do restante do arquivo).
+- Zero referência residual a `_classificar_garantia`/à rota `/garantias` em `fluxoly_blueprints_api.py`
+  — as únicas menções remanescentes de "garantias" são `resolver_garantias_reparo`/
+  `gravar_garantias_reparo`, que pertencem ao domínio OS→Garantia de Reparo (escopo de `api_os.py`,
+  último da fila de extração), não ao domínio Garantias (listagem agregada) recém-extraído.
 
 ## Phase 3 — Cleanup
 

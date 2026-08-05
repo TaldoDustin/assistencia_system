@@ -347,6 +347,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Fora do escopo, adiados com dono definido: senha de seed `irflow@2024` (toca `app.py`, muda comportamento de login — tarefa de segurança própria), variáveis `IR_FLOW_*` e infraestrutura Render/Vercel (janela de manutenção ligada a `RELEASE_1.0_MASTER_CHECKLIST.md`)
 - Achado no fechamento: auto-deploy não estava configurado no serviço Render (todos os deploys históricos eram manuais) — Manual Deploy disparado para validar o rename em produção
 
+### Adicionado (2026-08-05 — TD-01 Phase 2, 2º domínio extraído: Garantias)
+- `api_garantias.py` — `Blueprint` próprio para `GET /api/garantias` (listagem agregada de garantias),
+  extraído de `fluxoly_blueprints_api.py` seguindo exatamente o padrão já validado em `api_shopping.py`
+  (1º domínio, 2026-08-04): `deps` parcial (só `conectar`/`garantia_reparo_dias_padrao`/`parse_data_ymd`,
+  as duas últimas continuam também no dict do monólito porque OS e Sistema ainda dependem delas — mesma
+  regra "duplicar referência, nunca lógica" da Phase 1), helper específico do domínio
+  (`_classificar_garantia`) migrado junto, `err`/`ok`/`usuario_logado` reaproveitados de
+  `fluxoly_api_helpers.py`. 682 testes passando sem alteração (incluindo `test_listar_garantias.py`
+  intacto), `ruff check .` limpo, `graphify update .` + `explain`/`affected` confirmados sem referência
+  residual do domínio no monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ---
 
 ## [1.1.0] — 2026-06-21

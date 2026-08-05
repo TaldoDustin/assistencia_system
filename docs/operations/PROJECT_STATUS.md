@@ -509,6 +509,19 @@ erros novos no Sentry pós-deploy. `ADR-011` registra que a decomposição de `f
 fora desta sprint, com dono e destino definidos. Ver retrospectiva completa em
 `docs/operations/SPRINTS/SPRINT_HOUSEKEEPING.md`.
 
+**TD-01 Phase 2 — Garantias extraído (2026-08-05):** segundo domínio extraído de
+`fluxoly_blueprints_api.py` (o primeiro, Shopping List, já registrado na tabela de Dívida Técnica
+acima). `api_garantias.py` criado (1 rota — `GET /garantias`, listagem agregada), mesmo padrão do
+`api_shopping.py`: `Blueprint` próprio com `url_prefix="/api"`, `deps` parcial (`conectar`,
+`garantia_reparo_dias_padrao`, `parse_data_ymd` — os dois últimos continuam também no dict de
+`create_api_blueprint`, porque OS e Sistema, ainda não extraídos, dependem deles), helper específico
+do domínio (`_classificar_garantia`) migrado junto, helpers genéricos (`err`/`ok`/`usuario_logado`)
+reaproveitados de `fluxoly_api_helpers.py` (já criado na extração de Shopping). 682 testes passando
+sem alteração, `ruff check .` limpo, `graphify update .` + `graphify explain "api_garantias"` +
+`graphify affected "fluxoly_blueprints_api.py"` confirmados sem referência residual do domínio. Ver
+`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` (Phase 2, log de execução) e
+`docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe completo.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -578,7 +591,7 @@ fora desta sprint, com dono e destino definidos. Ver retrospectiva completa em
 
 | ID   | Descrição                                                              | Impacto | Prioridade |
 |------|------------------------------------------------------------------------|---------|------------|
-| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 1 de 12 domínios extraído (Shopping List, `api_shopping.py`). Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
+| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 2 de 12 domínios extraídos (Shopping List, `api_shopping.py`, 2026-08-04; Garantias, `api_garantias.py`, 2026-08-05). Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
 | TD-02 | `app.py` acumula inicialização, DB e lógica misturadas                 | Alto    | Alta       |
 | TD-03 | Ausência de migrations formais (usa `ALTER TABLE` com try/except)      | Alto    | Alta       |
 | TD-04 | Sem injeção de dependências no backend — acoplamento direto ao SQLite  | Médio   | Média      |

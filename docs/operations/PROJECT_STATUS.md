@@ -10,6 +10,17 @@
 
 ---
 
+## 📋 Track paralelo — Modernização de Frontend (Next.js, não-produção)
+
+Planejado em 2026-08-04 (`docs/engineering/adr/ADR-012.md`), execução em
+`docs/operations/SPRINTS/SPRINT_NEXTJS_FUNDACAO.md`. Escopo: protótipo Next.js + TypeScript + Tailwind +
+shadcn/ui + Motion, num diretório novo (`frontend-next/`), consumindo a API Flask existente em modo
+somente-leitura, sem tocar `frontend/`, `app.py`, banco ou qualquer arquivo de produção. Roda em
+paralelo à sequência abaixo, sem bloquear nem ser bloqueado por ela — não altera a Fase 1
+(`RELEASE_STRATEGY.md`) nem `TD-01`. Status: plano aprovado, implementação ainda não iniciada.
+
+---
+
 ## ✅ INC-002 — Ordens de Serviço duplicadas após sincronização com Mercado Phone (RESOLVIDO)
 
 **Ver `docs/operations/INCIDENTS/INC-002-os-duplicada-mercado-phone.md` para o relatório completo.**

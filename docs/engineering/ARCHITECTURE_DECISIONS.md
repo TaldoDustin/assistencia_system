@@ -11,7 +11,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 
 | ADR | Título | Status | Data |
 |-----|--------|--------|------|
-| [ADR-001](adr/ADR-001.md) | Frontend continuará React + Vite | Aceita | 2026-07-06 |
+| [ADR-001](adr/ADR-001.md) | Frontend continuará React + Vite | Aceita — revisada parcialmente por ADR-012 (track paralelo Next.js, produção inalterada) | 2026-07-06 |
 | [ADR-002](adr/ADR-002.md) | Separar API em módulos por domínio | Aceita — escopo desatualizado, ver ADR-011 | 2026-07-06 |
 | [ADR-003](adr/ADR-003.md) | SQLite até a versão 2 | Aceita | 2026-07-06 |
 | [ADR-004](adr/ADR-004.md) | Bugs em sprints de teste/QA/validação seguem fluxo `hotfix/` obrigatório | Aceita — não retroativa | 2026-07-07 |
@@ -22,6 +22,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-009](adr/ADR-009.md) | Unidade Serializada como agregado raiz do domínio Comercial — estado físico × situação comercial, `origem_tipo`, eventos de processo separados de estado | Aceita | 2026-07-27 |
 | [ADR-010](adr/ADR-010.md) | Ciclo obrigatório para features com regra de negócio — Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento, com gates explícitos | Aceita | 2026-07-28 |
 | [ADR-011](adr/ADR-011.md) | Atualização da ADR-002 — escopo desatualizado (6→13 domínios); rename de `irflow_blueprints_api.py` concluído na Housekeeping, decomposição (TD-01) adiada para sprint própria | Aceita | 2026-08-03 |
+| [ADR-012](adr/ADR-012.md) | Track paralelo Next.js para modernização de frontend — escopo restrito a frontend-only, não-produção, sem tocar banco/auth/multiempresa | Aceita — escopo restrito | 2026-08-04 |
 
 ---
 

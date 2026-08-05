@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // "localhost" e "127.0.0.1" são origens distintas para o navegador. Sem isso, o
+  // dev server bloqueia os chunks JS (HMR/_next/static) quando acessado via 127.0.0.1,
+  // e a página carrega só o HTML/CSS sem hidratar -- tela em branco/preta, sem erro
+  // visível no console além do aviso no log do servidor.
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   async rewrites() {
     return [
       {

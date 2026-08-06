@@ -2001,6 +2001,7 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
+from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
@@ -2049,6 +2050,19 @@ app.register_blueprint(
             "conectar": conectar,
             "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
             "parse_data_ymd": parse_data_ymd,
+        }
+    )
+)
+
+# TD-01 Phase 2 -- 3º domínio extraído do monólito. `listar_custos_operacionais`
+# continua também no dict de create_api_blueprint abaixo, porque /dashboard e
+# /relatorios/custos-operacionais (Sistema/Relatórios, ainda não extraídos)
+# também dependem dela -- duplicar a referência é aceitável, duplicar a lógica não.
+app.register_blueprint(
+    create_api_costs_blueprint(
+        {
+            "conectar": conectar,
+            "listar_custos_operacionais": listar_custos_operacionais,
         }
     )
 )

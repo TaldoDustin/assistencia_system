@@ -14,6 +14,10 @@ def usuario_logado():
     return bool(session.get("usuario_id"))
 
 
+def usuario_admin():
+    return session.get("usuario_perfil") == "admin"
+
+
 def err(msg, code=400):
     return jsonify({"ok": False, "erro": msg}), code
 

@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 2/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 3/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -271,7 +271,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 2 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05). Regras de execução
+**Status:** EM ANDAMENTO — 3 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -327,6 +327,27 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   — as únicas menções remanescentes de "garantias" são `resolver_garantias_reparo`/
   `gravar_garantias_reparo`, que pertencem ao domínio OS→Garantia de Reparo (escopo de `api_os.py`,
   último da fila de extração), não ao domínio Garantias (listagem agregada) recém-extraído.
+
+**3. Custos Operacionais (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_costs.py` criado (4 rotas — `GET/POST /custos`, `PUT/DELETE /custos/<id>`), reaproveitando
+  `fluxoly_api_helpers.py`. `usuario_admin()` promovido para `fluxoly_api_helpers.py` (já previsto na
+  Phase 1, linha 177 — genérico, agora comprovadamente usado por 2+ domínios: o monólito e
+  `api_costs.py`); a cópia local em `fluxoly_blueprints_api.py` permanece intacta (mesmo padrão já
+  aplicado a `err`/`ok`/`usuario_logado` nas 2 extrações anteriores — remover a duplicação é Phase 3).
+- `deps` parcial confirmado exatamente como a matriz previa: `conectar`, `listar_custos_operacionais` —
+  este último permanece também no dict de `create_api_blueprint` porque `/dashboard` e
+  `/relatorios/custos-operacionais` (Sistema/Relatórios, ainda não extraídos) continuam usando-o;
+  duplicar a referência é aceitável, duplicar a lógica não.
+- Suíte completa (683 testes) passando após a extração, sem alteração de nenhum teste, incluindo
+  `tests/test_api_parsing.py` (bate em `/api/custos*` via Flask test client, não importa a função
+  diretamente). `ruff check .` limpo.
+- `graphify update .` + `graphify explain "api_costs"` (conexões esperadas: importado por `app.py`,
+  importa de `fluxoly_api_helpers.py` e `fluxoly_validation.py`) + `graphify affected
+  "fluxoly_blueprints_api.py"` (nenhuma referência residual específica de Custos — só consumidores
+  legítimos do restante do arquivo).
+- Zero referência residual às rotas `/custos*` (CRUD) em `fluxoly_blueprints_api.py` — as menções
+  remanescentes de "custos" são `/relatorios/custos-operacionais` (domínio Relatórios), `custo_pecas`
+  (custo de peças da OS) e `_recalcular_custo_medio` (Estoque), todas fora do escopo deste domínio.
 
 ## Phase 3 — Cleanup
 

@@ -367,6 +367,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   residual do domínio no monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 3º domínio extraído: Custos Operacionais)
+- `api_costs.py` — `Blueprint` próprio para o CRUD de custos operacionais (`GET/POST /api/custos`,
+  `PUT/DELETE /api/custos/<id>`), extraído de `fluxoly_blueprints_api.py` seguindo o mesmo padrão de
+  `api_shopping.py`/`api_garantias.py`: `deps` parcial (`conectar`, `listar_custos_operacionais` — este
+  último continua também no dict do monólito porque `/dashboard` e `/relatorios/custos-operacionais`
+  ainda dependem dele — mesma regra "duplicar referência, nunca lógica"). `usuario_admin()` promovido
+  para `fluxoly_api_helpers.py` (previsto desde a Phase 1, agora comprovadamente usado por 2+ domínios);
+  cópia local no monólito mantida intacta (cleanup fica para a Phase 3). 683 testes passando sem
+  alteração, `ruff check .` limpo, `graphify update .` + `explain`/`affected` confirmados sem referência
+  residual do domínio no monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

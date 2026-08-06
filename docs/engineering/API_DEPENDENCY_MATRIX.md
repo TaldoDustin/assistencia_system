@@ -31,7 +31,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 |---|--:|--:|--:|---|
 | `api_shopping.py` ✅ extraído | 9 | 4 (3 genéricos + `_log_shopping`) | 1 | (nenhum) |
 | `api_garantias.py` ✅ extraído | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
-| `api_costs.py` | 4 | 4 | 2 | `fluxoly_reports` |
+| `api_costs.py` ✅ extraído | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
 | `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
 | `api_auth.py` | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
@@ -129,7 +129,7 @@ próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encon
 - **Deps (3):** `conectar`, `generate_password_hash`, `perfis_opcoes`
 - **Serviços:** `fluxoly_core`, `werkzeug.security`
 
-### `api_costs.py`
+### `api_costs.py` ✅ extraído em 2026-08-06
 - **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
 - **Deps (2):** `conectar`, `listar_custos_operacionais`
 - **Serviços:** `fluxoly_reports`

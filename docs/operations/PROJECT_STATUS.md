@@ -6,7 +6,7 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-05
-**Próxima revisão:** Retomar TD-01 Phase 2 (Custos Operacionais, 3º de 12 domínios) e a Fase 1 (Financeiro mínimo, Release 1.0). Sequência recente: ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+**Próxima revisão:** Retomar TD-01 Phase 2 (Preços, 4º de 12 domínios) e a Fase 1 (Financeiro mínimo, Release 1.0). Sequência recente: ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
 
 ---
 
@@ -538,6 +538,19 @@ sem alteração, `ruff check .` limpo, `graphify update .` + `graphify explain "
 `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` (Phase 2, log de execução) e
 `docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe completo.
 
+**TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06):** terceiro domínio extraído de
+`fluxoly_blueprints_api.py`. `api_costs.py` criado (4 rotas — `GET/POST /custos`, `PUT/DELETE
+/custos/<id>`), mesmo padrão de Shopping/Garantias: `Blueprint` próprio com `url_prefix="/api"`, `deps`
+parcial (`conectar`, `listar_custos_operacionais` — este último continua também no dict de
+`create_api_blueprint`, porque `/dashboard` e `/relatorios/custos-operacionais`, ainda não extraídos,
+dependem dele). `usuario_admin()` promovido para `fluxoly_api_helpers.py` (já previsto na Phase 1,
+agora comprovadamente usado por 2+ domínios — regra de admissão satisfeita); cópia local em
+`fluxoly_blueprints_api.py` mantida intacta (cleanup fica para a Phase 3). 683 testes passando sem
+alteração, `ruff check .` limpo, `graphify update .` + `graphify explain "api_costs"` + `graphify
+affected "fluxoly_blueprints_api.py"` confirmados sem referência residual do domínio. Ver
+`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` (Phase 2, log de execução) e
+`docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe completo.
+
 ### Escopo previsto
 
 - ~~Configurar GitHub Actions (lint + testes no push)~~ — já existe (`.github/workflows/ci.yml`), descoberto desatualizado nesta revisão (2026-07-10)
@@ -607,7 +620,7 @@ sem alteração, `ruff check .` limpo, `graphify update .` + `graphify explain "
 
 | ID   | Descrição                                                              | Impacto | Prioridade |
 |------|------------------------------------------------------------------------|---------|------------|
-| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 2 de 12 domínios extraídos (Shopping List, `api_shopping.py`, 2026-08-04; Garantias, `api_garantias.py`, 2026-08-05). Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
+| TD-01 | `fluxoly_blueprints_api.py` com ~130KB, 70 rotas, 13 domínios — módulo demasiado grande. Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 3 de 12 domínios extraídos (Shopping List, `api_shopping.py`, 2026-08-04; Garantias, `api_garantias.py`, 2026-08-05; Custos Operacionais, `api_costs.py`, 2026-08-06). Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
 | TD-02 | `app.py` acumula inicialização, DB e lógica misturadas                 | Alto    | Alta       |
 | TD-03 | Ausência de migrations formais (usa `ALTER TABLE` com try/except)      | Alto    | Alta       |
 | TD-04 | Sem injeção de dependências no backend — acoplamento direto ao SQLite  | Médio   | Média      |

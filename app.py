@@ -2005,6 +2005,7 @@ from api_auth import create_api_auth_blueprint  # noqa: E402
 from api_backup import create_api_backup_blueprint  # noqa: E402
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
+from api_mercadophone import create_api_mercadophone_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_reports import create_api_reports_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
@@ -2121,6 +2122,27 @@ app.register_blueprint(
 # consumidor no monólito). garantir_pasta_backup_google_drive fica intocada
 # nesse dict (dead code pré-existente, fora do escopo desta extração -- Phase 3).
 app.register_blueprint(
+    create_api_mercadophone_blueprint(
+        {
+            "conectar": conectar,
+            "sincronizar_mercado_phone": sincronizar_mercado_phone,
+            "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
+            "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,
+            "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
+            "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
+            "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
+            "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
+            "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
+        }
+    )
+)
+
+# TD-01 Phase 2 -- 9º domínio extraído do monólito. mercado_phone_runtime_config/
+# integrations_config_path/carregar_configuracoes_integracoes continuam também
+# no dict de create_api_blueprint abaixo -- listar_ordens() (dominio OS, ainda
+# nao extraido) tambem depende deles (achado da Discovery, ver
+# fluxoly_mercadophone.py::carregar_config_mercadophone/atualizar_runtime_mercadophone).
+app.register_blueprint(
     create_api_reports_blueprint(
         {
             "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
@@ -2215,15 +2237,10 @@ app.register_blueprint(
             "produtos_categorias": PRODUTOS_CATEGORIAS,
             "produtos_condicoes": PRODUTOS_CONDICOES,
             "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
-            "sincronizar_mercado_phone": sincronizar_mercado_phone,
-            "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
-            "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
-            "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
             "public_base_url": PUBLIC_BASE_URL,
             "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
             "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
-            "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
         }
     )
 )

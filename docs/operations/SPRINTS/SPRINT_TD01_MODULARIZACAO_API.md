@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 8/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 9/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 8 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06; Relatórios, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 9 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06; Relatórios, 2026-08-06; MercadoPhone, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -479,6 +479,69 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
 - Suíte completa (683 testes) passando sem alteração, `ruff check .` limpo, `graphify update .` +
   `graphify explain "api_reports"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`).
   Zero referência residual em `fluxoly_blueprints_api.py` (grep vazio).
+
+**9. MercadoPhone (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD + smoke test manual.**
+- Discovery tratada como matriz de acoplamento completa (recomendação do CTO, domínio mais acoplado
+  extraído até aqui): das 7 rotas + 8 helpers/deps, mapeado o que escreve em banco, chama
+  `fluxoly_storage.py`, faz HTTP externo, mexe com sincronização, depende de config e — o achado
+  decisivo — o que é usado por outro domínio.
+- **Achado central:** `_carregar_config_mercadophone()`/`_atualizar_runtime_mercadophone()`/
+  `mercado_phone_runtime_config` também são usados por `listar_ordens()` (domínio **OS**, ainda no
+  monólito, o mais acoplado e último da fila) — risco já registrado na Phase 0
+  ("OS → MercadoPhone, achado na Phase 1, não capturado"), resolvido agora.
+- **Decisão de design:** as 2 funções não migraram para `fluxoly_api_helpers.py` (lógica de domínio,
+  não helper web genérico) — foram promovidas a `carregar_config_mercadophone()`/
+  `atualizar_runtime_mercadophone()` em `fluxoly_mercadophone.py` (módulo de serviço já existente,
+  funções puras com parâmetros explícitos, mesmo padrão do resto do módulo). `_to_bool()` também
+  migrou para lá (uso interno).
+- **Etapa de validação isolada antes da extração do blueprint** (recomendação do CTO, commit
+  `59c26c6`, separado deste): migrou as 2 funções, trocou só `listar_ordens()` para usá-las, rodou 111
+  testes filtrados de OS+MercadoPhone + suíte completa, `graphify affected` confirmando
+  `listar_ordens()` como único consumidor das novas funções. Definições locais antigas mantidas até
+  este commit (não deixar código morto temporário visível por mais de um commit).
+- `api_mercadophone.py` criado (7 rotas — `sincronizar`, `reprocessar`(+`/status`),
+  `reimportar`(+`/status`), `status`, `config`), helpers específicos (`_snapshot_*`/`_executar_*_async`,
+  locks e dicts de estado) migrados verbatim. 9 deps removidas do dict de `create_api_blueprint` em
+  `app.py`; `mercado_phone_runtime_config`/`integrations_config_path`/`carregar_configuracoes_integracoes`
+  continuam duplicadas nesse dict — `listar_ordens()` ainda precisa.
+- **Cobertura de teste:** domínio tem testes reais (`test_mercadophone_permissions.py`,
+  `test_api_parsing_refactor.py`), mas só para 4 das 7 rotas — `/reprocessar/status`,
+  `/reimportar/status` e `GET /status` não tinham nenhum teste (achado que confirma o valor de checar
+  rota a rota, não só domínio a domínio, na regra de cobertura). Smoke test manual (mesma técnica de
+  Relatórios) confirmou HTTP 200 nas 3.
+- `import threading` em `fluxoly_blueprints_api.py` ficou sem uso (só existia para os locks/threads de
+  MercadoPhone) — removido.
+- Suíte completa (683 testes) passando, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_mercadophone"` confirmado (conexões esperadas: `app.py`,
+  `fluxoly_mercadophone.py`, `fluxoly_api_helpers.py`, `fluxoly_validation.py`). Zero referência residual
+  específica de MercadoPhone em `fluxoly_blueprints_api.py`; `listar_ordens()` confirmada intacta e
+  chamando as novas funções de serviço corretamente.
+
+### Architecture Checkpoint — pós-MercadoPhone (9/12, 2026-08-06)
+
+Métrica adotada permanentemente a partir deste checkpoint (recomendação do CTO): medir não só a
+redução do monólito, mas também o crescimento de `app.py` (bootstrap da aplicação) — sinal de quando
+uma futura TD-02 (refatoração da inicialização) fizer sentido, sem misturar com esta sprint.
+
+| Métrica | Phase 0 | Após Relatórios (8/12) | Após MercadoPhone (9/12) |
+|---|---|---|---|
+| Rotas em `fluxoly_blueprints_api.py` | 70 | 33 | **26** (-63%) |
+| Tamanho de `fluxoly_blueprints_api.py` | ~130KB / 3.368 linhas | 92KB / 2.235 linhas | **80KB / 1.961 linhas** |
+| Chaves de `deps` em `fluxoly_blueprints_api.py` | 87 | 53 | **48** |
+| Helpers locais em `fluxoly_blueprints_api.py` | ~33 | 29 | **22** |
+| Blueprints extraídos (`api_*.py`) | 0 | 8 | **9** |
+| **`app.py` — linhas** | — | 2.414 | **2.431** |
+| **`app.py` — tamanho** | — | 100KB | **100KB** |
+| **`app.py` — `register_blueprint()`** | — | 16 | **17** |
+
+`graphify god-nodes`: `login_como()` (447, fixture de teste), `conectar()` (130), `criar_os()` (96),
+`payload_os_valido()` (55), `criar_item_estoque()` (54) — todos fora de `fluxoly_blueprints_api.py`
+(que continua indexado só como arquivo + `create_api_blueprint()`, closures aninhadas não aparecem
+individualmente, limitação já documentada na extração de Backup). Nenhum god node novo surgiu na
+extração de MercadoPhone.
+
+Restam **Sistema, Estoque, OS** — os três domínios mais acoplados da Phase 2, concentrando
+praticamente toda a complexidade remanescente do monólito.
 
 ## Phase 3 — Cleanup
 

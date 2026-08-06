@@ -456,6 +456,25 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 9º domínio extraído: MercadoPhone)
+- `api_mercadophone.py` — `Blueprint` próprio para a integração MercadoPhone (`sincronizar`,
+  `reprocessar`+`/status`, `reimportar`+`/status`, `status`, `config`), extraído de
+  `fluxoly_blueprints_api.py`. Domínio mais acoplado extraído até agora: Discovery tratada como matriz
+  de acoplamento completa revelou que `_carregar_config_mercadophone()`/`_atualizar_runtime_mercadophone()`/
+  `mercado_phone_runtime_config` também são usados por `listar_ordens()` (domínio OS, ainda no
+  monólito) — risco já registrado na Phase 0. Resolvido promovendo as 2 funções para
+  `fluxoly_mercadophone.py` (serviço com parâmetros explícitos, não `fluxoly_api_helpers.py` — é lógica
+  de domínio, não helper web genérico), em etapa de validação isolada antes da extração do blueprint
+  (commit `59c26c6`), com 111 testes filtrados de OS+MercadoPhone confirmando a migração antes de
+  seguir. Smoke test manual confirmou as 3 rotas sem cobertura automatizada
+  (`/reprocessar/status`, `/reimportar/status`, `GET /status`). `import threading` órfão removido do
+  monólito. 683 testes passando, `ruff check .` limpo, `graphify update .` + `explain
+  "api_mercadophone"` confirmados sem referência residual. **Architecture Checkpoint pós-MercadoPhone:**
+  26 rotas restantes (-63% desde a Phase 0), 80KB/1.961 linhas em `fluxoly_blueprints_api.py`; `app.py`
+  em 2.431 linhas/100KB/17 `register_blueprint()` — nova métrica permanente de acompanhamento. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

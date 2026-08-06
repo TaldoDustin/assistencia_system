@@ -379,6 +379,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   residual do domínio no monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 4º domínio extraído: Preços)
+- `api_prices.py` — `Blueprint` próprio para o CRUD de tabelas de preço (`GET/POST /api/precos`,
+  `POST /api/precos/excluir`, `GET /api/precos/sugerir`), extraído de `fluxoly_blueprints_api.py`.
+  Assimetria de autorização original preservada verbatim (`sugerir_preco()` só exige
+  `usuario_logado()`, as outras 3 exigem também `usuario_admin()`). Diferente das 3 extrações
+  anteriores: `carregar_tabelas_preco`/`salvar_tabelas_preco` não têm outro consumidor no monólito, então
+  as chaves saíram do dict de `create_api_blueprint` em `app.py` em vez de ficarem duplicadas — primeiro
+  domínio da Phase 2 a reduzir `deps` de fato. 683 testes passando sem alteração, `ruff check .` limpo,
+  `graphify update .` + `explain "api_prices"` confirmados sem referência residual do domínio no
+  monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

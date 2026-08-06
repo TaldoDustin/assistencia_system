@@ -16,7 +16,6 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, jsonify, request, send_from_directory, session
 
-from fluxoly_price_tables import sugerir_preco_tabela
 from fluxoly_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
@@ -52,8 +51,6 @@ def create_api_blueprint(deps):
     modelo_para_os = deps["modelo_para_os"]
     normalizar_imei = deps["normalizar_imei"]
     normalizar_modelo_iphone = deps["normalizar_modelo_iphone"]
-    carregar_tabelas_preco = deps["carregar_tabelas_preco"]
-    salvar_tabelas_preco = deps["salvar_tabelas_preco"]
     texto_reparos_os = deps["texto_reparos_os"]
     listar_custos_operacionais = deps["listar_custos_operacionais"]
     agrupar_relatorio_custos_operacionais = deps["agrupar_relatorio_custos_operacionais"]
@@ -2184,88 +2181,6 @@ def create_api_blueprint(deps):
             conn.close()
 
         return ok()
-
-    # ── PRICE TABLES ───────────────────────────────────────────────────────
-
-    @api.route("/precos")
-    def listar_precos():
-        if not usuario_logado() or not usuario_admin():
-            return err("Acesso negado.", 403)
-        return ok(tabelas=carregar_tabelas_preco())
-
-    @api.route("/precos", methods=["POST"])
-    def salvar_preco():
-        if not usuario_logado() or not usuario_admin():
-            return err("Acesso negado.", 403)
-
-        body = safe_json(request)
-        tabela = (body.get("tabela") or "").strip()
-        servico = (body.get("servico") or "").strip().upper()
-        modelo = (body.get("modelo") or "").strip()
-        valor = parse_float(body.get("valor"), default=-1.0)
-
-        if tabela not in ("ir_phones", "clientes"):
-            return err("Tabela inválida.")
-        if not servico or not modelo or valor is None or valor < 0:
-            return err("Preencha serviço, modelo e valor.")
-
-        tabelas = carregar_tabelas_preco()
-        tabelas.setdefault(tabela, {}).setdefault(servico, {})[modelo] = valor
-        salvar_tabelas_preco(tabelas)
-        return ok()
-
-    @api.route("/precos/excluir", methods=["POST"])
-    def excluir_preco():
-        if not usuario_logado() or not usuario_admin():
-            return err("Acesso negado.", 403)
-
-        body = safe_json(request)
-        tabela = (body.get("tabela") or "").strip()
-        servico = (body.get("servico") or "").strip()
-        modelo = (body.get("modelo") or "").strip()
-
-        if tabela not in ("ir_phones", "clientes"):
-            return err("Tabela inválida.")
-
-        tabelas = carregar_tabelas_preco()
-        if tabela in tabelas and servico in tabelas[tabela] and modelo in tabelas[tabela][servico]:
-            del tabelas[tabela][servico][modelo]
-            if not tabelas[tabela][servico]:
-                del tabelas[tabela][servico]
-            salvar_tabelas_preco(tabelas)
-            return ok()
-
-        return err("Entrada não encontrada.", 404)
-
-    @api.route("/precos/sugerir")
-    def sugerir_preco():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        modelo = (request.args.get("modelo") or "").strip()
-        tabela = (request.args.get("tabela") or "clientes").strip()
-        reparo_ids_raw = (request.args.get("reparo_ids") or "").strip()
-
-        if not modelo or not reparo_ids_raw:
-            return ok(valor=0, encontrado=False)
-
-        reparo_ids = [int(x) for x in reparo_ids_raw.split(",") if x.strip().isdigit()]
-        if not reparo_ids:
-            return ok(valor=0, encontrado=False)
-
-        if tabela not in ("ir_phones", "clientes"):
-            tabela = "clientes"
-
-        conn = conectar()
-        cursor = conn.cursor()
-        placeholders = ",".join("?" * len(reparo_ids))
-        cursor.execute(f"SELECT nome FROM reparos WHERE id IN ({placeholders})", reparo_ids)
-        nomes = [r[0].upper() for r in cursor.fetchall()]
-        conn.close()
-
-        tabelas = carregar_tabelas_preco()
-        total, encontrou = sugerir_preco_tabela(tabelas, tabela, modelo, nomes)
-        return ok(valor=round(total, 2), encontrado=encontrou)
 
     # ── WARRANTIES ─────────────────────────────────────────────────────────
 

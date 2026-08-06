@@ -2003,6 +2003,7 @@ def verificar_autenticacao():
 
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
+from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
@@ -2067,6 +2068,20 @@ app.register_blueprint(
     )
 )
 
+# TD-01 Phase 2 -- 4º domínio extraído do monólito. Diferente dos 3 anteriores:
+# carregar_tabelas_preco/salvar_tabelas_preco não são usadas por nenhuma outra
+# rota do monólito, então as chaves saem do dict de create_api_blueprint abaixo
+# em vez de serem duplicadas (deps reduzido, não só particionado).
+app.register_blueprint(
+    create_api_prices_blueprint(
+        {
+            "conectar": conectar,
+            "carregar_tabelas_preco": carregar_tabelas_preco,
+            "salvar_tabelas_preco": salvar_tabelas_preco,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2103,8 +2118,6 @@ app.register_blueprint(
             "modelo_para_os": modelo_para_os,
             "normalizar_imei": normalizar_imei,
             "normalizar_modelo_iphone": normalizar_modelo_iphone,
-            "carregar_tabelas_preco": carregar_tabelas_preco,
-            "salvar_tabelas_preco": salvar_tabelas_preco,
             "texto_reparos_os": texto_reparos_os,
             "listar_custos_operacionais": listar_custos_operacionais,
             "agrupar_relatorio_custos_operacionais": functools.partial(

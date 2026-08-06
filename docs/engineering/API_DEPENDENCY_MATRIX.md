@@ -32,7 +32,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_shopping.py` ✅ extraído | 9 | 4 (3 genéricos + `_log_shopping`) | 1 | (nenhum) |
 | `api_garantias.py` ✅ extraído | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
 | `api_costs.py` ✅ extraído | 4 | 4 | 2 | `fluxoly_reports` |
-| `api_prices.py` | 4 | 4 | 3 | `fluxoly_price_tables` |
+| `api_prices.py` ✅ extraído | 4 | 4 | 3 | `fluxoly_price_tables` |
 | `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
 | `api_auth.py` | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
@@ -134,10 +134,10 @@ próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encon
 - **Deps (2):** `conectar`, `listar_custos_operacionais`
 - **Serviços:** `fluxoly_reports`
 
-### `api_prices.py`
+### `api_prices.py` ✅ extraído em 2026-08-06
 - **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
 - **Deps (3):** `carregar_tabelas_preco`, `conectar`, `salvar_tabelas_preco`
-- **Serviços:** `fluxoly_price_tables`
+- **Serviços:** `fluxoly_price_tables` (`sugerir_preco_tabela`)
 
 ### `api_backup.py`
 - **Helpers:** `_texto_limpo_local`, `err`, `ok`, `usuario_admin`, `usuario_logado`

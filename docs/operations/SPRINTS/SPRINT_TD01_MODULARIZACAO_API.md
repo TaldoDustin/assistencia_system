@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 3/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 4/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -271,7 +271,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 3 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 4 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -348,6 +348,21 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
 - Zero referência residual às rotas `/custos*` (CRUD) em `fluxoly_blueprints_api.py` — as menções
   remanescentes de "custos" são `/relatorios/custos-operacionais` (domínio Relatórios), `custo_pecas`
   (custo de peças da OS) e `_recalcular_custo_medio` (Estoque), todas fora do escopo deste domínio.
+
+**4. Preços (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_prices.py` criado (4 rotas — `GET/POST /precos`, `POST /precos/excluir`, `GET /precos/sugerir`),
+  reaproveitando `fluxoly_api_helpers.py`. Assimetria de autorização original preservada verbatim:
+  `sugerir_preco()` exige só `usuario_logado()`, as outras 3 exigem também `usuario_admin()`.
+  `sugerir_preco_tabela` (de `fluxoly_price_tables`) migrou junto — só usada por essa rota.
+- **Diferente das 3 extrações anteriores:** `carregar_tabelas_preco`/`salvar_tabelas_preco` não têm
+  nenhum outro consumidor no monólito (confirmado por grep antes da extração) — as chaves saíram do
+  dict de `create_api_blueprint` em `app.py`, em vez de ficarem duplicadas. Primeiro domínio da Phase 2
+  a reduzir `deps` de fato, não só particioná-lo.
+- Suíte completa (683 testes) passando sem alteração, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_prices"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`,
+  `fluxoly_validation.py`, `fluxoly_price_tables.py`).
+- Zero referência residual a `/precos*`, `carregar_tabelas_preco`, `salvar_tabelas_preco` ou
+  `sugerir_preco_tabela` em `fluxoly_blueprints_api.py` (grep vazio).
 
 ## Phase 3 — Cleanup
 

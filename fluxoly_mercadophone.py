@@ -927,6 +927,15 @@ def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
                     extra={"codigo_externo": external_id, "erro": f"{type(exc).__name__}: {exc}"},
                     exc_info=True,
                 )
+            finally:
+                # INC-001 (causa raiz confirmada em producao, 2026-08-05): antes, o commit so
+                # acontecia depois do loop inteiro -- ate centenas de registros, cada um com
+                # uma chamada HTTP externa para a API do Mercado Phone -- mantendo a transacao
+                # de escrita aberta por toda essa janela e bloqueando qualquer outro escritor
+                # (ex.: login) pelo busy_timeout inteiro (30s). Commit por registro libera o
+                # lock entre uma chamada externa e a proxima, preservando a atomicidade de
+                # cada registro (ja isolado pelo try/except acima).
+                conn.commit()
 
         definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
         definir_estado_integracao(

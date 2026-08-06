@@ -1,12 +1,12 @@
 # INC-001 — `database is locked`
 
-**Status:** Parcialmente corrigido — `POST /api/auth/login` e as 4 rotas de checklist corrigidas via
-hotfix isolado (4 rotas de shopping-list reclassificadas como risco estrutural, não vazamento
-confirmado); instrumentação transparente de runtime pronta (não mergeada ainda), reprodução local por
-carga (2 rodadas, até 120 threads/60s) não confirmou a causa raiz. **Próximo passo: deploy +
-observação em produção** antes de decidir sobre a transação do MercadoPhone (ver "Próximo passo"
-abaixo). **INC-001 continua aberto** — as correções aplicadas eliminam vetores confirmados, não a
-causa raiz.
+**Status:** Causa raiz confirmada em produção em 2026-08-05 (ver seção "Causa raiz confirmada em
+produção" abaixo) — `sincronizar_mercado_phone()` (`fluxoly_mercadophone.py`) mantém uma transação de
+escrita aberta durante todo um ciclo de sync (até centenas de chamadas HTTP externas intercaladas com
+escritas locais), bloqueando qualquer outro escritor (login incluso) pelo `busy_timeout` inteiro.
+`POST /api/auth/login` e as 4 rotas de checklist já corrigidas via hotfix isolado continuam válidas
+(eliminam vazamento de conexão, vetor real mas diferente). **INC-001 continua aberto** — Branch B
+(reduzir a transação do MercadoPhone) é o próximo passo, plano a apresentar para aprovação.
 **Severidade:** P0 (crítico)
 **Impacto:** Alto — afeta operações de escrita centrais (criar/editar OS, cadastrar/alterar estoque)
 **Ambientes:** Produção, Desenvolvimento
@@ -418,6 +418,71 @@ locked")` e confirma que a mensagem já não é mascarada.
 de "usuário duplicado" nesta rota especificamente. Se o erro real continuar sendo `database is locked`
 após o deploy deste hotfix, é evidência nova e direta para a investigação em andamento (ver "Próximo
 passo" acima).
+
+---
+
+## Causa raiz confirmada em produção (2026-08-05)
+
+**Reportado pelo usuário (CTO) em tempo real**, tentando logar como admin em produção e recebendo 401
+seguido de múltiplos 400. Investigação nesta sessão (não instrumentação Branch C — via logs
+estruturados já existentes no Render, sem precisar ativar `IR_FLOW_DEBUG_CONN_TRACE`) confirma,
+finalmente, a causa raiz que a Branch C esperava provar.
+
+### Evidência (logs reais de produção, Render, 2026-08-05 18:29–18:52 UTC)
+
+- `POST /api/auth/login` falhou duas vezes com **400**, cada uma levando **~30.2 segundos** antes de
+  responder — exatamente `SQLITE_TIMEOUT_SECONDS = 30` (`app.py:517`, `busy_timeout` do SQLite). Não é
+  falha instantânea: é o tempo de espera pelo lock se esgotando por completo.
+- Nas mesmas janelas de tempo, `fluxoly.mercadophone` registrou `mercadophone_sync_falha_inesperada`
+  repetidas vezes, com traceback completo mostrando `sqlite3.OperationalError: database is locked` em
+  `adquirir_lock_sync_mercado_phone`, `liberar_lock_sync_mercado_phone` e `definir_estado_integracao`
+  (`fluxoly_mercadophone.py`) — inclusive um caso de **falha dupla**: a exceção original durante
+  `definir_estado_integracao`, e **enquanto tratando essa exceção**, a chamada de liberação do lock
+  (`liberar_lock_sync_mercado_phone`, no `finally`) também falhou com o mesmo erro.
+- Login seguinte, às 18:52:10, teve sucesso (200) — a janela de contenção durou ~19 minutos, terminando
+  quando o próprio mecanismo de lock/lease do MercadoPhone (TTL de 90s, fix do INC-002) expirou e os
+  ciclos seguintes passaram a se auto-adiar (`mercadophone_sync_ignorada_lock_ocupado`) em vez de competir.
+
+### Causa raiz — localizada com precisão no código
+
+`fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` (linhas 832-934):
+
+```python
+conn = conectar()
+cursor = conn.cursor()
+...
+for external_id in ids_encontrados:              # 382 registros neste ciclo
+    detalhes = detalhar_os_mercado_phone(external_id, config)   # chamada HTTP externa
+    ...
+    importar_os_mercado_phone(cursor, payload_importacao, ...)   # escreve no SQLite
+    ...
+# conn.commit() só acontece aqui — linha 931, depois do loop inteiro
+```
+
+A transação de escrita abre no primeiro `INSERT`/`UPDATE` (dentro do loop) e só fecha depois que
+**todos** os registros da página forem processados — cada um envolvendo uma chamada de rede síncrona
+para a API externa do Mercado Phone. Com 382 registros, essa janela pode ser de minutos. Qualquer outra
+escrita no sistema (login, criar OS, cadastrar estoque) tenta escrever, espera o `busy_timeout` (30s)
+inteiro, e falha com `database is locked` — exatamente o padrão observado.
+
+Isso **confirma com precisão de linha de código** o "novo candidato" já registrado nesta investigação em
+2026-07-23 ("`sincronizar_mercado_phone()` mantém uma única transação aberta durante todo um ciclo de
+sincronização") — na época, uma hipótese não comprovada em runtime; agora, evidência real de produção
+com traceback completo.
+
+### Por que a Branch C (instrumentação) não foi necessária para esta confirmação
+
+Os logs estruturados JSON já existentes (`fluxoly.mercadophone`, incluindo `exc_info` completo) já
+continham tudo que era preciso — a instrumentação transparente de conexões (`IR_FLOW_DEBUG_CONN_TRACE`)
+segue pronta e mergeada, mas não precisou ser ativada neste incidente específico.
+
+### Status: evidência necessária para a Branch B, conforme a sequência já decidida em 2026-07-27
+
+Por decisão explícita do usuário (CTO, 2026-07-27), a Branch B (reduzir a transação de
+`sincronizar_mercado_phone()`) só deveria ser feita **com evidência real de produção, não por
+suspeita**. Essa evidência agora existe. Próximo passo: plano técnico da Branch B, a apresentar para
+aprovação antes de qualquer alteração em `fluxoly_mercadophone.py` (arquivo de risco "Alto",
+`PROJECT_STATUS.md` — Arquivos Críticos).
 
 ---
 

@@ -367,6 +367,22 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   residual do domínio no monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
+- `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
+  escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma
+  chamada HTTP síncrona para a API externa do Mercado Phone), só comitando no final — qualquer outro
+  escritor (ex.: `POST /api/auth/login`) esperava o `busy_timeout` inteiro (30s) e falhava com
+  "database is locked" enquanto o ciclo estivesse em andamento. Confirmado em produção pelo usuário
+  (CTO) tentando logar como admin: dois logins falharam com 400, cada um levando ~30.2s, exatamente
+  coincidindo com logs de `mercadophone_sync_falha_inesperada` na mesma janela (`OperationalError:
+  database is locked`, incluindo uma falha dupla — exceção durante o `finally` de liberação do lock).
+  Corrigido movendo o commit para dentro do loop (`finally` por registro), preservando a atomicidade de
+  cada registro (já isolado pelo `try/except` existente) enquanto libera o lock entre uma chamada
+  externa e a próxima. Novo teste (`tests/test_inc001_mercadophone_commit_por_registro.py`) prova o
+  mecanismo exato — confirmado que falha contra o código anterior à correção e passa depois (mesmo
+  rigor dos hotfixes anteriores deste incidente). 683 testes no total, `ruff check .` limpo. Ver
+  `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo
+
 ---
 
 ## [1.1.0] — 2026-06-21

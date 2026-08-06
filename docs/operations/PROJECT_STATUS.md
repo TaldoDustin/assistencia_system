@@ -5,8 +5,8 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-07-30
-**Próxima revisão:** Deploy em produção + observação com `IR_FLOW_DEBUG_CONN_TRACE=1` (INC-001, ver abaixo) — ação do usuário (CTO), fora do alcance desta sessão. Sequência: 🟡 INC-001 (Branch A + Branch C mergeadas e enviadas 2026-07-27, aguardando deploy/observação; Branch B condicionada à evidência) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+**Última revisão:** 2026-08-05
+**Próxima revisão:** Retomar TD-01 Phase 2 (Custos Operacionais, 3º de 12 domínios) e a Fase 1 (Financeiro mínimo, Release 1.0). Sequência recente: ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
 
 ---
 
@@ -43,7 +43,7 @@ para worker/cron dedicado (em vez de lock) registrada como melhoria futura, não
 
 ---
 
-## 🟡 INC-001 — `database is locked` (P0, vetores confirmados corrigidos, causa raiz não confirmada em runtime)
+## ✅ INC-001 — `database is locked` (P0, causa raiz confirmada e corrigida em 2026-08-05)
 
 **Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo.**
 
@@ -75,11 +75,27 @@ por `IR_FLOW_DEBUG_CONN_TRACE`, zero impacto desligada, delega tudo que não ins
 `ruff check .` limpo. Duas rodadas de reprodução por carga local (antes desta branch) **não
 reproduziram** o erro — causa raiz segue não confirmada em runtime.
 
-**Aguardando (ação do usuário, fora do alcance desta sessão):** deploy em produção — recomendado em duas
-etapas (deploy com a flag desligada, validar saúde do sistema, só depois ligar
-`IR_FLOW_DEBUG_CONN_TRACE=1` e redeployar) — seguido de alguns dias de observação real. A Branch B
-(reduzir a transação de `sincronizar_mercado_phone()`) fica **condicionada à evidência** coletada nessa
-observação, não decidida por suspeita.
+**Causa raiz confirmada em produção (2026-08-05):** usuário (CTO) reportou, em tempo real, `POST
+/api/auth/login` falhando com 400 "database is locked" ao tentar logar como admin — dois requests
+levaram ~30.2s cada (exatamente `SQLITE_TIMEOUT_SECONDS=30`, `busy_timeout` se esgotando por completo)
+antes de falhar. Logs estruturados do Render, na mesma janela, mostram `fluxoly.mercadophone` com
+`mercadophone_sync_falha_inesperada` repetidas vezes (`sqlite3.OperationalError: database is locked`
+em `adquirir_lock_sync_mercado_phone`/`liberar_lock_sync_mercado_phone`/`definir_estado_integracao`,
+inclusive uma falha dupla — exceção durante o `finally` de liberação do lock). Root cause localizada
+com precisão em `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()`: o commit só
+acontecia uma vez, depois do loop inteiro (até centenas de registros, cada um com uma chamada HTTP
+síncrona para a API externa do Mercado Phone) — a transação de escrita ficava aberta pela duração
+inteira do ciclo, bloqueando qualquer outro escritor pelo `busy_timeout` inteiro. Confirma, com
+evidência real de runtime, o "novo candidato" já registrado nesta investigação desde 2026-07-23.
+
+**Corrigido (2026-08-05) — Branch B:** commit movido para dentro do loop (`finally` por registro),
+preservando a atomicidade de cada registro (já isolado pelo `try/except` existente) enquanto libera o
+lock entre uma chamada externa e a próxima. Teste de regressão dedicado
+(`tests/test_inc001_mercadophone_commit_por_registro.py`) prova o mecanismo exato — confirmado que
+falha contra o código anterior à correção (`git stash` temporário, mesmo rigor dos hotfixes anteriores
+deste incidente) e passa depois. 683 testes no total, `ruff check .` limpo, `graphify update .`
+validado. Ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo —
+INC-001 permanece com o registro histórico completo, mas a causa raiz está confirmada e corrigida.
 
 ---
 

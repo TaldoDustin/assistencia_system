@@ -423,6 +423,23 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 7º domínio extraído: Backup)
+- `api_backup.py` — `Blueprint` próprio para backup/restauração do banco (`POST /api/backup/criar`,
+  `GET /api/backup/listar`, `GET /api/backup/download/<filename>`, `POST /api/backup/restaurar`),
+  extraído de `fluxoly_blueprints_api.py` verbatim. `_texto_limpo_local()` promovido para
+  `fluxoly_api_helpers.py` — diferente das extrações anteriores, o outro consumidor
+  (`MercadoPhone`) ainda vive dentro do próprio monólito, não em um blueprint separado; sequência
+  seguida: promover → importar no monólito → confirmar suíte filtrada de MercadoPhone → remover
+  implementação local. Verificação tripla (Graphify `affected`/`explain` + grep textual) nos deps mais
+  sensíveis, confirmando zero resíduo (`criar_backup` também é chamado por
+  `executar_backup_diario_automatico()`, agendador independente, não afetado).
+  `garantir_pasta_backup_google_drive` (dead code pré-existente) mantida intocada, fora de escopo.
+  3 imports órfãos (`contextlib`, `os`, `flask.send_from_directory`) removidos no mesmo commit. 683
+  testes passando, `ruff check .` limpo, `graphify update .` + `explain "api_backup"` confirmados sem
+  referência residual do domínio no monólito. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

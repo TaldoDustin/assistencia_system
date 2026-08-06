@@ -2002,6 +2002,7 @@ def verificar_autenticacao():
 # ============================================================================
 
 from api_auth import create_api_auth_blueprint  # noqa: E402
+from api_backup import create_api_backup_blueprint  # noqa: E402
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
@@ -2114,6 +2115,27 @@ app.register_blueprint(
     )
 )
 
+# TD-01 Phase 2 -- 7º domínio extraído do monólito. As 9 chaves saem do dict de
+# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
+# consumidor no monólito). garantir_pasta_backup_google_drive fica intocada
+# nesse dict (dead code pré-existente, fora do escopo desta extração -- Phase 3).
+app.register_blueprint(
+    create_api_backup_blueprint(
+        {
+            "conectar": conectar,
+            "backup_dir": BACKUP_DIR,
+            "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
+            "criar_backup": criar_backup,
+            "enviar_backup_email": enviar_backup_email,
+            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
+            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
+            "backup_email_destino": BACKUP_EMAIL_DESTINO,
+            "db_path": DB_PATH,
+            "forcar_migracao_schema": forcar_migracao_schema,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2179,14 +2201,7 @@ app.register_blueprint(
             "reparos_padrao": REPAROS_PADRAO,
             "produtos_categorias": PRODUTOS_CATEGORIAS,
             "produtos_condicoes": PRODUTOS_CONDICOES,
-            "backup_dir": BACKUP_DIR,
-            "criar_backup": criar_backup,
-            "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
             "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
-            "enviar_backup_email": enviar_backup_email,
-            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
-            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
-            "backup_email_destino": BACKUP_EMAIL_DESTINO,
             "sincronizar_mercado_phone": sincronizar_mercado_phone,
             "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
             "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,
@@ -2196,8 +2211,6 @@ app.register_blueprint(
             "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
             "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
             "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
-            "db_path": DB_PATH,
-            "forcar_migracao_schema": forcar_migracao_schema,
         }
     )
 )

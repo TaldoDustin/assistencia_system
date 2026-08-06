@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 6/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 7/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 6 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 7 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -420,6 +420,36 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   `fluxoly_validation.py`). Zero referência residual real a `/auth/login`, `/auth/logout`, `/auth/me` em
   `fluxoly_blueprints_api.py` — as 4 menções remanescentes de "auth_login" são comentários em outras
   rotas (domínio checklist/OS) citando o mesmo padrão de correção do INC-001, não código deste domínio.
+
+**7. Backup (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_backup.py` criado (4 rotas — `POST /backup/criar`, `GET /backup/listar`, `GET
+  /backup/download/<filename>`, `POST /backup/restaurar`), movidas verbatim (incluindo os imports locais
+  `shutil`/`sqlite3 as _sqlite3`/`tempfile` e o comentário sobre `PermissionError` no Windows em
+  `restaurar_backup_upload()`).
+- **Achado que mudou a mecânica desta extração:** `_texto_limpo_local()` (definido localmente no
+  monólito) é usado tanto por Backup quanto por MercadoPhone (ainda não extraído) — diferente das
+  extrações anteriores, o outro consumidor ainda vivia dentro do próprio arquivo sendo reduzido, não em
+  um blueprint separado. Sequência seguida (recomendação do CTO): promover para
+  `fluxoly_api_helpers.py` → importar no monólito → rodar a suíte filtrada de MercadoPhone (20 testes,
+  confirmando que nada quebrou) → só então remover a implementação local. `usuario_admin`/`_texto_limpo_local`
+  agora são os dois helpers genéricos promovidos por necessidade de compartilhamento real, não por
+  conveniência.
+- Também limpo um resíduo de comentário órfão (`# ── USERS ──` sem nenhuma rota abaixo, deixado pela
+  extração de Usuários) na mesma área do arquivo sendo editada.
+- Verificação tripla (recomendação do CTO para este domínio, mais consumidores indiretos que o usual):
+  `graphify affected`/`graphify explain` em `criar_backup`/`enviar_backup_email`/`forcar_migracao_schema`
+  + `grep` textual final. As três convergem: zero referência residual em `fluxoly_blueprints_api.py`;
+  `criar_backup` também é chamado por `executar_backup_diario_automatico()` em `fluxoly_storage.py`
+  (agendador de backup diário, consumidor independente via import direto, não pelo `deps` dict do
+  blueprint — não afeta a decisão de remover a chave do dict do monólito).
+- `garantir_pasta_backup_google_drive` (dead code já registrado na Phase 0) permanece intocada no dict
+  de `create_api_blueprint` — misturar remoção de código morto com esta extração violaria a regra de não
+  combinar refatoração com cleanup; fica para a Phase 3.
+- Ruff encontrou 3 imports órfãos após a remoção das rotas (`contextlib`, `os`, `flask.send_from_directory`
+  — usados só dentro do bloco de Backup) — removidos no mesmo commit.
+- Suíte completa (683 testes) passando, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_backup"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`,
+  `fluxoly_validation.py`).
 
 ## Phase 3 — Cleanup
 

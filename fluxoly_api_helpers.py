@@ -18,6 +18,10 @@ def usuario_admin():
     return session.get("usuario_perfil") == "admin"
 
 
+def _texto_limpo_local(valor):
+    return (valor or "").strip()
+
+
 def err(msg, code=400):
     return jsonify({"ok": False, "erro": msg}), code
 

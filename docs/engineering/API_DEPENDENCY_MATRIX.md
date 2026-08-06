@@ -37,7 +37,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_auth.py` ✅ extraído | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
 | `api_reports.py` | 6 | 3 | 9 | `fluxoly_reference_data`, `fluxoly_reports` |
-| `api_backup.py` | 4 | 5 | 10 | `fluxoly_storage` |
+| `api_backup.py` ✅ extraído | 4 | 5 | 10 | `fluxoly_storage` |
 | `api_mercadophone.py` | 7 | 12 | 6 | `fluxoly_mercadophone`, `fluxoly_storage` |
 | `api_system.py` | 3 | 3 | 22 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports` |
 | `api_os.py` (+Reparos) | 17 | 11 | 32 | `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service` |
@@ -149,10 +149,11 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Deps (3):** `carregar_tabelas_preco`, `conectar`, `salvar_tabelas_preco`
 - **Serviços:** `fluxoly_price_tables` (`sugerir_preco_tabela`)
 
-### `api_backup.py`
-- **Helpers:** `_texto_limpo_local`, `err`, `ok`, `usuario_admin`, `usuario_logado`
+### `api_backup.py` ✅ extraído em 2026-08-06
+- **Helpers:** `_texto_limpo_local` (promovido para `fluxoly_api_helpers.py` nesta extração — comprovadamente
+  compartilhado com MercadoPhone, ainda no monólito); `err`, `ok`, `usuario_admin`, `usuario_logado`
 - **Deps (10):** `backup_dir`, `backup_email_destino`, `backup_email_remetente`, `backup_email_senha_app`, `conectar`, `criar_backup`, `db_path`, `enviar_backup_email`, `forcar_migracao_schema`, `google_drive_backup_dir`
-- **Serviços:** `fluxoly_storage` (a maioria das deps é configuração/string, não chamada de lógica — complexidade real menor do que a contagem sugere)
+- **Serviços:** `fluxoly_storage` (a maioria das deps é configuração/string, não chamada de lógica — complexidade real menor do que a contagem sugere). `garantir_pasta_backup_google_drive` permanece como dep morta em `create_api_blueprint` (Phase 0, candidata a limpeza na Phase 3) — não pertence a este domínio
 
 ### `api_mercadophone.py`
 - **Helpers (12):** `_atualizar_runtime_mercadophone`, `_carregar_config_mercadophone`, `_executar_reimportacao_mp_async`, `_executar_reprocessamento_mp_async`, `_snapshot_reimportacao_mp`, `_snapshot_reprocessamento_mp`, `_texto_limpo_local`, `_to_bool`, `err`, `ok`, `usuario_admin`, `usuario_logado`

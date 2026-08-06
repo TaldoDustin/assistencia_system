@@ -34,7 +34,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_costs.py` ✅ extraído | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` ✅ extraído | 4 | 4 | 3 | `fluxoly_price_tables` |
 | `api_users.py` ✅ extraído | 6 | 4 | 3 | `werkzeug.security` |
-| `api_auth.py` | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
+| `api_auth.py` ✅ extraído | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
 | `api_reports.py` | 6 | 3 | 9 | `fluxoly_reference_data`, `fluxoly_reports` |
 | `api_backup.py` | 4 | 5 | 10 | `fluxoly_storage` |
@@ -103,8 +103,8 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 
 ## Detalhe por módulo
 
-### `api_auth.py`
-- **Helpers:** `err`, `ok`, `usuario_logado`
+### `api_auth.py` ✅ extraído em 2026-08-06
+- **Helpers:** `err`, `ok`, `usuario_logado` (nenhum específico do domínio)
 - **Deps (5):** `check_password_hash`, `conectar`, `limite_excedido`, `registrar_tentativa`, `resolver_ip_cliente`
 - **Serviços:** `fluxoly_rate_limit`, `werkzeug.security`
 

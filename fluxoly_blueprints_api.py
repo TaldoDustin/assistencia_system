@@ -80,10 +80,6 @@ def create_api_blueprint(deps):
     backup_email_remetente = deps["backup_email_remetente"]
     backup_email_senha_app = deps["backup_email_senha_app"]
     backup_email_destino = deps["backup_email_destino"]
-    check_password_hash = deps["check_password_hash"]
-    resolver_ip_cliente = deps["resolver_ip_cliente"]
-    limite_excedido = deps["limite_excedido"]
-    registrar_tentativa = deps["registrar_tentativa"]
     sincronizar_mercado_phone = deps["sincronizar_mercado_phone"]
     reimportar_todas_os_mercado_phone = deps["reimportar_todas_os_mercado_phone"]
     reprocessar_todas_os_mercado_phone = deps["reprocessar_todas_os_mercado_phone"]
@@ -412,75 +408,6 @@ def create_api_blueprint(deps):
             (os_id, agora, agora),
         )
         return _buscar_checklist_por_os(cursor, os_id)
-
-    # ── AUTHENTICATION ─────────────────────────────────────────────────────
-
-    @api.route("/auth/login", methods=["POST"])
-    def auth_login():
-        body = safe_json(request)
-        usuario_txt = (body.get("usuario") or "").strip()
-        senha_txt = body.get("senha") or ""
-        identificador = resolver_ip_cliente(request)
-
-        # INC-001: conexão sem try/except/finally — qualquer exceção entre abrir
-        # e fechar vazava a conexão com a transação de escrita ainda aberta,
-        # bloqueando todo escritor seguinte em WAL até o processo coletar o
-        # objeto via GC (não determinístico). Rota de maior frequência de
-        # chamada do sistema, já é escrita (registrar_tentativa) — maior risco
-        # identificado na investigação.
-        conn = conectar()
-        try:
-            cursor = conn.cursor()
-
-            if limite_excedido(cursor, identificador):
-                return err("Muitas tentativas de login. Tente novamente em instantes.", 429)
-
-            if not usuario_txt or not senha_txt:
-                registrar_tentativa(cursor, identificador, False)
-                conn.commit()
-                return err("Usuário e senha são obrigatórios.")
-
-            cursor.execute(
-                "SELECT id, nome, senha_hash, perfil, ativo FROM usuarios WHERE usuario = ?",
-                (usuario_txt,),
-            )
-            row = cursor.fetchone()
-
-            sucesso = bool(row and row[4] == 1 and check_password_hash(row[2], senha_txt))
-            registrar_tentativa(cursor, identificador, sucesso)
-            conn.commit()
-        except Exception as exc:
-            conn.rollback()
-            return err(str(exc))
-        finally:
-            conn.close()
-
-        if sucesso:
-            session.permanent = True
-            session["usuario_id"] = row[0]
-            session["usuario_nome"] = row[1]
-            session["usuario_perfil"] = row[3]
-            return ok(usuario={"id": row[0], "nome": row[1], "perfil": row[3]})
-
-        return err("Usuário ou senha inválidos.", 401)
-
-    @api.route("/auth/logout", methods=["POST"])
-    def auth_logout():
-        session.clear()
-        return ok()
-
-    @api.route("/auth/me")
-    def auth_me():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        return ok(
-            usuario={
-                "id": session["usuario_id"],
-                "nome": session["usuario_nome"],
-                "perfil": session["usuario_perfil"],
-            }
-        )
 
     # ── CONSTANTS ──────────────────────────────────────────────────────────
 

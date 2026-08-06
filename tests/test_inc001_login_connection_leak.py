@@ -41,7 +41,7 @@ def falha_no_registrar_tentativa(app):
     dentro de auth_login) levantar exceção uma única vez — mesmo ponto da
     causa raiz do INC-001 — e restaura a função original ao final do teste,
     mesmo se o teste falhar."""
-    view = app.view_functions["api.auth_login"]
+    view = app.view_functions["api_auth.auth_login"]
     cell = _cell_da_closure(view, "registrar_tentativa")
     original = cell.cell_contents
     estado = {"ja_falhou": False}

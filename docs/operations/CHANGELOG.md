@@ -406,6 +406,23 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 6º domínio extraído: Auth)
+- `api_auth.py` — `Blueprint` próprio para autenticação JSON (`POST /api/auth/login`, `POST
+  /api/auth/logout`, `GET /api/auth/me`), extraído de `fluxoly_blueprints_api.py` **verbatim, inclusive
+  comentários** — o comentário do INC-001 em `auth_login()` explicando o `try/except/finally` foi
+  preservado sem nenhuma alteração de lógica, por regra explícita do plano (não misturar refatoração
+  estrutural com mudança de comportamento em rota de autenticação). `resolver_ip_cliente`/
+  `limite_excedido`/`registrar_tentativa`/`check_password_hash` saíram do dict de `create_api_blueprint`
+  em `app.py` (sem outro consumidor no monólito; uso legítimo em `create_auth_blueprint` ficou intacto).
+  Segunda aplicação da regra do DoD de verificar via Graphify antes de remover uma dep — desta vez a
+  ferramenta resolveu os símbolos do projeto (`fluxoly_rate_limit.py`) e confirmou ausência de
+  consumidor residual (`check_password_hash`, de `werkzeug`, seguiu sem match, mesma limitação já vista
+  em Usuários). Corrigido no mesmo commit: `tests/test_inc001_login_connection_leak.py` referenciava o
+  endpoint qualificado do blueprint antigo. 683 testes passando, `ruff check .` limpo, `graphify
+  update .` + `explain "api_auth"` confirmados sem referência residual do domínio no monólito. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 5/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 6/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 5 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 6 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -397,6 +397,29 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   `fluxoly_api_helpers.py`, `fluxoly_validation.py`). Zero referência residual a `/usuarios*`,
   `/password-reset/*`, `generate_password_hash`, `perfis_opcoes` ou `_password_reset_token_horas` em
   `fluxoly_blueprints_api.py` (grep vazio).
+
+**6. Auth (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_auth.py` criado (3 rotas — `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`), movidas
+  **verbatim, inclusive comentários** (regra explícita do plano, dado o comentário do INC-001 em
+  `auth_login()` explicando o `try/except/finally` — nenhuma linha de lógica de autenticação foi tocada).
+  Sem helper específico do domínio.
+- Segunda aplicação da nova regra do DoD, e desta vez o Graphify **resolveu** o símbolo: diferente de
+  `generate_password_hash`/`perfis_opcoes` (Usuários), `resolver_ip_cliente`/`limite_excedido`/
+  `registrar_tentativa` vivem em `fluxoly_rate_limit.py` (módulo do projeto, não biblioteca terceira) —
+  `graphify affected` mostrou o único consumidor real como `app.py:L2019-2021` (dict de
+  `create_auth_blueprint`, já extraído e separado); a aresta para `cleanup_db.py` foi investigada e
+  confirmada como ruído do grafo (esse script só importa `conectar`). `check_password_hash` (werkzeug)
+  seguiu sem match, mesma limitação da extração de Usuários. As 5 chaves saíram do dict de
+  `create_api_blueprint` em `app.py` (deps reduzido, não duplicado).
+- **Efeito colateral mecânico** (mesmo padrão de Usuários): `tests/test_inc001_login_connection_leak.py`
+  referenciava `app.view_functions["api.auth_login"]` diretamente (manipulação de closure, mesma técnica
+  usada em `test_users.py`) — atualizado para `"api_auth.auth_login"` no mesmo commit. Nenhuma dívida
+  TD-15 encontrada neste arquivo (checado com `black --check` antes de editar).
+- Suíte completa (683 testes) passando, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_auth"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`,
+  `fluxoly_validation.py`). Zero referência residual real a `/auth/login`, `/auth/logout`, `/auth/me` em
+  `fluxoly_blueprints_api.py` — as 4 menções remanescentes de "auth_login" são comentários em outras
+  rotas (domínio checklist/OS) citando o mesmo padrão de correção do INC-001, não código deste domínio.
 
 ## Phase 3 — Cleanup
 

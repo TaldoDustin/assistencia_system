@@ -2001,6 +2001,7 @@ def verificar_autenticacao():
 # REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
 # ============================================================================
 
+from api_auth import create_api_auth_blueprint  # noqa: E402
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
@@ -2097,6 +2098,22 @@ app.register_blueprint(
     )
 )
 
+# TD-01 Phase 2 -- 6º domínio extraído do monólito. As 5 chaves saem do dict de
+# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
+# consumidor no monólito): continuam intactas no dict de create_auth_blueprint
+# acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
+app.register_blueprint(
+    create_api_auth_blueprint(
+        {
+            "conectar": conectar,
+            "check_password_hash": check_password_hash,
+            "resolver_ip_cliente": resolver_ip_cliente,
+            "limite_excedido": limite_excedido,
+            "registrar_tentativa": registrar_tentativa,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2170,10 +2187,6 @@ app.register_blueprint(
             "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
             "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
             "backup_email_destino": BACKUP_EMAIL_DESTINO,
-            "check_password_hash": check_password_hash,
-            "resolver_ip_cliente": resolver_ip_cliente,
-            "limite_excedido": limite_excedido,
-            "registrar_tentativa": registrar_tentativa,
             "sincronizar_mercado_phone": sincronizar_mercado_phone,
             "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
             "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,

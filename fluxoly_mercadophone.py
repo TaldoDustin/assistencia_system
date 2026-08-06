@@ -309,7 +309,7 @@ def _dividir_reparos_texto_mercado_phone(valor_texto, texto_limpo):
 
         marcadores.append(len(item))
         for idx in range(len(marcadores) - 1):
-            trecho = item[marcadores[idx]:marcadores[idx + 1]].strip(" -/|")
+            trecho = item[marcadores[idx] : marcadores[idx + 1]].strip(" -/|")
             if trecho:
                 partes.append(trecho)
 
@@ -328,7 +328,11 @@ def _normalizar_nome_reparo_mercado_phone(nome_reparo, normalizar_busca_texto, t
 
     if "bateria" in nome_norm:
         return "TROCA DE BATERIA"
-    if "dock" in nome_norm or ("conector" in nome_norm and "carga" in nome_norm) or ("porta" in nome_norm and "carga" in nome_norm):
+    if (
+        "dock" in nome_norm
+        or ("conector" in nome_norm and "carga" in nome_norm)
+        or ("porta" in nome_norm and "carga" in nome_norm)
+    ):
         return "TROCA DE DOCK DE CARGA"
     if "reparo" in nome_norm and "face id" in nome_norm:
         return "REPARO FACE ID"
@@ -342,14 +346,8 @@ def _normalizar_nome_reparo_mercado_phone(nome_reparo, normalizar_busca_texto, t
         return "TROCA DE LENTE DA CAMERA"
     if "vidro" in nome_norm and "traseir" in nome_norm:
         return "TROCA DE VIDRO TRASEIRO"
-    if (
-        "tampa traseira" in nome_norm
-        or (
-            "traseira" in nome_norm
-            and "camera" not in nome_norm
-            and "lente" not in nome_norm
-            and "vidro" not in nome_norm
-        )
+    if "tampa traseira" in nome_norm or (
+        "traseira" in nome_norm and "camera" not in nome_norm and "lente" not in nome_norm and "vidro" not in nome_norm
     ):
         return "TROCA DE TAMPA TRASEIRA"
     if "vidro" in nome_norm and "tela" in nome_norm:
@@ -398,9 +396,7 @@ def _payload_tem_dados_suficientes_mercado_phone(payload, texto_limpo):
     if not isinstance(payload, dict):
         return False
 
-    cliente = texto_limpo(
-        valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente",))
-    )
+    cliente = texto_limpo(valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente",)))
     defeito = texto_limpo(valor_payload(payload, ("defeito",), ("observacao",), ("diagnostico",)))
 
     aparelho_info = primeiro_item_lista(payload, "aparelhos")
@@ -741,7 +737,9 @@ def importar_os_mercado_phone(cursor, payload, config, helpers, fallback_externa
     )
     tipo_origem = texto_limpo(valor_payload(payload, ("tipoDescricao",), ("tipo",)))
     tipo = "Garantia" if "garantia" in normalizar_busca_texto(tipo_origem) else "Assistencia"
-    _tecnico_raw = texto_limpo(valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))) or config["default_tecnico"]
+    _tecnico_raw = (
+        texto_limpo(valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))) or config["default_tecnico"]
+    )
     tecnico = canonicalizar_para_lista(_tecnico_raw, lista_tecnicos) or _tecnico_raw
     _vendedor_raw = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
     vendedor = canonicalizar_para_lista(_vendedor_raw, lista_vendedores) or _vendedor_raw
@@ -860,7 +858,9 @@ def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
             page += 1
 
         if not ids_encontrados:
-            definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            definir_estado_integracao(
+                cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
             conn.commit()
             return {"ok": True, "importadas": 0, "ignoradas": 0, "inicializada": False}
 
@@ -870,7 +870,9 @@ def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
 
         if not inicializada and config["sync_only_after_boot"]:
             definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
-            definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            definir_estado_integracao(
+                cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
             conn.commit()
             return {"ok": True, "importadas": 0, "ignoradas": len(ids_encontrados), "inicializada": True}
 
@@ -927,7 +929,9 @@ def _sincronizar_mercado_phone_sem_lock(conectar, config, helpers):
                 )
 
         definir_estado_integracao(cursor, "mercado_phone_sync_inicializado", "1")
-        definir_estado_integracao(cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        definir_estado_integracao(
+            cursor, "mercado_phone_sync_ultima_execucao", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
         conn.commit()
         return {"ok": True, "importadas": importadas, "ignoradas": ignoradas, "inicializada": True}
     finally:
@@ -956,7 +960,11 @@ def corrigir_dados_importados_mercado_phone(conectar, helpers):
             novo_modelo = modelo
             novo_cor = cor
 
-            if (not novo_modelo) or novo_modelo in {"Nao informado"} or "iphone" not in normalizar_busca_texto(novo_modelo):
+            if (
+                (not novo_modelo)
+                or novo_modelo in {"Nao informado"}
+                or "iphone" not in normalizar_busca_texto(novo_modelo)
+            ):
                 modelo_extraido = extrair_modelo_da_descricao_aparelho(aparelho or modelo)
                 if modelo_extraido:
                     novo_modelo = modelo_extraido
@@ -1047,9 +1055,7 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
     cursor = conn.cursor()
 
     try:
-        cursor.execute(
-            "SELECT id, id_externo_integracao FROM os WHERE origem_integracao='mercado_phone' ORDER BY id"
-        )
+        cursor.execute("SELECT id, id_externo_integracao FROM os WHERE origem_integracao='mercado_phone' ORDER BY id")
         registros = cursor.fetchall()
     finally:
         conn.close()
@@ -1072,20 +1078,19 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                 continue
 
             # ID correto: preferir campo 'codigo' (ID visível no Mercado Phone)
-            id_externo_novo = texto_limpo(
-                valor_payload(payload, ("codigo",), ("id",))
-            ) or id_externo_atual
+            id_externo_novo = texto_limpo(valor_payload(payload, ("codigo",), ("id",))) or id_externo_atual
 
             aparelho_info = primeiro_item_lista(payload, "aparelhos")
             servicos = lista_payload(payload, "servicos") or lista_payload(payload, "servicosOs")
 
-            cliente = texto_limpo(
-                valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente_nome",), ("cliente",))
-            ) or "Cliente nao informado"
-
-            descricao_aparelho = texto_limpo(
-                valor_payload(aparelho_info, ("descricao",)) or ""
+            cliente = (
+                texto_limpo(
+                    valor_payload(payload, ("clienteNome",), ("cliente", "nome"), ("cliente_nome",), ("cliente",))
+                )
+                or "Cliente nao informado"
             )
+
+            descricao_aparelho = texto_limpo(valor_payload(aparelho_info, ("descricao",)) or "")
 
             modelo = modelo_para_os(descricao_aparelho)
             if not modelo:
@@ -1127,19 +1132,17 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
             # sincronização incremental (ver importar_os_mercado_phone) --
             # reimportação em massa também está isenta da exigência de
             # tipo_garantia_id por linha de reparo.
-            status = normalizar_status_os(
-                valor_payload(payload, ("situacaoDescricao",), ("status",))
+            status = normalizar_status_os(valor_payload(payload, ("situacaoDescricao",), ("status",)))
+            _tecnico_raw = (
+                texto_limpo(valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))) or config["default_tecnico"]
             )
-            _tecnico_raw = texto_limpo(
-                valor_payload(payload, ("tecnicoNome",), ("tecnico", "nome"))
-            ) or config["default_tecnico"]
             tecnico = canonicalizar_para_lista(_tecnico_raw, lista_tecnicos) or _tecnico_raw
             _vendedor_raw = texto_limpo(valor_payload(payload, ("vendedorNome",), ("vendedor", "nome")))
             vendedor = canonicalizar_para_lista(_vendedor_raw, lista_vendedores) or _vendedor_raw
 
-            data_os = texto_limpo(
-                valor_payload(payload, ("dataCriacao",), ("data",), ("created_at",), ("createdAt",))
-            )[:10]
+            data_os = texto_limpo(valor_payload(payload, ("dataCriacao",), ("data",), ("created_at",), ("createdAt",)))[
+                :10
+            ]
 
             tipo_origem = texto_limpo(valor_payload(payload, ("tipoDescricao",), ("tipo",)))
             tipo = "Garantia" if "garantia" in normalizar_busca_texto(tipo_origem) else "Assistencia"
@@ -1159,9 +1162,7 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
             for servico in servicos:
                 if not isinstance(servico, dict):
                     continue
-                nome_servico = texto_limpo(
-                    valor_payload(servico, ("servicoDescricao",), ("descricao",), ("nome",))
-                )
+                nome_servico = texto_limpo(valor_payload(servico, ("servicoDescricao",), ("descricao",), ("nome",)))
                 for reparo_nome in _extrair_reparos_mercado_phone(
                     nome_servico, nome_reparo_importavel, normalizar_busca_texto, texto_limpo
                 ):
@@ -1188,13 +1189,25 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                         status=?, valor_cobrado=?, custo_pecas=?,
                         observacoes=?, modelo=?, vendedor=?, cor=?, imei=?,
                         id_externo_integracao=?
-                    """ + (", data=?" if data_os else "") + """
+                    """
+                    + (", data=?" if data_os else "")
+                    + """
                     WHERE id=?
                     """,
                     (
-                        tipo, cliente, descricao_aparelho or modelo, tecnico, reparo_principal_id,
-                        status, valor_cobrado, custo_pecas,
-                        observacoes, modelo, vendedor, cor, imei,
+                        tipo,
+                        cliente,
+                        descricao_aparelho or modelo,
+                        tecnico,
+                        reparo_principal_id,
+                        status,
+                        valor_cobrado,
+                        custo_pecas,
+                        observacoes,
+                        modelo,
+                        vendedor,
+                        cor,
+                        imei,
                         id_externo_novo,
                         *(([data_os]) if data_os else []),
                         os_id_local,
@@ -1205,7 +1218,11 @@ def reprocessar_todas_os_mercado_phone(conectar, config, helpers):
                 atualizadas += 1
                 logger.info(
                     "mercadophone_os_local_reprocessada",
-                    extra={"os_id": os_id_local, "codigo_externo_antigo": id_externo_atual, "codigo_externo_novo": id_externo_novo},
+                    extra={
+                        "os_id": os_id_local,
+                        "codigo_externo_antigo": id_externo_atual,
+                        "codigo_externo_novo": id_externo_novo,
+                    },
                 )
             except Exception as exc:
                 conn2.rollback()
@@ -1305,9 +1322,7 @@ def reimportar_todas_os_mercado_phone(conectar, config, helpers):
             if importadas > 0 or ignoradas == 0:
                 break
 
-            ultima_falha = (
-                f"tentativa {tentativa}: importadas=0 e ignoradas={ignoradas}"
-            )
+            ultima_falha = f"tentativa {tentativa}: importadas=0 e ignoradas={ignoradas}"
         except Exception as exc:
             ultima_falha = f"tentativa {tentativa}: {type(exc).__name__}: {exc}"
 

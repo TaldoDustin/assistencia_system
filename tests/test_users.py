@@ -75,8 +75,7 @@ def _buscar_usuario_no_banco(uid):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, nome, usuario, senha_hash, perfil, ativo, limite_desconto_livre "
-            "FROM usuarios WHERE id = ?",
+            "SELECT id, nome, usuario, senha_hash, perfil, ativo, limite_desconto_livre " "FROM usuarios WHERE id = ?",
             (uid,),
         )
         return cursor.fetchone()
@@ -195,8 +194,10 @@ class TestCriarUsuario:
         resp = client.post(
             "/api/usuarios",
             json={
-                "nome": "Fulano", "usuario": f"novo_{uuid.uuid4().hex[:8]}",
-                "senha": "senha_123", "perfil": "tecnico",
+                "nome": "Fulano",
+                "usuario": f"novo_{uuid.uuid4().hex[:8]}",
+                "senha": "senha_123",
+                "perfil": "tecnico",
             },
         )
 
@@ -258,8 +259,11 @@ class TestCriarUsuario:
         resp = client.post(
             "/api/usuarios",
             json={
-                "nome": "Vendedor Teste", "usuario": login_novo, "senha": "senha_123",
-                "perfil": "vendedor", "limite_desconto_livre": 100,
+                "nome": "Vendedor Teste",
+                "usuario": login_novo,
+                "senha": "senha_123",
+                "perfil": "vendedor",
+                "limite_desconto_livre": 100,
             },
         )
 
@@ -318,7 +322,9 @@ class TestAtualizarUsuario:
         resp = client.put(
             f"/api/usuarios/{usuario_tecnico['id']}",
             json={
-                "nome": usuario_tecnico["nome"], "perfil": "vendedor", "ativo": True,
+                "nome": usuario_tecnico["nome"],
+                "perfil": "vendedor",
+                "ativo": True,
                 "limite_desconto_livre": 250.5,
             },
         )

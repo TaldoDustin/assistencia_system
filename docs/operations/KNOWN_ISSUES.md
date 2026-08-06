@@ -1040,3 +1040,29 @@ conforme o fluxo "não interrompa" de `ENGINEERING_GUIDE.md` §11).
 
 Responsável:
 —
+
+## KI-031
+
+Descrição:
+As 6 rotas do domínio Relatórios (`GET /api/relatorios/ir-phones`, `/tecnicos`, `/custos-operacionais` e
+as 3 variantes `/pdf/*`) não têm nenhum teste dedicado — `grep -rl "relatorio" tests/` retorna vazio.
+Achado durante a Discovery de extração de `api_reports.py` (TD-01 Phase 2, 8º domínio, 2026-08-06):
+diferente dos 7 domínios já extraídos, a suíte completa (683 testes) passar não é evidência de que essas
+6 rotas continuam funcionando após a extração, porque nenhum teste as exercita.
+
+Impacto:
+Baixo a médio. Nenhum critério objetivo de `ENGINEERING_GUIDE.md` §11 é atendido pela ausência de teste
+em si (não é um bug de comportamento, é uma lacuna de cobertura). Mas significa que qualquer regressão
+futura nessas 6 rotas (nesta extração ou em qualquer mudança seguinte) não será pega pela suíte —
+depende de verificação manual ou de uso real em produção para ser detectada.
+
+Status:
+Aberto. Decisão do CTO (2026-08-06): não misturar escrita de testes novos com a extração de blueprint
+(escopo cirúrgico da TD-01) — a extração segue verbatim, e esta lacuna fica registrada aqui para ser
+endereçada em sprint própria de cobertura de testes.
+
+Sprint prevista:
+Não definida — candidata a sprint de cobertura de testes, fora do escopo da TD-01.
+
+Responsável:
+—

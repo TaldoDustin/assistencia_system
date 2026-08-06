@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 7/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 8/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 7 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 8 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06; Relatórios, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -293,6 +293,7 @@ multiplicaria o número de vezes que a suíte completa precisa rodar sem reduzir
 - [ ] Suíte completa passando (682+ testes, não só os testes do domínio tocado — ver RS-01)
 - [ ] `graphify update .` rodado e validado com duas consultas: `graphify explain "api_<dominio>"` confirma que o módulo novo aparece no grafo com as arestas esperadas; `graphify affected "fluxoly_blueprints_api.py"` confirma que o arquivo monolítico não mantém nenhuma relação residual inesperada com o domínio recém-extraído
 - [ ] Nenhuma referência residual ao domínio em `fluxoly_blueprints_api.py` (nem rota, nem helper específico, nem menção em comentário desatualizado)
+- [ ] **Se o domínio não tem teste automatizado dedicado** (confirmar com `grep -rl "<termo-do-dominio>" tests/` antes de começar — ver achado do domínio Relatórios, 2026-08-06, KI-031): rodar um smoke test manual (Flask test client, banco temporário isolado, nunca o banco de desenvolvimento real) exercitando cada rota do domínio e confirmando HTTP 200/comportamento esperado, **antes** do commit. Não substitui teste automatizado — só reduz o risco de mover código sem nenhuma rede de segurança enquanto a sprint de cobertura não existe
 
 Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "Ordem de extração revisada".
 
@@ -450,6 +451,34 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
 - Suíte completa (683 testes) passando, `ruff check .` limpo, `graphify update .` +
   `graphify explain "api_backup"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`,
   `fluxoly_validation.py`).
+
+**8. Relatórios (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD + smoke test manual.**
+- `api_reports.py` criado (6 rotas — `GET /relatorios/{ir-phones,tecnicos,custos-operacionais}` +
+  `GET /relatorios/pdf/{ir-phones,tecnicos,custos-operacionais}`), movidas verbatim. Acoplamento no
+  nível do blueprint é baixo: nenhuma rota chama OS/Estoque/Preços/Clientes diretamente, toda a
+  agregação e geração de PDF já vive em `fluxoly_reports.py` (camada de serviço), injetada via `deps`.
+  Nenhum helper específico do domínio.
+- **Achado 1 (correção da matriz):** `tecnicos` (lista de técnicos) estava listada como dep deste
+  domínio, mas não é usada em nenhuma das 6 rotas — pertence ao domínio Sistema (`/dashboard`). 8 deps
+  reais, não 9.
+- **Achado 2 (consumidor cruzado, mesmo padrão de Auth/Usuários, mas pela primeira vez verificado em 3
+  etapas):** 6 das 8 deps (`agrupar_relatorio_ir_phones`/`tecnicos`, `montar_linhas_relatorio_ir_phones`/
+  `tecnicos`, `formatar_periodo_relatorio`, `montar_pdf_texto`) também são usadas pelo dict de
+  `create_main_blueprint` (`fluxoly_blueprints_main.py`, páginas renderizadas no servidor) — um segundo
+  blueprint consumidor, não um teste isolado. Sequência de verificação seguida (recomendação do CTO):
+  Graphify → grep no dict de `create_api_blueprint` → grep explícito no dict de `create_main_blueprint`
+  (confirmado com as 6 chaves intactas, antes e depois da edição) → grep final no monólito. As 2 deps
+  restantes (`agrupar_relatorio_custos_operacionais`/`montar_linhas_relatorio_custos_operacionais`) não
+  têm esse segundo consumidor — só usadas aqui, removidas por completo do dict do monólito.
+- **Achado 3 (KI-031, registrado antes da extração):** zero teste automatizado cobre estas 6 rotas —
+  `grep -rl "relatorio" tests/` retorna vazio. Decisão do CTO: não misturar escrita de teste com a
+  extração (escopo cirúrgico); em vez disso, smoke test manual antes do commit (Flask test client, banco
+  temporário isolado via `tempfile.mkdtemp()`, nunca o banco de desenvolvimento real) — as 6 rotas
+  responderam HTTP 200, os 3 PDFs confirmados com magic header `%PDF-1.4` e `Content-Type:
+  application/pdf` reais. Nova regra permanente adicionada ao DoD desta Phase (ver checklist acima).
+- Suíte completa (683 testes) passando sem alteração, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_reports"` confirmado (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`).
+  Zero referência residual em `fluxoly_blueprints_api.py` (grep vazio).
 
 ## Phase 3 — Cleanup
 

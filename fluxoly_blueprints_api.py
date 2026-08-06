@@ -51,14 +51,6 @@ def create_api_blueprint(deps):
     normalizar_modelo_iphone = deps["normalizar_modelo_iphone"]
     texto_reparos_os = deps["texto_reparos_os"]
     listar_custos_operacionais = deps["listar_custos_operacionais"]
-    agrupar_relatorio_custos_operacionais = deps["agrupar_relatorio_custos_operacionais"]
-    agrupar_relatorio_ir_phones = deps["agrupar_relatorio_ir_phones"]
-    agrupar_relatorio_tecnicos = deps["agrupar_relatorio_tecnicos"]
-    montar_linhas_relatorio_custos_operacionais = deps["montar_linhas_relatorio_custos_operacionais"]
-    montar_linhas_relatorio_ir_phones = deps["montar_linhas_relatorio_ir_phones"]
-    montar_linhas_relatorio_tecnicos = deps["montar_linhas_relatorio_tecnicos"]
-    montar_pdf_texto = deps["montar_pdf_texto"]
-    formatar_periodo_relatorio = deps["formatar_periodo_relatorio"]
     parse_data_ymd = deps["parse_data_ymd"]
     obter_alertas_sistema = deps["obter_alertas_sistema"]
     iphone_models = deps["iphone_models"]
@@ -2094,99 +2086,6 @@ def create_api_blueprint(deps):
         return ok()
 
     # ── WARRANTIES ─────────────────────────────────────────────────────────
-
-    # ── REPORTS ────────────────────────────────────────────────────────────
-
-    @api.route("/relatorios/ir-phones")
-    def relatorio_ir_phones():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        start_date = (request.args.get("start_date") or "").strip()
-        end_date = (request.args.get("end_date") or "").strip()
-        resumo = agrupar_relatorio_ir_phones(start_date, end_date)
-        total_os = sum(v["total_os"] for v in resumo.values())
-        total_lucro = sum(v["lucro"] for v in resumo.values())
-        return ok(meses=resumo, total_os=total_os, total_lucro=round(total_lucro, 2))
-
-    @api.route("/relatorios/tecnicos")
-    def relatorio_tecnicos():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        start_date = (request.args.get("start_date") or "").strip()
-        end_date = (request.args.get("end_date") or "").strip()
-        resumo = agrupar_relatorio_tecnicos(start_date, end_date)
-        return ok(meses=resumo)
-
-    @api.route("/relatorios/custos-operacionais")
-    def relatorio_custos_operacionais():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-
-        start_date = (request.args.get("start_date") or "").strip()
-        end_date = (request.args.get("end_date") or "").strip()
-        resumo = agrupar_relatorio_custos_operacionais(start_date, end_date)
-        total_lancamentos = sum(v["total_itens"] for v in resumo.values())
-        total_custos = sum(v["total_valor"] for v in resumo.values())
-
-        categorias = {}
-        for mes in resumo.values():
-            for categoria, valor in (mes.get("categorias") or {}).items():
-                categorias[categoria] = categorias.get(categoria, 0) + valor
-
-        categorias_ordenadas = dict(sorted(categorias.items(), key=lambda item: (-item[1], item[0])))
-        return ok(
-            meses=resumo,
-            total_lancamentos=total_lancamentos,
-            total_custos=round(total_custos, 2),
-            categorias=categorias_ordenadas,
-        )
-
-    @api.route("/relatorios/pdf/ir-phones")
-    def pdf_ir_phones():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-        data_inicio = (request.args.get("start_date") or "").strip()
-        data_fim = (request.args.get("end_date") or "").strip()
-        linhas = montar_linhas_relatorio_ir_phones(data_inicio, data_fim)
-        periodo = formatar_periodo_relatorio(data_inicio, data_fim)
-        return montar_pdf_texto(
-            "Relatorio Mensal - IR Phones",
-            f"Servicos finalizados, gastos com pecas e lucro. Periodo: {periodo}",
-            linhas,
-            "relatorio-ir-phones.pdf",
-        )
-
-    @api.route("/relatorios/pdf/tecnicos")
-    def pdf_tecnicos():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-        data_inicio = (request.args.get("start_date") or "").strip()
-        data_fim = (request.args.get("end_date") or "").strip()
-        linhas = montar_linhas_relatorio_tecnicos(data_inicio, data_fim)
-        periodo = formatar_periodo_relatorio(data_inicio, data_fim)
-        return montar_pdf_texto(
-            "Relatorio Mensal - Tecnicos",
-            f"Servicos finalizados por tecnico com gastos e lucro. Periodo: {periodo}",
-            linhas,
-            "relatorio-tecnicos.pdf",
-        )
-
-    @api.route("/relatorios/pdf/custos-operacionais")
-    def pdf_custos_operacionais():
-        if not usuario_logado():
-            return err("Não autenticado.", 401)
-        data_inicio = (request.args.get("start_date") or "").strip()
-        data_fim = (request.args.get("end_date") or "").strip()
-        linhas = montar_linhas_relatorio_custos_operacionais(data_inicio, data_fim)
-        periodo = formatar_periodo_relatorio(data_inicio, data_fim)
-        return montar_pdf_texto(
-            "Relatorio Mensal - Custos Operacionais",
-            f"Custos operacionais agregados por mes e categoria. Periodo: {periodo}",
-            linhas,
-            "relatorio-custos-operacionais.pdf",
-        )
 
     @api.route("/integracoes/mercadophone/sincronizar", methods=["POST"])
     def sincronizar_mercadophone():

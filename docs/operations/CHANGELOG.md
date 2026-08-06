@@ -440,6 +440,22 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 8º domínio extraído: Relatórios)
+- `api_reports.py` — `Blueprint` próprio para relatórios agregados e PDF (`GET
+  /api/relatorios/{ir-phones,tecnicos,custos-operacionais}` + `GET
+  /api/relatorios/pdf/{ir-phones,tecnicos,custos-operacionais}`), extraído de
+  `fluxoly_blueprints_api.py` verbatim. Acoplamento baixo no nível do blueprint (nenhuma chamada direta
+  a OS/Estoque/Preços/Clientes — toda a lógica já vive em `fluxoly_reports.py`). Corrigida a matriz:
+  `tecnicos` não pertence a este domínio (8 deps, não 9). 6 das 8 deps também são usadas por
+  `create_main_blueprint` (páginas renderizadas no servidor) — verificado explicitamente intacto antes e
+  depois da edição. KI-031 registrado: zero teste automatizado cobre estas 6 rotas; smoke test manual
+  (Flask test client, banco temporário isolado) confirmou HTTP 200 e PDFs reais (`%PDF-1.4`) antes do
+  commit — nova regra permanente adicionada ao DoD da Phase 2 para domínios sem cobertura. 683 testes
+  passando sem alteração, `ruff check .` limpo, `graphify update .` + `explain "api_reports"`
+  confirmados sem referência residual do domínio no monólito. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

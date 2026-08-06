@@ -2006,6 +2006,7 @@ from api_backup import create_api_backup_blueprint  # noqa: E402
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
+from api_reports import create_api_reports_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
 from api_users import create_api_users_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
@@ -2120,6 +2121,32 @@ app.register_blueprint(
 # consumidor no monólito). garantir_pasta_backup_google_drive fica intocada
 # nesse dict (dead code pré-existente, fora do escopo desta extração -- Phase 3).
 app.register_blueprint(
+    create_api_reports_blueprint(
+        {
+            "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
+            "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
+            "agrupar_relatorio_custos_operacionais": functools.partial(
+                agrupar_relatorio_custos_operacionais, conectar=conectar
+            ),
+            "montar_linhas_relatorio_ir_phones": functools.partial(
+                montar_linhas_relatorio_ir_phones, conectar=conectar
+            ),
+            "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
+            "montar_linhas_relatorio_custos_operacionais": functools.partial(
+                montar_linhas_relatorio_custos_operacionais, conectar=conectar
+            ),
+            "formatar_periodo_relatorio": formatar_periodo_relatorio,
+            "montar_pdf_texto": montar_pdf_texto,
+        }
+    )
+)
+
+# TD-01 Phase 2 -- 8º domínio extraído do monólito. As 8 chaves saem do dict de
+# create_api_blueprint abaixo (deps reduzido, não duplicado) -- 6 delas também
+# continuam intactas no dict de create_main_blueprint (páginas renderizadas no
+# servidor, fluxoly_blueprints_main.py), consumidor separado e legítimo, NÃO
+# tocado por esta extração (verificado explicitamente antes e depois).
+app.register_blueprint(
     create_api_backup_blueprint(
         {
             "conectar": conectar,
@@ -2174,20 +2201,6 @@ app.register_blueprint(
             "normalizar_modelo_iphone": normalizar_modelo_iphone,
             "texto_reparos_os": texto_reparos_os,
             "listar_custos_operacionais": listar_custos_operacionais,
-            "agrupar_relatorio_custos_operacionais": functools.partial(
-                agrupar_relatorio_custos_operacionais, conectar=conectar
-            ),
-            "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
-            "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
-            "montar_linhas_relatorio_custos_operacionais": functools.partial(
-                montar_linhas_relatorio_custos_operacionais, conectar=conectar
-            ),
-            "montar_linhas_relatorio_ir_phones": functools.partial(
-                montar_linhas_relatorio_ir_phones, conectar=conectar
-            ),
-            "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
-            "montar_pdf_texto": montar_pdf_texto,
-            "formatar_periodo_relatorio": formatar_periodo_relatorio,
             "parse_data_ymd": parse_data_ymd,
             "obter_alertas_sistema": obter_alertas_sistema,
             "iphone_models": IPHONE_MODELS,

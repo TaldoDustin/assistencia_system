@@ -36,7 +36,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_users.py` ✅ extraído | 6 | 4 | 3 | `werkzeug.security` |
 | `api_auth.py` ✅ extraído | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
-| `api_reports.py` | 6 | 3 | 9 | `fluxoly_reference_data`, `fluxoly_reports` |
+| `api_reports.py` ✅ extraído | 6 | 3 | 8 | `fluxoly_reports` |
 | `api_backup.py` ✅ extraído | 4 | 5 | 10 | `fluxoly_storage` |
 | `api_mercadophone.py` | 7 | 12 | 6 | `fluxoly_mercadophone`, `fluxoly_storage` |
 | `api_system.py` | 3 | 3 | 22 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports` |
@@ -126,10 +126,11 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Serviços:** (nenhum)
 - **Constantes locais movidas junto:** `SHOPPING_STATUSES`, `SHOPPING_PRIORITIES`
 
-### `api_reports.py`
-- **Helpers:** `err`, `ok`, `usuario_logado`
-- **Deps (9):** `agrupar_relatorio_custos_operacionais`, `agrupar_relatorio_ir_phones`, `agrupar_relatorio_tecnicos`, `formatar_periodo_relatorio`, `montar_linhas_relatorio_custos_operacionais`, `montar_linhas_relatorio_ir_phones`, `montar_linhas_relatorio_tecnicos`, `montar_pdf_texto`, `tecnicos`
-- **Serviços:** `fluxoly_reference_data`, `fluxoly_reports`
+### `api_reports.py` ✅ extraído em 2026-08-06
+- **Helpers:** `err`, `ok`, `usuario_logado` (nenhum específico do domínio)
+- **Deps (8, não 9):** `agrupar_relatorio_custos_operacionais`, `agrupar_relatorio_ir_phones`, `agrupar_relatorio_tecnicos`, `formatar_periodo_relatorio`, `montar_linhas_relatorio_custos_operacionais`, `montar_linhas_relatorio_ir_phones`, `montar_linhas_relatorio_tecnicos`, `montar_pdf_texto`. **Correção da Discovery Local:** `tecnicos` (lista de técnicos) não é usada em nenhuma das 6 rotas — pertence ao domínio Sistema (`/dashboard`), estimativa da Phase 1 estava incorreta
+- **Serviços:** `fluxoly_reports` (não `fluxoly_reference_data` — nenhuma chamada real encontrada)
+- **Consumidor cruzado (não migrado):** 6 das 8 deps (todas exceto `agrupar_relatorio_custos_operacionais`/`montar_linhas_relatorio_custos_operacionais`) também são usadas por `create_main_blueprint` (`fluxoly_blueprints_main.py`, páginas renderizadas no servidor) — dict separado, verificado intacto antes e depois da extração, não faz parte deste domínio
 
 ### `api_users.py` ✅ extraído em 2026-08-06
 - **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado` (de `fluxoly_api_helpers.py`);

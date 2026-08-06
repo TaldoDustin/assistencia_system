@@ -222,6 +222,12 @@ Shopping → Garantias → Custos → Preços → Usuários → Auth → Estoque
 MercadoPhone → **Sistema** (reclassificado) → OS. Ver `API_DEPENDENCY_MATRIX.md` para o diagrama
 completo e a justificativa item a item.
 
+> **Ajuste (2026-08-06, após extração de Preços):** Estoque e Backup trocaram de posição — Backup sobe
+> (baixo acoplamento real, maioria das deps é config/string), Estoque desce para imediatamente antes de
+> OS (o acoplamento real de Estoque é com OS, não com o restante dos domínios intermediários). **Ordem
+> vigente atualizada:** Shopping → Garantias → Custos → Preços → Usuários → Auth → Backup → Relatórios →
+> MercadoPhone → Sistema → Estoque → OS. Ver nota equivalente em `API_DEPENDENCY_MATRIX.md`.
+
 ### 3. Particionamento de `deps`
 
 Hoje `app.py` monta **um único dict** com 87 chaves (79 realmente lidas pelo blueprint — ver Phase 0
@@ -283,7 +289,7 @@ multiplicaria o número de vezes que a suíte completa precisa rodar sem reduzir
 
 - [ ] Rota(s) do domínio movidas para `api_<dominio>.py`, registrando `Blueprint("api_<dominio>", __name__, url_prefix="/api")`
 - [ ] Helpers específicos do domínio (ver `API_DEPENDENCY_MATRIX.md`) migrados junto; helpers genéricos importados de `fluxoly_api_helpers.py`
-- [ ] `deps` reduzido: `app.py` monta um dict só com as chaves daquele domínio (conferir contra a linha do domínio na matriz)
+- [ ] `deps` reduzido: `app.py` monta um dict só com as chaves daquele domínio (conferir contra a linha do domínio na matriz). Se uma chave for **removida** (não só particionada, como em Preços/`carregar_tabelas_preco`) por não ter mais consumidor no monólito, confirmar com `graphify affected "<funcao>"`/`graphify explain "<funcao>"` **antes** de remover — não só `grep` (achado do CTO após a extração de Preços, 2026-08-06: grep não pega injeção por `deps`/chamada indireta)
 - [ ] Suíte completa passando (682+ testes, não só os testes do domínio tocado — ver RS-01)
 - [ ] `graphify update .` rodado e validado com duas consultas: `graphify explain "api_<dominio>"` confirma que o módulo novo aparece no grafo com as arestas esperadas; `graphify affected "fluxoly_blueprints_api.py"` confirma que o arquivo monolítico não mantém nenhuma relação residual inesperada com o domínio recém-extraído
 - [ ] Nenhuma referência residual ao domínio em `fluxoly_blueprints_api.py` (nem rota, nem helper específico, nem menção em comentário desatualizado)

@@ -78,11 +78,11 @@ flowchart TD
     C --> D["4. Preços (4 rotas)"]
     D --> E["5. Usuários (6 rotas)"]
     E --> F["6. Autenticação (3 rotas)<br/>baixa complexidade, mas sensível a segurança -- cautela extra"]
-    F --> G["7. Estoque (6 rotas)"]
+    F --> G["7. Backup (4 rotas)<br/>10 deps, mas maioria é config/string, não lógica"]
     G --> H["8. Relatórios (6 rotas)"]
-    H --> I["9. Backup (4 rotas)<br/>10 deps, mas maioria é config/string, não lógica"]
-    I --> J["10. MercadoPhone (7 rotas)<br/>12 helpers, baixa cobertura de teste (27%)"]
-    J --> K["11. Meta/Sistema (3 rotas)<br/>reclassificado: 22 deps, agrega quase tudo"]
+    H --> I["9. MercadoPhone (7 rotas)<br/>12 helpers, baixa cobertura de teste (27%)"]
+    I --> J["10. Meta/Sistema (3 rotas)<br/>reclassificado: 22 deps, agrega quase tudo"]
+    J --> K["11. Estoque (6 rotas)<br/>movido para logo antes de OS -- acoplamento real é com OS, não com o resto"]
     K --> L["12. OS + Reparos (17 rotas)<br/>3 pontos de acoplamento confirmados: Estoque, Garantia, MercadoPhone"]
 ```
 
@@ -91,6 +91,13 @@ mostra zero serviços externos tocados — a suposição da Phase 1 original de 
 (`reposicao_sugerida_estoque`) era sobre o **frontend** consumindo um endpoint de Estoque, não sobre o
 backend de Shopping chamando código de Estoque diretamente. Ordem entre módulos de complexidade
 próxima (ex. Custos vs. Preços) não é rígida — ajustar se a Phase 2 encontrar algo não mapeado aqui.
+
+**Ajuste (2026-08-06, após extração de Preços):** Estoque e Backup trocaram de posição em relação à
+ordem original desta seção — Backup sobe para a posição 7 (baixo acoplamento real, maioria das deps é
+config/string), Estoque desce para a posição 11, imediatamente antes de OS. Motivo: o acoplamento real
+de Estoque é com OS (mesmos 3 pontos já mapeados na posição 12), não com o restante dos domínios
+intermediários — quanto menos código sobrar no monólito antes de tocar Estoque/OS, mais simples fica a
+extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 
 ---
 

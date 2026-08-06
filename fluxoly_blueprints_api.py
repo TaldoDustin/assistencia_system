@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request, session
 
 from fluxoly_api_helpers import _texto_limpo_local
+from fluxoly_mercadophone import atualizar_runtime_mercadophone, carregar_config_mercadophone
 from fluxoly_validation import parse_float, parse_int, safe_json, validate_positive_number
 
 
@@ -626,8 +627,8 @@ def create_api_blueprint(deps):
         data_ini = (request.args.get("data_ini") or "").strip()
         data_fim = (request.args.get("data_fim") or "").strip()
 
-        _, mp_cfg = _carregar_config_mercadophone()
-        _atualizar_runtime_mercadophone(mp_cfg)
+        _, mp_cfg = carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path)
+        atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config)
         mp_sync_start_date = _texto_limpo_local(mercado_phone_runtime_config.get("sync_start_date") or "")
 
         conn = conectar()

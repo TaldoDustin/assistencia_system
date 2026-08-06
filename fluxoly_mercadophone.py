@@ -5,9 +5,76 @@ from datetime import datetime, timedelta
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
+from fluxoly_api_helpers import _texto_limpo_local
 from fluxoly_logging import get_logger
 
 logger = get_logger("fluxoly.mercadophone")
+
+
+def _to_bool(valor, padrao=False):
+    if valor is None:
+        return padrao
+    if isinstance(valor, bool):
+        return valor
+    return str(valor).strip().lower() not in {"", "0", "false", "nao", "off"}
+
+
+def carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path):
+    """Extraído de fluxoly_blueprints_api.py (TD-01, Phase 2) -- compartilhado
+    com OS (listar_ordens()), não migra para fluxoly_api_helpers.py porque é
+    lógica de domínio (config de integração), não helper web genérico."""
+    dados = carregar_configuracoes_integracoes(integrations_config_path)
+    if not isinstance(dados, dict):
+        dados = {}
+    mp = dados.get("mercado_phone")
+    if not isinstance(mp, dict):
+        mp = {}
+        dados["mercado_phone"] = mp
+    return dados, mp
+
+
+def atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config):
+    """Extraído de fluxoly_blueprints_api.py (TD-01, Phase 2) -- compartilhado
+    com OS (listar_ordens())."""
+    token_cfg = _texto_limpo_local(mp_cfg.get("api_token"))
+    token_runtime = _texto_limpo_local(mercado_phone_runtime_config.get("api_token"))
+    token = token_cfg or token_runtime
+
+    intervalo_cfg = mp_cfg.get("sync_interval_seconds", mercado_phone_runtime_config.get("sync_interval_seconds", 180))
+    timeout_cfg = mp_cfg.get("sync_timeout_seconds", mercado_phone_runtime_config.get("sync_timeout_seconds", 20))
+
+    try:
+        intervalo = max(30, int(intervalo_cfg or 180))
+    except (TypeError, ValueError):
+        intervalo = 180
+
+    try:
+        timeout = max(5, int(timeout_cfg or 20))
+    except (TypeError, ValueError):
+        timeout = 20
+
+    start_date = _texto_limpo_local(
+        mp_cfg.get("sync_start_date") or mercado_phone_runtime_config.get("sync_start_date") or "2026-04-01"
+    )
+
+    mercado_phone_runtime_config.update(
+        {
+            "api_token": token,
+            "sync_enabled": _to_bool(mp_cfg.get("sync_enabled"), padrao=bool(token)),
+            "sync_interval_seconds": intervalo,
+            "sync_timeout_seconds": timeout,
+            "sync_start_date": start_date,
+        }
+    )
+
+    return {
+        "configurado": bool(token),
+        "sync_enabled": bool(mercado_phone_runtime_config.get("sync_enabled")),
+        "sync_interval_seconds": int(mercado_phone_runtime_config.get("sync_interval_seconds") or 0),
+        "sync_timeout_seconds": int(mercado_phone_runtime_config.get("sync_timeout_seconds") or 0),
+        "sync_start_date": mercado_phone_runtime_config.get("sync_start_date") or "",
+        "api_base": mercado_phone_runtime_config.get("api_base") or "",
+    }
 
 
 def valor_payload(payload, *caminhos):

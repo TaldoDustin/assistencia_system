@@ -169,6 +169,21 @@ git commit -m "fix bug"
 git commit -m "S"
 ```
 
+**Antes de um commit mecânico (`style`, formatação via Black/Prettier/etc.):**
+verifique se não há arquivos de outra alteração já staged. Um commit de estilo deve
+conter *apenas* o diff mecânico — nada de teste, doc ou lógica de outra mudança.
+
+```bash
+git status
+git diff --cached
+```
+
+Se algo de outra mudança aparecer staged, `git restore --staged <arquivo>` antes de
+comitar o estilo. Lição aprendida em 2026-08-06: um commit `style(mercadophone)`
+acabou incluindo teste e documentação do fix INC-001 porque esses arquivos já
+estavam staged no momento do commit mecânico — corrigido depois via reconstrução
+de histórico (ver `docs/operations/CHANGELOG.md`, entrada correspondente).
+
 ---
 
 ## 4. Atualizando `CHANGELOG.md`

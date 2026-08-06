@@ -391,6 +391,21 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-06 — TD-01 Phase 2, 5º domínio extraído: Usuários)
+- `api_users.py` — `Blueprint` próprio para o CRUD de usuários e reset de senha (`GET/POST/PUT/DELETE
+  /api/usuarios*`, `POST /api/usuarios/<id>/reset-token`, `POST /api/password-reset/<token>`), extraído
+  de `fluxoly_blueprints_api.py`. Assimetria de autorização preservada verbatim (só
+  `consumir_token_reset_senha` é pública). `generate_password_hash`/`perfis_opcoes` saíram do dict de
+  `create_api_blueprint` em `app.py` (sem outro consumidor no monólito — o outro uso legítimo, em
+  `create_auth_blueprint`, ficou intacto). Primeira aplicação da nova regra do DoD
+  (`graphify affected`/`explain` antes de remover uma dep): a ferramenta não indexa chave de dict/import
+  de biblioteca terceira como nó próprio, verificação feita por leitura completa em substituição.
+  Corrigidos no mesmo commit: `tests/test_users.py` (referenciava o endpoint qualificado do blueprint
+  antigo) e `import sqlite3` órfão em `fluxoly_blueprints_api.py`. 683 testes passando, `ruff check .`
+  limpo, `graphify update .` + `explain "api_users"` confirmados sem referência residual do domínio no
+  monólito. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

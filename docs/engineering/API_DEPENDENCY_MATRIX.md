@@ -33,7 +33,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_garantias.py` ✅ extraído | 1 | 3 | 3 | `fluxoly_core`, `fluxoly_reports` |
 | `api_costs.py` ✅ extraído | 4 | 4 | 2 | `fluxoly_reports` |
 | `api_prices.py` ✅ extraído | 4 | 4 | 3 | `fluxoly_price_tables` |
-| `api_users.py` | 6 | 4 | 3 | `fluxoly_core`, `werkzeug.security` |
+| `api_users.py` ✅ extraído | 6 | 4 | 3 | `werkzeug.security` |
 | `api_auth.py` | 3 | 3 | 5 | `fluxoly_rate_limit`, `werkzeug.security` |
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
 | `api_reports.py` | 6 | 3 | 9 | `fluxoly_reference_data`, `fluxoly_reports` |
@@ -131,10 +131,13 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Deps (9):** `agrupar_relatorio_custos_operacionais`, `agrupar_relatorio_ir_phones`, `agrupar_relatorio_tecnicos`, `formatar_periodo_relatorio`, `montar_linhas_relatorio_custos_operacionais`, `montar_linhas_relatorio_ir_phones`, `montar_linhas_relatorio_tecnicos`, `montar_pdf_texto`, `tecnicos`
 - **Serviços:** `fluxoly_reference_data`, `fluxoly_reports`
 
-### `api_users.py`
-- **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`
+### `api_users.py` ✅ extraído em 2026-08-06
+- **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado` (de `fluxoly_api_helpers.py`);
+  `_password_reset_token_horas()` (específico do domínio, migrou junto)
 - **Deps (3):** `conectar`, `generate_password_hash`, `perfis_opcoes`
-- **Serviços:** `fluxoly_core`, `werkzeug.security`
+- **Serviços:** `werkzeug.security` (`generate_password_hash`) — **correção da Discovery Local:**
+  `fluxoly_core` não é tocado por nenhuma das 6 rotas reais (leitura de código não encontrou nenhuma
+  chamada); estimativa da Phase 1 estava incorreta, mesmo padrão de correção já visto em Shopping List
 
 ### `api_costs.py` ✅ extraído em 2026-08-06
 - **Helpers:** `err`, `ok`, `usuario_admin`, `usuario_logado`

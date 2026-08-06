@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 4/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 5/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 4 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 5 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -369,6 +369,34 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   `fluxoly_validation.py`, `fluxoly_price_tables.py`).
 - Zero referência residual a `/precos*`, `carregar_tabelas_preco`, `salvar_tabelas_preco` ou
   `sugerir_preco_tabela` em `fluxoly_blueprints_api.py` (grep vazio).
+
+**5. Usuários (2026-08-06) — ✅ concluído, todos os 6 critérios do DoD.**
+- `api_users.py` criado (6 rotas — `GET/POST/PUT/DELETE /usuarios*`, `POST
+  /usuarios/<id>/reset-token`, `POST /password-reset/<token>` — a 6ª rota só apareceu na Discovery
+  Local, não no grep inicial de `/usuarios*`). `_password_reset_token_horas()` (específico do domínio)
+  migrou junto. Assimetria de auth preservada verbatim: `consumir_token_reset_senha` é a única rota
+  pública (sem `usuario_logado()`), as outras 5 exigem `usuario_admin()`.
+- **Primeira aplicação da nova regra do DoD** (`graphify affected`/`explain` antes de remover uma dep):
+  `graphify affected "generate_password_hash"`/`"perfis_opcoes"` retornou "No unique node match" —
+  limitação real da ferramenta (chave de dict/import de biblioteca terceira não é indexado como nó
+  próprio pelo extrator AST). Na ausência de sinal do Graphify, a verificação foi por leitura completa
+  (grep exaustivo + inspeção de contexto): confirmado que `generate_password_hash`/`perfis_opcoes` só
+  são usadas dentro do bloco de Usuários em `fluxoly_blueprints_api.py`; o outro consumidor dessas duas
+  chaves (`create_auth_blueprint`, em `app.py`) é um blueprint separado e já extraído, não afetado.
+  `check_password_hash` (mesmo dict, usado em outra rota — linha 452, fora do escopo) ficou intacto.
+- **Correção da matriz:** `fluxoly_core` estava listado como serviço tocado por `api_users.py` (estimativa
+  da Phase 1); a leitura real das 6 rotas não encontrou nenhuma chamada — só `werkzeug.security`.
+- **Efeito colateral mecânico:** `tests/test_users.py` referenciava `app.view_functions["api.criar_usuario"]`
+  diretamente (manipulação de closure para simular falha de conexão, mesma técnica de
+  `test_inc001_login_connection_leak.py`) — atualizado para `"api_users.criar_usuario"` no mesmo commit
+  (consequência mecânica da mudança de blueprint, não uma mudança de comportamento). `import sqlite3`
+  em `fluxoly_blueprints_api.py` ficou sem uso (só existia para `sqlite3.IntegrityError` em
+  `criar_usuario`, que migrou) — removido.
+- Suíte completa (683 testes) passando após os dois ajustes mecânicos acima, `ruff check .` limpo,
+  `graphify update .` + `graphify explain "api_users"` confirmado (conexões esperadas: `app.py`,
+  `fluxoly_api_helpers.py`, `fluxoly_validation.py`). Zero referência residual a `/usuarios*`,
+  `/password-reset/*`, `generate_password_hash`, `perfis_opcoes` ou `_password_reset_token_horas` em
+  `fluxoly_blueprints_api.py` (grep vazio).
 
 ## Phase 3 — Cleanup
 

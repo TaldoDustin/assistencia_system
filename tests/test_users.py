@@ -55,7 +55,7 @@ def falha_ao_inserir_usuario(app):
     closure na criação do blueprint (não é atributo de módulo
     monkeypatch-ável), e `sqlite3.Cursor` é um tipo C-extension imutável, sem
     como monkeypatch-ar `execute` diretamente."""
-    view = app.view_functions["api.criar_usuario"]
+    view = app.view_functions["api_users.criar_usuario"]
     indice = view.__code__.co_freevars.index("conectar")
     cell = view.__closure__[indice]
     conectar_original = cell.cell_contents

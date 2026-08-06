@@ -2005,6 +2005,7 @@ from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
+from api_users import create_api_users_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
 from fluxoly_rate_limit import limite_excedido, registrar_tentativa, resolver_ip_cliente  # noqa: E402
@@ -2082,6 +2083,20 @@ app.register_blueprint(
     )
 )
 
+# TD-01 Phase 2 -- 5º domínio extraído do monólito. generate_password_hash/
+# perfis_opcoes saem do dict de create_api_blueprint abaixo (deps reduzido, não
+# duplicado -- mesmo padrão de Preços): continuam intactas no dict de
+# create_auth_blueprint acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
+app.register_blueprint(
+    create_api_users_blueprint(
+        {
+            "conectar": conectar,
+            "generate_password_hash": generate_password_hash,
+            "perfis_opcoes": PERFIS_OPCOES,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2143,7 +2158,6 @@ app.register_blueprint(
             "status_os_opcoes": STATUS_OS_OPCOES,
             "os_tipos_opcoes": OS_TIPOS_OPCOES,
             "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
-            "perfis_opcoes": PERFIS_OPCOES,
             "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
             "reparos_padrao": REPAROS_PADRAO,
             "produtos_categorias": PRODUTOS_CATEGORIAS,
@@ -2157,7 +2171,6 @@ app.register_blueprint(
             "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
             "backup_email_destino": BACKUP_EMAIL_DESTINO,
             "check_password_hash": check_password_hash,
-            "generate_password_hash": generate_password_hash,
             "resolver_ip_cliente": resolver_ip_cliente,
             "limite_excedido": limite_excedido,
             "registrar_tentativa": registrar_tentativa,

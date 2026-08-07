@@ -48,7 +48,7 @@ Responsável:
 
 ---
 
-## KI-003
+## ~~KI-003~~ — RESOLVIDO
 
 Descrição:
 O módulo `fluxoly_blueprints_api.py` (renomeado de `irflow_blueprints_api.py` na Sprint Housekeeping,
@@ -60,12 +60,18 @@ Impacto:
 Alto. Dificulta manutenção, aumenta risco de regressão em qualquer alteração e torna o onboarding de novos colaboradores mais lento.
 
 Status:
-Aberto — Sprint TD-01 iniciada em 2026-08-04, Phase 0 (Architecture Discovery) concluída. Ver
-`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`.
+Resolvido em 2026-08-07 (TD-01 Phase 2, Extração Incremental, encerrada formalmente por decisão do
+usuário — CTO). 12/12 domínios extraídos para blueprints próprios (`api_shopping.py`,
+`api_garantias.py`, `api_costs.py`, `api_prices.py`, `api_users.py`, `api_auth.py`, `api_backup.py`,
+`api_reports.py`, `api_mercadophone.py`, `api_system.py`, `api_stock.py`, `api_os.py`).
+`fluxoly_blueprints_api.py` reduzido de ~130KB/3.368 linhas/70 rotas para 911 bytes/34 linhas/0 rotas —
+só resta código morto sem consumidor (`_slug_estoque`/`_gerar_sku_estoque`, ver KI-032). Architecture
+Checkpoint Final em `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`. Remoção do arquivo e do
+registro `create_api_blueprint({})` em `app.py` registrada como TD-18 (Phase 3 — Cleanup),
+deliberadamente fora do escopo desta sprint.
 
 Sprint prevista:
-TD-01, em andamento desde 2026-08-04 (Phase 0 de 4 concluída) — deliberadamente fora do escopo da
-Sprint Housekeeping (`ADR-011`, 2026-08-03).
+TD-01 — concluída (Phase 2) em 2026-08-07.
 
 Responsável:
 —

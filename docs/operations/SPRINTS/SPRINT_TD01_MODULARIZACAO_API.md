@@ -1,6 +1,8 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** Phase 2 concluída — 12/12 domínios extraídos (2026-08-07). Phase 3 (Cleanup) não iniciada.
+**Status:** **ENCERRADA (Phase 2) em 2026-08-07** — 12/12 domínios extraídos, decisão formal do usuário
+(CTO) de fechar a TD-01 aqui. Phase 3 (Cleanup) não iniciada, registrada como item próprio de backlog
+(TD-18, `docs/operations/PROJECT_STATUS.md`), fora do escopo desta sprint.
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -663,9 +665,10 @@ inline. 20 chamadas de `register_blueprint()` hoje, sem registry/factory — can
 registry de blueprints ou factories de `deps` por domínio, para `app.py` parar de crescer linearmente
 com o número de blueprints. Ver TD-17 em `docs/operations/PROJECT_STATUS.md`.
 
-**Decisão pendente (não tomada aqui, fica para o usuário):** encerrar formalmente a TD-01 (Phase 2
-concluída, CI verde) e abrir a Phase 3 (Cleanup — remover `fluxoly_blueprints_api.py`/
-`create_api_blueprint({})`, resolver KI-032) como item próprio, separado de uma futura TD-02.
+**Decisão do usuário (CTO), 2026-08-07:** encerrar formalmente a TD-01 aqui (Phase 2 concluída, CI
+verde). Phase 3 (Cleanup — remover `fluxoly_blueprints_api.py`/`create_api_blueprint({})`, resolver
+KI-032) registrada como **TD-18** em `docs/operations/PROJECT_STATUS.md`, backlog aberto sem prazo,
+separada de uma futura TD-02 (bootstrap de `app.py`, TD-17).
 
 ### Architecture Checkpoint — pós-Estoque (11/12, 2026-08-07)
 

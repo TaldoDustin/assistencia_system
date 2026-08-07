@@ -531,8 +531,10 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   **TD-01 Phase 2 (Extração Incremental) formalmente concluída — 12/12 domínios.** Architecture
   Checkpoint Final registrado em `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`
   (`fluxoly_blueprints_api.py`: 70 rotas/~130KB → 0 rotas/911 bytes; `app.py`: 20 `register_blueprint()`
-  hoje, candidato central para uma futura TD-02). Phase 3 (Cleanup) não iniciada — decisão de
-  encerramento formal da TD-01 pendente do usuário. Ver
+  hoje, candidato central para uma futura TD-02). **Decisão do usuário (CTO): TD-01 encerrada
+  formalmente aqui** — Phase 3 (Cleanup, remover `fluxoly_blueprints_api.py`/
+  `create_api_blueprint({})`, resolver KI-032) registrada como TD-18, backlog sem prazo, separada de
+  uma futura TD-02. KI-003 movida para Resolvidos. Ver
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 

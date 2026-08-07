@@ -1096,3 +1096,33 @@ Não definida — candidato a Phase 3 (Cleanup) da TD-01
 
 Responsável:
 —
+
+---
+
+## KI-033
+
+Descrição:
+As 4 rotas do catálogo de Reparos (`GET/POST /reparos`, `PUT/DELETE /reparos/<id>`) não têm nenhum
+teste dedicado — grep por `criar_reparo`/`atualizar_reparo`/`deletar_reparo`/`/api/reparos` em `tests/`
+não retorna nada. Achado durante a Discovery de extração de `api_os.py` (TD-01 Phase 2, 12º e último
+domínio, 2026-08-07): diferente do domínio OS propriamente dito (boa cobertura real — 8 módulos de
+teste), essas 4 rotas nunca foram exercitadas por teste automatizado. Mesmo padrão de KI-031
+(Relatórios).
+
+Impacto:
+Baixo a médio. Nenhum critério objetivo de `ENGINEERING_GUIDE.md` §11 é atendido (não é bug de
+comportamento, é lacuna de cobertura). Mas significa que a suíte completa passar não é evidência de que
+essas 4 rotas continuam funcionando após a extração — depende de verificação manual para ser detectada.
+
+Status:
+Aberto. Decisão do CTO (2026-08-07): não misturar escrita de testes novos com a extração final de
+blueprint (escopo cirúrgico da TD-01) — a extração segue verbatim, validada por smoke test manual
+(mesma técnica já usada em Relatórios/Sistema/MercadoPhone), e esta lacuna fica registrada aqui para
+ser endereçada em sprint própria de cobertura de testes.
+
+Sprint prevista:
+Não definida — candidata a sprint de cobertura de testes, fora do escopo da TD-01 (mesmo destino de
+KI-031).
+
+Responsável:
+—

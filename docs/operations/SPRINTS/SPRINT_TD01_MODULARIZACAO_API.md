@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 11/12 domínios extraídos)
+**Status:** Phase 2 concluída — 12/12 domínios extraídos (2026-08-07). Phase 3 (Cleanup) não iniciada.
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -595,6 +595,77 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   + `graphify explain "api_stock"` + `graphify affected "fluxoly_blueprints_api.py"` confirmados
   (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`, `fluxoly_validation.py`; zero referência
   residual específica de Estoque no monólito, exceto os testes que exercitam via HTTP).
+
+**12. OS + Reparos catálogo (2026-08-07) — ✅ concluído, todos os critérios do DoD, smoke test manual do
+catálogo de Reparos (KI-033), diff linha a linha confirmando migração verbatim.**
+- `api_os.py` criado (17 rotas — 13 de OS incluindo checklist público/autenticado e garantia por
+  reparo, 4 do catálogo de Reparos), 10 helpers migrados verbatim.
+- **Correção da matriz:** deps reais são 35, não 32 (faltavam `public_base_url`,
+  `integrations_config_path`, `carregar_configuracoes_integracoes`). Único ponto de todo o domínio fora
+  do padrão puro `deps[...]`: `listar_ordens()` importa `carregar_config_mercadophone`/
+  `atualizar_runtime_mercadophone` diretamente de `fluxoly_mercadophone.py`, replicado em `api_os.py`.
+- **Achado de dep morta pré-existente:** `status_em_andamento`/`status_aguardando_peca` nunca eram
+  lidas por nenhuma rota de nenhum domínio (confirmado por `git show` do estado anterior à extração) —
+  removidas do dict de `app.py` junto desta extração, mesmo destino de `extrair_reparo_ids`/
+  `garantir_pasta_backup_google_drive` (imports órfãos, já mortos antes desta sessão).
+- **Bug de transcrição introduzido e corrigido durante a extração:** um corte de linha via `sed` cortou
+  o `return ok()` final de `deletar_reparo()` (rota retornava 500 no caminho de sucesso) — pego pelo
+  smoke test manual de KI-033 antes de finalizar, corrigido, revalidado com diff linha a linha contra o
+  bloco original (zero divergência confirmada). Reforça o valor do smoke test manual em rotas sem
+  cobertura automatizada, mesmo em uma extração puramente mecânica.
+- 1 regressão de teste corrigida como consequência mecânica do rename do blueprint (`api` → `api_os`):
+  `tests/test_inc001_checklist_connection_leak.py` referenciava nomes qualificados
+  `"api.obter_checklist_os"`/`"api.obter_checklist_publico"`, atualizados para `"api_os.*"`.
+  `_slug_estoque`/`_gerar_sku_estoque` (KI-032) não migrados, permanecem como código morto.
+- 683 testes passando (mesmo total — nenhum teste novo), `ruff check .` limpo em todo o repositório,
+  `graphify update .` + `explain "api_os"` + `affected "fluxoly_blueprints_api.py"` confirmados sem
+  referência residual.
+- **Estado final de `fluxoly_blueprints_api.py`:** reduzido a 34 linhas (911 bytes) — só os 2 helpers
+  mortos de Estoque (KI-032) e `create_api_blueprint(deps)` retornando um `Blueprint` sem nenhuma rota.
+  `app.py` ainda registra esse blueprint vazio (`create_api_blueprint({})`). Remoção do arquivo/registro
+  é decisão de Phase 3, deliberadamente fora do escopo desta extração (mesma disciplina de não misturar
+  refatoração com limpeza usada nas 11 extrações anteriores).
+
+### Architecture Checkpoint Final — TD-01 Phase 2 concluída (12/12, 2026-08-07)
+
+| Métrica | Phase 0 (início) | Após MercadoPhone (9/12) | Final (12/12) |
+|---|---|---|---|
+| Rotas em `fluxoly_blueprints_api.py` | 70 | 26 | **0** |
+| Tamanho de `fluxoly_blueprints_api.py` | ~130KB / 3.368 linhas | 80KB / 1.961 linhas | **911 bytes / 34 linhas** |
+| Blueprints extraídos (`api_*.py`) | 0 | 9 | **12** |
+| `app.py` — linhas | — | 2.431 | **2.490** |
+| `app.py` — `register_blueprint()` | — | 17 | **20** |
+
+**Resultado da TD-01 (KI-003):** os 70 endpoints originais, concentrados num único arquivo de 3.368
+linhas/13 domínios sem separação, agora vivem em 12 blueprints de domínio único
+(`api_shopping.py`, `api_garantias.py`, `api_costs.py`, `api_prices.py`, `api_users.py`, `api_auth.py`,
+`api_backup.py`, `api_reports.py`, `api_mercadophone.py`, `api_system.py`, `api_stock.py`, `api_os.py`),
+cada um com seu próprio dict de `deps` explícito e testável. `fluxoly_blueprints_api.py` deixou de
+funcionar como blueprint real — só resta código morto (KI-032) aguardando Phase 3.
+
+**Helpers/constantes promovidos durante a sprint** (achados de acoplamento resolvidos no processo, não
+planejados na Phase 0): `carregar_config_mercadophone`/`atualizar_runtime_mercadophone` (closures locais
+→ `fluxoly_mercadophone.py`, funções de serviço com parâmetros explícitos); `_texto_limpo_local` (→
+`fluxoly_api_helpers.py`, compartilhado por Backup/MercadoPhone/OS); `ESTOQUE_TIPOS`/
+`ESTOQUE_QUALIDADES` (constantes locais → `fluxoly_reference_data.py`, compartilhadas por Sistema e
+Estoque).
+
+**KIs abertos, descobertos durante a TD-01** (nenhum bloqueou a sprint, todos avaliados contra os
+critérios objetivos de `ENGINEERING_GUIDE.md` §11 antes de decidir não interromper):
+- KI-032 — código morto `_slug_estoque`/`_gerar_sku_estoque` (Estoque)
+- KI-031 — 6 rotas de Relatórios sem teste dedicado
+- KI-033 — 4 rotas do catálogo de Reparos sem teste dedicado
+
+**Candidatos concretos para TD-02** (bootstrap de `app.py`, já registrada como dívida técnica antes
+desta sprint — TD-17): `app.py` cresceu de 2.414 para 2.490 linhas ao longo da Phase 2 mesmo com o
+monólito encolhendo — cada blueprint novo adiciona seu próprio bloco de `register_blueprint(...)`+dict
+inline. 20 chamadas de `register_blueprint()` hoje, sem registry/factory — candidato natural a um
+registry de blueprints ou factories de `deps` por domínio, para `app.py` parar de crescer linearmente
+com o número de blueprints. Ver TD-17 em `docs/operations/PROJECT_STATUS.md`.
+
+**Decisão pendente (não tomada aqui, fica para o usuário):** encerrar formalmente a TD-01 (Phase 2
+concluída, CI verde) e abrir a Phase 3 (Cleanup — remover `fluxoly_blueprints_api.py`/
+`create_api_blueprint({})`, resolver KI-032) como item próprio, separado de uma futura TD-02.
 
 ### Architecture Checkpoint — pós-Estoque (11/12, 2026-08-07)
 

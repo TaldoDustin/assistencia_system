@@ -510,6 +510,32 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-07 — TD-01 Phase 2 CONCLUÍDA, 12º e último domínio extraído: OS + Reparos)
+- `api_os.py` — `Blueprint` próprio para as 13 rotas de Ordens de Serviço (CRUD, checklist público e
+  autenticado, garantia por reparo, histórico de cliente) e as 4 rotas do catálogo de Reparos, extraído
+  de `fluxoly_blueprints_api.py`. Corrigida a matriz: deps reais são 35, não 32 (faltavam
+  `public_base_url`, `integrations_config_path`, `carregar_configuracoes_integracoes`). Único ponto de
+  todo o domínio fora do padrão puro `deps[...]`: `listar_ordens()` importa
+  `carregar_config_mercadophone`/`atualizar_runtime_mercadophone` diretamente de
+  `fluxoly_mercadophone.py`. Achado de dep morta pré-existente (`status_em_andamento`/
+  `status_aguardando_peca`, nunca lidas por nenhuma rota) removida do dict de `app.py` junto desta
+  extração. Bug de transcrição (corte de linha via `sed`) introduzido e corrigido durante a extração —
+  `deletar_reparo()` perdeu temporariamente o `return ok()` final, pego pelo smoke test manual do
+  catálogo de Reparos (KI-033, registrada antes da extração) e revalidado com diff linha a linha contra
+  o código original (zero divergência). 1 teste ajustado por consequência mecânica do rename do
+  blueprint (`api` → `api_os`, `tests/test_inc001_checklist_connection_leak.py`). 683 testes passando
+  (mesmo total), `ruff check .` limpo em todo o repositório, `graphify update .` +
+  `explain "api_os"` + `affected "fluxoly_blueprints_api.py"` confirmados sem referência residual.
+  **`fluxoly_blueprints_api.py` reduzido a 911 bytes/34 linhas/0 rotas** — só resta código morto
+  (`_slug_estoque`/`_gerar_sku_estoque`, KI-032) e um `Blueprint` vazio, ainda registrado por `app.py`.
+  **TD-01 Phase 2 (Extração Incremental) formalmente concluída — 12/12 domínios.** Architecture
+  Checkpoint Final registrado em `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`
+  (`fluxoly_blueprints_api.py`: 70 rotas/~130KB → 0 rotas/911 bytes; `app.py`: 20 `register_blueprint()`
+  hoje, candidato central para uma futura TD-02). Phase 3 (Cleanup) não iniciada — decisão de
+  encerramento formal da TD-01 pendente do usuário. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

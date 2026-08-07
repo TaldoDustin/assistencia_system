@@ -102,7 +102,6 @@ from fluxoly_os import (
     consumir_peca_da_os,
     corrigir_garantia_reparo,
     devolver_pecas_da_os,
-    extrair_reparo_ids,
     gravar_garantias_reparo,
     modelo_compativel,
     obter_ou_criar_reparo,
@@ -150,7 +149,6 @@ from fluxoly_storage import (
     carregar_configuracoes_integracoes,
     criar_backup,
     enviar_backup_email,
-    garantir_pasta_backup_google_drive,
     iniciar_thread_backup_automatico,
     salvar_configuracoes_integracoes,
 )
@@ -2008,6 +2006,7 @@ from api_backup import create_api_backup_blueprint  # noqa: E402
 from api_costs import create_api_costs_blueprint  # noqa: E402
 from api_garantias import create_api_garantias_blueprint  # noqa: E402
 from api_mercadophone import create_api_mercadophone_blueprint  # noqa: E402
+from api_os import create_api_os_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_reports import create_api_reports_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
@@ -2249,23 +2248,31 @@ app.register_blueprint(
     )
 )
 
+# api_os.py -- domínio OS + Reparos catálogo (TD-01 Phase 2, 12º e último
+# domínio extraído, 2026-08-07). Único ponto que ainda importa
+# carregar_config_mercadophone/atualizar_runtime_mercadophone diretamente de
+# fluxoly_mercadophone.py (não via deps) -- listar_ordens() usa essas duas
+# funções para filtrar OS antigas da integração, mesmo padrão já usado no
+# monólito antes desta extração.
 app.register_blueprint(
-    create_api_blueprint(
+    create_api_os_blueprint(
         {
             "conectar": conectar,
             "normalizar_status_os": normalizar_status_os,
             "status_finalizado": status_finalizado,
             "status_cancelado": status_cancelado,
             "status_aberto": status_aberto,
-            "status_em_andamento": STATUS_EM_ANDAMENTO,
-            "status_aguardando_peca": STATUS_AGUARDANDO_PECA,
             "calcular_faturamento_os": calcular_faturamento_os,
             "calcular_lucro_os": calcular_lucro_os,
             "carregar_os_com_relacoes": carregar_os_com_relacoes,
-            "extrair_reparo_ids": extrair_reparo_ids,
             "validar_reparo_ids": validar_reparo_ids,
             "vendedor_valido": vendedor_valido,
             "salvar_reparos_os": salvar_reparos_os,
+            "modelo_compativel": modelo_compativel,
+            "consumir_peca_da_os": consumir_peca_da_os,
+            "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
+            "devolver_pecas_da_os": devolver_pecas_da_os,
+            "obter_reparos_por_os": obter_reparos_por_os,
             "buscar_reparo_ids_da_os": buscar_reparo_ids_da_os,
             "resolver_garantias_reparo": resolver_garantias_reparo,
             "gravar_garantias_reparo": gravar_garantias_reparo,
@@ -2276,17 +2283,11 @@ app.register_blueprint(
             "buscar_historico_garantia_reparo": buscar_historico_garantia_reparo,
             "obter_tipo_garantia": obter_tipo_garantia,
             "registrar_log_auditoria": registrar_log_auditoria,
-            "modelo_compativel": modelo_compativel,
-            "consumir_peca_da_os": consumir_peca_da_os,
-            "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
-            "devolver_pecas_da_os": devolver_pecas_da_os,
-            "obter_reparos_por_os": obter_reparos_por_os,
             "modelo_para_os": modelo_para_os,
             "normalizar_imei": normalizar_imei,
             "texto_reparos_os": texto_reparos_os,
             "parse_data_ymd": parse_data_ymd,
             "vendedores": VENDEDORES,
-            "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
             "public_base_url": PUBLIC_BASE_URL,
             "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
@@ -2294,6 +2295,14 @@ app.register_blueprint(
         }
     )
 )
+
+# fluxoly_blueprints_api.py -- OS era o último domínio restante; após esta
+# extração a função create_api_blueprint() não lê mais nenhuma chave de
+# deps (só contém os 2 helpers mortos _slug_estoque/_gerar_sku_estoque,
+# KI-032, e não registra nenhuma rota). Dict reduzido a vazio -- decisão de
+# remover o arquivo/registro por completo fica para a Phase 3 (Cleanup),
+# fora do escopo desta extração (ver relatório desta sessão).
+app.register_blueprint(create_api_blueprint({}))
 
 # ============================================================================
 # REGISTRO DO BLUEPRINT DE CLIENTES (Sprint P0.1 — primeiro domínio a seguir

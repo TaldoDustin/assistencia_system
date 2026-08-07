@@ -70,7 +70,7 @@ def _instalar_falha_unica(app, view_name, nome_freevar):
 def falha_em_garantir_checklist_os(app):
     """Usada pelas rotas 1 e 2 — ambas chamam _garantir_checklist_os antes do
     commit próprio da rota."""
-    cell, original = _instalar_falha_unica(app, "api.obter_checklist_os", "_garantir_checklist_os")
+    cell, original = _instalar_falha_unica(app, "api_os.obter_checklist_os", "_garantir_checklist_os")
     try:
         yield
     finally:
@@ -80,7 +80,7 @@ def falha_em_garantir_checklist_os(app):
 @pytest.fixture
 def falha_em_buscar_checklist_por_token(app):
     """Usada pelas rotas 3 e 4 — ambas chamam _buscar_checklist_por_token."""
-    cell, original = _instalar_falha_unica(app, "api.obter_checklist_publico", "_buscar_checklist_por_token")
+    cell, original = _instalar_falha_unica(app, "api_os.obter_checklist_publico", "_buscar_checklist_por_token")
     try:
         yield
     finally:

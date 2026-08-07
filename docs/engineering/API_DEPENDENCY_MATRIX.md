@@ -113,10 +113,11 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Deps (32):** `adicionar_peca_os_sem_consumir`, `buscar_garantia_reparo`, `buscar_historico_garantia_reparo`, `buscar_linhas_com_garantia_da_os`, `buscar_reparo_ids_da_os`, `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `conectar`, `consumir_peca_da_os`, `corrigir_garantia_reparo`, `devolver_pecas_da_os`, `gravar_garantias_reparo`, `mercado_phone_runtime_config`, `modelo_compativel`, `modelo_para_os`, `normalizar_imei`, `normalizar_status_os`, `obter_reparos_por_os`, `obter_tipo_garantia`, `parse_data_ymd`, `registrar_log_auditoria`, `resolver_garantias_reparo`, `salvar_reparos_os`, `status_aberto`, `status_cancelado`, `status_finalizado`, `texto_reparos_os`, `validar_reparo_ids`, `vendedor_valido`, `vendedores`, `zerar_garantia_reparo`
 - **Serviços:** `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service`
 
-### `api_stock.py`
+### `api_stock.py` ✅ extraído em 2026-08-07
 - **Helpers:** `_normalizar_qualidade_estoque`, `_normalizar_tipo_estoque`, `_recalcular_custo_medio`, `_status_item_estoque`, `err`, `ok`, `usuario_logado`
-- **Deps (3):** `conectar`, `normalizar_modelo_iphone`, `registrar_movimentacao`
-- **Serviços:** `fluxoly_os`, `fluxoly_reference_data`
+- **Deps (5, não 3):** `conectar`, `normalizar_modelo_iphone`, `registrar_movimentacao`, `estoque_tipos`, `estoque_qualidades`. **Correção da Discovery Local:** `estoque_tipos`/`estoque_qualidades` não constavam na estimativa original desta matriz (Phase 1) porque só passaram a existir como deps compartilhadas depois da extração de Sistema (2026-08-07), que promoveu `ESTOQUE_TIPOS`/`ESTOQUE_QUALIDADES` de constantes locais do monólito para `fluxoly_reference_data.py`
+- **Serviços:** `fluxoly_reference_data` — **correção da Discovery Local:** `fluxoly_os` não é tocado por nenhuma das 6 rotas reais (nenhuma chamada encontrada; `registrar_movimentacao` é injetada via `deps`, não importada diretamente), estimativa da Phase 1 estava incorreta
+- **Achado (código morto, não migrado, ver KI-032):** `_slug_estoque`/`_gerar_sku_estoque` (linhas 79-109 do monólito antes da extração) geram SKU automaticamente, mas não são chamados por nenhuma das 6 rotas — permanecem em `fluxoly_blueprints_api.py`, candidatos a remoção na Phase 3
 
 ### `api_shopping.py` ✅ extraído em 2026-08-04 (commit a seguir)
 - **Helpers:** `err`, `ok`, `usuario_logado` (movidos para `fluxoly_api_helpers.py`, primeiro uso —

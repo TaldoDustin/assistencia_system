@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 10/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 11/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -560,6 +560,48 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   Sistema no monólito). 1 falha em `test_sentry_init.py` confirmada pré-existente e ambiental
   (Winsock quebrado nesta máquina Windows, `WinError 10106` em `_overlapped`/`asyncio` — reproduzida
   identicamente em `main` antes desta extração via `git stash`, não relacionada a este domínio).
+
+**11. Estoque (2026-08-07) — ✅ concluído, todos os critérios do DoD, cobertura automatizada já existente
+(77 testes: `test_stock_creation_query.py`, `test_stock_movement.py`, `test_stock_os_integration.py`,
+`test_stock_security.py`) — sem necessidade de smoke test manual, diferente de Relatórios/Sistema.**
+- `api_stock.py` criado (6 rotas — `GET/POST /estoque`, `PUT/DELETE /estoque/<id>`,
+  `GET /estoque/reposicao-sugerida`, `GET /estoque/movimentacoes`), 4 helpers migrados verbatim
+  (`_normalizar_tipo_estoque`, `_normalizar_qualidade_estoque`, `_recalcular_custo_medio`,
+  `_status_item_estoque`).
+- **Correção da matriz (mesmo padrão de Usuários/Relatórios/Sistema):** Deps reais são 5, não 3 —
+  `estoque_tipos`/`estoque_qualidades` não constavam na estimativa da Phase 1 porque só passaram a
+  existir como deps compartilhadas depois da extração de Sistema (mesmo dia), que promoveu
+  `ESTOQUE_TIPOS`/`ESTOQUE_QUALIDADES` para `fluxoly_reference_data.py`. `fluxoly_os` (serviço) não é
+  tocado por nenhuma rota real — só `fluxoly_reference_data`.
+- **Achado de código morto (Discovery, não capturado pela matriz — registrado em KI-032):**
+  `_slug_estoque`/`_gerar_sku_estoque` (geração automática de SKU) definidos no monólito mas nunca
+  chamados por nenhuma das 6 rotas (`criar_estoque`/`atualizar_estoque` usam `body.get("sku")` direto).
+  Não migrados para `api_stock.py` — permanecem em `fluxoly_blueprints_api.py`, para não misturar
+  refatoração estrutural com limpeza de código (mesma regra já aplicada à dep morta
+  `garantir_pasta_backup_google_drive` na extração de Backup). Registrado em `KNOWN_ISSUES.md` (KI-032)
+  antes da extração, candidato a Phase 3.
+- **Acoplamento OS↔Estoque confirmado como unidirecional:** as "6 chamadas" já mapeadas
+  (`API_DEPENDENCY_MATRIX.md`) vivem inteiramente do lado de OS (`fluxoly_os.py`, ainda no monólito),
+  não dentro das rotas de Estoque — a extração não teve nenhum bloqueio de acoplamento cruzado real,
+  diferente do que aconteceu com MercadoPhone/Sistema.
+- 4 chaves saem do dict de `create_api_blueprint` em `app.py` (deps reduzido, não duplicado —
+  confirmado por grep que nenhuma sobrevive fora do bloco de Estoque): `normalizar_modelo_iphone`,
+  `registrar_movimentacao`, `estoque_tipos`, `estoque_qualidades`. `conectar` continua duplicada — OS
+  (12/12, último domínio) depende dela.
+- Ruff removeu 3 imports órfãos em `fluxoly_blueprints_api.py` após a extração (`math`,
+  `datetime.timedelta`, `fluxoly_validation.validate_positive_number`) — únicos consumidores eram as
+  rotas de Estoque, confirmado por grep antes do autofix.
+- Suíte completa (683 testes) passando, `ruff check .` limpo em todo o repositório, `graphify update .`
+  + `graphify explain "api_stock"` + `graphify affected "fluxoly_blueprints_api.py"` confirmados
+  (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`, `fluxoly_validation.py`; zero referência
+  residual específica de Estoque no monólito, exceto os testes que exercitam via HTTP).
+
+### Architecture Checkpoint — pós-Estoque (11/12, 2026-08-07)
+
+Restante do monólito, por decisão do CTO registrada na entrada anterior deste documento, concentra
+agora praticamente só OS (12/12) — último domínio, o mais acoplado (Estoque, Garantia, MercadoPhone).
+Checkpoint completo de métricas (tamanho de `fluxoly_blueprints_api.py`/`app.py`) fica para o
+fechamento da extração de OS, fotografia mais representativa do fim da Phase 2.
 
 ### Architecture Checkpoint — pós-MercadoPhone (9/12, 2026-08-06)
 

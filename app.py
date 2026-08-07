@@ -2011,6 +2011,7 @@ from api_mercadophone import create_api_mercadophone_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_reports import create_api_reports_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
+from api_stock import create_api_stock_blueprint  # noqa: E402
 from api_system import create_api_system_blueprint  # noqa: E402
 from api_users import create_api_users_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
@@ -2231,6 +2232,23 @@ app.register_blueprint(
     )
 )
 
+# api_stock.py -- domínio Estoque (TD-01 Phase 2, 11º domínio extraído,
+# 2026-08-07). estoque_tipos/estoque_qualidades e normalizar_modelo_iphone/
+# registrar_movimentacao saem do dict de create_api_blueprint abaixo (deps
+# reduzido, não duplicado -- confirmado por grep que OS, único domínio
+# restante no monólito, não usa nenhuma das 4 diretamente).
+app.register_blueprint(
+    create_api_stock_blueprint(
+        {
+            "conectar": conectar,
+            "normalizar_modelo_iphone": normalizar_modelo_iphone,
+            "registrar_movimentacao": registrar_movimentacao,
+            "estoque_tipos": ESTOQUE_TIPOS,
+            "estoque_qualidades": ESTOQUE_QUALIDADES,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2262,16 +2280,12 @@ app.register_blueprint(
             "consumir_peca_da_os": consumir_peca_da_os,
             "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
             "devolver_pecas_da_os": devolver_pecas_da_os,
-            "registrar_movimentacao": registrar_movimentacao,
             "obter_reparos_por_os": obter_reparos_por_os,
             "modelo_para_os": modelo_para_os,
             "normalizar_imei": normalizar_imei,
-            "normalizar_modelo_iphone": normalizar_modelo_iphone,
             "texto_reparos_os": texto_reparos_os,
             "parse_data_ymd": parse_data_ymd,
             "vendedores": VENDEDORES,
-            "estoque_tipos": ESTOQUE_TIPOS,
-            "estoque_qualidades": ESTOQUE_QUALIDADES,
             "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
             "public_base_url": PUBLIC_BASE_URL,

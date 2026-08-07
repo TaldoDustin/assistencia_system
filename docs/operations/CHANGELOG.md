@@ -490,6 +490,26 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-07 — TD-01 Phase 2, 11º domínio extraído: Estoque)
+- `api_stock.py` — `Blueprint` próprio para `GET/POST /estoque`, `PUT/DELETE /estoque/<id>`,
+  `GET /estoque/reposicao-sugerida`, `GET /estoque/movimentacoes`, extraído de
+  `fluxoly_blueprints_api.py`. Cobertura automatizada já existente (77 testes) — sem necessidade de
+  smoke test manual. Corrigida a matriz: deps reais são 5, não 3 (`conectar`,
+  `normalizar_modelo_iphone`, `registrar_movimentacao`, `estoque_tipos`, `estoque_qualidades` — as duas
+  últimas só passaram a existir como deps compartilhadas depois da extração de Sistema, no mesmo dia).
+  Achado de código morto (não capturado pela matriz, registrado em KI-032): `_slug_estoque`/
+  `_gerar_sku_estoque` (geração automática de SKU) definidos no monólito mas nunca chamados por nenhuma
+  rota real — não migrados, permanecem em `fluxoly_blueprints_api.py` para não misturar refatoração com
+  limpeza de código, candidatos a remoção na Phase 3. Acoplamento OS↔Estoque confirmado como
+  unidirecional (vive inteiramente do lado de OS) — extração sem bloqueio de acoplamento cruzado real.
+  4 chaves saem do dict de `create_api_blueprint` (deps reduzido); `conectar` continua duplicada — OS
+  (12/12, último domínio) depende dela. Ruff removeu 3 imports órfãos (`math`, `datetime.timedelta`,
+  `validate_positive_number`) após a extração. 683 testes passando, `ruff check .` limpo em todo o
+  repositório, `graphify update .` + `explain "api_stock"` + `affected "fluxoly_blueprints_api.py"`
+  confirmados sem referência residual. Resta apenas OS. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

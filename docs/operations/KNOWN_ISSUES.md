@@ -1066,3 +1066,33 @@ Não definida — candidata a sprint de cobertura de testes, fora do escopo da T
 
 Responsável:
 —
+
+---
+
+## KI-032
+
+Descrição:
+Em `fluxoly_blueprints_api.py`, `_slug_estoque()`/`_gerar_sku_estoque()` (linhas 79-109) geram um SKU
+automaticamente a partir de modelo/tipo/qualidade/descrição, mas nunca são chamados por nenhuma das 6
+rotas do domínio Estoque — `criar_estoque()`/`atualizar_estoque()` usam `body.get("sku")` enviado pelo
+cliente diretamente, sem gerar. Achado durante a Discovery de extração de `api_stock.py` (TD-01 Phase 2,
+11º domínio, 2026-08-07): não capturado pela matriz de dependências da Phase 1
+(`docs/engineering/API_DEPENDENCY_MATRIX.md`), que listava só os 4 helpers efetivamente usados
+(`_normalizar_tipo_estoque`, `_normalizar_qualidade_estoque`, `_recalcular_custo_medio`,
+`_status_item_estoque`).
+
+Impacto:
+Baixo. Sem efeito em runtime — código morto (mesmo padrão de KI-014), só ruído de manutenção (~30
+linhas). Não migrado para `api_stock.py` nesta extração, para não misturar refatoração estrutural com
+limpeza de código (mesma regra já seguida para a dep morta `garantir_pasta_backup_google_drive` na
+extração de Backup) — permanece em `fluxoly_blueprints_api.py`.
+
+Status:
+Aberto. Candidato a remoção na Phase 3 (Cleanup) da TD-01, ou a um `chore:` isolado antes disso.
+
+Sprint prevista:
+Não definida — candidato a Phase 3 (Cleanup) da TD-01
+(`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`).
+
+Responsável:
+—

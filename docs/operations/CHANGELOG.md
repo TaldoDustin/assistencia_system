@@ -475,6 +475,21 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-07 — TD-01 Phase 2, 10º domínio extraído: Sistema)
+- `api_system.py` — `Blueprint` próprio para `GET /constantes`, `GET /alertas`, `GET /dashboard`,
+  extraído de `fluxoly_blueprints_api.py`. Corrigida a matriz: `texto_reparos_os` não pertence a este
+  domínio (21 deps, não 22 — pertence a `_os_row_to_dict()`, domínio OS). Achado de acoplamento:
+  `ESTOQUE_TIPOS`/`ESTOQUE_QUALIDADES` eram constantes locais dentro do monólito, usadas também pelos
+  helpers de Estoque (`_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`, domínio 11/12, ainda
+  não extraído) — promovidas para `fluxoly_reference_data.py` (mesmo lugar de `IPHONE_MODELS`/
+  `VENDEDORES`/`TECNICOS`), sem mudança de regra de negócio. 12 chaves saem do dict de
+  `create_api_blueprint` (deps reduzido); as ligadas a OS continuam duplicadas. Smoke test manual
+  confirmou `/alertas`/`/dashboard` (sem cobertura automatizada). 683 testes passando, `ruff check .`
+  limpo, `graphify update .` + `explain "api_system"` + `affected "fluxoly_blueprints_api.py"`
+  confirmados sem referência residual. Restam Estoque, OS. Ver
+  `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

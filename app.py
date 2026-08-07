@@ -118,6 +118,8 @@ from fluxoly_price_tables import carregar_tabelas_preco as carregar_tabelas_prec
 from fluxoly_price_tables import salvar_tabelas_preco as salvar_tabelas_preco_arquivo
 from fluxoly_reference_data import (
     CATEGORIAS_CUSTOS_OPERACIONAIS,
+    ESTOQUE_QUALIDADES,
+    ESTOQUE_TIPOS,
     IPHONE_COLORS,
     IPHONE_MODELS,
     PRODUTOS_CATEGORIAS,
@@ -2009,6 +2011,7 @@ from api_mercadophone import create_api_mercadophone_blueprint  # noqa: E402
 from api_prices import create_api_prices_blueprint  # noqa: E402
 from api_reports import create_api_reports_blueprint  # noqa: E402
 from api_shopping import create_api_shopping_blueprint  # noqa: E402
+from api_system import create_api_system_blueprint  # noqa: E402
 from api_users import create_api_users_blueprint  # noqa: E402
 from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
 from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
@@ -2185,6 +2188,49 @@ app.register_blueprint(
     )
 )
 
+# TD-01 Phase 2 -- 10º domínio extraído do monólito. 12 chaves saem do dict de
+# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
+# consumidor no monólito, confirmado por contagem de uso pós-extração):
+# categorias_custos, garantia_reparo_dias_padrao, iphone_colors, iphone_models,
+# listar_custos_operacionais, obter_alertas_sistema, os_tipos_opcoes,
+# produtos_categorias, produtos_condicoes, reparos_padrao, status_os_opcoes,
+# tecnicos. As demais (conectar, calcular_faturamento_os, calcular_lucro_os,
+# carregar_os_com_relacoes, normalizar_status_os, status_aberto/cancelado/
+# finalizado, vendedores) continuam também no dict abaixo -- OS (ainda não
+# extraído) depende delas. estoque_tipos/estoque_qualidades promovidas nesta
+# extração de constantes locais do monólito para fluxoly_reference_data.py
+# (achado da Discovery: intersecção real entre Sistema e Estoque, ainda não
+# extraído) -- ambos os dicts recebem a referência agora.
+app.register_blueprint(
+    create_api_system_blueprint(
+        {
+            "conectar": conectar,
+            "normalizar_status_os": normalizar_status_os,
+            "status_finalizado": status_finalizado,
+            "status_cancelado": status_cancelado,
+            "status_aberto": status_aberto,
+            "calcular_faturamento_os": calcular_faturamento_os,
+            "calcular_lucro_os": calcular_lucro_os,
+            "carregar_os_com_relacoes": carregar_os_com_relacoes,
+            "listar_custos_operacionais": listar_custos_operacionais,
+            "obter_alertas_sistema": obter_alertas_sistema,
+            "iphone_models": IPHONE_MODELS,
+            "iphone_colors": IPHONE_COLORS,
+            "vendedores": VENDEDORES,
+            "tecnicos": TECNICOS,
+            "status_os_opcoes": STATUS_OS_OPCOES,
+            "os_tipos_opcoes": OS_TIPOS_OPCOES,
+            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
+            "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
+            "reparos_padrao": REPAROS_PADRAO,
+            "produtos_categorias": PRODUTOS_CATEGORIAS,
+            "produtos_condicoes": PRODUTOS_CONDICOES,
+            "estoque_tipos": ESTOQUE_TIPOS,
+            "estoque_qualidades": ESTOQUE_QUALIDADES,
+        }
+    )
+)
+
 app.register_blueprint(
     create_api_blueprint(
         {
@@ -2222,20 +2268,10 @@ app.register_blueprint(
             "normalizar_imei": normalizar_imei,
             "normalizar_modelo_iphone": normalizar_modelo_iphone,
             "texto_reparos_os": texto_reparos_os,
-            "listar_custos_operacionais": listar_custos_operacionais,
             "parse_data_ymd": parse_data_ymd,
-            "obter_alertas_sistema": obter_alertas_sistema,
-            "iphone_models": IPHONE_MODELS,
-            "iphone_colors": IPHONE_COLORS,
             "vendedores": VENDEDORES,
-            "tecnicos": TECNICOS,
-            "status_os_opcoes": STATUS_OS_OPCOES,
-            "os_tipos_opcoes": OS_TIPOS_OPCOES,
-            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
-            "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
-            "reparos_padrao": REPAROS_PADRAO,
-            "produtos_categorias": PRODUTOS_CATEGORIAS,
-            "produtos_condicoes": PRODUTOS_CONDICOES,
+            "estoque_tipos": ESTOQUE_TIPOS,
+            "estoque_qualidades": ESTOQUE_QUALIDADES,
             "garantir_pasta_backup_google_drive": garantir_pasta_backup_google_drive,
             "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
             "public_base_url": PUBLIC_BASE_URL,

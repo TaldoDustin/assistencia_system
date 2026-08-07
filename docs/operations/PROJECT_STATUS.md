@@ -5,8 +5,8 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-05
-**Próxima revisão:** TD-01 Phase 2 (Sistema, 10º de 12 domínios), mais a Fase 1 (Financeiro mínimo, Release 1.0). Sequência recente: ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+**Última revisão:** 2026-08-07
+**Próxima revisão:** TD-01 Phase 2 (Estoque, 11º de 12 domínios), mais a Fase 1 (Financeiro mínimo, Release 1.0). Sequência recente: ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
 
 ---
 
@@ -564,6 +564,26 @@ corrigido no mesmo commit: `tests/test_users.py` referenciava o endpoint qualifi
 `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` (Phase 2, log de execução) e
 `docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe completo.
 
+**TD-01 Phase 2 — Sistema extraído (2026-08-07):** décimo domínio extraído de
+`fluxoly_blueprints_api.py`. `api_system.py` criado (3 rotas — `GET /constantes`, `GET /alertas`,
+`GET /dashboard`), helpers `_sanitize_list`/`_sanitize_nested_obj` migrados verbatim. Corrigida a
+matriz: `texto_reparos_os` não pertence a este domínio (21 deps, não 22 — pertence a
+`_os_row_to_dict()`, domínio OS). **Achado de acoplamento (Discovery):** `ESTOQUE_TIPOS`/
+`ESTOQUE_QUALIDADES` eram constantes locais dentro do monólito (fora do padrão do resto dos dados de
+referência), usadas tanto por `constantes()` quanto pelos helpers de Estoque (`_normalizar_tipo_estoque`/
+`_normalizar_qualidade_estoque`, domínio 11/12, ainda não extraído) — promovidas para
+`fluxoly_reference_data.py` nesta extração (mesmo padrão de `_texto_limpo_local` na extração de
+Backup), sem mudança de regra de negócio. `obter_alertas_sistema` tem um segundo consumidor
+(`inject_system_alerts()`, `app.py`, context processor dos templates legados) não documentado até
+aqui — achado do Graphify, não afeta a extração. 12 chaves saem do dict de `create_api_blueprint`
+(deps reduzido); as demais ligadas a OS (ainda não extraído) continuam duplicadas. Smoke test manual
+confirmou `/alertas`/`/dashboard` (sem cobertura automatizada) e `/constantes` (já coberta) em 6
+cenários. 683 testes passando, `ruff check .` limpo, `graphify update .` + `graphify explain
+"api_system"` + `graphify affected "fluxoly_blueprints_api.py"` confirmados sem referência residual.
+Restam Estoque, OS — Architecture Checkpoint completo fica para depois de Estoque (decisão do CTO).
+Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` (Phase 2, log de execução) e
+`docs/engineering/API_DEPENDENCY_MATRIX.md` para o detalhe completo.
+
 **TD-01 Phase 2 — MercadoPhone extraído (2026-08-06):** nono domínio extraído de
 `fluxoly_blueprints_api.py` — o mais acoplado até agora. `api_mercadophone.py` criado (7 rotas).
 Achado central da Discovery (tratada como matriz de acoplamento completa): `_carregar_config_mercadophone()`/
@@ -706,7 +726,7 @@ affected "fluxoly_blueprints_api.py"` confirmados sem referência residual do do
 
 | ID   | Descrição                                                              | Impacto | Prioridade |
 |------|------------------------------------------------------------------------|---------|------------|
-| TD-01 | `fluxoly_blueprints_api.py` (hoje 80KB/1.961 linhas, 26 rotas restantes — era ~130KB/3.368 linhas/70 rotas). Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 9 de 12 domínios extraídos (Shopping List, `api_shopping.py`, 2026-08-04; Garantias, `api_garantias.py`, 2026-08-05; Custos Operacionais, `api_costs.py`, 2026-08-06; Preços, `api_prices.py`, 2026-08-06; Usuários, `api_users.py`, 2026-08-06; Auth, `api_auth.py`, 2026-08-06; Backup, `api_backup.py`, 2026-08-06; Relatórios, `api_reports.py`, 2026-08-06; MercadoPhone, `api_mercadophone.py`, 2026-08-06). Restam Sistema, Estoque, OS. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
+| TD-01 | `fluxoly_blueprints_api.py` (reduzido a cada extração — ver `SPRINT_TD01_MODULARIZACAO_API.md` para o tamanho exato). Sprint própria iniciada em 2026-08-04 — Phase 0 (Discovery) e Phase 1 (Design) concluídas; Phase 2 (Extração Incremental) em andamento, 10 de 12 domínios extraídos (Shopping List, `api_shopping.py`, 2026-08-04; Garantias, `api_garantias.py`, 2026-08-05; Custos Operacionais, `api_costs.py`, 2026-08-06; Preços, `api_prices.py`, 2026-08-06; Usuários, `api_users.py`, 2026-08-06; Auth, `api_auth.py`, 2026-08-06; Backup, `api_backup.py`, 2026-08-06; Relatórios, `api_reports.py`, 2026-08-06; MercadoPhone, `api_mercadophone.py`, 2026-08-06; Sistema, `api_system.py`, 2026-08-07). Restam Estoque, OS. Ver `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e `docs/engineering/API_DEPENDENCY_MATRIX.md` | Alto    | Alta       |
 | TD-02 | `app.py` acumula inicialização, DB e lógica misturadas                 | Alto    | Alta       |
 | TD-03 | Ausência de migrations formais (usa `ALTER TABLE` com try/except)      | Alto    | Alta       |
 | TD-04 | Sem injeção de dependências no backend — acoplamento direto ao SQLite  | Médio   | Média      |

@@ -1,6 +1,6 @@
 # SPRINT TD-01 — Modularização de `fluxoly_blueprints_api.py`
 
-**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 9/12 domínios extraídos)
+**Status:** EM ANDAMENTO (Phase 1 concluída, Phase 2 em andamento — 10/12 domínios extraídos)
 **Início:** 2026-08-04
 **Tipo:** Refatoração (arquitetura)
 
@@ -277,7 +277,7 @@ flowchart LR
 
 ## Phase 2 — Incremental Extraction
 
-**Status:** EM ANDAMENTO — 9 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06; Relatórios, 2026-08-06; MercadoPhone, 2026-08-06). Regras de execução
+**Status:** EM ANDAMENTO — 10 de 12 domínios extraídos (Shopping List, 2026-08-04; Garantias, 2026-08-05; Custos Operacionais, 2026-08-06; Preços, 2026-08-06; Usuários, 2026-08-06; Auth, 2026-08-06; Backup, 2026-08-06; Relatórios, 2026-08-06; MercadoPhone, 2026-08-06; Sistema, 2026-08-07). Regras de execução
 definidas na Phase 1, para não decidir mecânica no meio da extração:
 
 **Unidade de trabalho = um domínio inteiro por commit, nunca uma rota isolada.** Cada commit de extração
@@ -517,6 +517,50 @@ Ordem de extração: ver `docs/engineering/API_DEPENDENCY_MATRIX.md`, seção "O
   específica de MercadoPhone em `fluxoly_blueprints_api.py`; `listar_ordens()` confirmada intacta e
   chamando as novas funções de serviço corretamente.
 
+**10. Sistema (2026-08-07) — ✅ concluído, todos os 6 critérios do DoD + smoke test manual.**
+- `api_system.py` criado (3 rotas — `GET /constantes`, `GET /alertas`, `GET /dashboard`), helpers
+  `_sanitize_list`/`_sanitize_nested_obj` migrados verbatim (confirmado por leitura: usados
+  exclusivamente dentro de `constantes()`, nenhum outro domínio).
+- **Correção da matriz (mesmo padrão de Usuários/Relatórios):** `texto_reparos_os` estava listado
+  como dep deste domínio (22 no total), mas não é usado em nenhuma das 3 rotas — pertence a
+  `_os_row_to_dict()` (domínio OS, função fisicamente adjacente a `dashboard()` mas não parte dela).
+  21 deps reais, não 22.
+- **Achado de acoplamento (Discovery, confirmado por grep exaustivo no repo — Graphify não resolve
+  constante local dentro de closure, mesma limitação já vista em Usuários):** `ESTOQUE_TIPOS`/
+  `ESTOQUE_QUALIDADES` eram definidas localmente dentro de `create_api_blueprint`
+  (`fluxoly_blueprints_api.py`, fora do padrão do resto dos dados de referência), usadas tanto por
+  `constantes()` (Sistema) quanto por `_normalizar_tipo_estoque`/`_normalizar_qualidade_estoque`
+  (Estoque, domínio 11/12, ainda no monólito). Promovidas para `fluxoly_reference_data.py` nesta
+  extração (mesmo padrão já usado com `_texto_limpo_local` na extração de Backup — promover no ponto
+  em que o bloqueio é descoberto), ao lado de `IPHONE_MODELS`/`VENDEDORES`/`TECNICOS`. Nenhuma regra
+  de negócio mudou — só a origem da constante. Ambos os dicts de `deps` (o de `api_system.py` e o que
+  resta em `create_api_blueprint` para Estoque) recebem a referência agora.
+- `obter_alertas_sistema` tem um segundo consumidor não documentado até aqui: `inject_system_alerts()`
+  (`app.py`, `@app.context_processor`, injeta alertas nos templates Jinja legados) — achado do
+  Graphify (`graphify explain`), não capturado pela matriz original. Não afeta a extração: a função
+  permanece em `app.py`, `/alertas` continua recebendo-a via `deps`, mesmo padrão já visto com
+  `criar_backup`/`executar_backup_diario_automatico()` na extração de Backup.
+- 12 chaves saem do dict de `create_api_blueprint` em `app.py` (deps reduzido, não duplicado —
+  confirmado por contagem de uso pós-extração no arquivo trimado): `categorias_custos`,
+  `garantia_reparo_dias_padrao`, `iphone_colors`, `iphone_models`, `listar_custos_operacionais`,
+  `obter_alertas_sistema`, `os_tipos_opcoes`, `produtos_categorias`, `produtos_condicoes`,
+  `reparos_padrao`, `status_os_opcoes`, `tecnicos`. As demais (`conectar`,
+  `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`,
+  `normalizar_status_os`, `status_aberto/cancelado/finalizado`, `vendedores`) continuam duplicadas —
+  OS (12/12, ainda não extraído) depende delas.
+- **Smoke test manual** (mesma técnica de Relatórios/MercadoPhone — `/alertas`/`/dashboard` sem
+  cobertura automatizada, `/constantes` já coberta por `test_constantes_os.py`): Flask test client,
+  banco temporário isolado (`tempfile.mkdtemp()`, nunca `database.db`). 6 cenários — `/constantes`
+  sem login (200, `estoque_tipos`/`estoque_qualidades` presentes e corretos), `/alertas` sem login
+  (200, `alertas=[]`) e logado (200), `/dashboard` sem login (401) e logado (200, todas as chaves
+  esperadas presentes), `/dashboard` com filtros de data/técnico (200). Todos passaram.
+- Suíte completa (683 testes) passando, `ruff check .` limpo, `graphify update .` +
+  `graphify explain "api_system"` + `graphify affected "fluxoly_blueprints_api.py"` confirmados
+  (conexões esperadas: `app.py`, `fluxoly_api_helpers.py`; zero referência residual específica de
+  Sistema no monólito). 1 falha em `test_sentry_init.py` confirmada pré-existente e ambiental
+  (Winsock quebrado nesta máquina Windows, `WinError 10106` em `_overlapped`/`asyncio` — reproduzida
+  identicamente em `main` antes desta extração via `git stash`, não relacionada a este domínio).
+
 ### Architecture Checkpoint — pós-MercadoPhone (9/12, 2026-08-06)
 
 Métrica adotada permanentemente a partir deste checkpoint (recomendação do CTO): medir não só a
@@ -540,8 +584,11 @@ uma futura TD-02 (refatoração da inicialização) fizer sentido, sem misturar 
 individualmente, limitação já documentada na extração de Backup). Nenhum god node novo surgiu na
 extração de MercadoPhone.
 
-Restam **Sistema, Estoque, OS** — os três domínios mais acoplados da Phase 2, concentrando
-praticamente toda a complexidade remanescente do monólito.
+Restam **Estoque, OS** — os dois domínios mais acoplados da Phase 2 (acoplamento real entre si,
+ver `API_DEPENDENCY_MATRIX.md`), concentrando praticamente toda a complexidade remanescente do
+monólito. Architecture Checkpoint completo (métricas de `fluxoly_blueprints_api.py`/`app.py`)
+fica para depois de Estoque, não depois de Sistema (decisão do CTO) — nesse ponto restará
+praticamente só OS, fotografia mais representativa da reta final da TD-01.
 
 ## Phase 3 — Cleanup
 

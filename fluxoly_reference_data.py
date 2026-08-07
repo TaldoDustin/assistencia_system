@@ -217,6 +217,10 @@ CATEGORIAS_CUSTOS_OPERACIONAIS = [
     "Outros",
 ]
 
+ESTOQUE_TIPOS = ["Tela", "Bateria", "Conector", "Camera", "Placa", "Carcaca", "Alto-falante", "Outros"]
+
+ESTOQUE_QUALIDADES = ["Original", "Premium", "Paralelo", "Refurbished", "Padrao"]
+
 REPAROS_PADRAO = [
     "TROCA DE TELA",
     "TROCA DE BATERIA",

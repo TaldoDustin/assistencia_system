@@ -39,7 +39,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_reports.py` ✅ extraído | 6 | 3 | 8 | `fluxoly_reports` |
 | `api_backup.py` ✅ extraído | 4 | 5 | 10 | `fluxoly_storage` |
 | `api_mercadophone.py` ✅ extraído | 7 | 9 | 9 | `fluxoly_mercadophone` |
-| `api_system.py` | 3 | 3 | 22 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports` |
+| `api_system.py` ✅ extraído | 3 | 5 (3 genéricos + `_sanitize_list`/`_sanitize_nested_obj`) | 21 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data` (não `fluxoly_reports` — correção da Discovery Local, nenhuma chamada real encontrada) |
 | `api_os.py` (+Reparos) | 17 | 11 | 32 | `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service` |
 
 Ordenada por complexidade real (helpers + deps), não por ordem de domínio da Phase 0.
@@ -81,7 +81,7 @@ flowchart TD
     F --> G["7. Backup (4 rotas)<br/>10 deps, mas maioria é config/string, não lógica"]
     G --> H["8. Relatórios (6 rotas)"]
     H --> I["9. MercadoPhone (7 rotas)<br/>12 helpers, baixa cobertura de teste (27%)"]
-    I --> J["10. Meta/Sistema (3 rotas)<br/>reclassificado: 22 deps, agrega quase tudo"]
+    I --> J["10. Meta/Sistema (3 rotas) ✅ extraído<br/>21 deps (não 22 -- texto_reparos_os pertence a OS), agrega quase tudo"]
     J --> K["11. Estoque (6 rotas)<br/>movido para logo antes de OS -- acoplamento real é com OS, não com o resto"]
     K --> L["12. OS + Reparos (17 rotas)<br/>3 pontos de acoplamento confirmados: Estoque, Garantia, MercadoPhone"]
 ```
@@ -161,10 +161,11 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Deps (9):** `conectar`, `integrations_config_path`, `mercado_phone_helpers`, `mercado_phone_runtime_config`, `reimportar_todas_os_mercado_phone`, `reprocessar_todas_os_mercado_phone`, `salvar_configuracoes_integracoes`, `sincronizar_mercado_phone`, `carregar_configuracoes_integracoes`
 - **Serviços:** `fluxoly_mercadophone`
 
-### `api_system.py`
-- **Helpers:** `err`, `ok`, `usuario_logado`
-- **Deps (22):** `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `categorias_custos`, `conectar`, `garantia_reparo_dias_padrao`, `iphone_colors`, `iphone_models`, `listar_custos_operacionais`, `normalizar_status_os`, `obter_alertas_sistema`, `os_tipos_opcoes`, `produtos_categorias`, `produtos_condicoes`, `reparos_padrao`, `status_aberto`, `status_cancelado`, `status_finalizado`, `status_os_opcoes`, `tecnicos`, `texto_reparos_os`, `vendedores`
-- **Serviços:** `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`
+### `api_system.py` ✅ extraído em 2026-08-07
+- **Helpers:** `err`, `ok`, `usuario_logado` (de `fluxoly_api_helpers.py`); `_sanitize_list`/
+  `_sanitize_nested_obj` (específicos do domínio, usados só em `constantes()`, migraram junto)
+- **Deps (21, não 22):** `calcular_faturamento_os`, `calcular_lucro_os`, `carregar_os_com_relacoes`, `categorias_custos`, `conectar`, `estoque_qualidades`, `estoque_tipos`, `garantia_reparo_dias_padrao`, `iphone_colors`, `iphone_models`, `listar_custos_operacionais`, `normalizar_status_os`, `obter_alertas_sistema`, `os_tipos_opcoes`, `produtos_categorias`, `produtos_condicoes`, `reparos_padrao`, `status_aberto`, `status_cancelado`, `status_finalizado`, `status_os_opcoes`, `tecnicos`, `vendedores`. **Correção da Discovery Local:** `texto_reparos_os` não é usado em nenhuma das 3 rotas — pertence a `_os_row_to_dict()` (domínio OS, função fisicamente adjacente a `dashboard()` mas fora dela), estimativa original estava incorreta (mesmo padrão de correção já visto em Usuários/Relatórios). `estoque_tipos`/`estoque_qualidades` são novas nesta extração — promovidas de constantes locais do monólito para `fluxoly_reference_data.py` (achado de acoplamento com Estoque, ver log de execução da Phase 2)
+- **Serviços:** `fluxoly_core`, `fluxoly_os` (`carregar_os_com_relacoes`), `fluxoly_reference_data` — **correção da Discovery Local:** `fluxoly_reports` não é tocado por nenhuma das 3 rotas reais (nenhuma chamada encontrada), estimativa da Phase 1 estava incorreta
 
 ### `api_garantias.py` ✅ extraído em 2026-08-05
 - **Helpers:** `err`, `ok`, `usuario_logado` (de `fluxoly_api_helpers.py`); `_classificar_garantia`

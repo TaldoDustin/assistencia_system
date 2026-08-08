@@ -1075,7 +1075,7 @@ Responsável:
 
 ---
 
-## KI-032
+## ~~KI-032~~ — RESOLVIDO
 
 Descrição:
 Em `fluxoly_blueprints_api.py`, `_slug_estoque()`/`_gerar_sku_estoque()` (linhas 79-109) geram um SKU
@@ -1094,11 +1094,17 @@ limpeza de código (mesma regra já seguida para a dep morta `garantir_pasta_bac
 extração de Backup) — permanece em `fluxoly_blueprints_api.py`.
 
 Status:
-Aberto. Candidato a remoção na Phase 3 (Cleanup) da TD-01, ou a um `chore:` isolado antes disso.
+Resolvido em 2026-08-08 (TD-18 — TD-01 Phase 3, Cleanup). `fluxoly_blueprints_api.py` removido por
+inteiro (continha só o `Blueprint("api")` vazio, sem nenhuma rota registrada, mais estes dois helpers
+mortos) — confirmado por Discovery que nenhum código consumia `_slug_estoque`/`_gerar_sku_estoque`
+(geração de SKU real vive só em `api_stock.py`, via `body.get("sku")`). Único consumidor do arquivo
+(`app.register_blueprint(create_api_blueprint({}))` em `fluxoly_blueprint_registry.py`) removido junto.
+`app.url_map` idêntico antes/depois (122 rotas), 683 testes passando, `ruff check .` limpo. Ver
+`docs/operations/PROJECT_STATUS.md` (TD-18).
 
 Sprint prevista:
 Não definida — candidato a Phase 3 (Cleanup) da TD-01
-(`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`).
+(`docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md`). Resolvido via TD-18 em 2026-08-08.
 
 Responsável:
 —

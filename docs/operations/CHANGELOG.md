@@ -593,6 +593,22 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md` (Architecture Checkpoint Final) e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Removido (2026-08-08 — TD-18, TD-01 Phase 3 — Cleanup)
+- `fluxoly_blueprints_api.py` — monólito residual da TD-01, removido por inteiro. Continha só um
+  `Blueprint("api")` vazio (0 rotas registradas) e os dois helpers mortos de KI-032
+  (`_slug_estoque`/`_gerar_sku_estoque`, geração de SKU nunca chamada — `api_stock.py` já usa
+  `body.get("sku")` direto). Único consumidor (`app.register_blueprint(create_api_blueprint({}))` em
+  `fluxoly_blueprint_registry.py`) removido junto, com ~10 comentários históricos da TD-01 que
+  documentavam decisões de duplicação de `deps` contra o dict (agora inexistente) de
+  `create_api_blueprint` — ficariam órfãos, apontando para código removido. Histórico da TD-01
+  preservado sem alteração em ADRs/sprint docs/`API_DEPENDENCY_MATRIX.md` (só um addendum datado
+  apontando para o estado atual). Busca final confirmou zero consumidor residual — as únicas menções
+  remanescentes são notas de proveniência histórica ("Extraído de `fluxoly_blueprints_api.py`") já
+  existentes nos módulos `api_*.py`, legítimas e não tocadas. `app.url_map` idêntico (122 rotas,
+  esperado — o blueprint removido nunca teve rota), 683 testes passando, `ruff`/`black` limpos,
+  `graphify update .` rodado. KI-032 movida para Resolvidos. Ver `docs/operations/PROJECT_STATUS.md`
+  (TD-18)
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

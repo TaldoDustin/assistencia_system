@@ -23,6 +23,12 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 > Discovery Local** — não confiar só na contagem de helpers desta tabela para domínios ainda não
 > tocados.
 
+> **Addendum — TD-18 (2026-08-08):** `fluxoly_blueprints_api.py` (o monólito residual descrito ao longo
+> deste documento) foi removido por inteiro. Continha só um `Blueprint("api")` vazio (0 rotas) e os dois
+> helpers mortos de KI-032 (`_slug_estoque`/`_gerar_sku_estoque`). O texto abaixo permanece como registro
+> histórico do estado do arquivo durante a TD-01 (Phase 0-2) — não reescrito. Ver KI-032 (Resolvido) e
+> `docs/operations/PROJECT_STATUS.md` (TD-18) para o estado atual.
+
 ---
 
 ## Tabela resumo

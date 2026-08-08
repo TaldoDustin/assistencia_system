@@ -39,6 +39,9 @@ TABELAS_ESPERADAS = {
     "tipos_garantia",
     "shopping_list",
     "shopping_list_logs",
+    "movimentacoes_caixa",
+    "contas_pagar",
+    "contas_receber",
 }
 
 INDICES_ESPERADOS = {
@@ -64,6 +67,9 @@ INDICES_ESPERADOS = {
     "idx_estoque_tripla",
     "idx_lotes_estoque_id",
     "idx_shopping_list_os_produto",
+    "idx_movimentacoes_caixa_origem",
+    "idx_movimentacoes_caixa_tipo_estornada",
+    "idx_movimentacoes_caixa_venda_ativa",
 }
 
 
@@ -91,14 +97,14 @@ class TestBaselineEmBancoVazio:
 
     def test_retorna_id_da_migration_aplicada(self, conn):
         executadas = run_migrations(conn)
-        assert executadas == ["0001"]
+        assert executadas == ["0001", "0002"]
 
 
 class TestIdempotencia:
     def test_rodar_duas_vezes_nao_reaplica_nem_falha(self, conn):
         primeira = run_migrations(conn)
         segunda = run_migrations(conn)
-        assert primeira == ["0001"]
+        assert primeira == ["0001", "0002"]
         assert segunda == []
 
     def test_schema_migrations_fica_com_exatamente_0001(self, conn):
@@ -106,7 +112,7 @@ class TestIdempotencia:
         run_migrations(conn)
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM schema_migrations")
-        assert cursor.fetchall() == [("0001",)]
+        assert cursor.fetchall() == [("0001",), ("0002",)]
 
     def test_reaplicar_a_migration_direto_nao_duplica_backfill(self, conn):
         # Backfill de estoque_lotes é condicional (WHERE NOT EXISTS) -- roda
@@ -239,13 +245,13 @@ class TestBootstrapDeAppUsaRunMigrations:
 
     def test_schema_migrations_registrado_apos_bootstrap_real(self):
         """A conexão real da aplicação (via app.conectar(), depois do
-        bootstrap de import) já deve ter schema_migrations = ['0001']."""
+        bootstrap de import) já deve ter schema_migrations = ['0001', '0002']."""
         import app as appmod
 
         conn = appmod.conectar()
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM schema_migrations")
-            assert cursor.fetchall() == [("0001",)]
+            assert cursor.fetchall() == [("0001",), ("0002",)]
         finally:
             conn.close()

@@ -78,7 +78,7 @@ Responsável:
 
 ---
 
-## KI-004
+## ~~KI-004~~ — RESOLVIDO
 
 Descrição:
 O sistema de migrations do banco de dados utiliza `ALTER TABLE` com blocos `try/except` ad-hoc em `app.py`. Não há versionamento formal do schema.
@@ -87,10 +87,17 @@ Impacto:
 Alto. Impossível determinar o estado exato do schema em diferentes ambientes (dev, prod) sem inspecionar o banco diretamente. Risco de divergência silenciosa.
 
 Status:
-Aberto — aguardando Sprint 4.
+Resolvido em 2026-08-08 (TD-03, 2/2 fatias). `app.py::criar_tabelas()` (695 linhas ad-hoc) substituída por
+`migrations/` — registry Python de migrations com tabela de controle `schema_migrations`. Fatia 1
+(`migrations/registry.py`/`runner.py`/`versions/m0001_baseline.py`, aditiva, `app.py` intocado) validada
+contra um backup real de produção antes da Fatia 2 — schema/contagens de linhas idênticos entre o
+mecanismo antigo e o novo, idempotência confirmada. Fatia 2 removeu `criar_tabelas()`/`SCHEMA_READY`/
+`SCHEMA_LOCK` de `app.py`; `conectar()` virou conexão pura, schema garantido só pelo bootstrap
+(`run_migrations()`). Ver `docs/operations/SPRINTS/SPRINT_TD03_MIGRATIONS_FORMAIS.md`.
 
 Sprint prevista:
-Sprint 4 — Decomposição do Módulo API e Migrations Formais.
+Sprint 4 — Decomposição do Módulo API e Migrations Formais (planejamento original, nunca executado).
+Resolvido via TD-03 em 2026-08-08.
 
 Responsável:
 —

@@ -627,6 +627,27 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   limpos, `graphify update .` rodado, `git diff --stat app.py` confirmado vazio antes do commit, CI verde.
   Fatia 2 (wireing em `app.py` + remoção do mecanismo antigo) fica para depois de validação em produção.
 
+### Removido (2026-08-08 — TD-03 Phase 2, Fatia 2/2 CONCLUÍDA: mecanismo antigo de schema)
+- `app.py::criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK` removidos (695 linhas) — autorizado só após validar
+  a Fatia 1 contra um backup real de produção (não sintético): cópias isoladas em três estados
+  (`producao-before` intocada, `migration-test` via `run_migrations()`, `legacy-test` via `criar_tabelas()`
+  legado), zero divergência de schema, zero divergência de contagem de linhas nas 24 tabelas de dado real,
+  idempotência confirmada na segunda execução, original nunca tocado (checksum idêntico do início ao fim).
+  Achado real da validação: o backup tinha 25 tabelas, não 24 — `estoque_unidades` (nome legado
+  pré-ADR-007) coexistindo com `unidades_serializadas`, confirmando que produção estava de fato "atrasada"
+  em relação a `main` — nenhum dos dois mecanismos toca essa tabela órfã, comportamento idêntico. `conectar()`
+  vira conexão pura (schema deixa de ser responsabilidade dela); bootstrap de módulo chama `run_migrations()`
+  no lugar onde chamava `criar_tabelas()`; `forcar_migracao_schema()` vira wrapper de `run_migrations()`,
+  mesmo contrato zero-args — `api_backup.py`/`fluxoly_blueprint_registry.py` não mudaram nenhuma linha.
+  `tests/conftest.py`: removida a chamada `_app.criar_tabelas()` (já redundante). `tests/test_migrations.py`:
+  `TestEquivalenciaComOMecanismoAntigo` (Fatia 1, comparava contra `criar_tabelas()`) substituído por
+  `TestBootstrapDeAppUsaRunMigrations` — a premissa de comparação deixou de existir nesta fatia. Validado
+  ponta a ponta: banco vazio → `import app` → `run_migrations()` → app funcional (`schema_migrations`,
+  admin padrão, reparos sincronizados, `GET /health` real). 696 testes passando, `ruff`/`black`/`isort`
+  limpos, `graphify update .` rodado. Nenhuma limpeza adicional fora do escopo desta fatia. **TD-03
+  encerrada — 2/2 fatias. KI-004 resolvido.** Ver
+  `docs/operations/SPRINTS/SPRINT_TD03_MIGRATIONS_FORMAIS.md` (Architecture Checkpoint Final)
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

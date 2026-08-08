@@ -1,6 +1,6 @@
 # SPRINT TD-03 — Migrations Formais
 
-**Status:** EM ANDAMENTO (Phase 1 aprovada em 2026-08-08 — Phase 2 Fatia 1 é o próximo passo)
+**Status:** CONCLUÍDA (Phase 2 — 2/2 fatias, encerrada em 2026-08-08)
 **Início:** 2026-08-08
 **Tipo:** Refatoração (arquitetura)
 
@@ -478,3 +478,101 @@ integralmente, conforme determinado.
 **Próximo passo: Fatia 2**, só depois de validação em produção — wireing de `app.py`/`conectar()` para
 `run_migrations()`, remoção de `criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK`, atualização de
 `api_backup.py::forcar_migracao_schema()`, e fechamento de KI-004.
+
+---
+
+## Validação da Fatia 1 contra backup real de produção (2026-08-08, antes de autorizar a Fatia 2)
+
+Os 12 testes da Fatia 1 provam o mecanismo em bancos controlados (`:memory:`, schema "atrasado" simulado
+à mão) — não provam convergência diante do desvio histórico real que só produção acumula. Decisão do CTO:
+essa era exatamente a evidência que faltava antes de remover a rede de segurança (a Fatia 2 retira
+`criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK` da execução real).
+
+**Metodologia** (mesmo rigor do RC de `unidades_serializadas`, ADR-007): backup real do Render
+(`backup-20260808-181709.db`, obtido pelo usuário) copiado 3x de forma isolada — `producao-before.sqlite`
+(read-only, nunca escrita), `migration-test.sqlite` (`run_migrations()`), `legacy-test.sqlite`
+(`criar_tabelas()` legado, via processo isolado com `IR_FLOW_DATA_DIR` apontando para a cópia). Original em
+`~/Downloads` nunca tocado — checksum SHA-256 idêntico do início ao fim. Todas as cópias de trabalho
+apagadas do scratchpad ao final da validação; nenhum dado real permaneceu.
+
+**Resultados:**
+- `run_migrations()` e `criar_tabelas()` (legado) convergem sem exceção na mesma cópia real
+- Schema (`sqlite_master`, normalizado) — **zero divergência** entre os dois mecanismos
+- Contagem de linhas por tabela — **zero divergência** em todas as 24 tabelas de dado real, antes/depois
+  de cada mecanismo
+- Segunda execução de `run_migrations()` — idempotente, `[]` aplicada, zero mudança de contagem
+- **Achado real:** o backup tinha **25 tabelas**, não 24 — `estoque_unidades` (nome legado pré-ADR-007)
+  coexistindo com `unidades_serializadas`, ambas vazias. Confirma empiricamente que produção estava
+  "atrasada" em relação a `main` — exatamente o cenário que a decisão da Phase 1 seção 6 (baseline
+  verbatim, não colapsada) foi desenhada para tratar com segurança. Nenhum dos dois mecanismos toca essa
+  tabela órfã (não faz parte do DDL de nenhum dos dois) — comportamento idêntico e esperado, não um bug.
+
+**Decisão:** Fatia 1 considerada suficientemente validada. Fatia 2 autorizada.
+
+---
+
+## Phase 2 — Fatia 2: `app.py` usa `run_migrations()`, mecanismo antigo removido (CONCLUÍDA em 2026-08-08)
+
+Discovery específica desta fatia (antes de tocar `app.py`): busca determinística de todos os consumidores
+de `criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK`/`run_migrations()` em todo o repositório. Achados:
+`criar_tabelas()` chamada em 4 pontos de `app.py` (`conectar()`, `forcar_migracao_schema()`, bootstrap de
+módulo) + `tests/conftest.py:28`; `SCHEMA_READY`/`SCHEMA_LOCK` inteiramente internas a `app.py`; menções em
+`fluxoly_vendas_repository.py`/`tests/test_inc002_unique_index_os_mercado_phone.py` são proveniência
+histórica em comentário, não dependência funcional — não tocadas.
+
+**Mudanças em `app.py`:**
+- `conectar()`: perde a chamada a `criar_tabelas()`, vira conexão pura. Docstring atualizada.
+- `criar_tabelas()`: removida por inteiro (695 linhas) — já duplicada em `migrations/versions/m0001_baseline.py`
+  desde a Fatia 1.
+- `SCHEMA_LOCK`/`SCHEMA_READY`: removidas (globais inteiramente internas à função removida).
+- `forcar_migracao_schema()`: vira `run_migrations()` — mesmo contrato zero-args, `api_backup.py`/
+  `fluxoly_blueprint_registry.py` não precisaram de nenhuma mudança.
+- Bootstrap de módulo: `criar_tabelas()` → `run_migrations()`, mesma posição.
+- Import novo: `from migrations.runner import run_migrations`.
+- Imports órfãos removidos por consequência direta: `contextlib`, `normalizar_modelo_iphone` (únicos
+  usos eram dentro da função removida).
+
+**Mudanças em testes (consequência mecânica direta, não escopo novo):**
+- `tests/conftest.py`: removida a chamada `_app.criar_tabelas()` — já redundante antes (o bootstrap de
+  módulo, disparado por `import app` na linha 19 do mesmo arquivo, já garantia o schema).
+- `tests/test_migrations.py`: `TestEquivalenciaComOMecanismoAntigo` (Fatia 1, comparava contra
+  `app.py::criar_tabelas()`) substituído por `TestBootstrapDeAppUsaRunMigrations` — a premissa de
+  comparação deixou de existir nesta fatia (não há mais "mecanismo antigo" para comparar). Novo teste
+  confirma que `app.py` não expõe mais `criar_tabelas`/`SCHEMA_READY`/`SCHEMA_LOCK`, e que a conexão real
+  da aplicação já tem `schema_migrations = ["0001"]` após o bootstrap.
+
+**Validação:**
+- **Banco vazio → bootstrap → migrations → aplicação funcional**, testado ponta a ponta num processo
+  isolado (`IR_FLOW_DATA_DIR` novo): `import app` sem exceção, `schema_migrations = [("0001",)]`, admin
+  padrão criado, 17 reparos padrão sincronizados, `GET /health` real respondendo `200`
+- `ruff check`/`black --check`/`isort` limpos (`app.py`, `tests/conftest.py`, `tests/test_migrations.py`)
+- Suíte completa: **696 passando** (695 − 1 obsoleto + 2 novos), 0 regressões
+- `graphify update .` rodado
+- Commit `6ee6528`, push, **CI verde**
+
+Nenhuma limpeza adicional feita fora do escopo desta fatia (DB connection/PRAGMA, schema/migrations em si,
+helpers de dashboard, `ROUTE_PERMISSIONS`/middleware — todos intocados, mesma disciplina da TD-02).
+
+---
+
+## Architecture Checkpoint Final — TD-03 (2/2 fatias concluídas, 2026-08-08)
+
+| Métrica | Antes (2026-08-07, KI-004 aberto) | Depois (2026-08-08) |
+|---|---|---|
+| `app.py` — linhas totais | 1.749 (pós-TD-02) | **1.053** (-696, -40%) |
+| Mecanismo de schema | `criar_tabelas()` ad-hoc, sem versionamento, acoplado a `conectar()` | `migrations/` (registry Python, `schema_migrations`), `conectar()` puro |
+| Migrations aplicáveis a qualquer estado de banco (vazio/atrasado/atualizado) | Implícito, sem registro | Explícito — `schema_migrations`, validado contra backup real de produção |
+| Rollback | Não definido | Roll-forward only (decisão aprovada, Phase 1 seção 10) |
+| Testes de schema/migration dedicados | 0 | 13 (`tests/test_migrations.py`) |
+
+`app.py` termina a TD-03 sem nenhuma responsabilidade de schema — só bootstrap (`FLASK_SECRET_KEY`,
+cookie de sessão, `app = Flask(...)`), conexão SQLite pura (`conectar()`), helpers de dashboard/alertas/
+custos (fora de escopo), `ROUTE_PERMISSIONS`/`verificar_autenticacao()`, health checks, SPA/thread de
+sync, e a montagem de `RuntimeDeps` + `registrar_blueprints` (TD-02) + `run_migrations()` (TD-03).
+
+Ambas as fatias: commit isolado, suíte completa sem regressão, Ruff/Black/isort limpos, Graphify
+atualizado, CI verde. A Fatia 1 foi validada contra um backup real de produção antes da Fatia 2 remover a
+rede de segurança — nenhuma decisão de risco tomada sem evidência empírica.
+
+**KI-004 movida para Resolvidos em `docs/operations/KNOWN_ISSUES.md`. TD-03 movida para Resolvidas em
+`docs/operations/PROJECT_STATUS.md`.**

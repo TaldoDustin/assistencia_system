@@ -609,6 +609,24 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `graphify update .` rodado. KI-032 movida para Resolvidos. Ver `docs/operations/PROJECT_STATUS.md`
   (TD-18)
 
+### Adicionado (2026-08-08 — TD-03 Phase 2, Fatia 1/2: pacote `migrations/`)
+- `migrations/` (`registry.py`, `runner.py`, `versions/m0001_baseline.py`) — sistema formal de migrations
+  (Opção C aprovada, registry Python, ver `docs/operations/SPRINTS/SPRINT_TD03_MIGRATIONS_FORMAIS.md`).
+  `m0001_baseline.py` (698 linhas) é cópia verbatim de `app.py::criar_tabelas()` (24 `CREATE TABLE`, 37
+  `ALTER TABLE` aditivos, 22 `CREATE INDEX`, 1 `DROP`+`CREATE INDEX`, 4 blocos de backfill de dados) — não
+  colapsada nas colunas finais, para converger corretamente em banco vazio, atrasado, ou já atualizado.
+  Confirmado por teste dedicado que o schema gerado bate byte-a-byte (após normalizar espaços) com o
+  schema real de `criar_tabelas()`. `runner.py` implementa `schema_migrations`, execução ordenada via
+  registry explícito, idempotência, commit por migration, e o mesmo tratamento de "database is locked"
+  já usado hoje. **Rede de segurança da Fatia 1 mantida integralmente: `app.py` não foi alterado** —
+  `criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK` continuam sendo o mecanismo real, chamado por
+  `conectar()` exatamente como antes; `migrations/` é aditivo e isolado, exercitado só pela própria suíte
+  (`tests/test_migrations.py`, 12 testes). Achado da implementação: contrato de migration ajustado de
+  `apply(cursor)` para `apply(cursor, conn)` — necessário para preservar o `conn.commit()` intermediário
+  do `criar_tabelas()` original entre o DDL e os backfills. 695 testes no total (683 + 12), `ruff`/`black`
+  limpos, `graphify update .` rodado, `git diff --stat app.py` confirmado vazio antes do commit, CI verde.
+  Fatia 2 (wireing em `app.py` + remoção do mecanismo antigo) fica para depois de validação em produção.
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

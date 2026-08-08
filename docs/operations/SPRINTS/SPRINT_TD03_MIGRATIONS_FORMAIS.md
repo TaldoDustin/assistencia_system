@@ -418,3 +418,63 @@ mecanismo novo.
 - [x] Transição de `criar_tabelas()` definida e aprovada (2 fatias, rede de segurança até validação)
 - [x] Testes novos obrigatórios da Fatia 1 listados
 - [x] Aprovação do CTO para iniciar a Phase 2 (Fatia 1) — 2026-08-08, com as 3 decisões acima fechadas
+
+---
+
+## Phase 2 — Fatia 1: pacote `migrations/` (CONCLUÍDA em 2026-08-08)
+
+Implementação estritamente aditiva, conforme determinado: **`app.py` não foi tocado nesta fatia** —
+`criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK` e a chamada dentro de `conectar()` continuam sendo o
+mecanismo real em produção, inalterados. `migrations/` é construído e testado de forma isolada.
+
+**Arquivos criados:**
+
+```
+migrations/
+├── __init__.py
+├── registry.py                  # MIGRATIONS = [m0001_baseline] -- lista explícita
+├── runner.py                    # run_migrations(conn=None) -- 79 linhas
+└── versions/
+    ├── __init__.py
+    └── m0001_baseline.py         # 698 linhas -- cópia verbatim de criar_tabelas()
+tests/test_migrations.py          # 262 linhas, 12 testes
+```
+
+**Ajuste de contrato encontrado na implementação (fora do previsto na Phase 1):** `apply(cursor)` virou
+`apply(cursor, conn)` — o `criar_tabelas()` original faz um `conn.commit()` no meio do corpo (entre o
+DDL e os 4 blocos de backfill de dados, linha 1067 do original), e `apply()` precisa da conexão para
+preservar esse checkpoint exatamente como estava. Ajuste mínimo, não muda nenhuma das 3 decisões
+aprovadas — sinalizado aqui para o registro, mesmo padrão de transparência já usado para o achado de
+`parse_data_ymd` na TD-02 Fatia 3.
+
+**Validação de equivalência (não estava no checklist original, feita por rigor):** comparado o schema
+gerado por `run_migrations()` contra o schema real produzido por `app.py::criar_tabelas()` (mesmo
+processo, banco `IR_FLOW_DATA_DIR` de teste) — `SELECT sql FROM sqlite_master`, normalizando espaços em
+branco. **Zero divergência** — mesmas 24 tabelas, mesmas colunas, mesmos 22 índices, byte-a-byte.
+Também virou teste automatizado
+(`TestEquivalenciaComOMecanismoAntigo::test_schema_gerado_bate_com_criar_tabelas_original`).
+
+**Os 12 testes obrigatórios da seção 12 (Phase 1), todos implementados:**
+- Baseline em banco vazio: 24 tabelas + 22 índices confirmados (2 testes) + retorno do ID aplicado
+- Idempotência: rodar duas vezes não reaplica; `schema_migrations` fica só com `["0001"]`; reaplicar a
+  migration diretamente não duplica o backfill de `estoque_lotes`
+- Banco "atrasado" simulado (schema mínimo, sem os 37 `ALTER TABLE`) — baseline completa corretamente
+  (prova direta da decisão da seção 6 desta Phase 1)
+- Ordem de execução do registry: nunca vazio, sempre começa em `0001`, IDs únicos e crescentes
+- Proteção contra `locked`: erro com "locked" retorna lista vazia sem propagar; erro sem "locked" propaga
+  normalmente
+- Equivalência byte-a-byte com o mecanismo antigo (achado acima)
+
+**Validação:**
+- `ruff check`/`black --check` limpos (`migrations/`, `tests/test_migrations.py`)
+- Suíte completa: **695 passando** (683 + 12 novos), 0 regressões — esperado, já que `app.py` não mudou
+- `graphify update .` rodado
+- `git diff --stat app.py` confirmado vazio antes do commit — nenhuma alteração acidental
+- Commit `17ef223`, push, CI verde
+
+Nenhuma limpeza ou remoção do mecanismo antigo feita nesta fatia — rede de segurança da Fatia 1 mantida
+integralmente, conforme determinado.
+
+**Próximo passo: Fatia 2**, só depois de validação em produção — wireing de `app.py`/`conectar()` para
+`run_migrations()`, remoção de `criar_tabelas()`/`SCHEMA_READY`/`SCHEMA_LOCK`, atualização de
+`api_backup.py::forcar_migracao_schema()`, e fechamento de KI-004.

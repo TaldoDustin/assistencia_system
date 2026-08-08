@@ -648,6 +648,40 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   encerrada — 2/2 fatias. KI-004 resolvido.** Ver
   `docs/operations/SPRINTS/SPRINT_TD03_MIGRATIONS_FORMAIS.md` (Architecture Checkpoint Final)
 
+### Adicionado (2026-08-08 — Financeiro Mínimo, backend: BR-067 a BR-069)
+- `migrations/versions/m0002_financeiro_minimo.py` — primeira migration de negócio sobre o mecanismo
+  formal da TD-03: tabelas `movimentacoes_caixa`, `contas_pagar`, `contas_receber` e o índice único
+  parcial `idx_movimentacoes_caixa_venda_ativa` (guardião de BR-069 no banco).
+- `fluxoly_caixa_controller.py`/`_service.py`/`_repository.py` — CRUD de movimentação manual, saldo
+  (`SOMA(entradas não estornadas) − SOMA(saídas não estornadas)`), relatório de fluxo de caixa simples, e
+  os hooks cursor-based `registrar_entrada_de_venda`/`estornar_entrada_de_venda` usados por Vendas (nunca
+  abrem conexão própria — mesma transação do chamador).
+- `fluxoly_contas_pagar_*.py` / `fluxoly_contas_receber_*.py` — CRUD, transição de status, baixa lança a
+  movimentação de caixa correspondente na mesma transação. Contas a Receber sem qualquer FK ou relação
+  com o domínio Vendas (BR-068, isolamento verificado por teste).
+- `fluxoly_vendas_service.py::iniciar_venda()`/`cancelar_venda()` — chamam os hooks de caixa antes do
+  `conn.commit()`: venda concluída sempre gera entrada, cancelamento sempre estorna, nunca uma transação
+  separada (BR-069). Achado da revisão final do plano: precisava seguir o mesmo padrão cursor-based já
+  usado para `unidades_service.marcar_como_vendida`/`liberar_unidade_para_venda`.
+- `fluxoly_blueprint_registry.py` — registro dos blueprints `/api/caixa`, `/api/contas-pagar`,
+  `/api/contas-receber` (gate `admin`/`financeiro`, `usuario_pode_financeiro()`).
+- 38 testes novos (`tests/test_caixa.py`, `tests/test_contas_pagar.py`, `tests/test_contas_receber.py`):
+  hook de Vendas (criação, idempotência, índice único parcial no banco, cancelamento/estorno, saldo),
+  CRUD e baixa de Contas a Pagar/Receber, isolamento de Contas a Receber em relação a Vendas. 734 testes
+  no total do projeto, `ruff`/`black`/`isort` limpos, `graphify update .` rodado. QA manual de ponta a
+  ponta via requisição HTTP real contra servidor isolado confirmando venda→entrada de caixa,
+  cancelamento→estorno, saldo recalculado, e baixa de Contas a Pagar/Receber. Ver
+  `docs/engineering/plans/PLAN-financeiro-minimo.md` e `docs/product/BUSINESS_RULES.md` (seção
+  Financeiro, BR-067 a BR-069). **Pendente:** tela no frontend, Revisão Arquitetural e Encerramento
+  formal (ADR-010).
+
+### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
+- `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
+  (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,
+  removida do ruff moderno (0.16.x, usado localmente e no CI) e por isso nunca aparecia no
+  `ruff check .`. Correção mecânica isolada, sem mudança de comportamento, commitada separadamente do
+  Financeiro Mínimo para não misturar cleanup com feature nova.
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

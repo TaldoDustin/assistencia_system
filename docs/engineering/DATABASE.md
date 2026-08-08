@@ -324,6 +324,73 @@ unidade após cancelamento sem perder o histórico da venda cancelada. Ver
 `irflow_unidades_serializadas_service.py::marcar_como_vendida`/`liberar_unidade_para_venda`, que fazem
 `UPDATE ... WHERE status=...` como segunda camada de proteção contra corrida.
 
+### `movimentacoes_caixa`
+
+Financeiro Mínimo (2026-08-08, `docs/engineering/plans/PLAN-financeiro-minimo.md`, BR-067 a BR-069) —
+primeira tabela de negócio criada pelo mecanismo formal de migrations (`migrations/versions/
+m0002_financeiro_minimo.py`, TD-03). `fluxoly_caixa_controller.py`/`_service.py`/`_repository.py`.
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `tipo` | TEXT NOT NULL | `'entrada'` \| `'saida'` |
+| `valor` | REAL NOT NULL | sempre positivo — o sinal vem de `tipo`, nunca do valor |
+| `descricao` | TEXT | |
+| `origem` | TEXT NOT NULL | `DEFAULT 'manual'` — `'manual'` \| `'venda'` \| `'conta_pagar'` \| `'conta_receber'` |
+| `origem_id` | INTEGER | FK lógica **polimórfica** — aponta para `vendas.id`/`contas_pagar.id`/`contas_receber.id` conforme `origem` |
+| `estornada` | INTEGER NOT NULL | `DEFAULT 0` — estorno nunca apaga a linha (preserva auditoria), só remove do cálculo de saldo |
+| `usuario_id` | INTEGER | FK lógica: `usuarios.id` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+
+**Índices:** `idx_movimentacoes_caixa_origem` (`origem, origem_id`); `idx_movimentacoes_caixa_tipo_estornada`
+(`tipo, estornada`); `idx_movimentacoes_caixa_venda_ativa` (**`UNIQUE` parcial**, `WHERE origem = 'venda'
+AND estornada = 0`, BR-069) — guardião real no banco de que uma venda nunca tem duas entradas de caixa
+ativas simultâneas, mesmo padrão de `idx_vendas_itens_unidade_ativa`.
+
+Saldo de caixa é sempre `SOMA(entradas não estornadas) − SOMA(saídas não estornadas)`
+(`fluxoly_caixa_repository.py::calcular_saldo`).
+
+### `contas_pagar`
+
+Financeiro Mínimo — `fluxoly_contas_pagar_controller.py`/`_service.py`/`_repository.py`.
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `descricao` | TEXT NOT NULL | |
+| `categoria` | TEXT | |
+| `valor` | REAL NOT NULL | |
+| `data_vencimento` | TEXT | |
+| `status` | TEXT NOT NULL | `DEFAULT 'pendente'` — `'pendente'` \| `'pago'` \| `'cancelado'` |
+| `movimentacao_caixa_id` | INTEGER | FK lógica: `movimentacoes_caixa.id` — preenchida só quando `status` vira `'pago'` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+| `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
+
+Baixa (`status: pendente -> pago`) é compare-and-swap (`UPDATE ... WHERE status='pendente'`) e lança a
+saída de caixa correspondente na mesma transação (`fluxoly_caixa_service.registrar_saida_de_conta_pagar`,
+cursor compartilhado).
+
+### `contas_receber`
+
+Financeiro Mínimo — `fluxoly_contas_receber_controller.py`/`_service.py`/`_repository.py`. Espelho de
+`contas_pagar`, com **nenhuma FK ou relação com o domínio Vendas** (BR-068, deliberado — representa só
+compromissos financeiros gerais, não parcelamento/inadimplência de venda).
+
+| Coluna | Tipo | Default |
+|--------|------|---------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `descricao` | TEXT NOT NULL | |
+| `categoria` | TEXT | |
+| `valor` | REAL NOT NULL | |
+| `data_vencimento` | TEXT | |
+| `status` | TEXT NOT NULL | `DEFAULT 'pendente'` — `'pendente'` \| `'recebido'` \| `'cancelado'` |
+| `movimentacao_caixa_id` | INTEGER | FK lógica: `movimentacoes_caixa.id` — preenchida só quando `status` vira `'recebido'` |
+| `criado_em` | TEXT NOT NULL | `datetime('now')` |
+| `atualizado_em` | TEXT NOT NULL | `datetime('now')` |
+
+Baixa (`status: pendente -> recebido`) é compare-and-swap e lança a entrada de caixa correspondente na
+mesma transação (`fluxoly_caixa_service.registrar_entrada_de_conta_receber`).
+
 ### `compras` — lista de compras (versão legada/simplificada)
 
 | Coluna | Tipo | Default |

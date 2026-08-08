@@ -2,7 +2,8 @@
 
 **Data:** 2026-08-08
 **Feature:** `docs/company/RELEASE_STRATEGY.md` — "Financeiro mínimo"; `docs/product/BUSINESS_RULES.md` BR-067 a BR-069
-**Status:** Aguardando revisão final do CTO antes de criar a migration `m0002`
+**Status:** Implementado e validado (testes automatizados + QA manual de ponta a ponta) — aguardando
+Revisão Arquitetural / Encerramento formal do CTO
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -11,10 +12,14 @@
 **Estado**
 
 - [x] Discovery — aprovada (BR-067 a BR-069, `docs/product/BUSINESS_RULES.md`, 2026-08-08)
-- [ ] Plano Técnico — este documento, aguardando revisão final antes da implementação
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
+- [x] Plano Técnico — revisado contra o código real de Vendas, 2 refinamentos incorporados (commit `9cab1e9`)
+- [x] Implementação — migration `m0002` (commit `5910bb7`), domínio Caixa + Contas a Pagar/Receber +
+  hook de Vendas + registro dos blueprints (commit `c1bcc61`)
+- [x] Testes — 38 testes novos (`tests/test_caixa.py`, `tests/test_contas_pagar.py`,
+  `tests/test_contas_receber.py`) + suíte completa (734/734) verde
+- [x] QA Manual — fluxo de ponta a ponta via requisição HTTP real contra servidor isolado
+  (`IR_FLOW_DATA_DIR` dedicado): login, venda → entrada de caixa, cancelamento → estorno, saldo
+  recalculado, Conta a Pagar → baixa → saída de caixa, Conta a Receber → baixa → entrada de caixa
 - [ ] Revisão Arquitetural
 - [ ] Encerramento
 

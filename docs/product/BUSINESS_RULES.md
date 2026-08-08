@@ -504,36 +504,38 @@ confirmada, para não inflar o número de "especificadas" com algo ainda não de
 
 ---
 
-## Financeiro (especificado, não implementado)
+## Financeiro (Financeiro Mínimo)
 
 Decisões tomadas em Discovery formal (ADR-010) entre CTO e engenharia (2026-08-08), a partir da proposta
 de escopo mínimo de `docs/company/RELEASE_STRATEGY.md` ("Financeiro mínimo": Caixa, Entradas, Saídas,
 Contas a Pagar, Contas a Receber, Fluxo de Caixa simples). Ver
-`docs/engineering/plans/PLAN-financeiro-minimo.md` para o plano técnico. Nenhuma delas está no código
-ainda.
+`docs/engineering/plans/PLAN-financeiro-minimo.md` para o plano técnico e o registro de implementação.
 
-**BR-067 — 📋 Especificado**
+**BR-067 — ✅ Implementado (2026-08-08, commit c1bcc61)**
 Custos Operacionais e Caixa são módulos independentes — nenhum lançamento em `custos_operacionais` gera
 movimentação de caixa automaticamente. Lançar as duas coisas é responsabilidade manual do usuário quando
 fizer sentido. Testes de cobertura para `custos_operacionais` (lacuna pré-existente, sem relação direta
-com esta feature) podem ser adicionados junto se pequenos e isolados, mas não são critério de aceite do
-Financeiro Mínimo.
+com esta feature) não foram adicionados nesta sprint — não eram critério de aceite do Financeiro Mínimo.
 *Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0).*
 
-**BR-068 — 📋 Especificado**
+**BR-068 — ✅ Implementado (2026-08-08, commit c1bcc61)**
 Contas a Receber representa só compromissos financeiros gerais (ex.: reembolso pendente, aluguel de
 equipamento a receber) — sem FK ou qualquer relação com o domínio Vendas. Vendas continua sem conceito de
-parcelamento/inadimplência nesta release.
+parcelamento/inadimplência nesta release. `fluxoly_contas_receber_repository.py`/`_service.py` não
+importam nem consultam nada do domínio Vendas (isolamento verificado por teste,
+`tests/test_contas_receber.py::TestIsolamentoDeVendasBR068`).
 *Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0).*
 
-**BR-069 — 📋 Especificado**
+**BR-069 — ✅ Implementado (2026-08-08, commit c1bcc61)**
 Venda com `status='concluida'` gera automaticamente uma entrada em `movimentacoes_caixa` no valor de
 `vendas.valor_total`, vinculada à venda (`origem='venda'`, `origem_id=vendas.id`). Se a venda for
 cancelada (BR-031 a BR-036), a entrada correspondente é estornada automaticamente (`estornada=1`) — uma
 mesma venda nunca pode ter duas entradas ativas simultâneas, e o hook de criação é idempotente (chamar o
 fluxo de conclusão mais de uma vez para a mesma venda nunca duplica a entrada). Saldo de caixa é sempre
 `SOMA(entradas não estornadas) − SOMA(saídas não estornadas)`; uma movimentação estornada permanece
-registrada no histórico (nunca é apagada), só é excluída do cálculo de saldo — preserva auditoria.
+registrada no histórico (nunca é apagada), só é excluída do cálculo de saldo — preserva auditoria. O
+índice único parcial `idx_movimentacoes_caixa_venda_ativa` (`migrations/versions/m0002_financeiro_minimo.py`)
+é o guardião real da regra no banco, não só a checagem em `fluxoly_caixa_service.registrar_entrada_de_venda`.
 *Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0), consistente com o
 Princípio da Imutabilidade da Venda (BR-034) e o padrão de estorno já usado em BR-033.*
 

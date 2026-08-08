@@ -6,7 +6,34 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-08
-**Próxima revisão:** Fase 1 (Financeiro mínimo, Release 1.0) — sem dívida técnica estrutural pendente das TD-01/02/03/18. Sequência recente: ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+**Próxima revisão:** Fase 1 (Financeiro mínimo, Release 1.0) — backend implementado e validado (BR-067 a
+BR-069, 2026-08-08), falta a tela no frontend. Sequência recente: 🟡 **Financeiro Mínimo — backend
+implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo)** → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069)
+
+**Ver `docs/engineering/plans/PLAN-financeiro-minimo.md` e `docs/product/BUSINESS_RULES.md` (seção
+Financeiro) para o plano técnico e as regras de negócio completas.**
+
+Primeira feature de negócio construída sobre o mecanismo formal de migrations da TD-03
+(`migrations/versions/m0002_financeiro_minimo.py`): tabelas `movimentacoes_caixa`, `contas_pagar`,
+`contas_receber`. Domínio Caixa (`fluxoly_caixa_*.py`) + Contas a Pagar/Receber
+(`fluxoly_contas_pagar_*.py`/`fluxoly_contas_receber_*.py`), seguindo a convenção
+controller/service/repository. Hook automático em `fluxoly_vendas_service.py`: venda concluída gera
+entrada de caixa, cancelamento estorna — mesma transação, idempotente, guardião real no banco via
+`idx_movimentacoes_caixa_venda_ativa` (índice único parcial). Contas a Receber sem qualquer relação com
+o domínio Vendas (BR-068, isolamento verificado por teste).
+
+38 testes novos (`tests/test_caixa.py`, `tests/test_contas_pagar.py`, `tests/test_contas_receber.py`),
+734/734 no total do projeto, `ruff check .` limpo, QA manual de ponta a ponta via requisição HTTP real
+(servidor isolado, `IR_FLOW_DATA_DIR` dedicado) confirmando venda→entrada, cancelamento→estorno, saldo
+recalculado, e baixa de Contas a Pagar/Receber.
+
+**Pendente:** tela no frontend (`Caixa.jsx`/`Financeiro.jsx`) — não fazia parte do escopo desta
+implementação, que cobriu migration + backend + testes + QA manual do backend. Revisão Arquitetural e
+Encerramento formal (ADR-010) do plano também pendentes.
 
 ---
 

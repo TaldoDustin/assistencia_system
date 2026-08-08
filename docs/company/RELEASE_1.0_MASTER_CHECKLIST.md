@@ -82,9 +82,12 @@ item abaixo.
   Link: `docs/product/PRODUCT_BACKLOG.md`, `docs/product/features/VENDAS.md`
 
 - [ ] **Financeiro mínimo** — caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples
-  Estado: ❌ Não iniciado — nenhuma tela, rota ou tabela de domínio financeiro existe hoje
-  (confirmado: sem página `Caixa`/`Financeiro` em `frontend/src/pages/`).
-  Link: `docs/company/RELEASE_STRATEGY.md` (Financeiro mínimo x avançado)
+  Estado: 🟡 Backend implementado e validado (2026-08-08, BR-067 a BR-069): `movimentacoes_caixa`,
+  `contas_pagar`, `contas_receber` (migration `m0002`), `/api/caixa`, `/api/contas-pagar`,
+  `/api/contas-receber`, hook automático Vendas→Caixa. Falta a tela no frontend (nenhuma página
+  `Caixa`/`Financeiro` em `frontend/src/pages/` ainda).
+  Link: `docs/company/RELEASE_STRATEGY.md` (Financeiro mínimo x avançado),
+  `docs/engineering/plans/PLAN-financeiro-minimo.md`
 
 - [ ] **Dashboard Executivo**
   Estado: 🟡 Parcial — dashboard básico existe (`frontend/src/pages/Dashboard.jsx`, KPIs de

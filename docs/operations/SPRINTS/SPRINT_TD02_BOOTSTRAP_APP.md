@@ -1,6 +1,6 @@
 # SPRINT TD-02 — Bootstrap de `app.py`
 
-**Status:** EM ANDAMENTO (Phase 2 — Fatia 1: `fluxoly_config.py`)
+**Status:** EM ANDAMENTO (Phase 2 — Fatia 3/4 concluída: `fluxoly_blueprint_registry.py`; próxima: Fatia 4 — webhook MercadoPhone)
 **Início:** 2026-08-07
 **Tipo:** Refatoração (arquitetura)
 
@@ -491,3 +491,46 @@ factory uma vez, logo após computar `cors_origins`.
   `app.py --imports_from--> fluxoly_app_security` confirmada via `graphify explain`
 
 Nenhuma limpeza adicional feita fora do bloco C (mesma disciplina da Fatia 1).
+
+---
+
+## Phase 2 — Fatia 3: `fluxoly_blueprint_registry.py` (CONCLUÍDA em 2026-08-08)
+
+Núcleo da sprint. As 20 chamadas `app.register_blueprint(...)` do bloco K (auth + 12 domínios TD-01 +
+`fluxoly_blueprints_api.py` vazio + 5 domínios controller/service/repository) movidas para
+`fluxoly_blueprint_registry.py::registrar_blueprints(app, runtime)` -- mesma ordem, mesmos dicts de
+`deps`, nenhuma factory `create_*_blueprint` mudou. Todos os comentários históricos de decisão da TD-01
+(por que cada chave saía ou continuava duplicada entre `create_api_blueprint` e o domínio extraído)
+preservados junto de cada chamada, não descartados na movimentação.
+
+**Achado durante a implementação, fora do mapeamento original de 8 campos da Phase 1 (seção 3):**
+`parse_data_ymd` -- função pura definida em `app.py` (bloco E, "Helpers soltos"), sem closure sobre
+estado de runtime, mas só existindo em `app.py` e consumida como `deps` por 3 blueprints (`main_views`,
+`api_garantias`, `api_os`). Duas opções levantadas: (a) 9º campo em `RuntimeDeps`, mesmo padrão de
+`conectar`; (b) mover a função para `fluxoly_core.py` (perto de `texto_limpo`, que ela já usa), mantendo
+`RuntimeDeps` em exatamente 8 campos. **Decisão do usuário (CTO, 2026-08-08): opção (a)** -- fatia
+cirúrgica, sem decisão arquitetural adicional sobre onde `parse_data_ymd` deveria morar. `RuntimeDeps`
+fica com 9 campos; a função permanece fisicamente em `app.py`, não movida.
+
+**`RuntimeDeps` final (9 campos):** `conectar`, `carregar_tabelas_preco`, `salvar_tabelas_preco`,
+`forcar_migracao_schema`, `mercado_phone_runtime_config`, `mercado_phone_helpers`,
+`listar_custos_operacionais`, `obter_alertas_sistema`, `parse_data_ymd`.
+
+**Validação:**
+- `ruff check app.py fluxoly_blueprint_registry.py` / `black --check` / `isort` (via pre-commit) → limpos
+- `app.url_map` antes/depois: **122 rotas, diff idêntico** (mesmo método das Fatias 1-2)
+- Suíte completa: **683 passando**, 0 regressões -- validado com atenção especial aos 3 consumidores de
+  `parse_data_ymd` (`main_views`, `api_garantias`, `api_os`)
+- `graphify update .` rodado -- `app.py --imports_from--> fluxoly_blueprint_registry.py` confirmado via
+  `graphify explain`
+- Verificação pós-commit de `app.py`: responsabilidades restantes batem exatamente com a matriz "Depois"
+  da Phase 1 (seção 13) -- bootstrap Flask, conexão SQLite, schema/migrations, webhook MercadoPhone
+  inline (bloco H, aguardando Fatia 4), helpers de dashboard/alertas/custos (bloco I, fora de escopo),
+  `ROUTE_PERMISSIONS`/`verificar_autenticacao`, health checks, SPA/thread de sync, e a única chamada
+  `registrar_blueprints(app, runtime)` -- nenhum `app.register_blueprint()` restante fora do registry
+- Commit `da309c4`, push, **CI verde** (6/6 checks: Lint, Frontend Quality, Docker Build, Backend Tests,
+  Frontend Build, Coverage Report)
+
+`app.py`: 2.341 → 1.923 linhas (-418, -18%).
+
+Nenhuma limpeza adicional feita fora do bloco K (mesma disciplina das Fatias 1-2).

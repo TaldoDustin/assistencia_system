@@ -538,6 +538,38 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   `docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md` e
   `docs/engineering/API_DEPENDENCY_MATRIX.md`
 
+### Adicionado (2026-08-07 — TD-02 Phase 2, Fatia 1/4: `fluxoly_config.py`)
+- `fluxoly_config.py` — constantes de ambiente/paths/feature-flags (bloco B de `app.py`, ~98 linhas)
+  extraídas para módulo próprio: `os.environ`/derivação de constantes puras, zero import de Flask,
+  testável por importação direta. `app.py` passa a importar 22 nomes de `fluxoly_config`; `import
+  shutil` removido de `app.py` por ter ficado sem uso. `app.url_map` idêntico (122 rotas), 682 testes
+  passando (1 falha pré-existente/ambiental confirmada contra `main`, sem relação com a mudança), `ruff
+  check`/`black --check` limpos, `graphify update .` rodado. Ver
+  `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md`
+
+### Adicionado (2026-08-07 — TD-02 Phase 2, Fatia 2/4: `fluxoly_app_security.py`)
+- `fluxoly_app_security.py` — factory `configurar_seguranca(app, cors_origins)`: CORS, headers de
+  segurança (CSP/X-Frame-Options) e os dois `@app.after_request` associados, extraídos do bloco C de
+  `app.py`. `FLASK_SECRET_KEY`, cookie de sessão e cálculo de `cors_origins` permanecem em `app.py`
+  (bootstrap real, único lugar que lê `IR_FLOW_CORS_ORIGINS`/`VERCEL_URL`). `app.url_map` idêntico (122
+  rotas), 682 testes passando, `ruff check`/`black --check` limpos, `graphify update .` rodado. Ver
+  `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md`
+
+### Adicionado (2026-08-08 — TD-02 Phase 2, Fatia 3/4: `fluxoly_blueprint_registry.py`)
+- `fluxoly_blueprint_registry.py` — núcleo da sprint. As 20 chamadas `app.register_blueprint(...)`
+  inline (bloco K de `app.py`) movidas para `registrar_blueprints(app, runtime)`: mesma ordem, mesmos
+  dicts de `deps`, nenhuma factory `create_*_blueprint` mudou. `RuntimeDeps` (dataclass, 9 campos) carrega
+  os valores construídos em runtime dentro de `app.py` que não podem ser importados direto sem criar
+  import circular: `conectar`, `carregar_tabelas_preco`, `salvar_tabelas_preco`,
+  `forcar_migracao_schema`, `mercado_phone_runtime_config`, `mercado_phone_helpers`,
+  `listar_custos_operacionais`, `obter_alertas_sistema`, e `parse_data_ymd` — 9º campo, achado durante a
+  implementação (função pura definida em `app.py`, fora do mapeamento original de 8 campos da Phase 1,
+  consumida por `main_views`/`api_garantias`/`api_os`; decisão do usuário — CTO — de adicionar como campo
+  em vez de mover a função de lugar nesta fatia). `app.py`: 2.341 → 1.923 linhas (-418, -18%), termina só
+  montando o `RuntimeDeps` e chamando `registrar_blueprints(app, runtime)`. `app.url_map` idêntico (122
+  rotas), 683 testes passando, `ruff`/`black`/`isort` limpos, `graphify update .` rodado, CI verde (6/6
+  checks). Ver `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

@@ -38,7 +38,7 @@ Done em `SPRINT_TD01_MODULARIZACAO_API.md`, Phase 2).
 | `api_stock.py` | 6 | 7 | 3 | `fluxoly_os`, `fluxoly_reference_data` |
 | `api_reports.py` ✅ extraído | 6 | 3 | 8 | `fluxoly_reports` |
 | `api_backup.py` ✅ extraído | 4 | 5 | 10 | `fluxoly_storage` |
-| `api_mercadophone.py` ✅ extraído | 7 | 9 | 9 | `fluxoly_mercadophone` |
+| `api_mercadophone.py` ✅ extraído | 8 | 9 | 9 | `fluxoly_mercadophone` |
 | `api_system.py` ✅ extraído | 3 | 5 (3 genéricos + `_sanitize_list`/`_sanitize_nested_obj`) | 21 | `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data` (não `fluxoly_reports` — correção da Discovery Local, nenhuma chamada real encontrada) |
 | `api_os.py` (+Reparos) | 17 | 11 | 32 | `fluxoly_audit`, `fluxoly_core`, `fluxoly_os`, `fluxoly_reference_data`, `fluxoly_reports`, `fluxoly_tipos_garantia_service` |
 
@@ -160,10 +160,20 @@ extração dos dois domínios com maior acoplamento cruzado da Phase 2.
 - **Deps (10):** `backup_dir`, `backup_email_destino`, `backup_email_remetente`, `backup_email_senha_app`, `conectar`, `criar_backup`, `db_path`, `enviar_backup_email`, `forcar_migracao_schema`, `google_drive_backup_dir`
 - **Serviços:** `fluxoly_storage` (a maioria das deps é configuração/string, não chamada de lógica — complexidade real menor do que a contagem sugere). `garantir_pasta_backup_google_drive` permanece como dep morta em `create_api_blueprint` (Phase 0, candidata a limpeza na Phase 3) — não pertence a este domínio
 
-### `api_mercadophone.py` ✅ extraído em 2026-08-06
+### `api_mercadophone.py` ✅ extraído em 2026-08-06; webhook adicionado na TD-02 Fatia 4 (2026-08-08)
 - **Helpers:** `_executar_reimportacao_mp_async`, `_executar_reprocessamento_mp_async`, `_snapshot_reimportacao_mp`, `_snapshot_reprocessamento_mp`, `_to_bool` (específicos do domínio); `err`, `ok`, `usuario_admin`, `usuario_logado`, `_texto_limpo_local` (de `fluxoly_api_helpers.py`). `_carregar_config_mercadophone`/`_atualizar_runtime_mercadophone` **não migraram como helper** — foram promovidas a `carregar_config_mercadophone()`/`atualizar_runtime_mercadophone()` em `fluxoly_mercadophone.py` (funções de serviço com parâmetros explícitos, não closures), porque `listar_ordens()` (domínio OS, ainda não extraído) também as usa — achado da Discovery, ver log de execução da Phase 2
-- **Deps (9):** `conectar`, `integrations_config_path`, `mercado_phone_helpers`, `mercado_phone_runtime_config`, `reimportar_todas_os_mercado_phone`, `reprocessar_todas_os_mercado_phone`, `salvar_configuracoes_integracoes`, `sincronizar_mercado_phone`, `carregar_configuracoes_integracoes`
+- **Deps (9, inalterado pela TD-02 Fatia 4):** `conectar`, `integrations_config_path`, `mercado_phone_helpers`, `mercado_phone_runtime_config`, `reimportar_todas_os_mercado_phone`, `reprocessar_todas_os_mercado_phone`, `salvar_configuracoes_integracoes`, `sincronizar_mercado_phone`, `carregar_configuracoes_integracoes`
 - **Serviços:** `fluxoly_mercadophone`
+- **8ª rota (TD-02 Fatia 4, movida de `app.py`):** `POST /integracoes/mercadophone/os` (webhook) —
+  `receber_os_mercado_phone()` + `autenticar_integracao_mercado_phone()`. **Único ponto do blueprint que
+  não autentica via `usuario_logado()`/sessão** — token compartilhado (`MERCADO_PHONE_WEBHOOK_TOKEN`,
+  `hmac.compare_digest`), chamado pelo servidor externo da Mercado Phone. Zero chave nova em `deps`:
+  `MERCADO_PHONE_WEBHOOK_TOKEN` (`fluxoly_config`), `importar_os_mercado_phone`/
+  `detalhar_os_mercado_phone` (`fluxoly_mercadophone`) importados direto no topo do arquivo — mesmo
+  padrão já usado para `atualizar_runtime_mercadophone`/`carregar_config_mercadophone`. Logger próprio
+  do módulo (`get_logger("api_mercadophone")`), não injetado via `deps`. `mercado_phone_runtime_config`/
+  `mercado_phone_helpers` reaproveitados dos já existentes em `deps` (mesma referência usada por
+  sync/reprocessar/reimportar).
 
 ### `api_system.py` ✅ extraído em 2026-08-07
 - **Helpers:** `err`, `ok`, `usuario_logado` (de `fluxoly_api_helpers.py`); `_sanitize_list`/

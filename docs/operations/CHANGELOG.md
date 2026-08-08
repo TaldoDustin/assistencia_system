@@ -570,6 +570,29 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   rotas), 683 testes passando, `ruff`/`black`/`isort` limpos, `graphify update .` rodado, CI verde (6/6
   checks). Ver `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md`
 
+### Adicionado (2026-08-08 — TD-02 Phase 2, Fatia 4/4 CONCLUÍDA: webhook MercadoPhone → `api_mercadophone.py`)
+- `api_mercadophone.py` ganha `POST /integracoes/mercadophone/os` (webhook), movido verbatim de `app.py`
+  — `receber_os_mercado_phone()` + `autenticar_integracao_mercado_phone()`, URL efetiva idêntica. Zero
+  chave nova em `deps`: `MERCADO_PHONE_WEBHOOK_TOKEN` (`fluxoly_config`) e `importar_os_mercado_phone`/
+  `detalhar_os_mercado_phone` (`fluxoly_mercadophone`) importados direto no topo do arquivo, mesmo padrão
+  já usado ali para `atualizar_runtime_mercadophone`/`carregar_config_mercadophone`; `mercado_phone_
+  runtime_config`/`mercado_phone_helpers` reaproveitados dos já existentes em `deps`. **Único ponto do
+  blueprint que não autentica por sessão** — token compartilhado (`hmac.compare_digest`), comentário
+  explícito marcando o modelo de auth distinto (decisão do usuário — CTO — de manter no mesmo arquivo por
+  ser o mesmo domínio, não bootstrap). Logger próprio (`get_logger("api_mercadophone")`), não injetado via
+  `deps`. `ROUTE_PERMISSIONS["receber_os_mercado_phone"]` removida de `app.py` (código morto — bypass por
+  `request.path` já a tornava inalcançável). `tests/test_mercadophone_webhook_auth.py`: monkeypatch
+  retargetado de `app` para `api_mercadophone` (token agora é global de módulo lá — necessário porque a
+  fixture `app` de `conftest.py` é session-scoped e o valor seria capturado em closure se fosse passado
+  via `deps`), sem alterar asserts/cenários. `app.py`: 1.923 → 1.749 linhas (bloco do webhook + imports
+  órfãos `hmac`/`abort`/`MERCADO_PHONE_WEBHOOK_TOKEN`/`importar_os_mercado_phone`/
+  `detalhar_os_mercado_phone` removidos). `app.url_map` idêntico (122 rotas), 683 testes passando, smoke
+  test manual com servidor real + token sintético (sem token/errado/correto → 401/401/201), `ruff`/`black`
+  limpos, `graphify update .` rodado, CI verde (6/6 checks). **TD-02 encerrada — 4/4 fatias.**
+  `app.py`: 2.490 → 1.749 linhas (-30%) desde o início da sprint. Ver
+  `docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md` (Architecture Checkpoint Final) e
+  `docs/engineering/API_DEPENDENCY_MATRIX.md`
+
 ### Corrigido (2026-08-05 — INC-001, causa raiz confirmada em produção)
 - `fluxoly_mercadophone.py::_sincronizar_mercado_phone_sem_lock()` mantinha uma única transação de
   escrita aberta durante todo o loop de sincronização (até centenas de registros, cada um com uma

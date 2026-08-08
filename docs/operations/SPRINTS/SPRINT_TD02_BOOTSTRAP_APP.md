@@ -1,6 +1,6 @@
 # SPRINT TD-02 — Bootstrap de `app.py`
 
-**Status:** EM ANDAMENTO (Phase 2 — Fatia 3/4 concluída: `fluxoly_blueprint_registry.py`; próxima: Fatia 4 — webhook MercadoPhone)
+**Status:** CONCLUÍDA (Phase 2 — 4/4 fatias, encerrada em 2026-08-08)
 **Início:** 2026-08-07
 **Tipo:** Refatoração (arquitetura)
 
@@ -534,3 +534,84 @@ fica com 9 campos; a função permanece fisicamente em `app.py`, não movida.
 `app.py`: 2.341 → 1.923 linhas (-418, -18%).
 
 Nenhuma limpeza adicional feita fora do bloco K (mesma disciplina das Fatias 1-2).
+
+---
+
+## Phase 2 — Fatia 4: webhook MercadoPhone → `api_mercadophone.py` (CONCLUÍDA em 2026-08-08)
+
+Última fatia da sprint. Discovery própria feita antes de qualquer código (não coberta pelo desenho
+original da Phase 1, que só tinha o esboço da seção 6) — achados que corrigiram e refinaram o plano:
+
+- **Testes acoplados ao módulo, não ao valor:** `tests/test_mercadophone_webhook_auth.py` fazia
+  `monkeypatch.setattr(app, "MERCADO_PHONE_WEBHOOK_TOKEN", ...)`. Como a fixture `app` de `conftest.py`
+  é `scope="session"` (import único por suíte), passar o token por `deps`/`RuntimeDeps` capturaria o
+  valor em closure no momento do registro — o monkeypatch pós-registro deixaria de ter efeito, quebrando
+  os 3 testes silenciosamente. Corrigido importando `MERCADO_PHONE_WEBHOOK_TOKEN` direto de
+  `fluxoly_config` como global de módulo em `api_mercadophone.py` (mesmo padrão que `app.py` usava) e
+  retargetando o monkeypatch dos 3 testes para o novo módulo — único toque em `tests/` de toda a sprint,
+  aprovado explicitamente pelo usuário (CTO), sem alterar asserts/cenários.
+- **`deps` da Phase 1 seção 6 corrigido:** as 3 chaves sugeridas (`mercado_phone_webhook_token`,
+  `importar_os_mercado_phone`, `detalhar_os_mercado_phone`) não entraram em `deps` — são, respectivamente,
+  uma constante pura e duas funções puras de outro módulo, mesmo padrão que `api_mercadophone.py` já usa
+  para `atualizar_runtime_mercadophone`/`carregar_config_mercadophone` (import direto no topo do arquivo,
+  não via `deps`). `mercado_phone_runtime_config`/`mercado_phone_helpers` já estavam em `deps` — zero
+  chave nova, `RuntimeDeps` de `app.py` inalterado.
+- **Auth heterogênea no mesmo blueprint (achado central):** as outras 6 rotas de `api_mercadophone.py`
+  autenticam por sessão (`usuario_logado()`/`usuario_admin()`); o webhook autentica por token
+  compartilhado (`hmac.compare_digest`), sem sessão — chamado pelo servidor externo da Mercado Phone.
+  **Decisão do usuário (CTO):** manter no mesmo arquivo (mesmo domínio, não é bootstrap vazando para
+  camada de domínio) com comentário explícito no módulo e na função marcando o modelo de auth distinto,
+  em vez de criar um arquivo separado só por causa da diferença de autenticação.
+  `importar_os_mercado_phone`/`detalhar_os_mercado_phone` confirmadas não-exclusivas do webhook (já
+  usadas internamente pelos fluxos de sync/reprocessamento de `fluxoly_mercadophone.py`) — reforça que o
+  domínio é o correto.
+- **`ROUTE_PERMISSIONS["receber_os_mercado_phone"]` reconfirmado código morto:** `verificar_autenticacao()`
+  faz bypass por `request.path.startswith("/api/")` antes de consultar a tabela — nunca alcançável.
+  Confirmado adicionalmente que o bypass por *nome de endpoint* (`endpoint.startswith("api.")`) **não**
+  cobriria `api_mercadophone.receber_os_mercado_phone` (não começa com `"api."`), mas o bypass por *path*
+  cobre independente do blueprint — a mudança de nome de endpoint após a extração não altera o
+  comportamento. Entrada removida no mesmo commit (consequência direta, não escopo novo, já pré-aprovado
+  na Phase 1).
+- **Logger próprio:** `get_logger("api_mercadophone")` em vez de injetar via `deps` — logging puro não
+  vira dependência. Nome da fonte do log muda de `"app"` para `"api_mercadophone"` no warning de
+  auth inválida — cosmético, sem consumidor conhecido do nome anterior.
+
+**Validação:**
+- `ruff check`/`black --check` limpos (`app.py`, `api_mercadophone.py`, `tests/test_mercadophone_webhook_auth.py`)
+- `app.url_map` antes/depois: **122 rotas, diff idêntico**
+- Suíte completa: **683 passando**, incluindo os 3 testes retargetados
+- **Smoke test manual com servidor real** (`IR_FLOW_DATA_DIR` isolado, token sintético — nunca o
+  `MERCADO_PHONE_WEBHOOK_TOKEN` de produção): sem token → 401; token errado → 401; token correto → 201
+  com `{"ok": true, "duplicada": false, "os_id": 1}` — mesmo rigor dos hotfixes de INC-001/INC-002
+- `graphify update .` rodado
+- Commit `56dfd33`, push, **CI verde** (6/6 checks)
+
+`app.py`: 1.923 → 1.749 linhas (bloco do webhook + imports órfãos + entrada morta de `ROUTE_PERMISSIONS`
+removidos). `api_mercadophone.py`: 246 → 422 linhas.
+
+Nenhuma limpeza adicional feita fora da extração do webhook (mesma disciplina das Fatias 1-3).
+
+---
+
+## Architecture Checkpoint Final — TD-02 (4/4 fatias concluídas, 2026-08-08)
+
+| Métrica | Antes (2026-08-07, início da sprint) | Depois (2026-08-08) |
+|---|---|---|
+| `app.py` — linhas totais | 2.490 | **1.749** (-741, -30%) |
+| `register_blueprint()` chamados diretamente em `app.py` | 20 | **1** (`registrar_blueprints(app, runtime)`) |
+| Módulos de composição extraídos | 0 | **3** (`fluxoly_config.py`, `fluxoly_app_security.py`, `fluxoly_blueprint_registry.py`) |
+| Rotas MercadoPhone fora de `api_mercadophone.py` | 1 (webhook, inline em `app.py`) | **0** |
+| `app.url_map` | 122 rotas | 122 rotas (idêntico em todas as 4 fatias) |
+
+`app.py` termina a sprint com só as responsabilidades que a Phase 1 deixou deliberadamente de fora do
+escopo: bootstrap mínimo (`FLASK_SECRET_KEY`, cookie de sessão, `app = Flask(...)`), conexão SQLite
+(`conectar()`, `_ConexaoRastreada`), schema/migrations (`criar_tabelas()`, aguardando TD-03),
+helpers de dashboard/alertas/custos (bloco I), `ROUTE_PERMISSIONS`/`verificar_autenticacao()`, health
+checks, SPA/thread de sync, e a montagem do `RuntimeDeps` + chamada única a `registrar_blueprints`.
+
+Todas as 4 fatias: commit isolado, testes completos sem regressão, `app.url_map` idêntico, Ruff/Black/
+isort limpos, Graphify atualizado, CI verde. Dois achados de implementação não previstos na Phase 1
+(`parse_data_ymd` na Fatia 3, acoplamento de teste ao módulo na Fatia 4) — ambos resolvidos com decisão
+explícita do usuário (CTO) antes de codar, nenhum decidido unilateralmente.
+
+**TD-02 e TD-17 movidas para Resolvidas em `PROJECT_STATUS.md`.**

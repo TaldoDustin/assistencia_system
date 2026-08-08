@@ -504,6 +504,41 @@ confirmada, para não inflar o número de "especificadas" com algo ainda não de
 
 ---
 
+## Financeiro (especificado, não implementado)
+
+Decisões tomadas em Discovery formal (ADR-010) entre CTO e engenharia (2026-08-08), a partir da proposta
+de escopo mínimo de `docs/company/RELEASE_STRATEGY.md` ("Financeiro mínimo": Caixa, Entradas, Saídas,
+Contas a Pagar, Contas a Receber, Fluxo de Caixa simples). Ver
+`docs/engineering/plans/PLAN-financeiro-minimo.md` para o plano técnico. Nenhuma delas está no código
+ainda.
+
+**BR-067 — 📋 Especificado**
+Custos Operacionais e Caixa são módulos independentes — nenhum lançamento em `custos_operacionais` gera
+movimentação de caixa automaticamente. Lançar as duas coisas é responsabilidade manual do usuário quando
+fizer sentido. Testes de cobertura para `custos_operacionais` (lacuna pré-existente, sem relação direta
+com esta feature) podem ser adicionados junto se pequenos e isolados, mas não são critério de aceite do
+Financeiro Mínimo.
+*Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0).*
+
+**BR-068 — 📋 Especificado**
+Contas a Receber representa só compromissos financeiros gerais (ex.: reembolso pendente, aluguel de
+equipamento a receber) — sem FK ou qualquer relação com o domínio Vendas. Vendas continua sem conceito de
+parcelamento/inadimplência nesta release.
+*Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0).*
+
+**BR-069 — 📋 Especificado**
+Venda com `status='concluida'` gera automaticamente uma entrada em `movimentacoes_caixa` no valor de
+`vendas.valor_total`, vinculada à venda (`origem='venda'`, `origem_id=vendas.id`). Se a venda for
+cancelada (BR-031 a BR-036), a entrada correspondente é estornada automaticamente (`estornada=1`) — uma
+mesma venda nunca pode ter duas entradas ativas simultâneas, e o hook de criação é idempotente (chamar o
+fluxo de conclusão mais de uma vez para a mesma venda nunca duplica a entrada). Saldo de caixa é sempre
+`SOMA(entradas não estornadas) − SOMA(saídas não estornadas)`; uma movimentação estornada permanece
+registrada no histórico (nunca é apagada), só é excluída do cálculo de saldo — preserva auditoria.
+*Fonte: Decisão do CTO, 2026-08-08 (Discovery Financeiro Mínimo / Release 1.0), consistente com o
+Princípio da Imutabilidade da Venda (BR-034) e o padrão de estorno já usado em BR-033.*
+
+---
+
 ## Segurança e Permissões
 
 **BR-030 — ✅ Implementado (2026-07-25)**

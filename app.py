@@ -46,114 +46,14 @@ from flask import Flask, abort, flash, g, jsonify, redirect, request, send_from_
 # IMPORTS DE OBSERVABILIDADE (Sprint Observabilidade)
 # ============================================================================
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest, multiprocess
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
-from fluxoly_audit import registrar_log_auditoria
-
-# ============================================================================
-# IMPORTS DE MÓDULOS INTERNOS - BLUEPRINTS E RELATÓRIOS
-# ============================================================================
-from fluxoly_blueprints_main import create_main_blueprint
-
-# ============================================================================
-# IMPORTS DE MÓDULOS INTERNOS - CORE
-# ============================================================================
-from fluxoly_core import (
-    GARANTIA_REPARO_DIAS_PADRAO,
-    OS_TIPOS_OPCOES,
-    PERFIS_OPCOES,
-    STATUS_AGUARDANDO_PECA,
-    STATUS_CANCELADO,
-    STATUS_EM_ANDAMENTO,
-    STATUS_FINALIZADO,
-    STATUS_OS_OPCOES,
-    calcular_faturamento_os,
-    calcular_lucro_os,
-    coletar_status_opcoes,
-    normalizar_busca_texto,
-    normalizar_status_os,
-    sessao_ainda_ativa,
-    status_aberto,
-    status_cancelado,
-    status_finalizado,
-    texto_limpo,
-)
-from fluxoly_logging import configurar_logging, get_logger
-from fluxoly_mercadophone import (
-    detalhar_os_mercado_phone,
-    importar_os_mercado_phone,
-    loop_sincronizacao_mercado_phone,
-    reimportar_todas_os_mercado_phone,
-    reprocessar_todas_os_mercado_phone,
-    sincronizar_mercado_phone,
-)
-
-# ============================================================================
-# IMPORTS DE MÓDULOS INTERNOS - OS, STORAGE, MERCADOPHONE
-# ============================================================================
-from fluxoly_os import (
-    adicionar_peca_os_sem_consumir,
-    buscar_garantia_reparo,
-    buscar_historico_garantia_reparo,
-    buscar_linhas_com_garantia_da_os,
-    buscar_reparo_ids_da_os,
-    carregar_os_com_relacoes,
-    consumir_peca_da_os,
-    corrigir_garantia_reparo,
-    devolver_pecas_da_os,
-    gravar_garantias_reparo,
-    modelo_compativel,
-    obter_ou_criar_reparo,
-    obter_reparos_por_os,
-    registrar_movimentacao,
-    resolver_garantias_reparo,
-    salvar_reparos_os,
-    validar_reparo_ids,
-    vendedor_valido,
-    zerar_garantia_reparo,
-)
-from fluxoly_price_tables import carregar_tabelas_preco as carregar_tabelas_preco_arquivo
-from fluxoly_price_tables import salvar_tabelas_preco as salvar_tabelas_preco_arquivo
-from fluxoly_reference_data import (
-    CATEGORIAS_CUSTOS_OPERACIONAIS,
-    ESTOQUE_QUALIDADES,
-    ESTOQUE_TIPOS,
-    IPHONE_COLORS,
-    IPHONE_MODELS,
-    PRODUTOS_CATEGORIAS,
-    PRODUTOS_CONDICOES,
-    REPAROS_PADRAO,
-    TECNICOS,
-    VENDEDORES,
-    canonicalizar_para_lista,
-    extrair_cor_da_descricao_aparelho,
-    extrair_modelo_da_descricao_aparelho,
-    modelo_para_os,
-    nome_reparo_importavel,
-    normalizar_imei,
-    normalizar_modelo_iphone,
-)
-from fluxoly_reports import (
-    agrupar_relatorio_custos_operacionais,
-    agrupar_relatorio_ir_phones,
-    agrupar_relatorio_tecnicos,
-    formatar_periodo_relatorio,
-    montar_linhas_relatorio_custos_operacionais,
-    montar_linhas_relatorio_ir_phones,
-    montar_linhas_relatorio_tecnicos,
-    montar_pdf_texto,
-    texto_reparos_os,
-)
-from fluxoly_storage import (
-    carregar_configuracoes_integracoes,
-    criar_backup,
-    enviar_backup_email,
-    iniciar_thread_backup_automatico,
-    salvar_configuracoes_integracoes,
-)
 from fluxoly_app_security import configurar_seguranca
-from fluxoly_tipos_garantia_service import obter_tipo_garantia
-from fluxoly_web import anexar_query_string
+
+# ============================================================================
+# IMPORTS DE MÓDULOS INTERNOS - REGISTRY DE BLUEPRINTS (TD-02 Fatia 3)
+# ============================================================================
+from fluxoly_blueprint_registry import RuntimeDeps, registrar_blueprints
 
 # ============================================================================
 # CONFIGURAÇÃO DE AMBIENTE, PATHS E FEATURE-FLAGS
@@ -183,10 +83,45 @@ from fluxoly_config import (  # noqa: E402
     MERCADO_PHONE_SYNC_TIMEOUT_SECONDS,
     MERCADO_PHONE_WEBHOOK_TOKEN,
     PRICE_TABLES_PATH,
-    PUBLIC_BASE_URL,
     RESOURCE_DIR,
     VERCEL_URL,
 )
+
+# ============================================================================
+# IMPORTS DE MÓDULOS INTERNOS - CORE
+# ============================================================================
+from fluxoly_core import (
+    STATUS_AGUARDANDO_PECA,
+    STATUS_EM_ANDAMENTO,
+    STATUS_FINALIZADO,
+    normalizar_busca_texto,
+    normalizar_status_os,
+    sessao_ainda_ativa,
+    texto_limpo,
+)
+from fluxoly_logging import configurar_logging, get_logger
+from fluxoly_mercadophone import detalhar_os_mercado_phone, importar_os_mercado_phone, loop_sincronizacao_mercado_phone
+
+# ============================================================================
+# IMPORTS DE MÓDULOS INTERNOS - OS, STORAGE, MERCADOPHONE
+# ============================================================================
+from fluxoly_os import obter_ou_criar_reparo, salvar_reparos_os
+from fluxoly_price_tables import carregar_tabelas_preco as carregar_tabelas_preco_arquivo
+from fluxoly_price_tables import salvar_tabelas_preco as salvar_tabelas_preco_arquivo
+from fluxoly_reference_data import (
+    REPAROS_PADRAO,
+    TECNICOS,
+    VENDEDORES,
+    canonicalizar_para_lista,
+    extrair_cor_da_descricao_aparelho,
+    extrair_modelo_da_descricao_aparelho,
+    modelo_para_os,
+    nome_reparo_importavel,
+    normalizar_imei,
+    normalizar_modelo_iphone,
+)
+from fluxoly_storage import carregar_configuracoes_integracoes, iniciar_thread_backup_automatico
+from fluxoly_web import anexar_query_string
 
 # ============================================================================
 # BOOTSTRAP FLASK
@@ -1686,39 +1621,6 @@ def inject_system_alerts():
 
 sincronizar_reparos_padrao()
 
-app.register_blueprint(
-    create_main_blueprint(
-        {
-            "carregar_os_com_relacoes": carregar_os_com_relacoes,
-            "texto_reparos_os": texto_reparos_os,
-            "normalizar_status_os": normalizar_status_os,
-            "status_cancelado": status_cancelado,
-            "status_finalizado": status_finalizado,
-            "status_aberto": status_aberto,
-            "coletar_status_opcoes": coletar_status_opcoes,
-            "calcular_faturamento_os": calcular_faturamento_os,
-            "calcular_lucro_os": calcular_lucro_os,
-            "listar_custos_operacionais": listar_custos_operacionais,
-            "categorias_custos_operacionais": CATEGORIAS_CUSTOS_OPERACIONAIS,
-            "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
-            "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
-            "formatar_periodo_relatorio": formatar_periodo_relatorio,
-            "montar_linhas_relatorio_ir_phones": functools.partial(
-                montar_linhas_relatorio_ir_phones, conectar=conectar
-            ),
-            "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
-            "montar_pdf_texto": montar_pdf_texto,
-            "obter_reparos_por_os": obter_reparos_por_os,
-            "status_em_andamento": STATUS_EM_ANDAMENTO,
-            "status_aguardando_peca_const": STATUS_AGUARDANDO_PECA,
-            "status_finalizado_const": STATUS_FINALIZADO,
-            "status_cancelado_const": STATUS_CANCELADO,
-            "parse_data_ymd": parse_data_ymd,
-            "backup_dir": BACKUP_DIR,
-        }
-    )
-)
-
 # ============================================================================
 # AUTENTICAÇÃO — PERMISSÕES E BEFORE_REQUEST
 # ============================================================================
@@ -1849,358 +1751,28 @@ def verificar_autenticacao():
 
 
 # ============================================================================
-# REGISTRO DO BLUEPRINT DE AUTENTICAÇÃO
+# REGISTRO DE BLUEPRINTS (TD-02 Fatia 3 — fluxoly_blueprint_registry.py)
 # ============================================================================
-
-from api_auth import create_api_auth_blueprint  # noqa: E402
-from api_backup import create_api_backup_blueprint  # noqa: E402
-from api_costs import create_api_costs_blueprint  # noqa: E402
-from api_garantias import create_api_garantias_blueprint  # noqa: E402
-from api_mercadophone import create_api_mercadophone_blueprint  # noqa: E402
-from api_os import create_api_os_blueprint  # noqa: E402
-from api_prices import create_api_prices_blueprint  # noqa: E402
-from api_reports import create_api_reports_blueprint  # noqa: E402
-from api_shopping import create_api_shopping_blueprint  # noqa: E402
-from api_stock import create_api_stock_blueprint  # noqa: E402
-from api_system import create_api_system_blueprint  # noqa: E402
-from api_users import create_api_users_blueprint  # noqa: E402
-from fluxoly_blueprints_api import create_api_blueprint  # noqa: E402
-from fluxoly_blueprints_auth import create_auth_blueprint  # noqa: E402
-from fluxoly_rate_limit import limite_excedido, registrar_tentativa, resolver_ip_cliente  # noqa: E402
-
-app.register_blueprint(
-    create_auth_blueprint(
-        {
-            "conectar": conectar,
-            "generate_password_hash": generate_password_hash,
-            "check_password_hash": check_password_hash,
-            "resolver_ip_cliente": resolver_ip_cliente,
-            "limite_excedido": limite_excedido,
-            "registrar_tentativa": registrar_tentativa,
-            "perfis_opcoes": PERFIS_OPCOES,
-        }
-    )
+# As 20 chamadas app.register_blueprint(...) que antes viviam inline aqui
+# (auth + 12 domínios TD-01 + fluxoly_blueprints_api.py vazio + 5 domínios
+# controller/service/repository) foram movidas para
+# fluxoly_blueprint_registry.py::registrar_blueprints() -- mesma ordem, mesmos
+# dicts de deps, nenhuma factory create_*_blueprint mudou. runtime carrega só
+# os valores construídos em runtime dentro deste arquivo, que o registry não
+# consegue importar direto sem criar import circular (ver docstring de
+# RuntimeDeps em fluxoly_blueprint_registry.py).
+runtime = RuntimeDeps(
+    conectar=conectar,
+    carregar_tabelas_preco=carregar_tabelas_preco,
+    salvar_tabelas_preco=salvar_tabelas_preco,
+    forcar_migracao_schema=forcar_migracao_schema,
+    mercado_phone_runtime_config=MERCADO_PHONE_RUNTIME_CONFIG,
+    mercado_phone_helpers=MERCADO_PHONE_HELPERS,
+    listar_custos_operacionais=listar_custos_operacionais,
+    obter_alertas_sistema=obter_alertas_sistema,
+    parse_data_ymd=parse_data_ymd,
 )
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE API (JSON — consumido pelo frontend React)
-# ============================================================================
-
-# TD-01 Phase 2 -- 1º domínio extraído do monólito (ver
-# docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md). Mesmo url_prefix="/api"
-# do blueprint "api" abaixo, nome de blueprint distinto ("api_shopping") -- Flask
-# aceita múltiplos blueprints com o mesmo prefixo, já é o padrão do projeto
-# (auth_views/main_views coexistem hoje).
-app.register_blueprint(
-    create_api_shopping_blueprint(
-        {
-            "conectar": conectar,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 2º domínio extraído do monólito. Mesmo padrão do api_shopping
-# acima: deps parcial, só as 3 chaves que este domínio usa (conectar,
-# garantia_reparo_dias_padrao, parse_data_ymd continuam também no dict de
-# create_api_blueprint abaixo, porque OS e Sistema ainda não foram extraídos e
-# ainda dependem deles -- duplicar a referência é aceitável, duplicar a lógica não).
-app.register_blueprint(
-    create_api_garantias_blueprint(
-        {
-            "conectar": conectar,
-            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
-            "parse_data_ymd": parse_data_ymd,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 3º domínio extraído do monólito. `listar_custos_operacionais`
-# continua também no dict de create_api_blueprint abaixo, porque /dashboard e
-# /relatorios/custos-operacionais (Sistema/Relatórios, ainda não extraídos)
-# também dependem dela -- duplicar a referência é aceitável, duplicar a lógica não.
-app.register_blueprint(
-    create_api_costs_blueprint(
-        {
-            "conectar": conectar,
-            "listar_custos_operacionais": listar_custos_operacionais,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 4º domínio extraído do monólito. Diferente dos 3 anteriores:
-# carregar_tabelas_preco/salvar_tabelas_preco não são usadas por nenhuma outra
-# rota do monólito, então as chaves saem do dict de create_api_blueprint abaixo
-# em vez de serem duplicadas (deps reduzido, não só particionado).
-app.register_blueprint(
-    create_api_prices_blueprint(
-        {
-            "conectar": conectar,
-            "carregar_tabelas_preco": carregar_tabelas_preco,
-            "salvar_tabelas_preco": salvar_tabelas_preco,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 5º domínio extraído do monólito. generate_password_hash/
-# perfis_opcoes saem do dict de create_api_blueprint abaixo (deps reduzido, não
-# duplicado -- mesmo padrão de Preços): continuam intactas no dict de
-# create_auth_blueprint acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
-app.register_blueprint(
-    create_api_users_blueprint(
-        {
-            "conectar": conectar,
-            "generate_password_hash": generate_password_hash,
-            "perfis_opcoes": PERFIS_OPCOES,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 6º domínio extraído do monólito. As 5 chaves saem do dict de
-# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-# consumidor no monólito): continuam intactas no dict de create_auth_blueprint
-# acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
-app.register_blueprint(
-    create_api_auth_blueprint(
-        {
-            "conectar": conectar,
-            "check_password_hash": check_password_hash,
-            "resolver_ip_cliente": resolver_ip_cliente,
-            "limite_excedido": limite_excedido,
-            "registrar_tentativa": registrar_tentativa,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 7º domínio extraído do monólito. As 9 chaves saem do dict de
-# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-# consumidor no monólito). garantir_pasta_backup_google_drive fica intocada
-# nesse dict (dead code pré-existente, fora do escopo desta extração -- Phase 3).
-app.register_blueprint(
-    create_api_mercadophone_blueprint(
-        {
-            "conectar": conectar,
-            "sincronizar_mercado_phone": sincronizar_mercado_phone,
-            "reimportar_todas_os_mercado_phone": reimportar_todas_os_mercado_phone,
-            "reprocessar_todas_os_mercado_phone": reprocessar_todas_os_mercado_phone,
-            "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
-            "mercado_phone_helpers": MERCADO_PHONE_HELPERS,
-            "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
-            "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
-            "salvar_configuracoes_integracoes": salvar_configuracoes_integracoes,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 9º domínio extraído do monólito. mercado_phone_runtime_config/
-# integrations_config_path/carregar_configuracoes_integracoes continuam também
-# no dict de create_api_blueprint abaixo -- listar_ordens() (dominio OS, ainda
-# nao extraido) tambem depende deles (achado da Discovery, ver
-# fluxoly_mercadophone.py::carregar_config_mercadophone/atualizar_runtime_mercadophone).
-app.register_blueprint(
-    create_api_reports_blueprint(
-        {
-            "agrupar_relatorio_ir_phones": functools.partial(agrupar_relatorio_ir_phones, conectar=conectar),
-            "agrupar_relatorio_tecnicos": functools.partial(agrupar_relatorio_tecnicos, conectar=conectar),
-            "agrupar_relatorio_custos_operacionais": functools.partial(
-                agrupar_relatorio_custos_operacionais, conectar=conectar
-            ),
-            "montar_linhas_relatorio_ir_phones": functools.partial(
-                montar_linhas_relatorio_ir_phones, conectar=conectar
-            ),
-            "montar_linhas_relatorio_tecnicos": functools.partial(montar_linhas_relatorio_tecnicos, conectar=conectar),
-            "montar_linhas_relatorio_custos_operacionais": functools.partial(
-                montar_linhas_relatorio_custos_operacionais, conectar=conectar
-            ),
-            "formatar_periodo_relatorio": formatar_periodo_relatorio,
-            "montar_pdf_texto": montar_pdf_texto,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 8º domínio extraído do monólito. As 8 chaves saem do dict de
-# create_api_blueprint abaixo (deps reduzido, não duplicado) -- 6 delas também
-# continuam intactas no dict de create_main_blueprint (páginas renderizadas no
-# servidor, fluxoly_blueprints_main.py), consumidor separado e legítimo, NÃO
-# tocado por esta extração (verificado explicitamente antes e depois).
-app.register_blueprint(
-    create_api_backup_blueprint(
-        {
-            "conectar": conectar,
-            "backup_dir": BACKUP_DIR,
-            "google_drive_backup_dir": GOOGLE_DRIVE_BACKUP_DIR,
-            "criar_backup": criar_backup,
-            "enviar_backup_email": enviar_backup_email,
-            "backup_email_remetente": BACKUP_EMAIL_REMETENTE,
-            "backup_email_senha_app": BACKUP_EMAIL_SENHA_APP,
-            "backup_email_destino": BACKUP_EMAIL_DESTINO,
-            "db_path": DB_PATH,
-            "forcar_migracao_schema": forcar_migracao_schema,
-        }
-    )
-)
-
-# TD-01 Phase 2 -- 10º domínio extraído do monólito. 12 chaves saem do dict de
-# create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-# consumidor no monólito, confirmado por contagem de uso pós-extração):
-# categorias_custos, garantia_reparo_dias_padrao, iphone_colors, iphone_models,
-# listar_custos_operacionais, obter_alertas_sistema, os_tipos_opcoes,
-# produtos_categorias, produtos_condicoes, reparos_padrao, status_os_opcoes,
-# tecnicos. As demais (conectar, calcular_faturamento_os, calcular_lucro_os,
-# carregar_os_com_relacoes, normalizar_status_os, status_aberto/cancelado/
-# finalizado, vendedores) continuam também no dict abaixo -- OS (ainda não
-# extraído) depende delas. estoque_tipos/estoque_qualidades promovidas nesta
-# extração de constantes locais do monólito para fluxoly_reference_data.py
-# (achado da Discovery: intersecção real entre Sistema e Estoque, ainda não
-# extraído) -- ambos os dicts recebem a referência agora.
-app.register_blueprint(
-    create_api_system_blueprint(
-        {
-            "conectar": conectar,
-            "normalizar_status_os": normalizar_status_os,
-            "status_finalizado": status_finalizado,
-            "status_cancelado": status_cancelado,
-            "status_aberto": status_aberto,
-            "calcular_faturamento_os": calcular_faturamento_os,
-            "calcular_lucro_os": calcular_lucro_os,
-            "carregar_os_com_relacoes": carregar_os_com_relacoes,
-            "listar_custos_operacionais": listar_custos_operacionais,
-            "obter_alertas_sistema": obter_alertas_sistema,
-            "iphone_models": IPHONE_MODELS,
-            "iphone_colors": IPHONE_COLORS,
-            "vendedores": VENDEDORES,
-            "tecnicos": TECNICOS,
-            "status_os_opcoes": STATUS_OS_OPCOES,
-            "os_tipos_opcoes": OS_TIPOS_OPCOES,
-            "garantia_reparo_dias_padrao": GARANTIA_REPARO_DIAS_PADRAO,
-            "categorias_custos": CATEGORIAS_CUSTOS_OPERACIONAIS,
-            "reparos_padrao": REPAROS_PADRAO,
-            "produtos_categorias": PRODUTOS_CATEGORIAS,
-            "produtos_condicoes": PRODUTOS_CONDICOES,
-            "estoque_tipos": ESTOQUE_TIPOS,
-            "estoque_qualidades": ESTOQUE_QUALIDADES,
-        }
-    )
-)
-
-# api_stock.py -- domínio Estoque (TD-01 Phase 2, 11º domínio extraído,
-# 2026-08-07). estoque_tipos/estoque_qualidades e normalizar_modelo_iphone/
-# registrar_movimentacao saem do dict de create_api_blueprint abaixo (deps
-# reduzido, não duplicado -- confirmado por grep que OS, único domínio
-# restante no monólito, não usa nenhuma das 4 diretamente).
-app.register_blueprint(
-    create_api_stock_blueprint(
-        {
-            "conectar": conectar,
-            "normalizar_modelo_iphone": normalizar_modelo_iphone,
-            "registrar_movimentacao": registrar_movimentacao,
-            "estoque_tipos": ESTOQUE_TIPOS,
-            "estoque_qualidades": ESTOQUE_QUALIDADES,
-        }
-    )
-)
-
-# api_os.py -- domínio OS + Reparos catálogo (TD-01 Phase 2, 12º e último
-# domínio extraído, 2026-08-07). Único ponto que ainda importa
-# carregar_config_mercadophone/atualizar_runtime_mercadophone diretamente de
-# fluxoly_mercadophone.py (não via deps) -- listar_ordens() usa essas duas
-# funções para filtrar OS antigas da integração, mesmo padrão já usado no
-# monólito antes desta extração.
-app.register_blueprint(
-    create_api_os_blueprint(
-        {
-            "conectar": conectar,
-            "normalizar_status_os": normalizar_status_os,
-            "status_finalizado": status_finalizado,
-            "status_cancelado": status_cancelado,
-            "status_aberto": status_aberto,
-            "calcular_faturamento_os": calcular_faturamento_os,
-            "calcular_lucro_os": calcular_lucro_os,
-            "carregar_os_com_relacoes": carregar_os_com_relacoes,
-            "validar_reparo_ids": validar_reparo_ids,
-            "vendedor_valido": vendedor_valido,
-            "salvar_reparos_os": salvar_reparos_os,
-            "modelo_compativel": modelo_compativel,
-            "consumir_peca_da_os": consumir_peca_da_os,
-            "adicionar_peca_os_sem_consumir": adicionar_peca_os_sem_consumir,
-            "devolver_pecas_da_os": devolver_pecas_da_os,
-            "obter_reparos_por_os": obter_reparos_por_os,
-            "buscar_reparo_ids_da_os": buscar_reparo_ids_da_os,
-            "resolver_garantias_reparo": resolver_garantias_reparo,
-            "gravar_garantias_reparo": gravar_garantias_reparo,
-            "buscar_linhas_com_garantia_da_os": buscar_linhas_com_garantia_da_os,
-            "zerar_garantia_reparo": zerar_garantia_reparo,
-            "buscar_garantia_reparo": buscar_garantia_reparo,
-            "corrigir_garantia_reparo": corrigir_garantia_reparo,
-            "buscar_historico_garantia_reparo": buscar_historico_garantia_reparo,
-            "obter_tipo_garantia": obter_tipo_garantia,
-            "registrar_log_auditoria": registrar_log_auditoria,
-            "modelo_para_os": modelo_para_os,
-            "normalizar_imei": normalizar_imei,
-            "texto_reparos_os": texto_reparos_os,
-            "parse_data_ymd": parse_data_ymd,
-            "vendedores": VENDEDORES,
-            "mercado_phone_runtime_config": MERCADO_PHONE_RUNTIME_CONFIG,
-            "public_base_url": PUBLIC_BASE_URL,
-            "integrations_config_path": INTEGRATIONS_CONFIG_PATH,
-            "carregar_configuracoes_integracoes": carregar_configuracoes_integracoes,
-        }
-    )
-)
-
-# fluxoly_blueprints_api.py -- OS era o último domínio restante; após esta
-# extração a função create_api_blueprint() não lê mais nenhuma chave de
-# deps (só contém os 2 helpers mortos _slug_estoque/_gerar_sku_estoque,
-# KI-032, e não registra nenhuma rota). Dict reduzido a vazio -- decisão de
-# remover o arquivo/registro por completo fica para a Phase 3 (Cleanup),
-# fora do escopo desta extração (ver relatório desta sessão).
-app.register_blueprint(create_api_blueprint({}))
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE CLIENTES (Sprint P0.1 — primeiro domínio a seguir
-# a convenção controller/service/repository de ENGINEERING_GUIDE.md §3.1)
-# ============================================================================
-
-from fluxoly_clientes_controller import create_clientes_blueprint  # noqa: E402
-
-app.register_blueprint(create_clientes_blueprint({"conectar": conectar}))
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE UNIDADES_SERIALIZADAS (Sprint P0.1, evoluído na
-# migração ADR-007 — rastreamento individual por IMEI/serial, fonte única de
-# verdade para unidades originadas de Estoque OU de Produtos)
-# ============================================================================
-
-from fluxoly_unidades_serializadas_controller import create_unidades_serializadas_blueprint  # noqa: E402
-
-app.register_blueprint(create_unidades_serializadas_blueprint({"conectar": conectar}))
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE PRODUTOS (Sprint Comercial 0.1 — catálogo
-# comercial de venda, domínio novo e separado de Estoque/peças de reparo)
-# ============================================================================
-
-from fluxoly_produtos_controller import create_produtos_blueprint  # noqa: E402
-
-app.register_blueprint(create_produtos_blueprint({"conectar": conectar}))
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE VENDAS (Vendas MVP, 2026-07-27 — primeiro módulo a
-# nascer com o prefixo fluxoly_, ver docs/engineering/adr/ADR-008.md)
-# ============================================================================
-
-from fluxoly_vendas_controller import create_vendas_blueprint  # noqa: E402
-
-app.register_blueprint(create_vendas_blueprint({"conectar": conectar}))
-
-# ============================================================================
-# REGISTRO DO BLUEPRINT DE TIPOS DE GARANTIA (V1.5 — Garantia, cadastro
-# compartilhado entre Vendas e Assistência, ver docs/engineering/plans/
-# PLAN-V1.5-Garantia.md)
-# ============================================================================
-
-from fluxoly_tipos_garantia_controller import create_tipos_garantia_blueprint  # noqa: E402
-
-app.register_blueprint(create_tipos_garantia_blueprint({"conectar": conectar}))
+registrar_blueprints(app, runtime)
 
 # ============================================================================
 # HEALTH CHECKS (Sprint Observabilidade) — sem autenticação, usados por

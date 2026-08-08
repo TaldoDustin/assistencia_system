@@ -68,6 +68,13 @@ CREATE TABLE movimentacoes_caixa (
 CREATE INDEX idx_movimentacoes_caixa_origem ON movimentacoes_caixa (origem, origem_id);
 CREATE INDEX idx_movimentacoes_caixa_tipo_estornada ON movimentacoes_caixa (tipo, estornada);
 
+-- Guardião real de BR-069 ("uma venda nunca gera duas entradas ativas") no banco,
+-- não só na aplicação -- mesmo padrão de idx_vendas_itens_unidade_ativa (V1.2).
+-- Achado da revisão final do plano (2026-08-08): checagem só em código não seria
+-- suficiente por si só, dado o precedente já estabelecido pelo projeto.
+CREATE UNIQUE INDEX idx_movimentacoes_caixa_venda_ativa
+    ON movimentacoes_caixa (origem_id) WHERE origem = 'venda' AND estornada = 0;
+
 CREATE TABLE contas_pagar (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     descricao TEXT NOT NULL,
@@ -106,10 +113,18 @@ já aceito em outros pontos do schema onde a FK lógica muda de alvo conforme um
   gera saída de caixa via `fluxoly_caixa_service`, nunca SQL direto — mesma regra de dependência entre
   domínios do `ENGINEERING_GUIDE.md` §3.1).
 - `fluxoly_contas_receber_controller.py`/`_service.py`/`_repository.py` — espelho de Contas a Pagar.
-- Ponto de integração único em `fluxoly_vendas_service.py`: hook de criação de entrada ao concluir venda e
-  de estorno ao cancelar (BR-069). Implementação idempotente — verificar antes de criar se já existe uma
-  entrada ativa (`origem='venda' AND origem_id=<venda_id> AND estornada=0`) para a mesma venda antes de
-  inserir.
+- Ponto de integração único em `fluxoly_vendas_service.py`: **`registrar_entrada_de_venda(cursor, venda_id,
+  valor, usuario_id)`** chamada de dentro de `iniciar_venda()` (antes do `conn.commit()` da linha 231,
+  hoje) e **`estornar_entrada_de_venda(cursor, venda_id, usuario_id)`** chamada de dentro de
+  `cancelar_venda()` (antes do `conn.commit()` da linha 404, hoje) — ambas recebendo `cursor`, nunca
+  abrindo conexão própria. Achado da revisão final do plano (2026-08-08): `iniciar_venda()`/
+  `cancelar_venda()` já fazem várias operações cross-domínio na mesma transação passando `cursor`
+  explicitamente (`unidades_service.marcar_como_vendida(cursor, ...)`,
+  `unidades_service.liberar_unidade_para_venda(cursor, ...)`) — `fluxoly_caixa_service` precisa seguir
+  exatamente esse padrão, senão a criação da venda e a entrada de caixa virariam duas transações
+  separadas, quebrando a garantia de atomicidade da BR-069. A idempotência real é garantida pelo índice
+  único `idx_movimentacoes_caixa_venda_ativa` (ver "Impacto no Banco") — não só por uma checagem prévia em
+  código, mesmo espírito do `UNIQUE INDEX` que já protege `vendas_itens` contra corrida.
 - Autorização: `usuario_pode_financeiro()` (já existe) estendida para todas as rotas novas.
 
 ## Impacto no Frontend

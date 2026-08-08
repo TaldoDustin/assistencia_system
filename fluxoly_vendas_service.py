@@ -38,6 +38,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import date
 
+import fluxoly_caixa_service as caixa_service
 import fluxoly_clientes_service as clientes_service
 import fluxoly_tipos_garantia_service as tipos_garantia_service
 import fluxoly_unidades_serializadas_service as unidades_service
@@ -244,6 +245,12 @@ def iniciar_venda(
                 "valor_total": valor_unitario,
             },
         )
+
+        # Financeiro Mínimo (BR-069, PLAN-financeiro-minimo.md): entrada de
+        # caixa na mesma transação -- nunca uma venda "concluida" sem a
+        # entrada correspondente, nem o contrário.
+        caixa_service.registrar_entrada_de_venda(cursor, venda_id, valor_unitario, usuario_id)
+
         conn.commit()
     except VendaConflitoError as exc:
         conn.rollback()
@@ -439,6 +446,11 @@ def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, obser
             antes="concluida",
             depois={"status": "cancelada", "motivo": motivo, "observacao": observacao or None},
         )
+
+        # Financeiro Mínimo (BR-069, PLAN-financeiro-minimo.md): estorna a
+        # entrada de caixa correspondente na mesma transação do cancelamento.
+        caixa_service.estornar_entrada_de_venda(cursor, venda_id, usuario_id)
+
         conn.commit()
     except VendaConflitoError as exc:
         conn.rollback()

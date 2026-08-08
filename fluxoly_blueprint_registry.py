@@ -1,7 +1,9 @@
 """
 TD-02 Fatia 3 (docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md) -- registro
-centralizado dos blueprints do Fluxoly Platform (19 desde a TD-18, que removeu o
-registro do blueprint vazio de fluxoly_blueprints_api.py -- ver KI-032).
+centralizado dos blueprints do Fluxoly Platform (22 desde o Financeiro Mínimo,
+que adicionou Caixa/Contas a Pagar/Contas a Receber -- ver
+docs/engineering/plans/PLAN-financeiro-minimo.md; 19 desde a TD-18, que removeu
+o registro do blueprint vazio de fluxoly_blueprints_api.py -- ver KI-032).
 
 registrar_blueprints(app, runtime) substitui as chamadas app.register_blueprint(...)
 que antes viviam inline em app.py (bloco K). Nenhuma factory create_*_blueprint muda --
@@ -35,6 +37,7 @@ from api_users import create_api_users_blueprint
 from fluxoly_audit import registrar_log_auditoria
 from fluxoly_blueprints_auth import create_auth_blueprint
 from fluxoly_blueprints_main import create_main_blueprint
+from fluxoly_caixa_controller import create_caixa_blueprint
 from fluxoly_clientes_controller import create_clientes_blueprint
 from fluxoly_config import (
     BACKUP_DIR,
@@ -46,6 +49,8 @@ from fluxoly_config import (
     INTEGRATIONS_CONFIG_PATH,
     PUBLIC_BASE_URL,
 )
+from fluxoly_contas_pagar_controller import create_contas_pagar_blueprint
+from fluxoly_contas_receber_controller import create_contas_receber_blueprint
 from fluxoly_core import (
     GARANTIA_REPARO_DIAS_PADRAO,
     OS_TIPOS_OPCOES,
@@ -455,3 +460,12 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
     # PLAN-V1.5-Garantia.md)
     # ========================================================================
     app.register_blueprint(create_tipos_garantia_blueprint({"conectar": conectar}))
+
+    # ========================================================================
+    # REGISTRO DOS BLUEPRINTS DE FINANCEIRO MÍNIMO (Caixa, Contas a Pagar,
+    # Contas a Receber -- BR-067 a BR-069, ver docs/engineering/plans/
+    # PLAN-financeiro-minimo.md)
+    # ========================================================================
+    app.register_blueprint(create_caixa_blueprint({"conectar": conectar}))
+    app.register_blueprint(create_contas_pagar_blueprint({"conectar": conectar}))
+    app.register_blueprint(create_contas_receber_blueprint({"conectar": conectar}))

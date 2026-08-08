@@ -1,0 +1,93 @@
+"""
+fluxoly_contas_receber_repository.py
+
+Único ponto de acesso SQL do domínio Contas a Receber -- segue a convenção
+de docs/engineering/ENGINEERING_GUIDE.md §3.1 (controller → service →
+repository). Nenhuma regra de negócio aqui, só queries parametrizadas.
+
+Tabela: `contas_receber`. Nenhuma `FOREIGN KEY` declarada, mesma convenção
+do resto do schema. Sem qualquer coluna ou query que referencie `vendas`
+(BR-068 -- isolamento deliberado do domínio Vendas).
+
+Depende de: nenhum outro módulo de domínio.
+"""
+
+_COLUNAS = "id, descricao, categoria, valor, data_vencimento, status, movimentacao_caixa_id, criado_em, atualizado_em"
+
+
+def inserir(cursor, descricao, categoria, valor, data_vencimento):
+    cursor.execute(
+        """
+        INSERT INTO contas_receber (descricao, categoria, valor, data_vencimento)
+        VALUES (?, ?, ?, ?)
+        """,
+        (descricao, categoria, valor, data_vencimento),
+    )
+    return cursor.lastrowid
+
+
+def atualizar(cursor, conta_id, descricao, categoria, valor, data_vencimento):
+    cursor.execute(
+        """
+        UPDATE contas_receber
+        SET descricao = ?, categoria = ?, valor = ?, data_vencimento = ?, atualizado_em = datetime('now')
+        WHERE id = ? AND status = 'pendente'
+        """,
+        (descricao, categoria, valor, data_vencimento, conta_id),
+    )
+    return cursor.rowcount
+
+
+def buscar_por_id(cursor, conta_id):
+    cursor.execute(f"SELECT {_COLUNAS} FROM contas_receber WHERE id = ?", (conta_id,))
+    return cursor.fetchone()
+
+
+def buscar_paginado(cursor, status, limit, offset):
+    if status:
+        cursor.execute(
+            f"SELECT {_COLUNAS} FROM contas_receber WHERE status = ? "
+            "ORDER BY data_vencimento IS NULL, data_vencimento, id LIMIT ? OFFSET ?",
+            (status, limit, offset),
+        )
+    else:
+        cursor.execute(
+            f"SELECT {_COLUNAS} FROM contas_receber "
+            "ORDER BY data_vencimento IS NULL, data_vencimento, id LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
+    return cursor.fetchall()
+
+
+def contar(cursor, status):
+    if status:
+        cursor.execute("SELECT COUNT(*) FROM contas_receber WHERE status = ?", (status,))
+    else:
+        cursor.execute("SELECT COUNT(*) FROM contas_receber")
+    return cursor.fetchone()[0] or 0
+
+
+def marcar_como_recebido(cursor, conta_id, movimentacao_caixa_id):
+    cursor.execute(
+        """
+        UPDATE contas_receber
+        SET status = 'recebido', movimentacao_caixa_id = ?, atualizado_em = datetime('now')
+        WHERE id = ? AND status = 'pendente'
+        """,
+        (movimentacao_caixa_id, conta_id),
+    )
+    return cursor.rowcount
+
+
+def cancelar(cursor, conta_id):
+    cursor.execute(
+        "UPDATE contas_receber SET status = 'cancelado', atualizado_em = datetime('now') "
+        "WHERE id = ? AND status = 'pendente'",
+        (conta_id,),
+    )
+    return cursor.rowcount
+
+
+def deletar(cursor, conta_id):
+    cursor.execute("DELETE FROM contas_receber WHERE id = ? AND status = 'pendente'", (conta_id,))
+    return cursor.rowcount

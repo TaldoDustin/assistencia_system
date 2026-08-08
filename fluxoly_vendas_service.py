@@ -39,12 +39,11 @@ from collections import defaultdict
 from datetime import date
 
 import fluxoly_clientes_service as clientes_service
+import fluxoly_tipos_garantia_service as tipos_garantia_service
 import fluxoly_unidades_serializadas_service as unidades_service
+import fluxoly_vendas_repository as repo
 from fluxoly_audit import registrar_log_auditoria
 from fluxoly_core import calcular_data_fim_garantia
-
-import fluxoly_tipos_garantia_service as tipos_garantia_service
-import fluxoly_vendas_repository as repo
 
 FORMAS_PAGAMENTO_VALIDAS = {"pix", "cartao", "dinheiro", "transferencia"}
 PAGINA_PADRAO = 1
@@ -54,8 +53,13 @@ POR_PAGINA_PADRAO = 20
 # rejeitado com erro explícito, nunca normalizado -- mesmo padrão de categoria/condicao em
 # fluxoly_produtos_service.py (BR-027).
 MOTIVOS_CANCELAMENTO_VALIDOS = {
-    "cliente_desistiu", "erro_lancamento", "imei_incorreto", "venda_duplicada",
-    "pagamento_nao_concluido", "produto_indisponivel", "outro",
+    "cliente_desistiu",
+    "erro_lancamento",
+    "imei_incorreto",
+    "venda_duplicada",
+    "pagamento_nao_concluido",
+    "produto_indisponivel",
+    "outro",
 }
 
 
@@ -124,8 +128,15 @@ def _item_para_dict(row):
 
 
 def iniciar_venda(
-    conectar, usuario_id, cliente_id, unidade_serializada_id, forma_pagamento, valor_unitario,
-    tipo_garantia_id, observacoes="", motivo_desconto=None,
+    conectar,
+    usuario_id,
+    cliente_id,
+    unidade_serializada_id,
+    forma_pagamento,
+    valor_unitario,
+    tipo_garantia_id,
+    observacoes="",
+    motivo_desconto=None,
 ):
     """Retorna (venda_id, erro). `erro` é None em caso de sucesso.
 
@@ -148,7 +159,7 @@ def iniciar_venda(
     forma_pagamento = (forma_pagamento or "").strip().lower()
     if forma_pagamento not in FORMAS_PAGAMENTO_VALIDAS:
         return None, "Forma de pagamento inválida."
-    if not isinstance(valor_unitario, (int, float)) or valor_unitario <= 0:
+    if not isinstance(valor_unitario, int | float) or valor_unitario <= 0:
         return None, "Valor deve ser maior que zero."
 
     tipo_garantia = tipos_garantia_service.obter_tipo_garantia(conectar, tipo_garantia_id)
@@ -176,12 +187,17 @@ def iniciar_venda(
     conn = conectar()
     try:
         cursor = conn.cursor()
-        venda_id = repo.inserir_venda(
-            cursor, cliente_id, usuario_id, forma_pagamento, valor_unitario, observacoes
-        )
+        venda_id = repo.inserir_venda(cursor, cliente_id, usuario_id, forma_pagamento, valor_unitario, observacoes)
         item_id = repo.inserir_item(
-            cursor, venda_id, unidade_serializada_id, produto_id, produto_nome, produto_sku,
-            valor_tabela, valor_unitario, motivo_desconto or "",
+            cursor,
+            venda_id,
+            unidade_serializada_id,
+            produto_id,
+            produto_nome,
+            produto_sku,
+            valor_tabela,
+            valor_unitario,
+            motivo_desconto or "",
             tipo_garantia_id=tipo_garantia["id"],
             garantia_nome=tipo_garantia["nome"],
             garantia_duracao_meses=tipo_garantia["duracao_meses"],
@@ -264,8 +280,17 @@ def obter_venda_com_itens(conectar, venda_id):
 
 
 def listar_vendas(
-    conectar, cliente_id=None, vendedor_id=None, forma_pagamento=None, status=None,
-    data_inicio=None, data_fim=None, termo="", sort="recente", page=None, per_page=None,
+    conectar,
+    cliente_id=None,
+    vendedor_id=None,
+    forma_pagamento=None,
+    status=None,
+    data_inicio=None,
+    data_fim=None,
+    termo="",
+    sort="recente",
+    page=None,
+    per_page=None,
 ):
     """Histórico de vendas (Sprint Vendas 1.1) -- paginado, com um resumo dos
     itens de cada venda (`itens_resumo`) para a listagem não precisar de uma
@@ -283,8 +308,17 @@ def listar_vendas(
             cursor, cliente_id, vendedor_id, forma_pagamento, status, data_inicio, data_fim, termo
         )
         venda_rows = repo.buscar_paginado(
-            cursor, cliente_id, vendedor_id, forma_pagamento, status, data_inicio, data_fim,
-            termo, sort, per_page, offset,
+            cursor,
+            cliente_id,
+            vendedor_id,
+            forma_pagamento,
+            status,
+            data_inicio,
+            data_fim,
+            termo,
+            sort,
+            per_page,
+            offset,
         )
         vendas = [_venda_para_dict(r) for r in venda_rows]
         itens_rows = repo.buscar_itens_por_vendas(cursor, [v["id"] for v in vendas])
@@ -372,8 +406,12 @@ def cancelar_venda(conectar, venda_id, usuario_id, usuario_perfil, motivo, obser
         # concedida, na mesma transação do cancelamento, sempre com evento de
         # auditoria.
         for (
-            item_id, tipo_garantia_id, garantia_nome, garantia_duracao_meses,
-            garantia_data_inicio, garantia_data_fim,
+            item_id,
+            tipo_garantia_id,
+            garantia_nome,
+            garantia_duracao_meses,
+            garantia_data_inicio,
+            garantia_data_fim,
         ) in repo.buscar_itens_com_garantia_por_venda(cursor, venda_id):
             repo.zerar_garantia_item(cursor, item_id)
             registrar_log_auditoria(
@@ -427,7 +465,7 @@ def ajustar_desconto_item(conectar, venda_id, item_id, usuario_id, usuario_perfi
     motivo = (motivo or "").strip()
     if not motivo:
         return False, "Motivo é obrigatório para o ajuste comercial."
-    if not isinstance(valor_unitario_novo, (int, float)) or valor_unitario_novo <= 0:
+    if not isinstance(valor_unitario_novo, int | float) or valor_unitario_novo <= 0:
         return False, "Valor deve ser maior que zero."
 
     conn = conectar()
@@ -499,7 +537,7 @@ def atribuir_comissao_item(conectar, venda_id, item_id, usuario_id, usuario_perf
     qualquer política de comissão da loja usa a mesma estrutura. Mesmo
     compare-and-swap do Ajuste Comercial: rejeita se a venda não está
     `concluida` no momento da escrita (BR-034). Retorna (sucesso, erro)."""
-    if not isinstance(valor, (int, float)) or valor < 0:
+    if not isinstance(valor, int | float) or valor < 0:
         return False, "Valor deve ser maior ou igual a zero."
 
     conn = conectar()
@@ -571,19 +609,28 @@ def corrigir_garantia_item(conectar, venda_id, item_id, usuario_id, usuario_perf
             conn.rollback()
             return False, "Item não encontrado."
         (
-            _id, tipo_garantia_id_anterior, garantia_nome_anterior, garantia_duracao_meses_anterior,
-            garantia_data_inicio_anterior, garantia_data_fim_anterior,
+            _id,
+            tipo_garantia_id_anterior,
+            garantia_nome_anterior,
+            garantia_duracao_meses_anterior,
+            garantia_data_inicio_anterior,
+            garantia_data_fim_anterior,
         ) = item_row
 
         data_inicio = (
-            date.fromisoformat(garantia_data_inicio_anterior) if garantia_data_inicio_anterior
-            else date.today()
+            date.fromisoformat(garantia_data_inicio_anterior) if garantia_data_inicio_anterior else date.today()
         )
         garantia_data_fim = calcular_data_fim_garantia(data_inicio, tipo_garantia["duracao_meses"])
 
         linhas = repo.corrigir_garantia_item(
-            cursor, venda_id, item_id, tipo_garantia["id"], tipo_garantia["nome"],
-            tipo_garantia["duracao_meses"], data_inicio.isoformat(), garantia_data_fim.isoformat(),
+            cursor,
+            venda_id,
+            item_id,
+            tipo_garantia["id"],
+            tipo_garantia["nome"],
+            tipo_garantia["duracao_meses"],
+            data_inicio.isoformat(),
+            garantia_data_fim.isoformat(),
         )
         if linhas == 0:
             conn.rollback()

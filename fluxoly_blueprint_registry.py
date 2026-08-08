@@ -1,8 +1,9 @@
 """
 TD-02 Fatia 3 (docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md) -- registro
-centralizado dos 20 blueprints do Fluxoly Platform.
+centralizado dos blueprints do Fluxoly Platform (19 desde a TD-18, que removeu o
+registro do blueprint vazio de fluxoly_blueprints_api.py -- ver KI-032).
 
-registrar_blueprints(app, runtime) substitui as 20 chamadas app.register_blueprint(...)
+registrar_blueprints(app, runtime) substitui as chamadas app.register_blueprint(...)
 que antes viviam inline em app.py (bloco K). Nenhuma factory create_*_blueprint muda --
 só o local onde o dict de deps de cada uma é montado.
 
@@ -32,7 +33,6 @@ from api_stock import create_api_stock_blueprint
 from api_system import create_api_system_blueprint
 from api_users import create_api_users_blueprint
 from fluxoly_audit import registrar_log_auditoria
-from fluxoly_blueprints_api import create_api_blueprint
 from fluxoly_blueprints_auth import create_auth_blueprint
 from fluxoly_blueprints_main import create_main_blueprint
 from fluxoly_clientes_controller import create_clientes_blueprint
@@ -156,7 +156,7 @@ class RuntimeDeps:
 
 
 def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
-    """Registra os 20 blueprints do Fluxoly Platform, mesma ordem e mesmos
+    """Registra os blueprints do Fluxoly Platform, mesma ordem e mesmos
     dicts de deps que existiam inline em app.py antes da TD-02 Fatia 3."""
 
     conectar = runtime.conectar
@@ -219,12 +219,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
     # ========================================================================
     # REGISTRO DO BLUEPRINT DE API (JSON — consumido pelo frontend React)
     # ========================================================================
-
-    # TD-01 Phase 2 -- 1º domínio extraído do monólito (ver
-    # docs/operations/SPRINTS/SPRINT_TD01_MODULARIZACAO_API.md). Mesmo url_prefix="/api"
-    # do blueprint "api" abaixo, nome de blueprint distinto ("api_shopping") -- Flask
-    # aceita múltiplos blueprints com o mesmo prefixo, já é o padrão do projeto
-    # (auth_views/main_views coexistem hoje).
     app.register_blueprint(
         create_api_shopping_blueprint(
             {
@@ -233,11 +227,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 2º domínio extraído do monólito. Mesmo padrão do api_shopping
-    # acima: deps parcial, só as 3 chaves que este domínio usa (conectar,
-    # garantia_reparo_dias_padrao, parse_data_ymd continuam também no dict de
-    # create_api_blueprint abaixo, porque OS e Sistema ainda não foram extraídos e
-    # ainda dependem deles -- duplicar a referência é aceitável, duplicar a lógica não).
     app.register_blueprint(
         create_api_garantias_blueprint(
             {
@@ -248,10 +237,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 3º domínio extraído do monólito. `listar_custos_operacionais`
-    # continua também no dict de create_api_blueprint abaixo, porque /dashboard e
-    # /relatorios/custos-operacionais (Sistema/Relatórios, ainda não extraídos)
-    # também dependem dela -- duplicar a referência é aceitável, duplicar a lógica não.
     app.register_blueprint(
         create_api_costs_blueprint(
             {
@@ -261,10 +246,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 4º domínio extraído do monólito. Diferente dos 3 anteriores:
-    # carregar_tabelas_preco/salvar_tabelas_preco não são usadas por nenhuma outra
-    # rota do monólito, então as chaves saem do dict de create_api_blueprint abaixo
-    # em vez de serem duplicadas (deps reduzido, não só particionado).
     app.register_blueprint(
         create_api_prices_blueprint(
             {
@@ -275,10 +256,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 5º domínio extraído do monólito. generate_password_hash/
-    # perfis_opcoes saem do dict de create_api_blueprint abaixo (deps reduzido, não
-    # duplicado -- mesmo padrão de Preços): continuam intactas no dict de
-    # create_auth_blueprint acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
     app.register_blueprint(
         create_api_users_blueprint(
             {
@@ -289,10 +266,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 6º domínio extraído do monólito. As 5 chaves saem do dict de
-    # create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-    # consumidor no monólito): continuam intactas no dict de create_auth_blueprint
-    # acima, consumidor separado e legítimo (fluxoly_blueprints_auth.py).
     app.register_blueprint(
         create_api_auth_blueprint(
             {
@@ -305,10 +278,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 7º domínio extraído do monólito. As 9 chaves saem do dict de
-    # create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-    # consumidor no monólito). garantir_pasta_backup_google_drive fica intocada
-    # nesse dict (dead code pré-existente, fora do escopo desta extração -- Phase 3).
     app.register_blueprint(
         create_api_mercadophone_blueprint(
             {
@@ -325,11 +294,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 9º domínio extraído do monólito. mercado_phone_runtime_config/
-    # integrations_config_path/carregar_configuracoes_integracoes continuam também
-    # no dict de create_api_blueprint abaixo -- listar_ordens() (dominio OS, ainda
-    # nao extraido) tambem depende deles (achado da Discovery, ver
-    # fluxoly_mercadophone.py::carregar_config_mercadophone/atualizar_runtime_mercadophone).
     app.register_blueprint(
         create_api_reports_blueprint(
             {
@@ -353,11 +317,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 8º domínio extraído do monólito. As 8 chaves saem do dict de
-    # create_api_blueprint abaixo (deps reduzido, não duplicado) -- 6 delas também
-    # continuam intactas no dict de create_main_blueprint (páginas renderizadas no
-    # servidor, fluxoly_blueprints_main.py), consumidor separado e legítimo, NÃO
-    # tocado por esta extração (verificado explicitamente antes e depois).
     app.register_blueprint(
         create_api_backup_blueprint(
             {
@@ -375,19 +334,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # TD-01 Phase 2 -- 10º domínio extraído do monólito. 12 chaves saem do dict de
-    # create_api_blueprint abaixo (deps reduzido, não duplicado -- nenhuma tem outro
-    # consumidor no monólito, confirmado por contagem de uso pós-extração):
-    # categorias_custos, garantia_reparo_dias_padrao, iphone_colors, iphone_models,
-    # listar_custos_operacionais, obter_alertas_sistema, os_tipos_opcoes,
-    # produtos_categorias, produtos_condicoes, reparos_padrao, status_os_opcoes,
-    # tecnicos. As demais (conectar, calcular_faturamento_os, calcular_lucro_os,
-    # carregar_os_com_relacoes, normalizar_status_os, status_aberto/cancelado/
-    # finalizado, vendedores) continuam também no dict abaixo -- OS (ainda não
-    # extraído) depende delas. estoque_tipos/estoque_qualidades promovidas nesta
-    # extração de constantes locais do monólito para fluxoly_reference_data.py
-    # (achado da Discovery: intersecção real entre Sistema e Estoque, ainda não
-    # extraído) -- ambos os dicts recebem a referência agora.
     app.register_blueprint(
         create_api_system_blueprint(
             {
@@ -418,11 +364,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
         )
     )
 
-    # api_stock.py -- domínio Estoque (TD-01 Phase 2, 11º domínio extraído,
-    # 2026-08-07). estoque_tipos/estoque_qualidades e normalizar_modelo_iphone/
-    # registrar_movimentacao saem do dict de create_api_blueprint abaixo (deps
-    # reduzido, não duplicado -- confirmado por grep que OS, único domínio
-    # restante no monólito, não usa nenhuma das 4 diretamente).
     app.register_blueprint(
         create_api_stock_blueprint(
             {
@@ -482,11 +423,6 @@ def registrar_blueprints(app, runtime: RuntimeDeps) -> None:
             }
         )
     )
-
-    # fluxoly_blueprints_api.py -- código morto (KI-032), 0 chaves de deps desde
-    # o fim da TD-01. Remoção do arquivo/registro é TD-18 (Phase 3 -- Cleanup),
-    # fora de escopo desta fatia.
-    app.register_blueprint(create_api_blueprint({}))
 
     # ========================================================================
     # REGISTRO DO BLUEPRINT DE CLIENTES (Sprint P0.1 — primeiro domínio a seguir

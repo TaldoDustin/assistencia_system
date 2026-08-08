@@ -8,7 +8,6 @@ Application main module - Flask app bootstrap, configuration, and core functiona
 # ============================================================================
 import contextlib
 import functools
-import hmac
 import os
 import re
 import sqlite3
@@ -40,7 +39,7 @@ if not any(
 # ============================================================================
 # IMPORTS FLASK
 # ============================================================================
-from flask import Flask, abort, flash, g, jsonify, redirect, request, send_from_directory, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, send_from_directory, session, url_for
 
 # ============================================================================
 # IMPORTS DE OBSERVABILIDADE (Sprint Observabilidade)
@@ -81,7 +80,6 @@ from fluxoly_config import (  # noqa: E402
     MERCADO_PHONE_SYNC_ONLY_AFTER_BOOT,
     MERCADO_PHONE_SYNC_START_DATE,
     MERCADO_PHONE_SYNC_TIMEOUT_SECONDS,
-    MERCADO_PHONE_WEBHOOK_TOKEN,
     PRICE_TABLES_PATH,
     RESOURCE_DIR,
     VERCEL_URL,
@@ -100,7 +98,7 @@ from fluxoly_core import (
     texto_limpo,
 )
 from fluxoly_logging import configurar_logging, get_logger
-from fluxoly_mercadophone import detalhar_os_mercado_phone, importar_os_mercado_phone, loop_sincronizacao_mercado_phone
+from fluxoly_mercadophone import loop_sincronizacao_mercado_phone
 
 # ============================================================================
 # IMPORTS DE MÓDULOS INTERNOS - OS, STORAGE, MERCADOPHONE
@@ -1266,166 +1264,6 @@ MERCADO_PHONE_HELPERS = {
 }
 
 # ============================================================================
-# ENDPOINTS - INTEGRAÇÃO MERCADO PHONE
-# ============================================================================
-
-
-def autenticar_integracao_mercado_phone():
-    """Valida token de autenticação do webhook Mercado Phone.
-
-    Sem MERCADO_PHONE_WEBHOOK_TOKEN configurado, nenhum candidato pode
-    corresponder — a rota fica bloqueada por padrão (fail secure) em vez de
-    aberta sem autenticação.
-    """
-
-    def _mascarar_token(valor):
-        texto = texto_limpo(valor)
-        if not texto:
-            return "<vazio>"
-        if len(texto) <= 8:
-            return "*" * len(texto)
-        return f"{texto[:4]}...{texto[-4:]} (len={len(texto)})"
-
-    auth_header = texto_limpo(request.headers.get("Authorization"))
-    token_header = texto_limpo(request.headers.get("X-Webhook-Token"))
-    payload = request.get_json(silent=True)
-
-    candidatos = []
-
-    if token_header:
-        candidatos.append(token_header)
-
-    # Alguns provedores enviam em headers alternativos.
-    for header_name in ("X-Api-Key", "X-Auth-Token", "X-Token", "Mp-Auth-Code"):
-        valor = texto_limpo(request.headers.get(header_name))
-        if valor:
-            candidatos.append(valor)
-
-    if auth_header:
-        if auth_header.lower().startswith("bearer "):
-            candidatos.append(auth_header[7:].strip())
-        else:
-            candidatos.append(auth_header.strip())
-
-    for query_name in ("token", "webhook_token", "security_token"):
-        valor = texto_limpo(request.args.get(query_name))
-        if valor:
-            candidatos.append(valor)
-
-    if isinstance(payload, dict):
-        for body_key in ("token", "webhook_token", "security_token"):
-            valor = texto_limpo(payload.get(body_key))
-            if valor:
-                candidatos.append(valor)
-
-    for form_key in ("token", "webhook_token", "security_token"):
-        valor = texto_limpo(request.form.get(form_key))
-        if valor:
-            candidatos.append(valor)
-
-    autenticado = any(hmac.compare_digest(MERCADO_PHONE_WEBHOOK_TOKEN, candidato) for candidato in candidatos)
-    if not autenticado:
-        logger.warning(
-            "mercadophone_webhook_token_invalido",
-            extra={
-                "esperado": _mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN),
-                "candidatos": [_mascarar_token(c) for c in candidatos],
-                "headers": sorted(request.headers.keys()),
-                "query_keys": sorted(request.args.keys()),
-            },
-        )
-        abort(401)
-
-
-@app.route("/api/integracoes/mercadophone/os", methods=["POST"])
-def receber_os_mercado_phone():
-    """Recebe OS do Mercado Phone via webhook."""
-    autenticar_integracao_mercado_phone()
-
-    payload = request.get_json(silent=True) or {}
-    payload_evento = payload if isinstance(payload, dict) else {}
-    if isinstance(payload_evento, dict) and isinstance(payload_evento.get("ordem_servico"), dict):
-        payload = payload_evento["ordem_servico"]
-
-    external_id = ""
-    if isinstance(payload, dict):
-        external_id = texto_limpo(
-            payload.get("codigo")
-            or payload.get("id")
-            or payload.get("id_externo")
-            or payload.get("os_id")
-            or payload.get("ordem_servico_id")
-        )
-    if not external_id and isinstance(payload_evento, dict):
-        external_id = texto_limpo(
-            payload_evento.get("codigo")
-            or payload_evento.get("id")
-            or payload_evento.get("id_externo")
-            or payload_evento.get("os_id")
-            or payload_evento.get("ordem_servico_id")
-            or payload_evento.get("ordem_servico", {}).get("id")
-            or payload_evento.get("ordem_servico", {}).get("codigo")
-        )
-
-    conn = conectar()
-    cursor = conn.cursor()
-
-    try:
-        resultado = importar_os_mercado_phone(cursor, payload, MERCADO_PHONE_RUNTIME_CONFIG, MERCADO_PHONE_HELPERS)
-        conn.commit()
-        status_code = 200 if resultado["duplicada"] else 201
-        return (
-            jsonify(
-                {
-                    "ok": True,
-                    "duplicada": resultado["duplicada"],
-                    "os_id": resultado["os_id"],
-                }
-            ),
-            status_code,
-        )
-    except ValueError as exc:
-        # Alguns webhooks de edição vêm com payload parcial (apenas id/status).
-        # Nesses casos, busca o detalhe por ID para salvar corretamente no Fluxoly.
-        if (
-            external_id
-            and "dados suficientes" in str(exc).lower()
-            and texto_limpo(MERCADO_PHONE_RUNTIME_CONFIG.get("api_token"))
-        ):
-            try:
-                detalhes = detalhar_os_mercado_phone(external_id, MERCADO_PHONE_RUNTIME_CONFIG)
-                payload_detalhado = detalhes.get("data") if isinstance(detalhes, dict) else None
-                if isinstance(payload_detalhado, dict):
-                    resultado = importar_os_mercado_phone(
-                        cursor,
-                        payload_detalhado,
-                        MERCADO_PHONE_RUNTIME_CONFIG,
-                        MERCADO_PHONE_HELPERS,
-                        fallback_external_id=external_id,
-                    )
-                    conn.commit()
-                    status_code = 200 if resultado["duplicada"] else 201
-                    return (
-                        jsonify(
-                            {
-                                "ok": True,
-                                "duplicada": resultado["duplicada"],
-                                "os_id": resultado["os_id"],
-                                "fallback_por_id": True,
-                            }
-                        ),
-                        status_code,
-                    )
-            except Exception:
-                pass
-
-        conn.rollback()
-        return jsonify({"ok": False, "erro": str(exc)}), 400
-    finally:
-        conn.close()
-
-
-# ============================================================================
 # FUNÇÕES DE NEGÓCIO
 # ============================================================================
 
@@ -1647,8 +1485,6 @@ ROUTE_PERMISSIONS: dict[str, list[str] | None] = {
     "main_views.backup_download": ["admin"],
     "main_views.relatorio_pdf_ir_phones": ["admin"],
     "main_views.relatorio_pdf_tecnicos": ["admin"],
-    # Webhook (autenticação própria por token)
-    "receber_os_mercado_phone": [],
 }
 
 

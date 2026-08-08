@@ -8,13 +8,13 @@ deixando o endpoint aberto sem autenticacao. Corrigido para negar por padrao
 tempo constante (hmac.compare_digest) em vez de `in`/`==`.
 """
 
-import app as _app
+import api_mercadophone
 
 PAYLOAD_VALIDO = {"codigo": "MP-TESTE-1", "cliente": "Cliente Teste", "aparelho": "iPhone 13"}
 
 
 def test_webhook_rejeita_quando_token_nao_configurado(client, monkeypatch):
-    monkeypatch.setattr(_app, "MERCADO_PHONE_WEBHOOK_TOKEN", "")
+    monkeypatch.setattr(api_mercadophone, "MERCADO_PHONE_WEBHOOK_TOKEN", "")
 
     resp = client.post("/api/integracoes/mercadophone/os", json=PAYLOAD_VALIDO)
 
@@ -22,7 +22,7 @@ def test_webhook_rejeita_quando_token_nao_configurado(client, monkeypatch):
 
 
 def test_webhook_rejeita_token_incorreto(client, monkeypatch):
-    monkeypatch.setattr(_app, "MERCADO_PHONE_WEBHOOK_TOKEN", "token-correto-forte")
+    monkeypatch.setattr(api_mercadophone, "MERCADO_PHONE_WEBHOOK_TOKEN", "token-correto-forte")
 
     resp = client.post(
         "/api/integracoes/mercadophone/os",
@@ -34,7 +34,7 @@ def test_webhook_rejeita_token_incorreto(client, monkeypatch):
 
 
 def test_webhook_aceita_token_correto(client, monkeypatch):
-    monkeypatch.setattr(_app, "MERCADO_PHONE_WEBHOOK_TOKEN", "token-correto-forte")
+    monkeypatch.setattr(api_mercadophone, "MERCADO_PHONE_WEBHOOK_TOKEN", "token-correto-forte")
 
     resp = client.post(
         "/api/integracoes/mercadophone/os",

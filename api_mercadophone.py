@@ -3,16 +3,34 @@ Fluxoly - API Blueprint (MercadoPhone)
 Rotas /api/integracoes/mercadophone/* -- consumidas pelo frontend React
 (Integracoes.jsx). Extraído de fluxoly_blueprints_api.py (TD-01, Phase 2 --
 9º domínio extraído).
+
+TD-02 Fatia 4 (docs/operations/SPRINTS/SPRINT_TD02_BOOTSTRAP_APP.md): ganhou a
+rota de webhook POST /integracoes/mercadophone/os, movida de app.py. Único
+ponto deste blueprint que NÃO autentica via usuario_logado()/sessão -- é
+chamado pelo servidor externo da Mercado Phone, autenticado por token
+compartilhado (MERCADO_PHONE_WEBHOOK_TOKEN, hmac.compare_digest), sem sessão
+de usuário. Ver autenticar_integracao_mercado_phone() abaixo.
 """
 
+import hmac
 import threading
 from datetime import datetime
 
-from flask import Blueprint, request, session
+from flask import Blueprint, abort, jsonify, request, session
 
 from fluxoly_api_helpers import _texto_limpo_local, err, ok, usuario_admin, usuario_logado
-from fluxoly_mercadophone import atualizar_runtime_mercadophone, carregar_config_mercadophone
+from fluxoly_config import MERCADO_PHONE_WEBHOOK_TOKEN
+from fluxoly_core import texto_limpo
+from fluxoly_logging import get_logger
+from fluxoly_mercadophone import (
+    atualizar_runtime_mercadophone,
+    carregar_config_mercadophone,
+    detalhar_os_mercado_phone,
+    importar_os_mercado_phone,
+)
 from fluxoly_validation import parse_int, safe_json
+
+logger = get_logger("api_mercadophone")
 
 
 def create_api_mercadophone_blueprint(deps):
@@ -242,5 +260,163 @@ def create_api_mercadophone_blueprint(deps):
 
         status_cfg = atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config)
         return ok(mercado_phone=status_cfg)
+
+    # ========================================================================
+    # WEBHOOK (TD-02 Fatia 4) -- autenticação por token compartilhado, NÃO por
+    # sessão. Chamado pelo servidor externo da Mercado Phone, sem usuario_logado().
+    # ========================================================================
+
+    def autenticar_integracao_mercado_phone():
+        """Valida token de autenticação do webhook Mercado Phone.
+
+        Sem MERCADO_PHONE_WEBHOOK_TOKEN configurado, nenhum candidato pode
+        corresponder — a rota fica bloqueada por padrão (fail secure) em vez de
+        aberta sem autenticação.
+        """
+
+        def _mascarar_token(valor):
+            texto = texto_limpo(valor)
+            if not texto:
+                return "<vazio>"
+            if len(texto) <= 8:
+                return "*" * len(texto)
+            return f"{texto[:4]}...{texto[-4:]} (len={len(texto)})"
+
+        auth_header = texto_limpo(request.headers.get("Authorization"))
+        token_header = texto_limpo(request.headers.get("X-Webhook-Token"))
+        payload = request.get_json(silent=True)
+
+        candidatos = []
+
+        if token_header:
+            candidatos.append(token_header)
+
+        # Alguns provedores enviam em headers alternativos.
+        for header_name in ("X-Api-Key", "X-Auth-Token", "X-Token", "Mp-Auth-Code"):
+            valor = texto_limpo(request.headers.get(header_name))
+            if valor:
+                candidatos.append(valor)
+
+        if auth_header:
+            if auth_header.lower().startswith("bearer "):
+                candidatos.append(auth_header[7:].strip())
+            else:
+                candidatos.append(auth_header.strip())
+
+        for query_name in ("token", "webhook_token", "security_token"):
+            valor = texto_limpo(request.args.get(query_name))
+            if valor:
+                candidatos.append(valor)
+
+        if isinstance(payload, dict):
+            for body_key in ("token", "webhook_token", "security_token"):
+                valor = texto_limpo(payload.get(body_key))
+                if valor:
+                    candidatos.append(valor)
+
+        for form_key in ("token", "webhook_token", "security_token"):
+            valor = texto_limpo(request.form.get(form_key))
+            if valor:
+                candidatos.append(valor)
+
+        autenticado = any(hmac.compare_digest(MERCADO_PHONE_WEBHOOK_TOKEN, candidato) for candidato in candidatos)
+        if not autenticado:
+            logger.warning(
+                "mercadophone_webhook_token_invalido",
+                extra={
+                    "esperado": _mascarar_token(MERCADO_PHONE_WEBHOOK_TOKEN),
+                    "candidatos": [_mascarar_token(c) for c in candidatos],
+                    "headers": sorted(request.headers.keys()),
+                    "query_keys": sorted(request.args.keys()),
+                },
+            )
+            abort(401)
+
+    @api_mercadophone.route("/integracoes/mercadophone/os", methods=["POST"])
+    def receber_os_mercado_phone():
+        """Recebe OS do Mercado Phone via webhook."""
+        autenticar_integracao_mercado_phone()
+
+        payload = request.get_json(silent=True) or {}
+        payload_evento = payload if isinstance(payload, dict) else {}
+        if isinstance(payload_evento, dict) and isinstance(payload_evento.get("ordem_servico"), dict):
+            payload = payload_evento["ordem_servico"]
+
+        external_id = ""
+        if isinstance(payload, dict):
+            external_id = texto_limpo(
+                payload.get("codigo")
+                or payload.get("id")
+                or payload.get("id_externo")
+                or payload.get("os_id")
+                or payload.get("ordem_servico_id")
+            )
+        if not external_id and isinstance(payload_evento, dict):
+            external_id = texto_limpo(
+                payload_evento.get("codigo")
+                or payload_evento.get("id")
+                or payload_evento.get("id_externo")
+                or payload_evento.get("os_id")
+                or payload_evento.get("ordem_servico_id")
+                or payload_evento.get("ordem_servico", {}).get("id")
+                or payload_evento.get("ordem_servico", {}).get("codigo")
+            )
+
+        conn = conectar()
+        cursor = conn.cursor()
+
+        try:
+            resultado = importar_os_mercado_phone(cursor, payload, mercado_phone_runtime_config, mercado_phone_helpers)
+            conn.commit()
+            status_code = 200 if resultado["duplicada"] else 201
+            return (
+                jsonify(
+                    {
+                        "ok": True,
+                        "duplicada": resultado["duplicada"],
+                        "os_id": resultado["os_id"],
+                    }
+                ),
+                status_code,
+            )
+        except ValueError as exc:
+            # Alguns webhooks de edição vêm com payload parcial (apenas id/status).
+            # Nesses casos, busca o detalhe por ID para salvar corretamente no Fluxoly.
+            if (
+                external_id
+                and "dados suficientes" in str(exc).lower()
+                and texto_limpo(mercado_phone_runtime_config.get("api_token"))
+            ):
+                try:
+                    detalhes = detalhar_os_mercado_phone(external_id, mercado_phone_runtime_config)
+                    payload_detalhado = detalhes.get("data") if isinstance(detalhes, dict) else None
+                    if isinstance(payload_detalhado, dict):
+                        resultado = importar_os_mercado_phone(
+                            cursor,
+                            payload_detalhado,
+                            mercado_phone_runtime_config,
+                            mercado_phone_helpers,
+                            fallback_external_id=external_id,
+                        )
+                        conn.commit()
+                        status_code = 200 if resultado["duplicada"] else 201
+                        return (
+                            jsonify(
+                                {
+                                    "ok": True,
+                                    "duplicada": resultado["duplicada"],
+                                    "os_id": resultado["os_id"],
+                                    "fallback_por_id": True,
+                                }
+                            ),
+                            status_code,
+                        )
+                except Exception:
+                    pass
+
+            conn.rollback()
+            return jsonify({"ok": False, "erro": str(exc)}), 400
+        finally:
+            conn.close()
 
     return api_mercadophone

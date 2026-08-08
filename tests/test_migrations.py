@@ -224,39 +224,28 @@ class TestProtecaoContraLocked:
             run_migrations(conn)
 
 
-class TestEquivalenciaComOMecanismoAntigo:
-    def test_schema_gerado_bate_com_criar_tabelas_original(self, conn):
-        """Comparação byte-a-byte (após normalizar espaços) contra o schema
-        real produzido por app.py::criar_tabelas() -- prova que a Fatia 1
-        preserva o comportamento verbatim, não só 'parece igual'."""
-        import re
-
+class TestBootstrapDeAppUsaRunMigrations:
+    def test_conectar_nao_expoe_mais_criar_tabelas(self):
+        """TD-03 Fatia 2: criar_tabelas()/SCHEMA_READY/SCHEMA_LOCK foram
+        removidos de app.py -- run_migrations() (testado no resto deste
+        arquivo) é o único mecanismo de schema. Este teste substitui
+        TestEquivalenciaComOMecanismoAntigo (Fatia 1), cuja premissa -- comparar
+        contra o mecanismo antigo -- deixou de existir nesta fatia."""
         import app as appmod
 
-        def normalizar(sql):
-            return re.sub(r"\s+", " ", sql).strip()
+        assert not hasattr(appmod, "criar_tabelas")
+        assert not hasattr(appmod, "SCHEMA_READY")
+        assert not hasattr(appmod, "SCHEMA_LOCK")
 
-        conn_app = appmod.conectar()
-        cursor_app = conn_app.cursor()
-        cursor_app.execute(
-            "SELECT name, sql FROM sqlite_master WHERE type IN ('table','index') "
-            "AND name NOT LIKE 'sqlite_%' ORDER BY name"
-        )
-        schema_original = {nome: normalizar(sql) for nome, sql in cursor_app.fetchall() if sql}
-        conn_app.close()
+    def test_schema_migrations_registrado_apos_bootstrap_real(self):
+        """A conexão real da aplicação (via app.conectar(), depois do
+        bootstrap de import) já deve ter schema_migrations = ['0001']."""
+        import app as appmod
 
-        run_migrations(conn)
-        cursor_novo = conn.cursor()
-        cursor_novo.execute(
-            "SELECT name, sql FROM sqlite_master WHERE type IN ('table','index') "
-            "AND name NOT LIKE 'sqlite_%' AND name != 'schema_migrations' ORDER BY name"
-        )
-        schema_novo = {nome: normalizar(sql) for nome, sql in cursor_novo.fetchall() if sql}
-
-        assert set(schema_original.keys()) == set(schema_novo.keys())
-        divergentes = {
-            nome: (schema_original[nome], schema_novo[nome])
-            for nome in schema_original
-            if schema_original[nome] != schema_novo[nome]
-        }
-        assert divergentes == {}
+        conn = appmod.conectar()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM schema_migrations")
+            assert cursor.fetchall() == [("0001",)]
+        finally:
+            conn.close()

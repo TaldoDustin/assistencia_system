@@ -25,7 +25,6 @@ SENHA_PADRAO = "senha_teste_123"
 def app():
     _app.app.config["TESTING"] = True
     _app.app.config["WTF_CSRF_ENABLED"] = False
-    _app.criar_tabelas()
     yield _app.app
 
 
@@ -317,7 +316,16 @@ def criar_item_estoque():
                 INSERT INTO estoque (descricao, valor, fornecedor, quantidade, modelo, sku, tipo, qualidade)
                 VALUES (?,?,?,?,?,?,?,?)
                 """,
-                (descricao, valor, "Fornecedor Teste", quantidade, modelo, f"SKU-{uuid.uuid4().hex[:8]}", tipo, qualidade),
+                (
+                    descricao,
+                    valor,
+                    "Fornecedor Teste",
+                    quantidade,
+                    modelo,
+                    f"SKU-{uuid.uuid4().hex[:8]}",
+                    tipo,
+                    qualidade,
+                ),
             )
             conn.commit()
             item_id = cursor.lastrowid

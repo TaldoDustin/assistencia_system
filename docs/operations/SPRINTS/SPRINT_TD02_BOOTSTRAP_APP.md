@@ -457,6 +457,37 @@ grep confirmou zero consumidor restante em `app.py` após a extração). `import
   ambiental** (rodada também contra `main` sem a mudança, mesmo erro: `WinError 10106`, provedor Winsock
   do Windows local falhando dentro de `asyncio` importado pelo `sentry_sdk`; CI roda em Linux, não afetado)
 - `graphify update .` rodado — `fluxoly_config.py` indexado, aresta `app.py --imports_from--> fluxoly_config` confirmada via `graphify explain`
+- Commit `31af128f`, push, **CI verde** (run `31229481465` — Lint, Frontend Quality, Backend Tests,
+  Docker Build, Frontend Build, Coverage Report, todos ✓)
 
 Nenhuma limpeza adicional feita fora do bloco B (disciplina de não misturar a fatia com outras
 oportunidades encontradas no caminho).
+
+---
+
+## Phase 2 — Fatia 2: `fluxoly_app_security.py` (CONCLUÍDA em 2026-08-07)
+
+Do bloco C (Bootstrap Flask + CORS + security headers), só a parte de CORS/headers migrou — exatamente
+o escopo da matriz aprovada. Ficaram em `app.py`, por decisão explícita: `FLASK_SECRET_KEY`, configuração
+de cookie de sessão, `app = Flask(...)`, e o cálculo de `cors_origins` (continua em `app.py`, único lugar
+que lê `IR_FLOW_CORS_ORIGINS`/`VERCEL_URL` — `fluxoly_app_security.py` não lê `os.environ`, só recebe
+`cors_origins` já pronto).
+
+Migrou para `fluxoly_app_security.py`, dentro de uma única factory `configurar_seguranca(app,
+cors_origins)`: o import guard de `flask_cors` (`try/except`), o registro `CORS(app, ...)`, `_origem_permitida_cors`
+(agora closure sobre o parâmetro `cors_origins`, não mais variável de módulo), `_cors_fallback_headers` e
+`_security_headers` (os dois `@app.after_request`), e a constante `_CSP_HEADER_VALUE`. `app.py` chama a
+factory uma vez, logo após computar `cors_origins`.
+
+**Validação:**
+- `ruff check app.py fluxoly_app_security.py` → limpo
+- `black --check` → 1 reformatação automática aplicada em `fluxoly_app_security.py` (uma linha que eu
+  tinha quebrado manualmente voltou a uma linha só, sem mudança de lógica) — confirmado limpo depois
+- `app.url_map` antes/depois: **122 rotas, diff idêntico** (mesmo método da Fatia 1, `git stash` temporário)
+- Suíte completa: **682 passando**, mesma falha pré-existente/ambiental de `test_sentry_init.py` já
+  confirmada contra `main` na Fatia 1 — não re-verificada contra `main` de novo porque é o mesmo teste,
+  mesmo erro (`WinError 10106`), e o teste não toca CORS/security headers
+- `graphify update .` rodado — `fluxoly_app_security.py` indexado, aresta
+  `app.py --imports_from--> fluxoly_app_security` confirmada via `graphify explain`
+
+Nenhuma limpeza adicional feita fora do bloco C (mesma disciplina da Fatia 1).

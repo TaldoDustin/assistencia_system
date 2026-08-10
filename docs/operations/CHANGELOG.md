@@ -765,6 +765,28 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - `docs/operations/PROJECT_STATUS.md` — nova seção "Rollback — política definida (Operação Release 1.0)".
 - Nenhum código de produção alterado — decisão de processo/documentação apenas.
 
+### Adicionado (2026-08-10 — Operação Release 1.0: política de conflito em rollback)
+- `docs/company/GO_LIVE_PLAN.md` (seção "Plano de rollback") e `DEPLOY.md` (seção "Rollback") — nova
+  regra: qualquer conflito durante um `git revert` de rollback de produção é condição de parada, cobrindo
+  qualquer tipo de arquivo (código, documentação, testes, configuração, migrations). Proibido resolver
+  automaticamente (`--continue`/`--abort`/`--skip`, escolher `ours`/`theirs`, apagar conteúdo, `reset`,
+  force-push) — exige informar o CTO e aguardar decisão explícita (resolver de forma controlada, hotfix
+  roll-forward, rollback alternativo, ou abortar).
+- Motivado por evidência real: Dry-Run 1A (branch `dry-run/rollback-f5fdb23`, preservada) reverteu
+  `tests/test_backup_restore.py` (`f5fdb23`) sem conflito, validando o mecanismo isoladamente. Dry-Run 1B,
+  com um commit real de produção (`609619f`), reverteu `frontend/src/pages/VendaDetalhe.jsx` limpo mas
+  encontrou conflito real em `docs/operations/KNOWN_ISSUES.md` (arquivo append-only, evoluído por commits
+  posteriores — KI-029 a KI-034) — a resolução exigiria decisão de conteúdo sobre a entrada do KI-028 e
+  sua propagação para outros documentos que a referenciam, não é operação puramente mecânica. `git revert
+  --abort` executado, `main`/`origin/main` nunca alteradas em nenhum momento.
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Rollback testado" atualizado com o registro dos
+  dois Dry-Runs e da nova regra; percentual mantido em 40% (política mais robusta, mas rollback ainda não
+  testado de ponta a ponta — cálculo justificado no próprio item, sem inflar automaticamente por causa de
+  documentação nova).
+- `docs/operations/PROJECT_STATUS.md` — seção "Rollback" ampliada com o registro do Dry-Run 1A/1B.
+- Nenhum código de produção alterado — decisão de processo/documentação apenas; o revert de
+  `VendaDetalhe.jsx` no Dry-Run 1B existiu só na branch temporária, nunca chegou a `main`.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

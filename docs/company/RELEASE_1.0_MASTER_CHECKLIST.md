@@ -206,12 +206,20 @@ dry-run real; os demais (manual, demo, piloto) seguem do zero. Ver detalhamento 
   Link: `DEPLOY.md`
 
 - [ ] **Rollback testado**
-  Estado: 🟡 Política definida e aprovada (2026-08-10, Discovery da Operação Release 1.0 Parte B, decisão
-  do CTO): escopo coordenado (backend+frontend sempre juntos), critério de acionamento (bug crítico/perda
-  de dados/indisponibilidade prolongada), autoridade (só o CTO autoriza), regra de interação com
-  migrations (nunca cruza uma migration já aplicada — TD-03 roll-forward only), mecanismo (`git revert` +
-  `git push`) e verificação (smoke test manual) documentados em `DEPLOY.md`/`GO_LIVE_PLAN.md`. **Nunca
-  exercitado em dry-run real** — permanece 🟡, não ✅, até um teste de fato.
+  Estado: 🟡 Política definida e aprovada (2026-08-10): escopo coordenado (backend+frontend sempre
+  juntos), critério de acionamento (bug crítico/perda de dados/indisponibilidade prolongada), autoridade
+  (só o CTO autoriza), regra de interação com migrations (nunca cruza uma migration já aplicada — TD-03
+  roll-forward only), mecanismo (`git revert` + `git push`) e verificação (smoke test manual). Dois
+  exercícios locais conduzidos no mesmo dia (Dry-Run 1A e 1B, branch `dry-run/rollback-f5fdb23`,
+  preservada): o 1A validou o mecanismo de `git revert` sem conflito (commit `f5fdb23`, só testes); o 1B,
+  com um commit real de produção (`609619f`), encontrou um **conflito real** em
+  `docs/operations/KNOWN_ISSUES.md` — o que originou a nova regra "conflito = condição de parada +
+  decisão explícita do CTO", cobrindo qualquer tipo de arquivo, também documentada em
+  `DEPLOY.md`/`GO_LIVE_PLAN.md`. `git revert --abort` executado com sucesso, `main`/`origin/main` nunca
+  tocadas. **Ainda não há um dry-run local completo sem interrupção, nem dry-run de infraestrutura
+  (Render/Vercel)** — permanece 🟡, não ✅. Percentual mantido em 40% (ver "Visão executiva" abaixo e
+  raciocínio no `PROJECT_STATUS.md`): a política ficou mais robusta, mas este item mede se o rollback foi
+  *testado* de ponta a ponta, o que ainda não aconteceu.
   Link: `DEPLOY.md`, `docs/company/GO_LIVE_PLAN.md`
 
 - [ ] **Manual do usuário**

@@ -113,6 +113,13 @@ No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 1. Identificar o(s) commit(s) problemático(s) em `main`.
 2. `git revert <commit>` (nunca `git reset --hard` nem force-push) — preserva o histórico e, seguindo a
    regra acima, nunca reverte para antes de uma migration já aplicada.
+   - **Se houver conflito** (em qualquer tipo de arquivo — código, documentação, testes, configuração,
+     migrations): **PARE.** Não resolva automaticamente (`--continue`/`--abort`/`--skip`, escolher
+     `ours`/`theirs`, apagar conteúdo para o revert passar, `git reset`, force-push). Preserve a evidência
+     do conflito e informe o CTO — a resolução pode exigir decisão de conteúdo, não é garantidamente
+     mecânica (achado do Dry-Run 1B, 2026-08-10, ver `docs/company/GO_LIVE_PLAN.md` seção "Plano de
+     rollback"). Decisões possíveis do CTO: resolver de forma controlada, hotfix roll-forward, rollback
+     alternativo, ou abortar.
 3. `git push` — dispara redeploy automático em Render (backend) e Vercel (frontend), mesmo fluxo de
    deploy descrito no topo deste documento.
 4. Smoke test manual: login, criar OS, criar venda, conferir dashboard — confirma que a funcionalidade
@@ -120,7 +127,9 @@ No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 5. Se o gatilho envolveu perda/corrupção de dado, restaurar o backup pré-incidente via
    `POST /api/backup/restaurar` (mesmo processo já validado em `tests/test_backup_restore.py`).
 
-**Não exercitado ainda** — a política está definida e documentada, mas nunca foi testada em dry-run real.
+**Parcialmente exercitado** — Dry-Run 1A (mecanismo Git/local, sem conflito) concluído; Dry-Run 1B (commit
+real de produção) encontrou um conflito real em documentação, que originou a regra do passo 2 acima.
+Ainda não há um dry-run local completo sem interrupção, nem um dry-run de infraestrutura (Render/Vercel).
 
 ---
 

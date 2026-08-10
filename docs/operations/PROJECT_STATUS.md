@@ -6,11 +6,13 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-10
-**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Rollback com política definida**
-(2026-08-10, ver abaixo); Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem
-decisão, um por vez, conforme o CTO for decidindo. Sequência recente: 🟡 **Rollback — política definida
-(Operação Release 1.0 Parte B — Discovery → decisão do CTO, uma pergunta de cada vez → registro em
-`GO_LIVE_PLAN.md`/`DEPLOY.md`, 2026-08-10, ver abaixo)** → ✅ **Restore validado
+**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Rollback — Dry-Run 1A/1B conduzidos,
+conflito real encontrado e nova regra de conflito incorporada à política** (2026-08-10, ver abaixo);
+Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
+o CTO for decidindo. Sequência recente: 🟡 **Rollback — Dry-Run 1A/1B + política de conflito (Operação
+Release 1.0 Parte B — Discovery → decisão do CTO → política inicial → Dry-Run 1A mecanismo sem conflito →
+Dry-Run 1B commit real com conflito real em documentação → abort seguro → nova regra "conflito = parada +
+decisão do CTO", 2026-08-10, ver abaixo)** → ✅ **Restore validado
 (Operação Release 1.0 — Discovery → testes automatizados → QA manual → merge, 2026-08-10, ver abaixo)**
 → ✅
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
@@ -43,11 +45,30 @@ técnico/política/autoridade/procedimento do `CLAUDE.md` §11:
   nativo de Render/Vercel, que deixaria `main` divergente do que está rodando).
 - **Verificação:** smoke test manual mínimo (login + uma operação real por módulo crítico) contra
   produção logo após o redeploy.
+- **Conflito durante o revert:** qualquer conflito em `git revert` durante um rollback de produção é
+  **condição de parada** — cobre qualquer tipo de arquivo (código, documentação, testes, configuração,
+  migrations). Não resolver/continuar/pular/abortar automaticamente; informar o CTO e aguardar decisão
+  explícita (resolver de forma controlada, hotfix roll-forward, rollback alternativo, ou abortar).
 
-**Não exercitado** — política definida e documentada, mas nunca testada em dry-run real.
-`RELEASE_1.0_MASTER_CHECKLIST.md` atualizado de ❌ para 🟡 (item "Rollback testado"), visão executiva de
-Operação recalculada (~23% → ~30%, geral ~59% → ~61%). Nenhum código alterado nesta decisão — só
-documentação.
+**Dry-Run 1A e 1B (2026-08-10, branch `dry-run/rollback-f5fdb23`, preservada, não apagada):** 1A reverteu
+`tests/test_backup_restore.py` (commit `f5fdb23`, sem impacto em produção) sem conflito, validando o
+mecanismo Git/local isoladamente — testes relevantes (7/7) e `ruff check` verdes após o revert. 1B usou um
+commit real de produção (`609619f`, fix de exibição de `garantia_data_fim`): o código
+(`frontend/src/pages/VendaDetalhe.jsx`) reverteu limpo, mas `docs/operations/KNOWN_ISSUES.md`
+(append-only, evoluído por commits posteriores — KI-029 a KI-034) gerou **conflito real**. A análise do
+conflito mostrou que resolvê-lo exigiria decisão de conteúdo (reabrir vs. remover a entrada do KI-028, e
+propagar a consistência para `PROJECT_STATUS.md`/`CHANGELOG.md`/`PLAN-V1.5-Garantia.md`, que também
+referenciam o KI-028) — não é uma operação puramente mecânica de Git. `git revert --abort` executado com
+sucesso; `main`/`origin/main` nunca tocadas em nenhum momento dos dois exercícios. Levou à nova regra
+"Conflito durante o revert" acima, registrada também em `GO_LIVE_PLAN.md`/`DEPLOY.md`.
+
+**Ainda não exercitado com sucesso de ponta a ponta** — a política ficou mais robusta (cobre um cenário
+real que faltava), mas nenhum dry-run (local sem interrupção, ou de infraestrutura Render/Vercel) foi
+concluído. `RELEASE_1.0_MASTER_CHECKLIST.md` atualizado com o registro dos dois Dry-Runs; **percentual
+mantido em 40%** (Operação ~30%, geral ~61% — inalterados) porque o item mede se o rollback foi *testado*
+de ponta a ponta, o que ainda não aconteceu — ver raciocínio completo no próprio checklist. Nenhum código
+de produção alterado nesta decisão — só documentação; `VendaDetalhe.jsx` só foi tocado dentro da branch de
+dry-run temporária, nunca chegou a `main`.
 
 ---
 

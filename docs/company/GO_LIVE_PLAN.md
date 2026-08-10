@@ -90,6 +90,19 @@ também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
   criar venda, ver dashboard) contra produção logo após o redeploy.
 - **Restauração de dado**, se o gatilho envolveu perda/corrupção: mesmo processo já validado do item
   "Restore validado" do master checklist (`api_backup.py::restaurar_backup_upload`).
+- **Conflito durante o revert** (decidido em 2026-08-10, após o Dry-Run 1B — ver
+  `docs/operations/PROJECT_STATUS.md`): qualquer conflito em `git revert` durante um rollback de produção
+  é **condição de parada** — cobre qualquer tipo de arquivo (código, documentação, testes, configuração,
+  migrations, ou qualquer outro). O Dry-Run 1B usou um commit real (`609619f`) e gerou conflito real em
+  `docs/operations/KNOWN_ISSUES.md` (arquivo append-only, evoluído por commits posteriores); resolvê-lo
+  exigiria decisão de conteúdo (reabrir vs. remover a entrada do KI-028, e propagar a consistência para
+  outros documentos que a referenciam) — não é uma operação puramente mecânica de Git.
+  - **Não fazer automaticamente:** `git revert --continue`, `git revert --abort`, `git revert --skip`,
+    escolher `ours`/`theirs`, apagar documentação para o revert passar, `git reset`, force-push.
+  - **Fazer:** parar, preservar a evidência do conflito, informar o CTO, aguardar decisão explícita antes
+    de qualquer resolução ou continuação.
+  - **Decisões possíveis do CTO:** resolver o conflito de forma controlada; hotfix roll-forward; rollback
+    alternativo; abortar o rollback.
 - [ ] Comunicação ao cliente em caso de rollback — ainda não definida; só relevante quando houver um
       cliente real em produção, fora do escopo desta decisão
 
@@ -97,9 +110,13 @@ também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
 
 ## O que este documento ainda não tem (gaps conhecidos)
 
-- A política de rollback está definida e aprovada (2026-08-10), mas **nunca foi exercitada em dry-run
-  real**. Vale um "dry run" completo (implantação simulada, sem cliente real) antes do primeiro go-live
-  de verdade.
+- A política de rollback está definida e aprovada (2026-08-10). Dois exercícios locais foram conduzidos
+  no mesmo dia (Dry-Run 1A e 1B, branch `dry-run/rollback-f5fdb23`, preservada): o 1A validou o mecanismo
+  de `git revert` isolado, sem conflito (commit `f5fdb23`, só testes). O 1B, com um commit real de
+  produção (`609619f`), encontrou um conflito real em documentação — o que levou à regra "Conflito
+  durante o revert" acima. `git revert --abort` executado com sucesso, `main`/`origin/main` nunca
+  tocadas. Ainda faltam: repetir o Dry-Run 1B sob a nova regra, um dry-run local completo sem interrupção,
+  e um dry-run de infraestrutura (Render/Vercel) antes do primeiro go-live de verdade.
 - Comunicação ao cliente em caso de rollback ainda não definida.
 - Número de dias de acompanhamento pós-lançamento é um palpite (7 dias), não uma decisão validada.
 

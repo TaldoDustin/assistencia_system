@@ -44,13 +44,13 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 | Área | Status | % |
 |---|---|---|
 | Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~68% |
-| Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~44% |
+| Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~66% |
 | Segurança e Compliance | 🟡 | ~55% |
 | Observabilidade | 🟢 | ~85% |
 | Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~23% |
 
 ```
-Release 1.0:  ███████████░░░░░░░░░  ~55%
+Release 1.0:  ███████████░░░░░░░░░  ~59%
 ```
 
 **Correção (2026-08-10, auditoria de estado real):** esta tabela media há duas semanas contra um estado
@@ -62,17 +62,16 @@ documentado), mas a agregação nunca foi recalculada. Cálculo por área, mesma
 | Área | Itens e % individual estimado | Média |
 |---|---|---|
 | Produto | Assistência 70% · Comercial 65% · Financeiro 100% · Dashboard 65% · Configurações 40% | ~68% |
-| Confiabilidade | Bugs 70% · Backup 60% · Restore 10% · Carga 35% | ~44% |
+| Confiabilidade | Bugs 70% · Backup 60% · Restore 100% · Carga 35% | ~66% |
 | Segurança | Segurança revisada 100% · LGPD 10% | ~55% (inalterada — nenhum dos dois itens mudou) |
 | Observabilidade | Logs 100% · Monitorização 70% | ~85% |
 | Operação | Deploy 100% · Rollback 5% · Manual 5% · Demo 5% · Piloto 0% | ~23% |
 
-Visão geral recalculada de ~29% para ~55%. O salto não representa trabalho novo entregue nesta auditoria
-— é a correção de uma medição que já estava errada há duas semanas (Observabilidade era tratada como
-~3%/🔴 quando o código de logs e monitoramento já existia; Comercial era tratado como quase-zero quando
-Vendas já estava em produção com 4 evoluções). **Confiabilidade e Segurança não mudaram** — nenhum item
-dessas duas áreas foi corrigido nesta auditoria, o que serve de controle de que o método não foi
-inflado arbitrariamente.
+Visão geral recalculada de ~29% para ~55% em 2026-08-10 (auditoria de estado real) e, no mesmo dia, de
+~55% para ~59% com o fechamento do item Restore validado (Discovery → testes automatizados → QA manual
+→ merge, ver detalhamento abaixo) — este segundo salto **é** trabalho novo, diferente da correção de
+medição que gerou o primeiro. **Segurança não mudou** — controle de que o método não foi inflado
+arbitrariamente fora do item que de fato avançou.
 
 Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — nenhum
 dos 5 itens tem mais que um documento de deploy pronto; os demais (rollback, manual, demo, piloto)
@@ -139,11 +138,23 @@ seguem do zero. Ver detalhamento item a item abaixo.
   parar de rodar silenciosamente.
   Link: `docs/operations/KNOWN_ISSUES.md` (KI-006)
 
-- [ ] **Restore validado** — processo de restauração testado de ponta a ponta
-  Estado: ❌ Endpoint de restore existe (`/api/backup/restaurar`), **mas nenhum teste automatizado
-  cobre o fluxo de restauração** (confirmado: nenhum `test_restore`/`test_restaurar` em `tests/`).
-  Nunca exercitado de ponta a ponta nesta sessão nem documentado como validado.
-  Link: `irflow_blueprints_api.py` (`restaurar_backup_upload`)
+- [x] **Restore validado** — processo de restauração testado de ponta a ponta
+  Estado: ✅ Concluído (2026-08-10). Cobertura automatizada nova: `tests/test_backup_restore.py`
+  (7 cenários — restore altera o banco de fato, backup `pre-restore-*.db` criado com o estado anterior,
+  rejeita extensão/header/corrupção sem alterar o banco, 403 sem sessão/sem perfil admin), com fixture de
+  isolamento local ao arquivo (banco real da sessão de testes preservado via `PRAGMA wal_checkpoint(FULL)`
+  + snapshot/restore, `tests/conftest.py` global intocado). **QA manual de ponta a ponta** (11/11) rodado
+  contra um backend descartável isolado (porta própria, `IR_FLOW_DATA_DIR` próprio, nunca
+  `database.db` de desenvolvimento/produção): restore de arquivo válido altera o banco, pré-restore
+  criado com o estado anterior, integridade pós-restore ok, app responde normalmente pós-restore,
+  arquivo sem `.db`/não-SQLite/corrompido rejeitados sem alterar o banco, sem sessão e sem permissão
+  retornam 403. Achado de portabilidade (não é bug — ver `ENGINEERING_GUIDE.md` §11, nenhum critério de
+  interrupção se aplica): `PRAGMA integrity_check` diverge por build de SQLite para o mesmo arquivo
+  corrompido — runner Linux do CI levanta `sqlite3.DatabaseError` direto em vez de retornar 400 limpo;
+  teste ajustado para aceitar os dois desfechos reais, sempre provando que o banco original permanece
+  inalterado. Merge em `main` via PR #21 (commit `f73f6f86`), CI 6/6 verde antes e depois do merge.
+  Nenhum código de produção alterado neste ciclo.
+  Link: `tests/test_backup_restore.py`, `api_backup.py` (`restaurar_backup_upload`)
 
 - [ ] **Teste de carga** — múltiplos usuários simultâneos
   Estado: 🟡 Feito de forma ad-hoc durante a investigação de INC-001 (até 120 threads concorrentes,
@@ -215,8 +226,8 @@ seguem do zero. Ver detalhamento item a item abaixo.
 
 - ❌ = não iniciado, confirmado por busca no código/docs (não é suposição)
 - 🟡 = parcial — existe algo, mas não cobre o critério de aceitação inteiro
-- ✅ = concluído e verificado (4 itens em 2026-08-10: Financeiro mínimo, Segurança revisada, Logs
-  estruturados, Deploy documentado)
+- ✅ = concluído e verificado (5 itens em 2026-08-10: Financeiro mínimo, Segurança revisada, Logs
+  estruturados, Deploy documentado, Restore validado)
 - Todo item "🟡" ou "❌" deveria ter uma entrada correspondente em
   `docs/product/PRODUCT_BACKLOG.md` (ver seção seguinte) quando virar trabalho planejado.
 

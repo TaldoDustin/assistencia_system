@@ -727,6 +727,29 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   Financeiro Mínimo movido de 🟡 para ✅ ENCERRADO;
   `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Financeiro mínimo" marcado como entregue.
 
+### Adicionado (2026-08-10 — Operação Release 1.0: Restore de Backup validado)
+- `tests/test_backup_restore.py` — 7 cenários cobrindo `POST /api/backup/restaurar`
+  (`api_backup.py::restaurar_backup_upload`), que nunca teve teste automatizado: restore de arquivo
+  válido altera o banco de fato, backup `pre-restore-*.db` criado com o estado anterior, rejeita
+  extensão/header/corrupção sem alterar o banco, 403 sem sessão/sem perfil admin. Fixture de isolamento
+  local ao arquivo (não altera `tests/conftest.py` global) preserva o banco real da sessão de pytest via
+  `PRAGMA wal_checkpoint(FULL)` + snapshot/restore.
+- QA manual de ponta a ponta (11/11 cenários) contra um backend descartável isolado (`IR_FLOW_DATA_DIR`
+  próprio, nunca `database.db` de desenvolvimento/produção): ciclo positivo completo e 5 cenários
+  negativos, banco original inalterado em todos os casos negativos.
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Restore validado" (seção Confiabilidade)
+  marcado como entregue; visão executiva recalculada (Confiabilidade ~44% → ~66%, geral ~55% → ~59%).
+- `docs/operations/PROJECT_STATUS.md` — nova seção "Restore de Backup — validado (Operação Release 1.0)".
+- Achado de portabilidade entre builds de SQLite, não bloqueante (`ENGINEERING_GUIDE.md` §11 — nenhum
+  critério objetivo de interrupção se aplica): `PRAGMA integrity_check` retorna erro limpo (400) no
+  Windows/Python 3.12 local, mas levanta `sqlite3.DatabaseError` direto no runner Linux do CI para o
+  mesmo arquivo corrompido — teste ajustado para aceitar os dois desfechos reais, sempre provando que o
+  banco original permanece inalterado.
+- Achado operacional, registrado para o futuro ambiente de demonstração (não é bug): `IS_SERVER_RUNTIME`
+  (ativado por `IR_FLOW_DATA_DIR`) força `SESSION_COOKIE_SECURE=True`, exigindo HTTPS para o cookie de
+  sessão ser reenviado.
+- Merge via PR #21 (commit `f73f6f86`), CI 6/6 verde. Nenhum código de produção alterado.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

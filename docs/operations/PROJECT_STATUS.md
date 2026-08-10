@@ -6,12 +6,49 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-10
-**Próxima revisão:** Fase 1 (Financeiro mínimo, Release 1.0) — **ENCERRADA** (BR-067 a BR-069,
-2026-08-10, ciclo ADR-010 completo: Discovery → Plano Técnico → Implementação → Testes → QA Manual →
-Revisão Arquitetural → Encerramento). Próximo item do backlog a definir. Sequência recente: ✅
+**Próxima revisão:** Operação Release 1.0 — item **Restore validado ENCERRADO** (2026-08-10, ver abaixo).
+Parte B da Operação (Rollback, Manual do usuário, Ambiente de demonstração, Piloto/homologação) ainda
+não iniciada — decisões pendentes do CTO, uma por vez. Sequência recente: ✅ **Restore validado
+(Operação Release 1.0 — Discovery → testes automatizados → QA manual → merge, 2026-08-10, ver abaixo)**
+→ ✅
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Restore de Backup — validado (Operação Release 1.0)
+
+**Ver `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md`** (seção Confiabilidade, item "Restore validado")
+para o registro completo.
+
+Discovery comparativa (Dashboard Executivo vs. KI-005 vs. Operação Release 1.0) levou à decisão do
+usuário (CTO) de priorizar Operação — único bloco que ataca diretamente o gargalo do primeiro cliente
+pagante. Discovery detalhada de Operação separou os 5 itens do checklist em Engenharia (só Restore) vs.
+Decisão/Processo (Rollback, Manual, Demo, Piloto — Parte B, ainda não iniciada).
+
+`tests/test_backup_restore.py` (7 cenários) cobre `POST /api/backup/restaurar`
+(`api_backup.py::restaurar_backup_upload`), que nunca teve teste. Fixture de isolamento local ao
+arquivo (não altera `tests/conftest.py` global) preserva o banco real da sessão de testes via
+`PRAGMA wal_checkpoint(FULL)` + snapshot/restore, já que o banco roda em WAL e a sessão de pytest
+compartilha um único arquivo real. Achado de portabilidade entre builds de SQLite (não é bug — nenhum
+critério objetivo de interrupção do `ENGINEERING_GUIDE.md` §11 se aplica, mesmo padrão do precedente já
+documentado de exceção visível sem persistência incorreta): `PRAGMA integrity_check` retorna erro limpo
+no Windows/Python 3.12 local, mas levanta `sqlite3.DatabaseError` direto no runner Linux do CI — teste
+corrigido para aceitar os dois desfechos reais, sempre provando que o banco original permanece
+inalterado.
+
+QA manual de ponta a ponta (11/11 cenários) rodado contra um backend descartável isolado (porta própria,
+`IR_FLOW_DATA_DIR` próprio, nunca `database.db` de desenvolvimento/produção): ciclo positivo completo
+(marcador de estado → backup → modificação → restore → estado revertido → `pre-restore-*.db` criado com
+o estado anterior → integridade ok → app responde normalmente) e 5 cenários negativos (extensão
+inválida, não-SQLite, corrompido, sem sessão, sem permissão — banco inalterado em todos). Achado
+operacional registrado para o futuro ambiente de demonstração (não é bug): `IS_SERVER_RUNTIME=True`
+(ativado por `IR_FLOW_DATA_DIR`) força `SESSION_COOKIE_SECURE=True`, exigindo HTTPS para o cookie de
+sessão ser reenviado — relevante para quem for montar a Parte B.
+
+Merge via PR #21 (commit `f73f6f86`), CI 6/6 verde antes e depois do merge. Nenhum código de produção
+alterado em todo o ciclo.
 
 ---
 

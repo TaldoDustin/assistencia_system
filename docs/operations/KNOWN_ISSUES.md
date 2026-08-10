@@ -1199,3 +1199,60 @@ Encerramento do ADR-010 do Financeiro Mínimo.
 
 Responsável:
 —
+
+---
+
+## KI-035
+
+Descrição:
+`migrations/runner.py::run_migrations()` tem uma condição de corrida real quando múltiplos workers
+Gunicorn (`--workers 2`, `gunicorn.conf.py`) sobem simultaneamente contra um banco com uma ou mais
+migrations pendentes. Cada worker lê `SELECT id FROM schema_migrations` (linhas 59-60) antes de qualquer
+commit do outro, então os dois podem concluir que a mesma migration ainda não foi aplicada e tentar
+inseri-la — o segundo `INSERT INTO schema_migrations (id) VALUES (?)` (linha 67) recebe
+`sqlite3.IntegrityError: UNIQUE constraint failed: schema_migrations.id`. O `except
+sqlite3.OperationalError` existente (linhas 71-76) só trata o caso "database is locked" —
+`IntegrityError` não é subclasse de `OperationalError` (as duas são subclasses irmãs de
+`sqlite3.DatabaseError`), então a exceção não é capturada e propaga, derrubando o boot do worker
+(`Worker failed to boot`, exit code 3).
+
+Achado em produção real (2026-08-10), durante deploy manual do commit `d7ef012` no Render — não é
+hipótese de código, é evidência de log real: a primeira tentativa falhou com esse exato traceback
+(`app.py` linha 484 → `run_migrations()` → `migrations/runner.py` linha 67), o Gunicorn encerrou o worker
+com `Worker failed to boot`/exit code 3, e o Render manteve o deploy anterior ao vivo (comportamento
+padrão da plataforma — deploy que falha não substitui o que está rodando). Contexto que tornou a corrida
+mais provável que o normal: o deploy anterior ao vivo (`14ec238`, 3 de agosto) era anterior à TD-03 — o
+banco de produção nunca tinha rodado `run_migrations()` antes, então havia mais de uma migration pendente
+para aplicar de uma vez no mesmo boot (`m0001_baseline` + `m0002_financeiro_minimo`), ampliando a janela
+da corrida. Uma segunda tentativa de deploy manual do mesmo commit teve sucesso — consistente com
+condição de corrida intermitente, não um erro determinístico.
+
+Impacto:
+Alto em potencial, intermitente na prática. Pode derrubar o boot de um deploy sempre que houver mais de
+uma migration pendente sendo aplicada no mesmo boot com múltiplos workers — cenário que se repete em
+qualquer ambiente que fique atrasado (ex.: um futuro ambiente de demonstração/preview criado do zero, ou
+qualquer rollback/roll-forward que precise aplicar migrations acumuladas). Relevante diretamente para a
+política de Rollback (`docs/company/GO_LIVE_PLAN.md`/`DEPLOY.md`): a regra "rollback de código nunca
+cruza uma migration já aplicada" pressupõe que a aplicação de migrations em si é confiável — este achado
+mostra que o bootstrap de migrations pode falhar de forma não determinística quando há mais de uma
+pendente, o que precisa ser considerado antes de qualquer Dry-Run de infraestrutura envolvendo Render.
+Sem risco de dado incorreto — a migration que "perde" a corrida simplesmente não é registrada como
+aplicada (o `INSERT` falha antes do `commit`), então uma nova tentativa de boot reaplica corretamente
+(idempotência preservada); o risco é só de disponibilidade (worker/deploy não sobe), não de integridade.
+
+Status:
+Aberto — achado e registrado em 2026-08-10 (Discovery de infraestrutura da Operação Release 1.0, Parte
+B). Não corrigido nesta sessão — decisão do CTO de registrar como achado, sem abrir sprint de correção
+imediata (severidade ainda não classificada como P0; probabilidade é intermitente, não determinística).
+Antes de qualquer correção, avaliar se o tratamento correto é capturar também `sqlite3.IntegrityError` na
+linha 71, ou coordenar a aplicação de migrations por um lock explícito (ex.: só o processo mestre do
+Gunicorn chama `run_migrations()`, nunca os workers) — decisão de arquitetura pequena, não tomada
+unilateralmente aqui.
+
+Sprint prevista:
+Não definida — candidata a sprint própria antes do próximo deploy que precise aplicar mais de uma
+migration pendente de uma vez, e antes de qualquer Dry-Run de infraestrutura (Render) do procedimento de
+Rollback.
+
+Responsável:
+—

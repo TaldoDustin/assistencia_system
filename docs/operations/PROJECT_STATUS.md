@@ -6,13 +6,17 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-10
-**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Rollback — Dry-Run 1A/1B conduzidos,
-conflito real encontrado e nova regra de conflito incorporada à política** (2026-08-10, ver abaixo);
-Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
-o CTO for decidindo. Sequência recente: 🟡 **Rollback — Dry-Run 1A/1B + política de conflito (Operação
-Release 1.0 Parte B — Discovery → decisão do CTO → política inicial → Dry-Run 1A mecanismo sem conflito →
-Dry-Run 1B commit real com conflito real em documentação → abort seguro → nova regra "conflito = parada +
-decisão do CTO", 2026-08-10, ver abaixo)** → ✅ **Restore validado
+**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Dry-Run 2A (isolamento do Render PR
+Preview) encontrou INC-003 — preview importou 405 OS reais via integração MercadoPhone herdada de
+produção; contido (preview suspenso), Dry-Run 2B bloqueado** (2026-08-10, ver abaixo); Manual do usuário,
+Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for
+decidindo. Sequência recente: 🔴 **INC-003 — dado real importado no Preview, contido (Dry-Run 2A —
+provisionar preview → KI-035 reproduzido no boot → isolamento de disco/banco confirmado → integração
+MercadoPhone herdada detectada → 405 OS importadas → preview suspenso, 2026-08-10, ver abaixo)** → 🟡
+**Rollback — Dry-Run 1A/1B + política de conflito (Operação Release 1.0 Parte B — Discovery → decisão do
+CTO → política inicial → Dry-Run 1A mecanismo sem conflito → Dry-Run 1B commit real com conflito real em
+documentação → abort seguro → nova regra "conflito = parada + decisão do CTO", 2026-08-10, ver abaixo)**
+→ ✅ **Restore validado
 (Operação Release 1.0 — Discovery → testes automatizados → QA manual → merge, 2026-08-10, ver abaixo)**
 → ✅
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
@@ -69,6 +73,40 @@ mantido em 40%** (Operação ~30%, geral ~61% — inalterados) porque o item med
 de ponta a ponta, o que ainda não aconteceu — ver raciocínio completo no próprio checklist. Nenhum código
 de produção alterado nesta decisão — só documentação; `VendaDetalhe.jsx` só foi tocado dentro da branch de
 dry-run temporária, nunca chegou a `main`.
+
+---
+
+## 🔴 INC-003 — Render PR Preview importou dados reais via MercadoPhone (contido)
+
+**Ver `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` para o relatório completo.**
+
+Durante o Dry-Run 2A (validar se o Render PR Preview seria um ambiente seguro para o Dry-Run 2B de
+rollback de infraestrutura), um preview de teste (PR #22, `[render preview]`, modo Manual) herdou
+`MERCADO_PHONE_SYNC_ENABLED`/`MERCADO_PHONE_API_TOKEN` do serviço-base de produção — comportamento
+documentado do Render (variáveis de ambiente são copiadas na criação do preview). A thread de
+sincronização automática (disparada incondicionalmente no boot de `app.py`, sem checagem de
+`IS_PULL_REQUEST`) importou **405 Ordens de Serviço reais** da API externa do MercadoPhone
+(`2026-04-01`–`2026-08-08`) para o banco isolado do preview, em 4 ciclos completos, ao longo de ~18
+minutos.
+
+**O disco/banco do preview permaneceu fisicamente isolado do de produção o tempo todo** — Service ID
+próprio, disco próprio (5 GB, sem snapshots anteriores), `schema_migrations` aplicado do zero em
+`2026-08-10` (produção aplicou em `2026-08-08`). O primeiro boot do preview também **reproduziu o KI-035**
+de forma independente (condição de corrida em `migrations/runner.py::run_migrations()`), confirmando o
+bug num segundo ambiente real. A busca exaustiva pelos call sites de `chamar_api_mercado_phone()` (única
+função com requisição HTTP externa) encontrou só 2 usos, ambos de leitura (`"index"`/`"get"`) — nenhuma
+evidência de escrita de volta ao MercadoPhone.
+
+**Contenção:** preview suspenso (painel Render, confirmado por evento + URL pública retornando "Service
+Suspended"); PR #22 mantida aberta, não mergeada, para preservar evidência; nenhum dado apagado; produção
+(`/health` → `ok`) confirmada intocada antes e depois.
+
+**Status:** 🔴 Aberto — causa identificada, correção (Frente B: desabilitar credenciais/integrações
+externas por padrão em qualquer preview, defesa em profundidade — configuração + guard de código) ainda
+não implementada, decisão de arquitetura pendente. **Dry-Run 2B permanece bloqueado** por dois achados
+independentes: este incidente (integrações externas herdadas) e KI-035 (condição de corrida em
+migrations, reproduzida aqui pela segunda vez). Nenhum código alterado nesta decisão — só documentação e
+uma ação de contenção operacional (suspensão do preview via painel).
 
 ---
 

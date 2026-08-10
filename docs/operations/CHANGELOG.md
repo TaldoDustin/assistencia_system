@@ -787,6 +787,27 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Nenhum código de produção alterado — decisão de processo/documentação apenas; o revert de
   `VendaDetalhe.jsx` no Dry-Run 1B existiu só na branch temporária, nunca chegou a `main`.
 
+### Adicionado (2026-08-10 — Operação Release 1.0: INC-003, dado real importado no Render PR Preview)
+- `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` — relatório completo do
+  incidente encontrado durante o Dry-Run 2A (validação de isolamento do Render PR Preview antes do
+  Dry-Run 2B de rollback de infraestrutura): um preview de teste (PR #22) herdou
+  `MERCADO_PHONE_SYNC_ENABLED`/`MERCADO_PHONE_API_TOKEN` do serviço-base de produção (comportamento
+  documentado do Render) e importou 405 Ordens de Serviço reais da API externa do MercadoPhone em 4
+  ciclos de sincronização (~18 minutos), via thread disparada incondicionalmente no boot de `app.py`
+  sem checagem de `IS_PULL_REQUEST`. Disco/banco do preview permaneceram fisicamente isolados de
+  produção o tempo todo (Service ID, disco e `schema_migrations` próprios) — o problema foi herança de
+  credenciais de integração externa, não vazamento de disco. Busca exaustiva por call sites de
+  `chamar_api_mercado_phone()` confirma só 2 usos no código, ambos de leitura — nenhuma evidência de
+  escrita de volta ao MercadoPhone. KI-035 (condição de corrida em migrations) foi reproduzido de forma
+  independente no primeiro boot deste mesmo preview.
+- Contenção: preview suspenso via painel Render (confirmado por evento + URL pública), PR #22 mantida
+  aberta para preservar evidência, nenhum dado apagado, produção confirmada intocada (`/health` → `ok`
+  antes e depois).
+- `docs/operations/PROJECT_STATUS.md` — nova seção "INC-003", linha de sequência do topo atualizada.
+- **Dry-Run 2B (rollback de infraestrutura) bloqueado** por dois achados independentes: INC-003
+  (integrações externas herdadas em preview) e KI-035 (condição de corrida em migrations).
+- Nenhum código alterado — só documentação e uma ação de contenção operacional (suspensão do preview).
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

@@ -93,6 +93,37 @@ No código, use `import.meta.env.VITE_API_URL` para consumir a URL da API.
 
 ---
 
+## Rollback
+
+**Política definida em 2026-08-10** (decisão do CTO — Discovery da Operação Release 1.0, Parte B. Ver
+`docs/company/GO_LIVE_PLAN.md` seção "Plano de rollback" para o registro completo da decisão).
+
+- **Escopo:** rollback é sempre coordenado — reverte backend (Render) e frontend (Vercel) juntos, nunca
+  um sem o outro.
+- **Quando acionar:** bug crítico impedindo operação, perda/corrupção de dados, ou indisponibilidade
+  prolongada.
+- **Quem autoriza:** só o CTO. Nenhum rollback deve ser executado sem aprovação explícita a cada
+  ocorrência real.
+- **Regra de migrations (TD-03 — roll-forward only):** se o deploy problemático incluiu uma migration
+  nova já aplicada ao banco de produção, **não faça rollback de código para antes dela** — corrija com um
+  hotfix roll-forward. Rollback de código nunca deve cruzar uma migration já aplicada.
+
+### Procedimento
+
+1. Identificar o(s) commit(s) problemático(s) em `main`.
+2. `git revert <commit>` (nunca `git reset --hard` nem force-push) — preserva o histórico e, seguindo a
+   regra acima, nunca reverte para antes de uma migration já aplicada.
+3. `git push` — dispara redeploy automático em Render (backend) e Vercel (frontend), mesmo fluxo de
+   deploy descrito no topo deste documento.
+4. Smoke test manual: login, criar OS, criar venda, conferir dashboard — confirma que a funcionalidade
+   real voltou, não só que o processo subiu.
+5. Se o gatilho envolveu perda/corrupção de dado, restaurar o backup pré-incidente via
+   `POST /api/backup/restaurar` (mesmo processo já validado em `tests/test_backup_restore.py`).
+
+**Não exercitado ainda** — a política está definida e documentada, mas nunca foi testada em dry-run real.
+
+---
+
 ## Passo a passo resumido
 
 1. Suba o backend no Render seguindo as instruções acima.

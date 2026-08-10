@@ -47,10 +47,10 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~66% |
 | Segurança e Compliance | 🟡 | ~55% |
 | Observabilidade | 🟢 | ~85% |
-| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~23% |
+| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~30% |
 
 ```
-Release 1.0:  ███████████░░░░░░░░░  ~59%
+Release 1.0:  ████████████░░░░░░░░  ~61%
 ```
 
 **Correção (2026-08-10, auditoria de estado real):** esta tabela media há duas semanas contra um estado
@@ -65,17 +65,19 @@ documentado), mas a agregação nunca foi recalculada. Cálculo por área, mesma
 | Confiabilidade | Bugs 70% · Backup 60% · Restore 100% · Carga 35% | ~66% |
 | Segurança | Segurança revisada 100% · LGPD 10% | ~55% (inalterada — nenhum dos dois itens mudou) |
 | Observabilidade | Logs 100% · Monitorização 70% | ~85% |
-| Operação | Deploy 100% · Rollback 5% · Manual 5% · Demo 5% · Piloto 0% | ~23% |
+| Operação | Deploy 100% · Rollback 40% · Manual 5% · Demo 5% · Piloto 0% | ~30% |
 
-Visão geral recalculada de ~29% para ~55% em 2026-08-10 (auditoria de estado real) e, no mesmo dia, de
-~55% para ~59% com o fechamento do item Restore validado (Discovery → testes automatizados → QA manual
-→ merge, ver detalhamento abaixo) — este segundo salto **é** trabalho novo, diferente da correção de
-medição que gerou o primeiro. **Segurança não mudou** — controle de que o método não foi inflado
-arbitrariamente fora do item que de fato avançou.
+Visão geral recalculada de ~29% para ~55% em 2026-08-10 (auditoria de estado real), no mesmo dia de ~55%
+para ~59% com o fechamento do item Restore validado (Discovery → testes automatizados → QA manual →
+merge, ver detalhamento abaixo), e novamente de ~59% para ~61% com a definição da política de Rollback
+(Discovery da Parte B da Operação → decisão do CTO, uma pergunta de cada vez → registro em
+`GO_LIVE_PLAN.md`/`DEPLOY.md`, ver detalhamento abaixo) — cada salto **é** trabalho novo, diferente da
+correção de medição que gerou o primeiro. **Segurança não mudou** — controle de que o método não foi
+inflado arbitrariamente fora do item que de fato avançou.
 
-Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — nenhum
-dos 5 itens tem mais que um documento de deploy pronto; os demais (rollback, manual, demo, piloto)
-seguem do zero. Ver detalhamento item a item abaixo.
+Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — Rollback
+agora tem política completa (escopo, critério, autoridade, mecanismo, verificação) mas nenhum teste de
+dry-run real; os demais (manual, demo, piloto) seguem do zero. Ver detalhamento item a item abaixo.
 
 ---
 
@@ -204,9 +206,13 @@ seguem do zero. Ver detalhamento item a item abaixo.
   Link: `DEPLOY.md`
 
 - [ ] **Rollback testado**
-  Estado: ❌ Não evidenciado — `DEPLOY.md` não tem seção de rollback, e nenhum registro de um rollback
-  de deploy já ter sido exercitado e documentado.
-  Link: `DEPLOY.md`
+  Estado: 🟡 Política definida e aprovada (2026-08-10, Discovery da Operação Release 1.0 Parte B, decisão
+  do CTO): escopo coordenado (backend+frontend sempre juntos), critério de acionamento (bug crítico/perda
+  de dados/indisponibilidade prolongada), autoridade (só o CTO autoriza), regra de interação com
+  migrations (nunca cruza uma migration já aplicada — TD-03 roll-forward only), mecanismo (`git revert` +
+  `git push`) e verificação (smoke test manual) documentados em `DEPLOY.md`/`GO_LIVE_PLAN.md`. **Nunca
+  exercitado em dry-run real** — permanece 🟡, não ✅, até um teste de fato.
+  Link: `DEPLOY.md`, `docs/company/GO_LIVE_PLAN.md`
 
 - [ ] **Manual do usuário**
   Estado: ❌ Não existe.

@@ -6,14 +6,48 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-10
-**Próxima revisão:** Operação Release 1.0 — item **Restore validado ENCERRADO** (2026-08-10, ver abaixo).
-Parte B da Operação (Rollback, Manual do usuário, Ambiente de demonstração, Piloto/homologação) ainda
-não iniciada — decisões pendentes do CTO, uma por vez. Sequência recente: ✅ **Restore validado
+**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Rollback com política definida**
+(2026-08-10, ver abaixo); Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem
+decisão, um por vez, conforme o CTO for decidindo. Sequência recente: 🟡 **Rollback — política definida
+(Operação Release 1.0 Parte B — Discovery → decisão do CTO, uma pergunta de cada vez → registro em
+`GO_LIVE_PLAN.md`/`DEPLOY.md`, 2026-08-10, ver abaixo)** → ✅ **Restore validado
 (Operação Release 1.0 — Discovery → testes automatizados → QA manual → merge, 2026-08-10, ver abaixo)**
 → ✅
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Rollback — política definida (Operação Release 1.0)
+
+**Ver `docs/company/GO_LIVE_PLAN.md` (seção "Plano de rollback") e `DEPLOY.md` (seção "Rollback") para o
+registro completo.**
+
+Discovery da Parte B da Operação Release 1.0 (Rollback, Manual do usuário, Ambiente de demonstração,
+Piloto/homologação) mapeou os 4 itens separadamente contra o código/documentação real (ver matriz na
+sessão de handoff). Rollback foi o primeiro a ser decidido — único dos 4 com efeito direto em caso de
+falha real de produção. Decisões do CTO (2026-08-10), uma de cada vez, seguindo a separação
+técnico/política/autoridade/procedimento do `CLAUDE.md` §11:
+
+- **Escopo:** rollback coordenado — backend (Render) e frontend (Vercel) sempre revertidos juntos, nunca
+  de forma independente.
+- **Critério de acionamento:** bug crítico impedindo operação, perda/corrupção de dados, ou
+  indisponibilidade prolongada.
+- **Autoridade:** só o CTO autoriza. Claude nunca executa rollback sem aprovação explícita a cada
+  ocorrência real — a política não é uma autorização permanente.
+- **Interação com migrations (TD-03 — roll-forward only):** rollback de código nunca cruza uma migration
+  já aplicada em produção — se o deploy problemático incluiu migration nova, a correção é sempre um
+  hotfix roll-forward, nunca reverter para antes dela.
+- **Mecanismo:** `git revert` + `git push`, mesmo fluxo de deploy normal (não usa o "redeploy anterior"
+  nativo de Render/Vercel, que deixaria `main` divergente do que está rodando).
+- **Verificação:** smoke test manual mínimo (login + uma operação real por módulo crítico) contra
+  produção logo após o redeploy.
+
+**Não exercitado** — política definida e documentada, mas nunca testada em dry-run real.
+`RELEASE_1.0_MASTER_CHECKLIST.md` atualizado de ❌ para 🟡 (item "Rollback testado"), visão executiva de
+Operação recalculada (~23% → ~30%, geral ~59% → ~61%). Nenhum código alterado nesta decisão — só
+documentação.
 
 ---
 

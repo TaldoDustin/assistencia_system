@@ -70,22 +70,37 @@ refletem essa realidade; vários precisarão ser reescritos quando a Fase 3 (Mul
 
 ## Plano de rollback
 
-- [ ] Critério de decisão: que tipo de falha aciona rollback (ex.: bug crítico impedindo operação,
-      perda de dados, indisponibilidade prolongada) — **ainda não definido**, decidir antes do primeiro
-      go-live real
-- [ ] Como reverter o deploy (branch/tag da versão anterior, processo de deploy do Render)
-- [ ] Como restaurar o backup pré-implantação (mesmo processo do item "Restore validado" do master
-      checklist)
-- [ ] Comunicação ao cliente em caso de rollback
+**Política definida em 2026-08-10** (Discovery da Operação Release 1.0 — Parte B, decisão do CTO, uma
+pergunta de cada vez, seguindo a separação técnico/política/autoridade/procedimento do `CLAUDE.md`. Ver
+também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
+
+- **Escopo:** rollback coordenado — backend (Render) e frontend (Vercel) são sempre revertidos juntos,
+  nunca de forma independente.
+- **Critério de acionamento:** bug crítico impedindo operação, perda/corrupção de dados, ou
+  indisponibilidade prolongada.
+- **Autoridade:** só o CTO autoriza um rollback. Claude nunca executa um rollback sem aprovação explícita
+  a cada ocorrência real — esta política não é uma autorização permanente.
+- **Interação com migrations (TD-03 — roll-forward only):** rollback de código **nunca cruza uma
+  migration já aplicada** em produção. Se o deploy problemático incluiu uma migration nova, a correção é
+  sempre um hotfix roll-forward — nunca reverter para um commit anterior à migration.
+- **Mecanismo técnico:** `git revert` do(s) commit(s) problemático(s) em `main` + `git push` — dispara
+  redeploy normal em Render e Vercel a partir do código revertido. Deliberadamente não usa o "redeploy de
+  versão anterior" nativo de cada plataforma, que deixaria `main` divergente do que está rodando.
+- **Verificação:** smoke test manual mínimo (login + uma operação real por módulo crítico — criar OS,
+  criar venda, ver dashboard) contra produção logo após o redeploy.
+- **Restauração de dado**, se o gatilho envolveu perda/corrupção: mesmo processo já validado do item
+  "Restore validado" do master checklist (`api_backup.py::restaurar_backup_upload`).
+- [ ] Comunicação ao cliente em caso de rollback — ainda não definida; só relevante quando houver um
+      cliente real em produção, fora do escopo desta decisão
 
 ---
 
 ## O que este documento ainda não tem (gaps conhecidos)
 
-- Nenhuma das checkboxes acima foi exercitada de ponta a ponta — é um rascunho baseado no que faz
-  sentido, não um processo testado. Vale um "dry run" completo (implantação simulada, sem cliente real)
-  antes do primeiro go-live de verdade.
-- Critério de decisão de rollback não definido.
+- A política de rollback está definida e aprovada (2026-08-10), mas **nunca foi exercitada em dry-run
+  real**. Vale um "dry run" completo (implantação simulada, sem cliente real) antes do primeiro go-live
+  de verdade.
+- Comunicação ao cliente em caso de rollback ainda não definida.
 - Número de dias de acompanhamento pós-lançamento é um palpite (7 dias), não uma decisão validada.
 
 ---

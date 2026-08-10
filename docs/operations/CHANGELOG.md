@@ -750,6 +750,21 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   sessão ser reenviado.
 - Merge via PR #21 (commit `f73f6f86`), CI 6/6 verde. Nenhum código de produção alterado.
 
+### Adicionado (2026-08-10 — Operação Release 1.0: política de Rollback definida)
+- `docs/company/GO_LIVE_PLAN.md` (seção "Plano de rollback") e `DEPLOY.md` (nova seção "Rollback") —
+  política de rollback coordenado (backend + frontend sempre juntos) decidida pelo CTO, uma pergunta de
+  cada vez, seguindo a separação técnico/política/autoridade/procedimento do `CLAUDE.md` §11: critério de
+  acionamento (bug crítico impedindo operação, perda/corrupção de dados, ou indisponibilidade
+  prolongada), autoridade (só o CTO autoriza, Claude nunca executa sem aprovação explícita), regra de
+  interação com migrations (nunca cruza uma migration já aplicada — TD-03 roll-forward only, correção
+  nesse caso é sempre hotfix roll-forward), mecanismo (`git revert` + `git push`, não o redeploy nativo
+  da plataforma) e verificação (smoke test manual mínimo).
+- `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Rollback testado" atualizado de ❌ para 🟡
+  (política definida e aprovada, nunca exercitada em dry-run real); visão executiva de Operação
+  recalculada (~23% → ~30%, geral ~59% → ~61%).
+- `docs/operations/PROJECT_STATUS.md` — nova seção "Rollback — política definida (Operação Release 1.0)".
+- Nenhum código de produção alterado — decisão de processo/documentação apenas.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

@@ -1145,3 +1145,57 @@ KI-031).
 
 Responsável:
 —
+
+---
+
+## KI-034
+
+Descrição:
+`fluxoly_vendas_service.py::ajustar_desconto_item()` (BR-043 — Ajuste Comercial Autorizado, admin-only,
+permite corrigir o preço de um item já vendido) recalcula e grava `vendas.valor_total` via
+`repo.recalcular_valor_total_venda(cursor, venda_id)`, mas **nunca chama `fluxoly_caixa_service`** — os
+únicos dois pontos de integração Vendas↔Caixa são `iniciar_venda()` e `cancelar_venda()`
+(`fluxoly_vendas_service.py`, comentários "Financeiro Mínimo (BR-069)"). Achado durante a Revisão
+Arquitetural do ciclo ADR-010 do Financeiro Mínimo (2026-08-10), ao rastrear todo ponto de escrita de
+`vendas.valor_total` e cruzar com todo ponto de integração com `movimentacoes_caixa`.
+
+Não é só uma divergência visual — é uma inconsistência real de dado entre `vendas.valor_total` e a
+`movimentacoes_caixa` correspondente (`origem='venda'`, `origem_id=vendas.id`):
+
+1. A movimentação de caixa é criada em `iniciar_venda()` com o `valor_unitario` da venda no momento da
+   criação — um snapshot, nunca resincronizado.
+2. Se um admin usa o Ajuste Comercial (BR-043) para corrigir o preço de uma venda já `concluida` (ex.:
+   R$1.000 → R$800), `vendas.valor_total` passa a refletir R$800, mas a movimentação de caixa continua
+   registrada com R$1.000 — o saldo do Caixa (`SOMA(entradas não estornadas) − SOMA(saídas não
+   estornadas)`) fica sistematicamente R$200 maior do que deveria, sem qualquer erro ou aviso.
+3. Se essa mesma venda for cancelada depois do ajuste, `cancelar_venda()` → `estornar_entrada_de_venda()`
+   estorna a movimentação pelo valor original registrado nela (R$1.000), não pelo `valor_total` corrigido
+   (R$800) — o estorno também carrega o valor desatualizado.
+
+BR-043 já existia desde a V1.3 (Descontos e Aprovação, antes do Financeiro Mínimo) — este não é um
+comportamento introduzido nesta sprint, é uma interação nova entre uma regra de negócio antiga
+(permissão explícita de editar o preço de uma venda concluída) e uma feature nova (Caixa reagindo por
+snapshot ao valor da venda no momento da criação).
+
+Impacto:
+Médio. Não atende C-03 (sem bypass de autorização) nem C-02 (nenhum dado é perdido, a movimentação
+original continua íntegra no histórico), mas atende parcialmente C-01 (mutação indireta: o `valor_total`
+da venda muda, mas o valor correspondente no Caixa não acompanha, e ninguém é avisado) em um caminho real
+de produção (C-04 — Ajuste Comercial é uma rota ativa, usada por admin). O gatilho exige uma ação
+deliberada e pouco frequente (Ajuste Comercial pós-venda), não o fluxo padrão de venda/cancelamento — por
+isso não foi classificado como bloqueante para o encerramento do ciclo do Financeiro Mínimo.
+
+Status:
+Aberto. Decisão do CTO (2026-08-10, Revisão Arquitetural do ADR-010 do Financeiro Mínimo): não corrigir
+nesta sprint — ampliaria o escopo justamente no encerramento do ciclo. Registrado aqui para correção em
+sprint própria. A correção futura deve preservar a atomicidade já estabelecida pelo padrão do domínio:
+atualizar `vendas.valor_total` e resincronizar/ajustar a `movimentacoes_caixa` correspondente na mesma
+transação (mesmo cursor), nunca em dois commits separados — mesmo princípio já usado em
+`iniciar_venda()`/`cancelar_venda()` com `unidades_service`/`caixa_service`.
+
+Sprint prevista:
+Não definida — candidata a sprint de correção do domínio Vendas/Financeiro, fora do escopo do
+Encerramento do ADR-010 do Financeiro Mínimo.
+
+Responsável:
+—

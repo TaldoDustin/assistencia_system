@@ -81,11 +81,14 @@ item abaixo.
   código do domínio existe. Maior item em aberto deste checklist.
   Link: `docs/product/PRODUCT_BACKLOG.md`, `docs/product/features/VENDAS.md`
 
-- [ ] **Financeiro mínimo** — caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples
-  Estado: 🟡 Backend implementado e validado (2026-08-08, BR-067 a BR-069): `movimentacoes_caixa`,
+- [x] **Financeiro mínimo** — caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples
+  Estado: ✅ Entregue (2026-08-10, BR-067 a BR-069, ciclo ADR-010 encerrado): `movimentacoes_caixa`,
   `contas_pagar`, `contas_receber` (migration `m0002`), `/api/caixa`, `/api/contas-pagar`,
-  `/api/contas-receber`, hook automático Vendas→Caixa. Falta a tela no frontend (nenhuma página
-  `Caixa`/`Financeiro` em `frontend/src/pages/` ainda).
+  `/api/contas-receber`, hook automático Vendas→Caixa, e tela `frontend/src/pages/Financeiro.jsx`
+  (`/financeiro`, gate `admin`/`financeiro`). Fluxo de caixa simples entregue como relatório de saldo +
+  listagem de movimentações (sem o gráfico de `GET /api/caixa/relatorio`, deliberadamente fora desta
+  fatia — evolução futura de dashboard/relatórios financeiros). Achado da Revisão Arquitetural registrado
+  em KI-034 (Ajuste Comercial de venda não resincroniza a entrada de caixa), não bloqueante.
   Link: `docs/company/RELEASE_STRATEGY.md` (Financeiro mínimo x avançado),
   `docs/engineering/plans/PLAN-financeiro-minimo.md`
 

@@ -710,6 +710,23 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   entradas automáticas não mostram mais.
 - Pendente: Revisão Arquitetural e Encerramento formal (ADR-010) do ciclo do Financeiro Mínimo.
 
+### Adicionado (2026-08-10 — Financeiro Mínimo, Revisão Arquitetural + Encerramento ADR-010)
+- Revisão Arquitetural do ciclo (`ADR-010.md` seção "Etapa 6") percorrida contra o código real de `main`
+  pós-merge do PR #20: (1) coerência do domínio — confirmado por grep um único caminho de escrita em
+  `movimentacoes_caixa`, sem caminhos paralelos; (2) autorização centralizada — `usuario_pode_financeiro()`
+  duplicada em 4 controllers, risco já aceito e documentado como TD-14, nada implícito; (3) vazamento de
+  dado — as 12 rotas do Financeiro checadas uma a uma, todas protegidas; (4) consistência da máquina de
+  estados — achado real (ver `docs/operations/KNOWN_ISSUES.md` KI-034).
+- `docs/operations/KNOWN_ISSUES.md` (KI-034) — `fluxoly_vendas_service.py::ajustar_desconto_item()`
+  (BR-043, já existente desde V1.3) recalcula `vendas.valor_total` após a venda concluída, mas não
+  resincroniza a movimentação de caixa correspondente (`origem='venda'`) — o saldo do Caixa e um estorno
+  posterior ficam com o valor original, não o corrigido. Interação nova entre uma regra antiga e o
+  Financeiro Mínimo, não uma regressão desta sprint. Decisão do CTO: não bloqueia o Encerramento,
+  correção fica para sprint própria, preservando a mesma atomicidade já estabelecida no domínio.
+- `docs/engineering/plans/PLAN-financeiro-minimo.md` — marcado como Encerrado; `PROJECT_STATUS.md` —
+  Financeiro Mínimo movido de 🟡 para ✅ ENCERRADO;
+  `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` — item "Financeiro mínimo" marcado como entregue.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

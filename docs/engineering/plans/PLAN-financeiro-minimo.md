@@ -2,9 +2,8 @@
 
 **Data:** 2026-08-08
 **Feature:** `docs/company/RELEASE_STRATEGY.md` — "Financeiro mínimo"; `docs/product/BUSINESS_RULES.md` BR-067 a BR-069
-**Status:** Implementado e validado (backend + frontend + testes automatizados + QA manual de ponta a
-ponta + validação formal da integração Vendas↔Caixa) — aguardando Revisão Arquitetural / Encerramento
-formal do CTO
+**Status:** Encerrado (2026-08-10) — ciclo ADR-010 completo (Discovery → Plano Técnico → Implementação →
+Testes → QA Manual → Revisão Arquitetural → Encerramento)
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -32,8 +31,26 @@ formal do CTO
   `origem='venda'` correta → cancelamento → estorno correto, permanece no histórico → revenda da mesma
   unidade sem colisão/duplicação → 2 ciclos completos → suíte automatizada reconfirmada verde. Achado de
   UX corrigido no mesmo ciclo: botão "Estornar" restrito a `origem === "manual"` em `Financeiro.jsx`.
-- [ ] Revisão Arquitetural
-- [ ] Encerramento
+- [x] Revisão Arquitetural (2026-08-10) — percorridos os 4 eixos do gate (`ADR-010.md` seção "Etapa 6")
+  contra o código real de `main` pós-merge:
+  1. **Coerência do domínio** — confirmado por grep: existe exatamente um caminho de escrita em
+     `movimentacoes_caixa` (`fluxoly_caixa_repository.py::inserir/estornar`), chamado só de 3 lugares
+     (manual, hooks de Vendas, baixa de Contas a Pagar/Receber). Nenhum caminho paralelo.
+  2. **Autorização centralizada** — `usuario_pode_financeiro()` duplicada em 4 controllers; já era risco
+     aceito e documentado (TD-14, seção Riscos deste plano) — gate satisfeito, nada implícito.
+  3. **Vazamento de dado** — todas as 12 rotas do Financeiro checam `usuario_pode_financeiro()` antes de
+     qualquer acesso a dado; nenhuma rota esquecida sem gate.
+  4. **Consistência da máquina de estados** — **achado real, registrado em KI-034**:
+     `ajustar_desconto_item()` (BR-043, Ajuste Comercial Autorizado, já existia desde V1.3) recalcula
+     `vendas.valor_total` após a venda concluída, mas não resincroniza a movimentação de caixa
+     correspondente — o saldo do Caixa e um estorno posterior ficam com o valor original, não o
+     corrigido. Não é regressão desta sprint (interação nova entre regra antiga e feature nova). Decisão
+     do CTO: não bloqueia o encerramento, registrado em `KNOWN_ISSUES.md` (KI-034) para correção em
+     sprint própria, preservando a mesma atomicidade já estabelecida no domínio (uma transação, um
+     cursor).
+- [x] Encerramento (2026-08-10) — `PROJECT_STATUS.md`, `CHANGELOG.md`,
+  `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` e `docs/operations/KNOWN_ISSUES.md` (KI-034)
+  atualizados. Nenhuma dívida técnica nova além de KI-034 (já registrada) e TD-14 (já aceita).
 
 ---
 

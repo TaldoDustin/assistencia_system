@@ -2,8 +2,9 @@
 
 **Data:** 2026-08-08
 **Feature:** `docs/company/RELEASE_STRATEGY.md` — "Financeiro mínimo"; `docs/product/BUSINESS_RULES.md` BR-067 a BR-069
-**Status:** Implementado e validado (testes automatizados + QA manual de ponta a ponta) — aguardando
-Revisão Arquitetural / Encerramento formal do CTO
+**Status:** Implementado e validado (backend + frontend + testes automatizados + QA manual de ponta a
+ponta + validação formal da integração Vendas↔Caixa) — aguardando Revisão Arquitetural / Encerramento
+formal do CTO
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -13,13 +14,24 @@ Revisão Arquitetural / Encerramento formal do CTO
 
 - [x] Discovery — aprovada (BR-067 a BR-069, `docs/product/BUSINESS_RULES.md`, 2026-08-08)
 - [x] Plano Técnico — revisado contra o código real de Vendas, 2 refinamentos incorporados (commit `9cab1e9`)
-- [x] Implementação — migration `m0002` (commit `5910bb7`), domínio Caixa + Contas a Pagar/Receber +
-  hook de Vendas + registro dos blueprints (commit `c1bcc61`)
+- [x] Implementação (backend) — migration `m0002` (commit `5910bb7`), domínio Caixa + Contas a Pagar/
+  Receber + hook de Vendas + registro dos blueprints (commit `c1bcc61`)
+- [x] Implementação (frontend, 2026-08-09) — `frontend/src/pages/Financeiro.jsx` (rota `/financeiro`,
+  três abas: Movimentações, Contas a Pagar, Contas a Receber), módulos `caixa`/`contasPagar`/
+  `contasReceber` em `client.js`, item de navegação com gate `admin`/`financeiro`. Sem o relatório de
+  fluxo de caixa (fora do escopo desta fatia, decisão do CTO).
 - [x] Testes — 38 testes novos (`tests/test_caixa.py`, `tests/test_contas_pagar.py`,
   `tests/test_contas_receber.py`) + suíte completa (734/734) verde
-- [x] QA Manual — fluxo de ponta a ponta via requisição HTTP real contra servidor isolado
+- [x] QA Manual (backend) — fluxo de ponta a ponta via requisição HTTP real contra servidor isolado
   (`IR_FLOW_DATA_DIR` dedicado): login, venda → entrada de caixa, cancelamento → estorno, saldo
   recalculado, Conta a Pagar → baixa → saída de caixa, Conta a Receber → baixa → entrada de caixa
+- [x] QA Manual (frontend, 2026-08-09) — navegador real, banco isolado: CRUD/ações das três abas, saldo
+  recalculado a cada mutação, gate de perfil nos dois sentidos. Bug de UI encontrado e corrigido no
+  mesmo ciclo (contador de total pós-exclusão em Contas a Pagar/Receber).
+- [x] Validação Fatia 3 — integração Vendas↔Caixa (2026-08-09) — venda real → 1 movimentação
+  `origem='venda'` correta → cancelamento → estorno correto, permanece no histórico → revenda da mesma
+  unidade sem colisão/duplicação → 2 ciclos completos → suíte automatizada reconfirmada verde. Achado de
+  UX corrigido no mesmo ciclo: botão "Estornar" restrito a `origem === "manual"` em `Financeiro.jsx`.
 - [ ] Revisão Arquitetural
 - [ ] Encerramento
 

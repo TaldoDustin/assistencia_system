@@ -19,6 +19,7 @@ const navItems = [
   { path: "/vendas", label: "Vendas", icon: ShoppingCart, perfis: ["admin", "vendedor"] },
   { path: "/produtos", label: "Produtos", icon: ShoppingBag },
   { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: ScanBarcode },
+  { path: "/financeiro", label: "Financeiro", icon: DollarSign, perfis: ["admin", "financeiro"] },
   { path: "/estoque", label: "Estoque", icon: Package },
   { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },

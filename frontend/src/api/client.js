@@ -475,3 +475,40 @@ export const backup = {
     body: formData,
   }).then((r) => r.json()),
 };
+
+// ── Financeiro Mínimo (BR-067 a BR-069) ─────────────────────────────────────
+export const caixa = {
+  list:     (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/caixa${qs ? "?" + qs : ""}`);
+  },
+  saldo:    () => get("/caixa/saldo"),
+  create:   (data) => post("/caixa", data),
+  estornar: (id)   => post(`/caixa/${id}/estornar`),
+};
+
+export const contasPagar = {
+  list:      (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/contas-pagar${qs ? "?" + qs : ""}`);
+  },
+  get:       (id)         => get(`/contas-pagar/${id}`),
+  create:    (data)       => post("/contas-pagar", data),
+  update:    (id, data)   => put(`/contas-pagar/${id}`, data),
+  delete:    (id)         => del(`/contas-pagar/${id}`),
+  pagar:     (id)         => post(`/contas-pagar/${id}/pagar`),
+  cancelar:  (id)         => post(`/contas-pagar/${id}/cancelar`),
+};
+
+export const contasReceber = {
+  list:      (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return get(`/contas-receber${qs ? "?" + qs : ""}`);
+  },
+  get:       (id)         => get(`/contas-receber/${id}`),
+  create:    (data)       => post("/contas-receber", data),
+  update:    (id, data)   => put(`/contas-receber/${id}`, data),
+  delete:    (id)         => del(`/contas-receber/${id}`),
+  receber:   (id)         => post(`/contas-receber/${id}/receber`),
+  cancelar:  (id)         => post(`/contas-receber/${id}/cancelar`),
+};

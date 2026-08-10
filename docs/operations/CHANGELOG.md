@@ -675,6 +675,41 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   Financeiro, BR-067 a BR-069). **Pendente:** tela no frontend, Revisão Arquitetural e Encerramento
   formal (ADR-010).
 
+### Adicionado (2026-08-09 — Financeiro Mínimo, frontend: Fatia 2 + validação Fatia 3)
+- `frontend/src/pages/Financeiro.jsx` — tela nova (`/financeiro`, visível só a `admin`/`financeiro`, mesmo
+  gate de `usuario_pode_financeiro()`) com três abas: Movimentações (lançamento manual + estorno, filtros
+  por tipo/origem/data, paginação), Contas a Pagar e Contas a Receber (CRUD + baixa/cancelamento,
+  compartilham o mesmo componente `ContasTab` parametrizado por domínio). Card de saldo no topo,
+  recarregado após qualquer mutação. Sem o relatório de fluxo de caixa (`GET /api/caixa/relatorio`) —
+  deliberadamente fora do escopo desta fatia (decisão do CTO), fica para uma evolução futura de
+  dashboard/relatórios financeiros.
+- `frontend/src/api/client.js` — módulos `caixa`/`contasPagar`/`contasReceber`, mesmo padrão de
+  `custos`/`vendas` já existentes.
+- `frontend/src/components/Layout.jsx`/`App.jsx` — item de navegação e rota `/financeiro`.
+- QA manual de ponta a ponta via navegador real (banco isolado, nunca `database.db`): lançar
+  entrada/saída manual, estornar, CRUD + pagar/receber/cancelar/excluir de Contas a Pagar/Receber, saldo
+  recalculado em cada mutação, filtros, e o gate de perfil confirmado nos dois sentidos (perfil `tecnico`
+  bloqueado — some da sidebar e rota direta mostra tela de bloqueio; perfil `financeiro` com acesso pleno).
+  Achado durante o QA e corrigido no mesmo ciclo: `ContasTab` não atualizava o contador `total` após
+  excluir um item (só removia da lista local) — trocado para refazer a busca paginada (`buscar()`) após
+  qualquer exclusão, mesmo padrão das outras mutações da tela.
+- Validação formal da integração Vendas ↔ Caixa (Fatia 3, exigida antes da Revisão Arquitetural): venda
+  concluída via fluxo real → exatamente uma movimentação `origem='venda'` com `origem_id`/`valor`
+  corretos → saldo sobe; cancelamento → `estornada=1`, permanece no histórico, sai do saldo; revenda da
+  mesma unidade após cancelamento gera uma nova movimentação distinta sem colidir com a antiga
+  (`idx_movimentacoes_caixa_venda_ativa` provado em uso real); dois ciclos completos sem duplicação.
+  Suíte automatizada (`tests/test_caixa.py`, `tests/test_contas_pagar.py`, `tests/test_contas_receber.py`,
+  38 testes) re-executada e confirmada verde, incluindo os testes de idempotência do hook. Achado
+  positivo confirmado no código: `fluxoly_caixa_service.py::estornar_movimentacao_manual` já rejeita
+  estornar diretamente qualquer movimentação com `origem != 'manual'` — proteção deliberada contra
+  contornar o cancelamento de venda pelo Caixa.
+- Corrigido no mesmo ciclo (achado da validação da Fatia 3): botão "Estornar" em `Financeiro.jsx`
+  aparecia para qualquer movimentação ativa, inclusive as automáticas (`venda`/`conta_pagar`/
+  `conta_receber`), que o backend sempre rejeita com 400 — condicionado agora a
+  `!m.estornada && m.origem === "manual"`. Confirmado visualmente: entrada manual continua com o botão,
+  entradas automáticas não mostram mais.
+- Pendente: Revisão Arquitetural e Encerramento formal (ADR-010) do ciclo do Financeiro Mínimo.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

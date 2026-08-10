@@ -1,7 +1,7 @@
 # RELEASE_1.0_MASTER_CHECKLIST.md — Certificação para o primeiro cliente pagante
 
 **Status:** 🔵 Em construção — criado em 2026-07-25
-**Última revisão:** 2026-07-25
+**Última revisão:** 2026-08-10 (auditoria de estado real — ver "Correção" na seção "Visão executiva")
 **Regra de uso:** este não é um backlog nem um roadmap — é um checklist de certificação. Quando todos os
 itens estiverem `[x]`, a Fluxoly está pronta para o primeiro cliente pagante (Fase 1 / Release 1.0, ver
 `docs/company/RELEASE_STRATEGY.md`). Toda sprint nova deveria responder: *"isto marca algum item deste
@@ -43,25 +43,40 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 
 | Área | Status | % |
 |---|---|---|
-| Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~40% |
+| Produto (Assistência, Comercial, Financeiro, Dashboard, Configurações) | 🟡 | ~68% |
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~44% |
 | Segurança e Compliance | 🟡 | ~55% |
-| Observabilidade | 🔴 | ~3% |
-| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~2% |
+| Observabilidade | 🟢 | ~85% |
+| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~23% |
 
 ```
-Release 1.0:  ██████░░░░░░░░░░░░░░  ~29%
+Release 1.0:  ███████████░░░░░░░░░  ~55%
 ```
 
-**Correção (2026-07-25):** a revisão anterior desta tabela havia posto Segurança e Compliance em ~75%
-olhando só para o item "Segurança revisada" (que de fato ficou ✅). A área tem 2 itens — o outro,
-"LGPD", segue ❌ não iniciado — então a média da área é ~55%, não ~75%. Visão geral recalculada de
-~33% para ~29%.
+**Correção (2026-08-10, auditoria de estado real):** esta tabela media há duas semanas contra um estado
+que não existia mais — os itens individuais tinham sido corrigidos (ver detalhamento item a item abaixo:
+Comercial/Vendas, Dashboard Executivo, Bugs/INC-001, Logs estruturados, Monitorização, Deploy
+documentado), mas a agregação nunca foi recalculada. Cálculo por área, mesma régua já definida acima
+(❌≈0-15%, 🟡≈30-70%, ✅=100%), média simples entre os itens de cada seção do checklist detalhado:
 
-Maiores blocos de trabalho pela % (não pela quantidade de itens): **Operação** e **Observabilidade**
-estão praticamente do zero — nenhum dos dois tem código/documento nenhum ainda, diferente de
-**Produto**/**Confiabilidade**, onde já existe base real, só falta completar. Ver detalhamento item a
-item abaixo.
+| Área | Itens e % individual estimado | Média |
+|---|---|---|
+| Produto | Assistência 70% · Comercial 65% · Financeiro 100% · Dashboard 65% · Configurações 40% | ~68% |
+| Confiabilidade | Bugs 70% · Backup 60% · Restore 10% · Carga 35% | ~44% |
+| Segurança | Segurança revisada 100% · LGPD 10% | ~55% (inalterada — nenhum dos dois itens mudou) |
+| Observabilidade | Logs 100% · Monitorização 70% | ~85% |
+| Operação | Deploy 100% · Rollback 5% · Manual 5% · Demo 5% · Piloto 0% | ~23% |
+
+Visão geral recalculada de ~29% para ~55%. O salto não representa trabalho novo entregue nesta auditoria
+— é a correção de uma medição que já estava errada há duas semanas (Observabilidade era tratada como
+~3%/🔴 quando o código de logs e monitoramento já existia; Comercial era tratado como quase-zero quando
+Vendas já estava em produção com 4 evoluções). **Confiabilidade e Segurança não mudaram** — nenhum item
+dessas duas áreas foi corrigido nesta auditoria, o que serve de controle de que o método não foi
+inflado arbitrariamente.
+
+Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — nenhum
+dos 5 itens tem mais que um documento de deploy pronto; os demais (rollback, manual, demo, piloto)
+seguem do zero. Ver detalhamento item a item abaixo.
 
 ---
 
@@ -76,9 +91,11 @@ item abaixo.
   Link: `docs/engineering/DOMAIN_MODEL.md`, `docs/operations/KNOWN_ISSUES.md` (KI-005)
 
 - [ ] **Comercial completo** — produtos, vendas, clientes, unidades serializadas, IMEI
-  Estado: 🟡 Backend de Produtos/Clientes/Unidades Serializadas implementado, sem tela completa em
-  produção. **Vendas ainda é só especificação** (`docs/product/features/VENDAS.md`), nenhuma linha de
-  código do domínio existe. Maior item em aberto deste checklist.
+  Estado: 🟡 Produtos/Clientes/Unidades Serializadas implementados com tela própria. Vendas em produção
+  desde 2026-07-27 (MVP: venda de 1 aparelho por vez) com evolução contínua — V1.2 Cancelamento, V1.3
+  Descontos e Aprovação, V1.4 Comissão, V1.5 Garantia, todas com `frontend/src/pages/Vendas.jsx`/
+  `VendaDetalhe.jsx` (histórico, filtros, paginação). Falta: fluxo de troca/avaliação de usado, timeout de
+  reserva de IMEI (decisões de negócio ainda pendentes do Product Owner, ver `VENDAS.md`).
   Link: `docs/product/PRODUCT_BACKLOG.md`, `docs/product/features/VENDAS.md`
 
 - [x] **Financeiro mínimo** — caixa, entradas, saídas, contas a pagar/receber, fluxo de caixa simples
@@ -93,9 +110,10 @@ item abaixo.
   `docs/engineering/plans/PLAN-financeiro-minimo.md`
 
 - [ ] **Dashboard Executivo**
-  Estado: 🟡 Parcial — dashboard básico existe (`frontend/src/pages/Dashboard.jsx`, KPIs de
-  faturamento/lucro/serviços/técnico). Falta a versão executiva completa (ticket médio, OS atrasadas,
-  top vendedores, margem).
+  Estado: 🟡 Parcial — `frontend/src/pages/Dashboard.jsx` já tem faturamento, lucro bruto, serviços por
+  status, desempenho por técnico, **Ticket Médio** e **Resultado Líquido** (confirmado no código,
+  linhas 112-113). Falta: OS atrasadas e top vendedores (confirmado ausentes — nenhuma ocorrência no
+  componente).
   Link: `docs/product/PRODUCT_BACKLOG.md` (linha Dashboard Executivo)
 
 - [ ] **Configurações** — empresa, usuários, integrações
@@ -107,11 +125,12 @@ item abaixo.
 ### Confiabilidade
 
 - [ ] **0 bugs críticos conhecidos**
-  Estado: 🟡 INC-002 (OS duplicada) resolvido 2026-07-24. INC-001 (`database is locked`) parcialmente
-  corrigido — hotfix em `/api/auth/login`, mas 4 rotas de checklist confirmadas sem proteção contra
-  exceção seguem abertas, causa raiz ainda não confirmada em runtime. 8 KIs abertos em
-  `KNOWN_ISSUES.md` (KI-002 a KI-020), 4 deles com impacto "Alto": KI-003 (módulo API monolítico),
-  KI-004 (sem sistema de migrations formal), KI-019, KI-020.
+  Estado: 🟡 INC-002 (OS duplicada) resolvido 2026-07-24. INC-001 (`database is locked`) **causa raiz
+  confirmada e corrigida em produção em 2026-08-05** (commit por registro na sincronização Mercado Phone,
+  ver `docs/operations/INCIDENTS/INC-001-database-is-locked.md`). 10 KIs abertos hoje em
+  `KNOWN_ISSUES.md` (KI-002, KI-005, KI-006, KI-007, KI-019, KI-029, KI-030, KI-031, KI-033, KI-034) —
+  **nenhum classificado como "Crítico"**; o de maior impacto é KI-029 ("Alto em potencial" — arquivos de
+  backup de banco versionados no histórico git, decisão de remoção pendente do usuário).
   Link: `docs/operations/INCIDENTS/`, `docs/operations/KNOWN_ISSUES.md`
 
 - [ ] **Backup validado** — backup automático funcionando
@@ -152,28 +171,31 @@ item abaixo.
 
 ### Observabilidade
 
-- [ ] **Logs estruturados**
-  Estado: ❌ Não iniciado — o projeto usa `print()` para tudo (confirmado: nenhuma biblioteca de
-  logging estruturado importada em nenhum módulo `.py`). Item já estava no critério de aceitação do
-  Sprint 3 original (`docs/operations/ROADMAP.md`) e nunca foi marcado como concluído.
-  Link: `docs/operations/ROADMAP.md` (Sprint 3, critério não marcado)
+- [x] **Logs estruturados**
+  Estado: ✅ Concluído (Sprint Observabilidade, ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md`) —
+  `fluxoly_logging.py` implementa logging estruturado em JSON com correlation ID por request, testado em
+  `tests/test_logging_json.py`.
+  Link: `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md`, `fluxoly_logging.py`
 
 - [ ] **Monitorização / alertas** (Sentry, Grafana, Prometheus ou equivalente)
-  Estado: ❌ Não iniciado — nenhuma dependência de monitoramento em `requirements.txt`, nenhuma
-  integração no código.
-  Link: `docs/operations/ROADMAP.md` (Sprint 3, critério não marcado)
+  Estado: 🟡 Implementado, pendente de ativação em produção — Sentry integrado no backend (`app.py`,
+  `sentry_sdk`) e no frontend, `/metrics` (Prometheus, modo multiprocess) validado com Docker real. Falta
+  configurar `SENTRY_DSN`/`VITE_SENTRY_DSN` nos dashboards reais do Render/Vercel para a captura entrar
+  em vigor em produção (`docs/operations/PROJECT_STATUS.md`, linha "Observabilidade").
+  Link: `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md`, `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md`
 
 ### Operação
 
-- [ ] **Deploy documentado**
-  Estado: ❌ Não existe um documento dedicado de "como fazer deploy" — só o `Dockerfile` e a
-  configuração do Render/Vercel, sem passo a passo escrito.
-  Link: `Dockerfile`
+- [x] **Deploy documentado**
+  Estado: ✅ `DEPLOY.md` (raiz do repositório) cobre o procedimento completo de deploy: backend no
+  Render (Docker, variáveis de ambiente, disco persistente) e frontend na Vercel (build, variáveis),
+  mais um passo a passo resumido. Não cobre rollback — esse é o item separado abaixo, que continua ❌.
+  Link: `DEPLOY.md`
 
 - [ ] **Rollback testado**
-  Estado: ❌ Não evidenciado — nenhum registro de um rollback de deploy já ter sido exercitado e
-  documentado.
-  Link: —
+  Estado: ❌ Não evidenciado — `DEPLOY.md` não tem seção de rollback, e nenhum registro de um rollback
+  de deploy já ter sido exercitado e documentado.
+  Link: `DEPLOY.md`
 
 - [ ] **Manual do usuário**
   Estado: ❌ Não existe.
@@ -193,7 +215,8 @@ item abaixo.
 
 - ❌ = não iniciado, confirmado por busca no código/docs (não é suposição)
 - 🟡 = parcial — existe algo, mas não cobre o critério de aceitação inteiro
-- ✅ = concluído e verificado (nenhum item ainda, 2026-07-25)
+- ✅ = concluído e verificado (4 itens em 2026-08-10: Financeiro mínimo, Segurança revisada, Logs
+  estruturados, Deploy documentado)
 - Todo item "🟡" ou "❌" deveria ter uma entrada correspondente em
   `docs/product/PRODUCT_BACKLOG.md` (ver seção seguinte) quando virar trabalho planejado.
 
@@ -208,5 +231,5 @@ item abaixo.
 - `docs/product/PRODUCT_BACKLOG.md` — fila de épicos priorizados, cada um deveria referenciar o item
   deste checklist que ele avança
 - `docs/operations/PROJECT_STATUS.md` — estado vivo do projeto, atualizado a cada sprint
-- `docs/operations/KNOWN_ISSUES.md` — os 8 KIs abertos citados acima
+- `docs/operations/KNOWN_ISSUES.md` — os 10 KIs abertos citados acima
 - `docs/operations/INCIDENTS/` — INC-001 e INC-002

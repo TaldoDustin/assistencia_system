@@ -121,8 +121,13 @@ background jobs incondicionalmente em qualquer preview) + configuração (desabi
 completo em `DEPLOY.md` seção "Preview Seguro"; plano de implementação em
 `docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`.
 
-O Dry-Run 2B (rollback de infraestrutura Render/Vercel) permanece bloqueado até que esta correção e a do
-KI-035 (condição de corrida em migrations, mesmo plano) passem por QA manual e revisão arquitetural.
+**Atualização (2026-08-11 — Encerramento do ciclo `ADR-010`):** a correção acima e a do KI-035 já foram
+implementadas, testadas (automatizado + QA manual) e revisadas arquiteturalmente — ver
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`. O Dry-Run 2B (rollback de infraestrutura
+Render/Vercel) **continua bloqueado**, mas não mais por QA/revisão pendente: agora é uma **decisão
+separada de autorização do CTO**, que também deve considerar o risco residual do KI-037 (endpoints
+manuais de sincronização do MercadoPhone ainda alcançáveis por uma sessão `admin`/`tecnico` real dentro
+de um preview reativado).
 
 ---
 

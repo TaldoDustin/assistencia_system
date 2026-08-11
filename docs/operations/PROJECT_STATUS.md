@@ -110,9 +110,10 @@ confirmadas limpas por grep (único ponto de verdade, sem checagem duplicada); c
 dentro de um preview, sem checagem de `IS_PULL_REQUEST` — fora do escopo aprovado deste plano (que cobria
 só o disparo automático no boot). Decisão do CTO: não expandir o escopo agora, registrado como **KI-037**.
 
-**Branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`** no momento deste registro — PR
-não aberta ainda (decisão pendente). Reativar o preview suspenso (`srv-d9t2ms0u01pc73bmuaqg`) ou autorizar
-o Dry-Run 2B continuam sendo decisões separadas do CTO, não automáticas por este Encerramento.
+**Branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`** no momento deste registro —
+**PR #23 aberta, em revisão** (CI 6/6 verde). Reativar o preview suspenso (`srv-d9t2ms0u01pc73bmuaqg`) ou
+autorizar o Dry-Run 2B continuam sendo decisões separadas do CTO, não automáticas por este Encerramento
+nem pelo merge da PR.
 
 ---
 

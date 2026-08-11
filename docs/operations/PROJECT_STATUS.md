@@ -5,14 +5,18 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-10
-**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Dry-Run 2A (isolamento do Render PR
-Preview) encontrou INC-003 — preview importou 405 OS reais via integração MercadoPhone herdada de
-produção; contido (preview suspenso), Dry-Run 2B bloqueado** (2026-08-10, ver abaixo); Manual do usuário,
-Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for
-decidindo. Sequência recente: 🔴 **INC-003 — dado real importado no Preview, contido (Dry-Run 2A —
-provisionar preview → KI-035 reproduzido no boot → isolamento de disco/banco confirmado → integração
-MercadoPhone herdada detectada → 405 OS importadas → preview suspenso, 2026-08-10, ver abaixo)** → 🟡
+**Última revisão:** 2026-08-11
+**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Preview Seguro implementado — guard
+`IS_PULL_REQUEST` + correção do KI-035, INC-003/KI-035/KI-036 resolvidos, KI-037 registrado como risco
+residual aceito (2026-08-11, branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`, ver
+abaixo). Reativar o preview suspenso ou autorizar o Dry-Run 2B seguem sendo decisões separadas do CTO.**
+Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
+o CTO for decidindo. Sequência recente: ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
+(Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
+ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
+contido (Dry-Run 2A — provisionar preview → KI-035 reproduzido no boot → isolamento de disco/banco
+confirmado → integração MercadoPhone herdada detectada → 405 OS importadas → preview suspenso,
+2026-08-10, ver abaixo)** → 🟡
 **Rollback — Dry-Run 1A/1B + política de conflito (Operação Release 1.0 Parte B — Discovery → decisão do
 CTO → política inicial → Dry-Run 1A mecanismo sem conflito → Dry-Run 1B commit real com conflito real em
 documentação → abort seguro → nova regra "conflito = parada + decisão do CTO", 2026-08-10, ver abaixo)**
@@ -76,9 +80,46 @@ dry-run temporária, nunca chegou a `main`.
 
 ---
 
-## 🔴 INC-003 — Render PR Preview importou dados reais via MercadoPhone (contido)
+## ✅ Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos (Operação Release 1.0)
 
-**Ver `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` para o relatório completo.**
+**Ver `docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md` para o plano técnico completo e
+`docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` seção 12 para a resolução do
+incidente.**
+
+Ciclo `ADR-010` completo (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão
+Arquitetural → Encerramento) em 2026-08-11, a partir da Discovery da arquitetura de "Preview seguro"
+mapeada logo após a contenção do INC-003. Defesa em profundidade (preferência já registrada do CTO):
+`IS_PULL_REQUEST` (setada automaticamente pelo Render em todo PR Preview) desliga
+`BACKGROUND_JOBS_ENABLED` incondicionalmente em `fluxoly_config.py` — cobre a sync do MercadoPhone e o
+backup automático, mesmo com credenciais herdadas do serviço-base — mais a recomendação de configuração
+manual complementar registrada em `DEPLOY.md`/`GO_LIVE_PLAN.md`. `environment` do Sentry passa a
+distinguir `"preview"` de `"production"` (KI-036). `migrations/runner.py` passa a capturar
+`sqlite3.IntegrityError` por migration, restrito à constraint `schema_migrations.id` (KI-035) — restrição
+adicionada pelo CTO na aprovação do plano, para nunca mascarar um `IntegrityError` de origem diferente
+(ex.: violação de dado real dentro de uma migration).
+
+751 testes existentes + 10 novos (`tests/test_ambiente_preview.py`, +2 em `tests/test_migrations.py`),
+todos passando; `ruff check .` limpo; CI 6/6 verde no push. QA manual em backend real com banco/disco
+descartáveis (nunca `database.db`) reproduziu as condições exatas do INC-003 (credenciais herdadas +
+`IS_PULL_REQUEST=true`) e confirmou zero atividade de sync, mais um cenário de controle sem regressão.
+
+**Revisão Arquitetural (4 eixos do `ADR-010`):** coerência do domínio e autorização centralizada
+confirmadas limpas por grep (único ponto de verdade, sem checagem duplicada); consistência confirmada.
+**Achado real no eixo de vazamento de dado:** os endpoints manuais de `api_mercadophone.py`
+(`sincronizar`/`reprocessar`/`reimportar`) continuam alcançáveis por uma sessão `admin`/`tecnico` real
+dentro de um preview, sem checagem de `IS_PULL_REQUEST` — fora do escopo aprovado deste plano (que cobria
+só o disparo automático no boot). Decisão do CTO: não expandir o escopo agora, registrado como **KI-037**.
+
+**Branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`** no momento deste registro — PR
+não aberta ainda (decisão pendente). Reativar o preview suspenso (`srv-d9t2ms0u01pc73bmuaqg`) ou autorizar
+o Dry-Run 2B continuam sendo decisões separadas do CTO, não automáticas por este Encerramento.
+
+---
+
+## ✅ INC-003 — Render PR Preview importou dados reais via MercadoPhone (RESOLVIDO)
+
+**Ver `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` para o relatório completo
+(seção 12 tem a resolução) e a seção "Preview Seguro" acima para o registro da correção.**
 
 Durante o Dry-Run 2A (validar se o Render PR Preview seria um ambiente seguro para o Dry-Run 2B de
 rollback de infraestrutura), um preview de teste (PR #22, `[render preview]`, modo Manual) herdou
@@ -101,12 +142,11 @@ evidência de escrita de volta ao MercadoPhone.
 Suspended"); PR #22 mantida aberta, não mergeada, para preservar evidência; nenhum dado apagado; produção
 (`/health` → `ok`) confirmada intocada antes e depois.
 
-**Status:** 🔴 Aberto — causa identificada, correção (Frente B: desabilitar credenciais/integrações
-externas por padrão em qualquer preview, defesa em profundidade — configuração + guard de código) ainda
-não implementada, decisão de arquitetura pendente. **Dry-Run 2B permanece bloqueado** por dois achados
-independentes: este incidente (integrações externas herdadas) e KI-035 (condição de corrida em
-migrations, reproduzida aqui pela segunda vez). Nenhum código alterado nesta decisão — só documentação e
-uma ação de contenção operacional (suspensão do preview via painel).
+**Status:** ✅ Resolvido em 2026-08-11 — Frente B implementada (defesa em profundidade: guard de código
+`IS_PULL_REQUEST` + configuração), testada (automatizado + QA manual) e revisada arquiteturalmente. Ver
+seção "Preview Seguro" acima para o registro completo. KI-035 (mesmo bloqueador do Dry-Run 2B) resolvido
+junto. Achado residual fora do escopo desta correção registrado como KI-037. Reativar o preview suspenso
+ou autorizar o Dry-Run 2B continuam sendo decisões separadas do CTO.
 
 ---
 

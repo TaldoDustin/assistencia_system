@@ -5,7 +5,7 @@
 sessão de 2026-08-11 a partir do handoff em `docs/operations/NEXT_SESSION.md`. Referências de fato:
 `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md`, `docs/operations/KNOWN_ISSUES.md`
 (KI-035, KI-036).
-**Status:** Implementado (aguardando QA Manual + Revisão Arquitetural)
+**Status:** Encerrado
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -25,10 +25,26 @@ sessão de 2026-08-11 a partir do handoff em `docs/operations/NEXT_SESSION.md`. 
 - [x] Testes — `tests/test_ambiente_preview.py` (8 casos, novo), `tests/test_migrations.py`
       (+2 casos, `TestProtecaoContraCorridaDeMigrations`, regressão confirmada contra o código anterior).
       Suíte completa: 751/751 passando, `ruff check .` limpo.
-- [ ] QA Manual
-- [ ] Revisão Arquitetural — obrigatória (toca >3 arquivos: `fluxoly_config.py`, `app.py`,
-      `migrations/runner.py`, `docs/`)
-- [ ] Encerramento
+- [x] QA Manual — 2026-08-11, backend real (`python app.py`), banco/disco descartáveis isolados
+      (`IR_FLOW_DATA_DIR` próprio, nunca `database.db`), nunca a porta/dados de produção ou dev
+      real. Dois cenários: (1) reproduzindo as condições exatas do INC-003 (`IS_PULL_REQUEST=true` +
+      `MERCADO_PHONE_SYNC_ENABLED=1`/`MERCADO_PHONE_API_TOKEN` presente, simulando credenciais
+      herdadas) — boot ok (`/health`/`/ready` → `200`), log `preview_background_jobs_desativados`
+      confirmado, zero atividade de sync do MercadoPhone observada; (2) baseline sem
+      `IS_PULL_REQUEST` — boot idêntico ao de hoje, log de desativação **não** aparece (sem
+      regressão). Processos e diretórios descartáveis encerrados/removidos ao final.
+- [x] Revisão Arquitetural — 2026-08-11, 4 eixos do `ADR-010`. Coerência do domínio ✅ (único ponto de
+      verdade `BACKGROUND_JOBS_ENABLED`, confirmado por grep — nenhum outro consumidor/thread ficou de
+      fora do guard). Autorização centralizada ✅ (sem checagem duplicada inline). Risco de vazamento de
+      dado 🔴 **achado real** — endpoints manuais de `api_mercadophone.py` (`sincronizar`/`reprocessar`/
+      `reimportar`) continuam sem checagem de `IS_PULL_REQUEST`, só sessão `admin`/`tecnico` — fora do
+      escopo aprovado deste plano (que cobria só o disparo automático no boot); decisão do CTO de não
+      expandir o escopo, registrado como **KI-037**. Consistência ✅ (noção de "preview" aplicada de forma
+      uniforme nos pontos que hoje distinguem ambiente).
+- [x] Encerramento — 2026-08-11. KI-035/KI-036 movidos para Resolvidos em `KNOWN_ISSUES.md`; KI-037
+      registrado como risco residual aceito. INC-003 atualizado para "Resolvido" (seção 12 do relatório).
+      `PROJECT_STATUS.md`/`CHANGELOG.md` atualizados. Reativar o preview suspenso ou autorizar o Dry-Run 2B
+      continuam sendo decisões separadas do CTO, não automáticas por este Encerramento.
 
 ---
 

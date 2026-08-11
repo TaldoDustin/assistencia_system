@@ -808,6 +808,35 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   (integrações externas herdadas em preview) e KI-035 (condição de corrida em migrations).
 - Nenhum código alterado — só documentação e uma ação de contenção operacional (suspensão do preview).
 
+### Corrigido (2026-08-11 — Preview Seguro: INC-003 Frente B, KI-035, KI-036)
+- `fluxoly_config.py` — nova constante `IS_PULL_REQUEST` (setada automaticamente pelo Render em todo PR
+  Preview); `BACKGROUND_JOBS_ENABLED` passa a incorporar `and not IS_PULL_REQUEST`, desligando
+  incondicionalmente a sync automática do MercadoPhone e o backup automático em qualquer preview, mesmo
+  com credenciais/flags herdadas do serviço-base (INC-003 Frente B).
+- `app.py` — log estruturado `preview_background_jobs_desativados` no boot quando `IS_PULL_REQUEST` é
+  detectado; `environment` do Sentry passa a distinguir `"preview"` de `"production"`/`"development"`
+  (antes, `IS_SERVER_RUNTIME` sozinha marcava qualquer preview como produção — KI-036).
+- `migrations/runner.py::run_migrations()` — `sqlite3.IntegrityError` capturado por migration (não pela
+  função inteira), tratado como no-op **só** quando a mensagem confirma a constraint
+  `schema_migrations.id` (corrida entre workers); qualquer outro `IntegrityError` continua propagando, sem
+  mascarar falha real de dado (KI-035, condição de corrida reproduzida 2× em produção e no preview do
+  INC-003).
+- Testes novos: `tests/test_ambiente_preview.py` (8 casos, subprocesso isolado) e +2 casos em
+  `tests/test_migrations.py` (regressão do KI-035, confirmada falhando contra o código anterior). 751
+  testes existentes + 10 novos, todos passando; `ruff check .` limpo.
+- QA manual (backend real, banco/disco descartáveis, nunca `database.db`) e Revisão Arquitetural (4 eixos
+  do `ADR-010`) concluídas — achado residual fora do escopo aprovado (endpoints manuais de
+  `api_mercadophone.py` ainda alcançáveis por sessão `admin`/`tecnico` real dentro de um preview, sem
+  checagem de `IS_PULL_REQUEST`) registrado como **KI-037**, decisão do CTO de não expandir o escopo agora.
+- `docs/operations/KNOWN_ISSUES.md` — KI-035 e KI-036 movidos para Resolvidos; KI-037 registrado.
+- `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` — status atualizado para
+  Resolvido (nova seção 12).
+- `DEPLOY.md`/`docs/company/GO_LIVE_PLAN.md` — nova seção "Preview Seguro" documentando a defesa em
+  profundidade (guard de código + configuração).
+- Ver `docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md` para o plano técnico completo.
+- Reativar o preview suspenso ou autorizar o Dry-Run 2B continuam sendo decisões separadas do CTO, não
+  automáticas por esta correção.
+
 ### Corrigido (2026-08-08 — modernização isolada, achado durante o Financeiro Mínimo)
 - `fluxoly_vendas_service.py` — `isinstance(x, (int, float))` substituído por `isinstance(x, int | float)`
   (UP038): o hook local de pre-commit (`ruff-pre-commit` pinado em v0.5.0) ainda sinaliza essa regra,

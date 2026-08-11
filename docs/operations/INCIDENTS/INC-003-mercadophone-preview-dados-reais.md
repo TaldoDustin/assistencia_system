@@ -1,6 +1,8 @@
 # INC-003 — Render PR Preview importou dados reais de produção via integração MercadoPhone
 
-**Status:** 🔴 Contido — causa identificada, correção pendente (Frente B, não implementada)
+**Status:** ✅ Resolvido — Frente B implementada, testada (automatizado + QA manual) e revisada
+arquiteturalmente em 2026-08-11 (ver seção 12). Preview original (`srv-d9t2ms0u01pc73bmuaqg`)
+permanece suspenso — reativá-lo é uma decisão separada, não automática por esta correção.
 **Data do incidente:** 2026-08-10
 **Severidade:** Alta (contida rapidamente, sem evidência de efeito externo ou impacto em produção)
 **Descoberto durante:** Dry-Run 2A (Operação Release 1.0, Parte B — validação de isolamento do Render PR
@@ -172,9 +174,10 @@ ser isolado — não é exclusivo da integração MercadoPhone.
 
 ---
 
-## 9. Ações corretivas (não implementadas — decisão de arquitetura pendente, Frente B)
+## 9. Ações corretivas (implementadas em 2026-08-11 — ver seção 12)
 
-Nenhuma correção foi implementada nesta sessão. Opções em avaliação, registradas para decisão futura:
+Nenhuma correção foi implementada na sessão original do incidente (2026-08-10). Opções avaliadas então,
+registradas para decisão futura:
 
 1. **Configuração** — sobrescrever/desabilitar explicitamente variáveis de integração externa
    (`MERCADO_PHONE_SYNC_ENABLED`, `MERCADO_PHONE_API_TOKEN`, e qualquer outra futura) especificamente no
@@ -194,10 +197,39 @@ Nenhuma correção foi implementada nesta sessão. Opções em avaliação, regi
 
 ## 11. Critérios para reabrir/reativar o Preview
 
-Nenhum definido ainda — pendente da decisão de arquitetura da Frente B. No mínimo, reativar exigiria
-primeiro confirmar que `MERCADO_PHONE_SYNC_ENABLED`/`MERCADO_PHONE_API_TOKEN` (e `BACKGROUND_JOBS_ENABLED`
-para o backup automático) estão desabilitados especificamente para este preview antes de qualquer boot
-novo.
+O guard de código (`IS_PULL_REQUEST`, seção 12) elimina a necessidade de desabilitar manualmente
+`MERCADO_PHONE_SYNC_ENABLED`/`MERCADO_PHONE_API_TOKEN`/`BACKGROUND_JOBS_ENABLED` antes de cada boot — a
+correção cobre isso automaticamente em qualquer preview. Ainda assim, reativar o preview suspenso
+(`srv-d9t2ms0u01pc73bmuaqg`) ou criar um novo é uma **decisão separada do CTO**, não autorizada
+automaticamente por esta correção — e deve considerar o risco residual do KI-037 (endpoints manuais de
+sincronização ainda alcançáveis por uma sessão `admin`/`tecnico` real dentro do preview).
+
+---
+
+## 12. Resolução (2026-08-11)
+
+Defesa em profundidade implementada, conforme a preferência já registrada do CTO (seção 9, opção 3):
+
+- **Guard de código:** `IS_PULL_REQUEST` (`fluxoly_config.py`), setada automaticamente pelo Render em todo
+  PR Preview, desliga `BACKGROUND_JOBS_ENABLED` incondicionalmente — cobre a sync do MercadoPhone e o
+  backup automático, mesmo com credenciais herdadas do serviço-base. Log estruturado
+  (`preview_background_jobs_desativados`) confirma isso em todo boot de preview.
+- **Configuração (camada adicional):** recomendação registrada em `DEPLOY.md`/`GO_LIVE_PLAN.md` de também
+  desabilitar manualmente `MERCADO_PHONE_SYNC_ENABLED`/`IR_FLOW_ENABLE_BACKGROUND_JOBS` ao criar um preview
+  pelo painel Render.
+- **KI-036** (Sentry marcando preview como `environment=production`) resolvido junto, mesma causa raiz.
+- **KI-035** (condição de corrida em migrations) resolvido junto — bloqueador independente, mas também
+  pré-requisito do Dry-Run 2B.
+
+Plano técnico completo, testes (automatizados + QA manual) e Revisão Arquitetural em
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`. A Revisão Arquitetural encontrou um risco
+residual **fora do escopo aprovado desta correção** — os endpoints manuais de sincronização
+(`api_mercadophone.py`) continuam alcançáveis por uma sessão `admin`/`tecnico` real dentro de um preview,
+sem checagem de `IS_PULL_REQUEST` — registrado como **KI-037**, decisão do CTO de não expandir o escopo
+agora.
+
+**Branch/commit:** `fix/preview-seguro-inc003-ki035`, commit `e202002` (implementação) — ainda não
+mergeada em `main` no momento deste registro.
 
 ---
 

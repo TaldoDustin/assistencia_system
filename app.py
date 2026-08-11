@@ -71,6 +71,7 @@ from fluxoly_config import (  # noqa: E402
     DB_PATH,
     GOOGLE_DRIVE_BACKUP_DIR,
     INTEGRATIONS_CONFIG_PATH,
+    IS_PULL_REQUEST,
     IS_SERVER_RUNTIME,
     MERCADO_PHONE_API_BASE,
     MERCADO_PHONE_DEFAULT_TECNICO,
@@ -131,6 +132,17 @@ from migrations.runner import run_migrations
 configurar_logging()
 logger = get_logger("app")
 
+# INC-003: visibilidade explícita em vez de silêncio -- se IS_PULL_REQUEST for
+# detectado (Render PR Preview), background jobs (sync MercadoPhone, backup
+# automático) já ficam desligados via BACKGROUND_JOBS_ENABLED (fluxoly_config.py),
+# mas isso precisa aparecer no log de boot para não parecer um bug caso alguém
+# no futuro não conheça esta decisão.
+if IS_PULL_REQUEST:
+    logger.warning(
+        "preview_background_jobs_desativados",
+        extra={"motivo": "IS_PULL_REQUEST=true", "referencia": "INC-003/KI-035/KI-036"},
+    )
+
 # Sentry (Sprint Observabilidade) -- só inicializa com SENTRY_DSN definida.
 # Vazia por padrão: usuário ainda não tem conta Sentry, vai criar depois e
 # só colar o DSN no Render (mesmo padrão de integração opcional já usado
@@ -138,9 +150,11 @@ logger = get_logger("app")
 # lida com dado real de cliente (nome, IMEI), não pode vazar em
 # breadcrumb/payload de erro. traces_sample_rate=0 -- só captura de erro,
 # sem tracing de performance (evita overhead/custo sem necessidade
-# confirmada; pode ser revisto depois se fizer sentido). environment reaproveita
-# IS_SERVER_RUNTIME (mesma variável usada no resto do arquivo para distinguir
-# dev local de produção -- projeto não tem staging). release lê
+# confirmada; pode ser revisto depois se fizer sentido). environment checa
+# IS_PULL_REQUEST antes de IS_SERVER_RUNTIME (KI-036) -- um Render PR Preview
+# também seta IS_SERVER_RUNTIME=True (mesmos sinais de RENDER/RENDER_SERVICE_ID
+# de produção), então sem essa checagem erros de um preview seriam reportados
+# como "production" e poluiriam o monitoramento real. release lê
 # RENDER_GIT_COMMIT, injetada automaticamente pelo Render em todo deploy, sem
 # exigir nenhuma configuração manual de versionamento.
 _sentry_dsn = os.environ.get("SENTRY_DSN", "").strip()
@@ -148,15 +162,22 @@ if _sentry_dsn:
     import sentry_sdk
     from sentry_sdk.integrations.flask import FlaskIntegration
 
+    if IS_PULL_REQUEST:
+        _sentry_environment = "preview"
+    elif IS_SERVER_RUNTIME:
+        _sentry_environment = "production"
+    else:
+        _sentry_environment = "development"
+
     sentry_sdk.init(
         dsn=_sentry_dsn,
         integrations=[FlaskIntegration()],
         send_default_pii=False,
         traces_sample_rate=0,
-        environment="production" if IS_SERVER_RUNTIME else "development",
+        environment=_sentry_environment,
         release=os.environ.get("RENDER_GIT_COMMIT", "dev"),
     )
-    logger.info("sentry_inicializado")
+    logger.info("sentry_inicializado", extra={"environment": _sentry_environment})
 
 app = Flask(__name__, template_folder=os.path.join(RESOURCE_DIR, "templates"))
 

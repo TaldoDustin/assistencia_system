@@ -230,6 +230,72 @@ class TestProtecaoContraLocked:
             run_migrations(conn)
 
 
+class TestProtecaoContraCorridaDeMigrations:
+    """KI-035: com múltiplos workers Gunicorn, dois processos podem ler
+    schema_migrations antes de qualquer commit do outro e concluir que a
+    mesma migration ainda falta -- o segundo INSERT perde a corrida e recebe
+    sqlite3.IntegrityError (não OperationalError), que TestProtecaoContraLocked
+    acima não cobre. Reproduzido em produção (deploy do commit d7ef012,
+    2026-08-10, "Worker failed to boot") e de novo no primeiro boot do preview
+    do INC-003."""
+
+    def test_corrida_em_schema_migrations_id_nao_propaga_e_segue_para_a_proxima(self, conn, monkeypatch):
+        class _MigracaoQuePerdeuACorrida:
+            ID = "9999"
+
+            @staticmethod
+            def apply(cursor, conn):
+                # Simula outro worker que já inseriu e commitou este ID um
+                # instante antes -- o INSERT que run_migrations() tenta a
+                # seguir (linha correspondente em migrations/runner.py) vai
+                # colidir com a UNIQUE constraint de schema_migrations.id.
+                cursor.execute("INSERT INTO schema_migrations (id) VALUES (?)", ("9999",))
+                conn.commit()
+
+        class _MigracaoSeguinteSemConflito:
+            ID = "9999b"
+
+            @staticmethod
+            def apply(cursor, conn):
+                cursor.execute("CREATE TABLE _prova_migration_seguinte (id INTEGER)")
+
+        monkeypatch.setattr(
+            "migrations.runner.MIGRATIONS",
+            [_MigracaoQuePerdeuACorrida, _MigracaoSeguinteSemConflito],
+        )
+
+        resultado = run_migrations(conn)
+
+        # A migration que perdeu a corrida não aparece como "aplicada por
+        # esta chamada" (outro worker já a aplicou) -- mas o boot não cai, e
+        # a migration seguinte pendente, sem conflito, continua sendo
+        # aplicada no mesmo boot (não aborta o loop inteiro).
+        assert resultado == ["9999b"]
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='_prova_migration_seguinte'")
+        assert cursor.fetchone() is not None
+
+    def test_integrity_error_que_nao_e_schema_migrations_propaga(self, conn, monkeypatch):
+        """Guarda contra falso-negativo: um IntegrityError de origem
+        diferente (ex.: violação de UNIQUE de dado real dentro do apply() de
+        uma migration) NUNCA pode ser mascarado como "outro worker já
+        aplicou" -- precisa propagar, senão uma falha real de schema/dado
+        ficaria escondida."""
+
+        class _MigracaoComErroDeDadoReal:
+            ID = "9999"
+
+            @staticmethod
+            def apply(cursor, conn):
+                cursor.execute("CREATE TABLE _t_dado_real (id INTEGER PRIMARY KEY)")
+                cursor.execute("INSERT INTO _t_dado_real (id) VALUES (1)")
+                cursor.execute("INSERT INTO _t_dado_real (id) VALUES (1)")  # UNIQUE constraint failed: _t_dado_real.id
+
+        monkeypatch.setattr("migrations.runner.MIGRATIONS", [_MigracaoComErroDeDadoReal])
+        with pytest.raises(sqlite3.IntegrityError):
+            run_migrations(conn)
+
+
 class TestBootstrapDeAppUsaRunMigrations:
     def test_conectar_nao_expoe_mais_criar_tabelas(self):
         """TD-03 Fatia 2: criar_tabelas()/SCHEMA_READY/SCHEMA_LOCK foram

@@ -15,10 +15,3 @@ Objetivo do exercício: validar o ciclo real de rollback contra infraestrutura R
 → revert → push → auto-deploy → confirmação), sem tocar produção.
 
 Data: 2026-08-11.
-
-## Marcador de revert — Dry-Run 2B, passo 2 (commit a ser revertido)
-
-Este trecho existe exclusivamente para ser revertido via `git revert` como parte do exercício de
-rollback de infraestrutura. Nenhuma alteração funcional — apenas texto neste arquivo de marcador.
-
-Marcador único: `DRYRUN2B-REVERT-TARGET-2026-08-11`.

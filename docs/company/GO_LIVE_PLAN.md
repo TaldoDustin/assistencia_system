@@ -1,7 +1,7 @@
 # GO_LIVE_PLAN.md — Plano de implantação do primeiro cliente pagante
 
 **Status:** 🔵 Rascunho — criado em 2026-07-25, nunca executado (nenhum cliente pagante ainda)
-**Última revisão:** 2026-07-25
+**Última revisão:** 2026-08-11 (Dry-Run 2B — rollback de infraestrutura Render concluído)
 
 ---
 
@@ -146,20 +146,47 @@ tomada em 2026-08-11, ver abaixo.
   mergeada; (3) rollback real contra infraestrutura Render/Vercel — é o que o Dry-Run 2B efetivamente
   testa, usando o preview como substituto seguro de produção.
 
+### Dry-Run 2B — executado e concluído (2026-08-11)
+
+As 6 evidências exigidas pelo CTO antes de autorizar o exercício foram confirmadas no Preview da PR #24
+(distinto do preview suspenso da PR #22); a configuração operacional (item acima) precisou ser corrigida
+e revalidada por redeploy antes da autorização, porque a primeira checagem mostrou que não tinha sido
+herdada corretamente — só o guard de código estava protegendo o preview até então.
+
+Ciclo completo executado: commit marcador descartável (`fc972adf`, texto isolado e inofensivo, nenhuma
+alteração funcional) → push → Render Auto-Deploy → `git revert` **sem conflito** (`d6cb9aef`) → push →
+Render Auto-Deploy → confirmação. `/health`/`/ready` → 200 em cada etapa, logs de boot confirmando as duas
+camadas de defesa em profundidade ativas, nenhum log de sincronização MercadoPhone, produção intocada do
+início ao fim. Preview suspenso novamente ao final. Registro completo em
+`docs/operations/PROJECT_STATUS.md` (seção "Dry-Run 2B").
+
+**Importante — Dry-Run ≠ rollback real de produção:** este exercício prova que o mecanismo funciona contra
+infraestrutura Render real, não que um rollback de produção nunca vai encontrar um problema novo. Ele
+usou um marcador deliberadamente descartável (nunca uma mudança funcional) e não exercitou nem um
+conflito de infraestrutura (só o Dry-Run 1B exercitou conflito, em Git local) nem o lado Vercel/frontend
+do rollback coordenado. A regra "conflito durante o revert = condição de parada" (seção "Plano de
+rollback" acima) continua valendo integralmente para qualquer rollback real futuro, dry-run ou não.
+
+**Decisões que este Dry-Run não tomou:** destino da PR #24 (descartável) e da PR #22 (evidência
+preservada do INC-003); correção de código do KI-037 (risco residual aceito só para este exercício,
+mitigado operacionalmente, não corrigido). Todas seguem pendentes, decisão separada do CTO.
+
 ---
 
 ## O que este documento ainda não tem (gaps conhecidos)
 
-- A política de rollback está definida e aprovada (2026-08-10). Dois exercícios locais foram conduzidos
-  no mesmo dia (Dry-Run 1A e 1B, branch `dry-run/rollback-f5fdb23`, preservada): o 1A validou o mecanismo
-  de `git revert` isolado, sem conflito (commit `f5fdb23`, só testes). O 1B, com um commit real de
-  produção (`609619f`), encontrou um conflito real em documentação — o que levou à regra "Conflito
-  durante o revert" acima. `git revert --abort` executado com sucesso, `main`/`origin/main` nunca
-  tocadas. Ainda faltam: repetir o Dry-Run 1B sob a nova regra, um dry-run local completo sem interrupção,
-  e um dry-run de infraestrutura (Render/Vercel) antes do primeiro go-live de verdade.
+- A política de rollback está definida e aprovada (2026-08-10). Três exercícios concluídos até
+  2026-08-11: Dry-Run 1A validou o mecanismo `git revert` isolado, sem conflito (commit `f5fdb23`, só
+  testes, branch `dry-run/rollback-f5fdb23`, preservada); Dry-Run 1B, com um commit real de produção
+  (`609619f`), encontrou um conflito real em documentação — o que levou à regra "Conflito durante o
+  revert" acima (`git revert --abort` executado com sucesso, `main`/`origin/main` nunca tocadas); Dry-Run
+  2B validou o rollback real contra infraestrutura Render (ver seção "Dry-Run 2B" acima). Ainda faltam:
+  repetir o Dry-Run 1B sob a nova regra, um dry-run local completo sem interrupção, um dry-run que
+  exercite um conflito de infraestrutura (não só de Git local), o lado Vercel/frontend do rollback
+  coordenado, e — por definição, nunca substituído por um dry-run — a primeira execução real de rollback
+  em produção.
 - Comunicação ao cliente em caso de rollback ainda não definida.
 - Número de dias de acompanhamento pós-lançamento é um palpite (7 dias), não uma decisão validada.
-- Dry-Run 2B (rollback de infraestrutura Render/Vercel) bloqueado — ver seção "Preview Seguro" acima.
 
 ---
 

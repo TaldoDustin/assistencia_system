@@ -1,7 +1,8 @@
 # RELEASE_1.0_MASTER_CHECKLIST.md — Certificação para o primeiro cliente pagante
 
 **Status:** 🔵 Em construção — criado em 2026-07-25
-**Última revisão:** 2026-08-10 (auditoria de estado real — ver "Correção" na seção "Visão executiva")
+**Última revisão:** 2026-08-11 (Dry-Run 2B — rollback de infraestrutura Render validado, ver item
+"Rollback testado")
 **Regra de uso:** este não é um backlog nem um roadmap — é um checklist de certificação. Quando todos os
 itens estiverem `[x]`, a Fluxoly está pronta para o primeiro cliente pagante (Fase 1 / Release 1.0, ver
 `docs/company/RELEASE_STRATEGY.md`). Toda sprint nova deveria responder: *"isto marca algum item deste
@@ -47,10 +48,10 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~66% |
 | Segurança e Compliance | 🟡 | ~55% |
 | Observabilidade | 🟢 | ~85% |
-| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~30% |
+| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~35% |
 
 ```
-Release 1.0:  ████████████░░░░░░░░  ~61%
+Release 1.0:  ████████████░░░░░░░░  ~62%
 ```
 
 **Correção (2026-08-10, auditoria de estado real):** esta tabela media há duas semanas contra um estado
@@ -65,19 +66,22 @@ documentado), mas a agregação nunca foi recalculada. Cálculo por área, mesma
 | Confiabilidade | Bugs 70% · Backup 60% · Restore 100% · Carga 35% | ~66% |
 | Segurança | Segurança revisada 100% · LGPD 10% | ~55% (inalterada — nenhum dos dois itens mudou) |
 | Observabilidade | Logs 100% · Monitorização 70% | ~85% |
-| Operação | Deploy 100% · Rollback 40% · Manual 5% · Demo 5% · Piloto 0% | ~30% |
+| Operação | Deploy 100% · Rollback 65% · Manual 5% · Demo 5% · Piloto 0% | ~35% |
 
 Visão geral recalculada de ~29% para ~55% em 2026-08-10 (auditoria de estado real), no mesmo dia de ~55%
 para ~59% com o fechamento do item Restore validado (Discovery → testes automatizados → QA manual →
 merge, ver detalhamento abaixo), e novamente de ~59% para ~61% com a definição da política de Rollback
 (Discovery da Parte B da Operação → decisão do CTO, uma pergunta de cada vez → registro em
 `GO_LIVE_PLAN.md`/`DEPLOY.md`, ver detalhamento abaixo) — cada salto **é** trabalho novo, diferente da
-correção de medição que gerou o primeiro. **Segurança não mudou** — controle de que o método não foi
-inflado arbitrariamente fora do item que de fato avançou.
+correção de medição que gerou o primeiro. Em 2026-08-11, de ~61% para ~62% com a conclusão do Dry-Run 2B
+(rollback de infraestrutura Render validado de ponta a ponta, ver detalhamento abaixo). **Segurança não
+mudou** — controle de que o método não foi inflado arbitrariamente fora do item que de fato avançou.
 
 Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — Rollback
-agora tem política completa (escopo, critério, autoridade, mecanismo, verificação) mas nenhum teste de
-dry-run real; os demais (manual, demo, piloto) seguem do zero. Ver detalhamento item a item abaixo.
+agora tem política completa (escopo, critério, autoridade, mecanismo, verificação) **e** dois dry-runs
+concluídos (mecanismo Git — Dry-Run 1A/1B; infraestrutura Render — Dry-Run 2B, 2026-08-11), mas ainda não
+exercitou um conflito de infraestrutura nem o lado Vercel/frontend do rollback coordenado; os demais
+(manual, demo, piloto) seguem do zero. Ver detalhamento item a item abaixo.
 
 ---
 
@@ -209,18 +213,24 @@ dry-run real; os demais (manual, demo, piloto) seguem do zero. Ver detalhamento 
   Estado: 🟡 Política definida e aprovada (2026-08-10): escopo coordenado (backend+frontend sempre
   juntos), critério de acionamento (bug crítico/perda de dados/indisponibilidade prolongada), autoridade
   (só o CTO autoriza), regra de interação com migrations (nunca cruza uma migration já aplicada — TD-03
-  roll-forward only), mecanismo (`git revert` + `git push`) e verificação (smoke test manual). Dois
-  exercícios locais conduzidos no mesmo dia (Dry-Run 1A e 1B, branch `dry-run/rollback-f5fdb23`,
-  preservada): o 1A validou o mecanismo de `git revert` sem conflito (commit `f5fdb23`, só testes); o 1B,
-  com um commit real de produção (`609619f`), encontrou um **conflito real** em
-  `docs/operations/KNOWN_ISSUES.md` — o que originou a nova regra "conflito = condição de parada +
-  decisão explícita do CTO", cobrindo qualquer tipo de arquivo, também documentada em
-  `DEPLOY.md`/`GO_LIVE_PLAN.md`. `git revert --abort` executado com sucesso, `main`/`origin/main` nunca
-  tocadas. **Ainda não há um dry-run local completo sem interrupção, nem dry-run de infraestrutura
-  (Render/Vercel)** — permanece 🟡, não ✅. Percentual mantido em 40% (ver "Visão executiva" abaixo e
-  raciocínio no `PROJECT_STATUS.md`): a política ficou mais robusta, mas este item mede se o rollback foi
-  *testado* de ponta a ponta, o que ainda não aconteceu.
-  Link: `DEPLOY.md`, `docs/company/GO_LIVE_PLAN.md`
+  roll-forward only), mecanismo (`git revert` + `git push`) e verificação (smoke test manual). **Três
+  exercícios concluídos até 2026-08-11:** Dry-Run 1A validou o mecanismo `git revert` sem conflito
+  (branch `dry-run/rollback-f5fdb23`, commit `f5fdb23`, só testes); Dry-Run 1B, com um commit real de
+  produção (`609619f`), encontrou um **conflito real** em `docs/operations/KNOWN_ISSUES.md` — o que
+  originou a regra "conflito = condição de parada + decisão explícita do CTO" (`git revert --abort`
+  executado com sucesso, `main`/`origin/main` nunca tocadas); **Dry-Run 2B (2026-08-11) validou o
+  rollback real contra infraestrutura Render** — Preview isolado da PR #24, guard de código +
+  configuração operacional confirmados, ciclo completo push → auto-deploy (`fc972adf`) → `git revert`
+  **sem conflito** → push → auto-deploy (`d6cb9aef`) → `/health`/`/ready` 200 em cada etapa, produção
+  intocada, preview suspenso ao final (ver `docs/operations/PROJECT_STATUS.md` seção "Dry-Run 2B" para o
+  registro completo). **O que ainda falta, por isso o item permanece 🟡, não ✅:** nenhum dos exercícios
+  exercitou um conflito de infraestrutura (só o Dry-Run 1B exercitou conflito, em Git local); o lado
+  Vercel/frontend do rollback coordenado nunca foi testado (só o backend Render); e, por definição, um
+  dry-run nunca substitui uma execução real de rollback em produção. Percentual elevado de 40% para 65%
+  (ver "Visão executiva" abaixo) — reflete o mecanismo real validado contra infraestrutura, não apenas
+  política escrita, mas sem marcar como atendido o que não foi exercitado.
+  Link: `DEPLOY.md`, `docs/company/GO_LIVE_PLAN.md`, `docs/operations/PROJECT_STATUS.md` (seção
+  "Dry-Run 2B")
 
 - [ ] **Manual do usuário**
   Estado: ❌ Não existe.

@@ -6,12 +6,15 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-11
-**Próxima revisão:** Operação Release 1.0 — Parte B em andamento: **Preview Seguro implementado — guard
-`IS_PULL_REQUEST` + correção do KI-035, INC-003/KI-035/KI-036 resolvidos, KI-037 registrado como risco
-residual aceito (2026-08-11, branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`, ver
-abaixo). Reativar o preview suspenso ou autorizar o Dry-Run 2B seguem sendo decisões separadas do CTO.**
+**Próxima revisão:** Operação Release 1.0 — Parte B: **Dry-Run 2B (rollback de infraestrutura Render)
+concluído com sucesso (2026-08-11, ver seção própria abaixo)** — as três frentes separadas do rollback
+(mecanismo Git, segurança do ambiente Preview, rollback real de infraestrutura) estão todas validadas
+agora. PR #23 mergeada e deployada em produção (`6bb2ede`, confirmado Render + Vercel). Destino da PR #24
+(descartável) e da PR #22 (evidência preservada do INC-003) e a correção de código do KI-037 seguem sendo
+decisões separadas do CTO, fora do escopo deste Dry-Run.**
 Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
-o CTO for decidindo. Sequência recente: ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
+o CTO for decidindo. Sequência recente: ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
+(push → auto-deploy → revert → auto-deploy → confirmação, 2026-08-11, ver abaixo)** → ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
 ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
 contido (Dry-Run 2A — provisionar preview → KI-035 reproduzido no boot → isolamento de disco/banco
@@ -26,6 +29,62 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Dry-Run 2B — Rollback de infraestrutura Render validado (Operação Release 1.0)
+
+**Ver `docs/company/GO_LIVE_PLAN.md` (seção "Preview Seguro (pré-requisito do Dry-Run 2B)") e
+`docs/company/RELEASE_1.0_MASTER_CHECKLIST.md` (item "Rollback testado") para o registro complementar.**
+
+Autorizado pelo CTO em 2026-08-11 após confirmar as 6 evidências de que o Preview da PR #24
+(`srv-d9tkqpj7uimc73cop6og`, distinto do preview suspenso da PR #22) nasceu protegido em duas camadas
+independentes: guard de código (`IS_PULL_REQUEST` → `BACKGROUND_JOBS_ENABLED=False` incondicional) e
+configuração operacional (`MERCADO_PHONE_SYNC_ENABLED=0`, `MERCADO_PHONE_API_TOKEN` limpo,
+`IR_FLOW_ENABLE_BACKGROUND_JOBS=0`). A primeira rodada de confirmação revelou que a camada operacional
+não tinha sido herdada corretamente (`MERCADO_PHONE_SYNC_ENABLED=1`, token real presente, variável
+`IR_FLOW_ENABLE_BACKGROUND_JOBS` ausente) — só o guard de código estava protegendo o preview. Corrigido
+(as três variáveis aplicadas no Preview da PR #24, nunca na PR #22 nem em produção) e revalidado por
+redeploy antes de autorizar o exercício.
+
+**Baseline:** produção (`main`/`1ded1ed1`) e Preview da PR #24 (`1347fe1`) ambos com `/health`/`/ready` →
+200 antes do início.
+
+**Execução (push → auto-deploy → revert → auto-deploy → confirmação), branch
+`dry-run/2b-infra-rollback-render`, PR #24 (descartável, não mergeada):**
+1. Commit marcador `fc972adf` (trecho identificável e inofensivo em `RENDER_PREVIEW_TEST_MARKER_2B.md`,
+   nenhuma alteração funcional) → push → Render Auto-Deploy confirmado (`Deploy live for fc972ad`) → boot
+   novo (`preview_background_jobs_desativados`, `IS_PULL_REQUEST=true`) → `/health` 200.
+2. `git revert fc972adf` → commit `d6cb9aef`, **sem conflito** (diferente do Dry-Run 1B — o marcador
+   viveu isolado num arquivo dedicado ao exercício, não em documentação append-only compartilhada; não
+   invalida a regra "conflito = parada + decisão do CTO" registrada no Dry-Run 1B, só significa que este
+   cenário específico não a exercitou) → push → Render Auto-Deploy confirmado (`Deploy live for d6cb9ae`)
+   → boot novo → `/health` 200.
+
+**Validação de ponta a ponta, ambos os deploys:** commit ativo confere com o esperado em cada etapa;
+`/health` e `/ready` → 200; logs de boot mostram `preview_background_jobs_desativados` em toda
+inicialização; nenhum log `mercadophone_sync_*` em nenhum momento do exercício; boot limpo, sem erro de
+schema/migration (integridade do banco/disco isolado do preview preservada); produção (`/health` → 200,
+`main`/`origin/main` em `1ded1ed1`, inalterado) confirmada intocada antes, durante e depois. Nenhum
+comportamento inesperado ou conflito adicional.
+
+**Encerramento do exercício:** Preview da PR #24 suspenso novamente ao final (confirmação por digitação
+exigida pelo painel Render), `/health` → 503 "Service Suspended" confirmado pós-suspensão.
+
+**O que este Dry-Run comprova e o que não comprova:** valida o mecanismo real de rollback contra
+infraestrutura Render (push → auto-deploy → revert → auto-deploy) e a defesa em profundidade do Preview
+Seguro (guard de código + configuração operacional, as duas camadas testadas independentemente). **Não**
+exercitou um conflito de infraestrutura (o marcador foi deliberadamente isolado para não gerar um — ver
+Dry-Run 1B para o precedente de conflito real em Git), **não** testou o lado Vercel/frontend do rollback
+coordenado, e **não** corrigiu nem validou KI-037 (risco residual aceito só para este exercício, mitigado
+operacionalmente — nenhuma sessão `admin`/`tecnico` real usada em nenhum momento; continua aberto como
+item de backlog separado, fora deste escopo). Uma execução real de rollback em produção — por definição —
+nunca é substituída por um dry-run.
+
+**Pendências separadas, decisão do CTO:** destino da PR #24 (branch/PR descartável, preservada por ora) e
+da PR #22 (evidência preservada do INC-003, preview `srv-d9t2ms0u01pc73bmuaqg` continua suspenso e
+intocado); correção de código do KI-037 (sprint própria, não decidida). Nenhuma dessas três decisões foi
+tomada neste encerramento.
 
 ---
 
@@ -110,10 +169,10 @@ confirmadas limpas por grep (único ponto de verdade, sem checagem duplicada); c
 dentro de um preview, sem checagem de `IS_PULL_REQUEST` — fora do escopo aprovado deste plano (que cobria
 só o disparo automático no boot). Decisão do CTO: não expandir o escopo agora, registrado como **KI-037**.
 
-**Branch `fix/preview-seguro-inc003-ki035`, ainda não mergeada em `main`** no momento deste registro —
-**PR #23 aberta, em revisão** (CI 6/6 verde). Reativar o preview suspenso (`srv-d9t2ms0u01pc73bmuaqg`) ou
-autorizar o Dry-Run 2B continuam sendo decisões separadas do CTO, não automáticas por este Encerramento
-nem pelo merge da PR.
+**Branch `fix/preview-seguro-inc003-ki035` mergeada em `main` via PR #23** (commit `6bb2ede`, CI 6/6
+verde), produção confirmada em Render + Vercel. Reativar o preview suspenso (`srv-d9t2ms0u01pc73bmuaqg`)
+continua sendo decisão separada do CTO — o Dry-Run 2B (rollback de infraestrutura Render, usando um
+preview novo e distinto) foi autorizado e concluído em 2026-08-11, ver seção "Dry-Run 2B" acima.
 
 ---
 
@@ -147,7 +206,8 @@ Suspended"); PR #22 mantida aberta, não mergeada, para preservar evidência; ne
 `IS_PULL_REQUEST` + configuração), testada (automatizado + QA manual) e revisada arquiteturalmente. Ver
 seção "Preview Seguro" acima para o registro completo. KI-035 (mesmo bloqueador do Dry-Run 2B) resolvido
 junto. Achado residual fora do escopo desta correção registrado como KI-037. Reativar o preview suspenso
-ou autorizar o Dry-Run 2B continuam sendo decisões separadas do CTO.
+da PR #22 continua sendo decisão separada do CTO; o Dry-Run 2B foi autorizado e concluído em 2026-08-11
+(ver seção própria acima).
 
 ---
 

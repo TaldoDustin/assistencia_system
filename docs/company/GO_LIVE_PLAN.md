@@ -108,6 +108,29 @@ também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
 
 ---
 
+## Preview Seguro (pré-requisito do Dry-Run 2B)
+
+**Achado (INC-003, 2026-08-10):** durante a validação de isolamento do Render PR Preview (Dry-Run 2A), um
+preview herdou credenciais de integração externa de produção e importou 405 Ordens de Serviço reais via
+MercadoPhone. Contido (preview suspenso, banco/disco nunca compartilhados com produção). Ver relatório
+completo em `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md`.
+
+**Correção (defesa em profundidade, decisão do CTO):** guard de código (`IS_PULL_REQUEST` desliga
+background jobs incondicionalmente em qualquer preview) + configuração (desabilitar manualmente
+`MERCADO_PHONE_SYNC_ENABLED`/`IR_FLOW_ENABLE_BACKGROUND_JOBS` ao criar um preview). Procedimento técnico
+completo em `DEPLOY.md` seção "Preview Seguro"; plano de implementação em
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`.
+
+**Atualização (2026-08-11 — Encerramento do ciclo `ADR-010`):** a correção acima e a do KI-035 já foram
+implementadas, testadas (automatizado + QA manual) e revisadas arquiteturalmente — ver
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`. O Dry-Run 2B (rollback de infraestrutura
+Render/Vercel) **continua bloqueado**, mas não mais por QA/revisão pendente: agora é uma **decisão
+separada de autorização do CTO**, que também deve considerar o risco residual do KI-037 (endpoints
+manuais de sincronização do MercadoPhone ainda alcançáveis por uma sessão `admin`/`tecnico` real dentro
+de um preview reativado).
+
+---
+
 ## O que este documento ainda não tem (gaps conhecidos)
 
 - A política de rollback está definida e aprovada (2026-08-10). Dois exercícios locais foram conduzidos
@@ -119,6 +142,7 @@ também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
   e um dry-run de infraestrutura (Render/Vercel) antes do primeiro go-live de verdade.
 - Comunicação ao cliente em caso de rollback ainda não definida.
 - Número de dias de acompanhamento pós-lançamento é um palpite (7 dias), não uma decisão validada.
+- Dry-Run 2B (rollback de infraestrutura Render/Vercel) bloqueado — ver seção "Preview Seguro" acima.
 
 ---
 
@@ -128,3 +152,6 @@ também `DEPLOY.md` seção "Rollback" para o procedimento técnico espelhado):
 - `docs/company/RELEASE_STRATEGY.md` — Fase 3 (Multiempresa) muda o significado de "provisionar um
   cliente" quando for entregue
 - `docs/engineering/adr/ADR-005.md` — decisão pendente que define como multiempresa vai funcionar
+- `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` — incidente que originou a
+  seção "Preview Seguro"
+- `docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md` — plano técnico da correção

@@ -133,6 +133,37 @@ Ainda não há um dry-run local completo sem interrupção, nem um dry-run de in
 
 ---
 
+## Preview Seguro (Render PR Preview)
+
+**Achado (INC-003, 2026-08-10):** um Render PR Preview herda **todas** as variáveis de ambiente do
+serviço-base na criação (comportamento documentado do próprio Render), incluindo credenciais de
+integrações externas (`MERCADO_PHONE_SYNC_ENABLED`, `MERCADO_PHONE_API_TOKEN`) e flags de background jobs
+(`IR_FLOW_ENABLE_BACKGROUND_JOBS`). Um preview criado sem nenhuma ação adicional executa os mesmos jobs de
+produção (sync automático do MercadoPhone, backup automático) contra um banco isolado, mas com dados/
+efeitos reais vindos de sistemas externos reais. Ver
+`docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md` para o relatório completo e
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md` para a correção.
+
+**Defesa em profundidade (decisão do CTO, 2026-08-10) — duas camadas independentes, nenhuma substitui a
+outra:**
+
+1. **Guard de código (implementado):** a variável `IS_PULL_REQUEST`, setada automaticamente pelo Render em
+   todo PR Preview, desliga `BACKGROUND_JOBS_ENABLED` (`fluxoly_config.py`) incondicionalmente — cobre a
+   sync do MercadoPhone e o backup automático, mesmo que as credenciais/flags tenham sido herdadas do
+   serviço-base. Um log estruturado (`preview_background_jobs_desativados`) confirma isso em todo boot de
+   preview. O `environment` reportado ao Sentry também passa a ser `"preview"`, nunca `"production"`
+   (KI-036).
+2. **Configuração (recomendação operacional, camada adicional):** ao criar qualquer Render PR Preview
+   manualmente pelo painel, sobrescreva explicitamente `MERCADO_PHONE_SYNC_ENABLED=0` e
+   `IR_FLOW_ENABLE_BACKGROUND_JOBS=0` nas variáveis de ambiente específicas desse preview, antes do
+   primeiro boot. Não é estritamente necessário para a segurança (o guard de código já cobre o caso de
+   ninguém fazer isso), mas reduz a superfície e serve como segunda confirmação visível no painel Render de
+   que o preview não deveria tocar nada externo. Não existe `render.yaml`/IaC neste repositório — a criação
+   de preview é manual, por isso esta camada depende de lembrete humano e nunca deve ser a única linha de
+   defesa.
+
+---
+
 ## Passo a passo resumido
 
 1. Suba o backend no Render seguindo as instruções acima.

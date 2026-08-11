@@ -64,8 +64,27 @@ def run_migrations(conn: sqlite3.Connection | None = None) -> list[str]:
             if modulo.ID in aplicadas:
                 continue
             modulo.apply(cursor, conn)
-            cursor.execute("INSERT INTO schema_migrations (id) VALUES (?)", (modulo.ID,))
-            conn.commit()
+            try:
+                cursor.execute("INSERT INTO schema_migrations (id) VALUES (?)", (modulo.ID,))
+                conn.commit()
+            except sqlite3.IntegrityError as exc:
+                # KI-035: com múltiplos workers Gunicorn subindo ao mesmo tempo contra
+                # um banco com migrations pendentes, dois processos podem ler
+                # schema_migrations antes de qualquer commit do outro e os dois
+                # concluírem que a mesma migration ainda falta -- o segundo INSERT
+                # perde a corrida (UNIQUE constraint em schema_migrations.id) e
+                # recebe IntegrityError, não OperationalError, então nunca era
+                # capturado pelo tratamento de "locked" abaixo (deploy do commit
+                # d7ef012, 2026-08-10, "Worker failed to boot" -- ver KI-035).
+                #
+                # Tratamos como no-op *só* quando a mensagem confirma que é
+                # exatamente essa constraint -- qualquer outro IntegrityError
+                # (ex.: uma migration cujo apply() viola uma UNIQUE de dado real)
+                # não pode ser mascarado como "outro worker já aplicou": propaga.
+                if "schema_migrations.id" not in str(exc):
+                    raise
+                conn.rollback()
+                continue
             executadas.append(modulo.ID)
         return executadas
     except sqlite3.OperationalError as exc:

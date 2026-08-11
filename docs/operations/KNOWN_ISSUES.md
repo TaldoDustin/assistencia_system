@@ -1202,7 +1202,7 @@ Responsável:
 
 ---
 
-## KI-035
+## ~~KI-035~~ — RESOLVIDO
 
 Descrição:
 `migrations/runner.py::run_migrations()` tem uma condição de corrida real quando múltiplos workers
@@ -1241,18 +1241,83 @@ aplicada (o `INSERT` falha antes do `commit`), então uma nova tentativa de boot
 (idempotência preservada); o risco é só de disponibilidade (worker/deploy não sobe), não de integridade.
 
 Status:
-Aberto — achado e registrado em 2026-08-10 (Discovery de infraestrutura da Operação Release 1.0, Parte
-B). Não corrigido nesta sessão — decisão do CTO de registrar como achado, sem abrir sprint de correção
-imediata (severidade ainda não classificada como P0; probabilidade é intermitente, não determinística).
-Antes de qualquer correção, avaliar se o tratamento correto é capturar também `sqlite3.IntegrityError` na
-linha 71, ou coordenar a aplicação de migrations por um lock explícito (ex.: só o processo mestre do
-Gunicorn chama `run_migrations()`, nunca os workers) — decisão de arquitetura pequena, não tomada
-unilateralmente aqui.
+Resolvido em 2026-08-11 (`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`, branch
+`fix/preview-seguro-inc003-ki035`, commit `e202002`). `migrations/runner.py::run_migrations()` passa a
+capturar `sqlite3.IntegrityError` por migration (não pela função inteira), tratando como no-op **só**
+quando a mensagem confirma a constraint `schema_migrations.id` — qualquer outro `IntegrityError` (ex.:
+violação de dado real dentro de uma migration) continua propagando, sem mascarar falha real (restrição
+adicionada na revisão do CTO durante a aprovação do plano). Regressão confirmada: o teste dedicado
+(`tests/test_migrations.py::TestProtecaoContraCorridaDeMigrations`) falha contra o código anterior e passa
+depois da correção. QA Manual e Revisão Arquitetural do ciclo `ADR-010` concluídas em 2026-08-11.
 
 Sprint prevista:
-Não definida — candidata a sprint própria antes do próximo deploy que precise aplicar mais de uma
-migration pendente de uma vez, e antes de qualquer Dry-Run de infraestrutura (Render) do procedimento de
-Rollback.
+Preview Seguro (INC-003 Frente B) — concluída em 2026-08-11.
+
+Responsável:
+—
+
+---
+
+## ~~KI-036~~ — RESOLVIDO
+
+Descrição:
+`app.py`, inicialização do Sentry (linha 156): `environment="production" if IS_SERVER_RUNTIME else
+"development"`. `IS_SERVER_RUNTIME` (`fluxoly_config.py`) é `True` tanto em produção quanto em qualquer
+Render PR Preview — ambos setam `RENDER`/`RENDER_SERVICE_ID`. Não existe hoje nenhuma distinção entre os
+dois no código (mesma lacuna de fundo do INC-003: nenhuma checagem de `IS_PULL_REQUEST` em lugar
+nenhum). Achado durante a Discovery da arquitetura de "Preview seguro" (Operação Release 1.0, Parte B,
+2026-08-11), ao inventariar toda credencial/config potencialmente herdada por um preview.
+
+Impacto:
+Médio (observabilidade, não dado/autorização). Qualquer erro real ocorrido dentro de um Render PR Preview
+seria reportado ao Sentry marcado como `environment=production` — poluiria/mascararia o monitoramento de
+erros de produção real com ruído de um ambiente de teste. Não exercitado ainda na prática (o preview do
+INC-003 foi suspenso antes de gerar qualquer exceção capturada pelo Sentry), mas é uma lacuna real e
+confirmada por leitura de código, não hipótese.
+
+Status:
+Resolvido em 2026-08-11 (`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`, branch
+`fix/preview-seguro-inc003-ki035`, commit `e202002`). `environment` do Sentry passa a checar
+`IS_PULL_REQUEST` antes de `IS_SERVER_RUNTIME`, reportando `"preview"` em vez de `"production"` quando é
+um Render PR Preview. Confirmado por teste automatizado (`tests/test_ambiente_preview.py::
+TestSentryEnvironmentPreview`) e por QA manual (log estruturado `sentry_inicializado` inspecionado num
+boot real com `IS_PULL_REQUEST=true`).
+
+Sprint prevista:
+Preview Seguro (INC-003 Frente B) — concluída em 2026-08-11.
+
+Responsável:
+—
+
+---
+
+## KI-037
+
+Descrição:
+A correção de "Preview seguro" (`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`, INC-003
+Frente B) desliga a sincronização **automática** do MercadoPhone e o backup automático em qualquer preview
+via `IS_PULL_REQUEST`, mas os endpoints **manuais/sob demanda** de `api_mercadophone.py`
+(`POST /api/integracoes/mercadophone/sincronizar`, `/reprocessar`, `/reimportar`) continuam sem qualquer
+checagem de `IS_PULL_REQUEST` — protegidos só por sessão `admin`/`tecnico` (KI-022). Achado durante a
+Revisão Arquitetural (eixo 3 — Risco de vazamento de dado, `ADR-010.md`) da correção acima, 2026-08-11.
+
+Impacto:
+Médio (residual, requer ação humana deliberada — não é automático como o INC-003 original). Se um Render
+PR Preview for reativado no futuro e alguém autenticar com uma sessão `admin`/`tecnico` real (usuário
+seedado ou herdado), chamar manualmente um desses 3 endpoints usaria o `MERCADO_PHONE_API_TOKEN` herdado
+do serviço-base para uma chamada real à API externa do MercadoPhone — o guard de boot desta correção não
+cobre esse caminho, só o disparo automático na inicialização do processo.
+
+Status:
+Aberto — decisão do CTO (2026-08-11, Revisão Arquitetural do plano de Preview seguro): não expandir o
+escopo já aprovado (que cobria só o disparo automático) para corrigir isso agora; registrado aqui para
+decisão em sprint própria. Correção candidata: mesmo guard `IS_PULL_REQUEST` aplicado nos 3 endpoints de
+`api_mercadophone.py`, ou reforçar operacionalmente que nenhum preview reativado deve ter usuário `admin`/
+`tecnico` real até esta lacuna ser fechada.
+
+Sprint prevista:
+Não definida — candidata a sprint própria, antes de qualquer preview real ser reativado com sessão
+administrativa.
 
 Responsável:
 —

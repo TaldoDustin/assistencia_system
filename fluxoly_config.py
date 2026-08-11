@@ -55,12 +55,29 @@ IS_SERVER_RUNTIME = bool(
     or os.environ.get("RENDER")
     or os.environ.get("RENDER_SERVICE_ID")
 )
-BACKGROUND_JOBS_ENABLED = os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower() not in {
-    "0",
-    "false",
-    "nao",
-    "off",
-}
+# IS_PULL_REQUEST: variável setada automaticamente pelo Render em todo PR Preview
+# (confirmada presente e "true" no shell de um preview real -- ver INC-003). Não
+# existe em produção nem em desenvolvimento local. IS_SERVER_RUNTIME sozinha não
+# basta para identificar um preview -- ela é verdadeira tanto em produção quanto
+# em preview (ambos setam RENDER/RENDER_SERVICE_ID).
+IS_PULL_REQUEST = os.environ.get("IS_PULL_REQUEST", "").strip().lower() == "true"
+BACKGROUND_JOBS_ENABLED = (
+    os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower()
+    not in {
+        "0",
+        "false",
+        "nao",
+        "off",
+    }
+    and not IS_PULL_REQUEST
+)
+# ^ INC-003: um Render PR Preview herda todas as variáveis de ambiente do
+# serviço-base, inclusive IR_FLOW_ENABLE_BACKGROUND_JOBS=1 e as credenciais de
+# integrações externas. IS_PULL_REQUEST desliga background jobs (sync MercadoPhone,
+# backup automático) incondicionalmente em qualquer preview, mesmo que o valor
+# herdado de IR_FLOW_ENABLE_BACKGROUND_JOBS diga o contrário -- não é possível
+# confiar em alguém lembrar de sobrescrever essa variável manualmente a cada
+# preview novo (ver docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md).
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 VERCEL_URL = (os.environ.get("VERCEL_URL") or "").strip()  # Ex: https://assistencia-system.vercel.app

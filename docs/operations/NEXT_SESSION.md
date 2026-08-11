@@ -1,7 +1,7 @@
 # NEXT_SESSION — Onde retomar
 
-**Última atualização:** 2026-08-10
-**Estado do repositório:** `main` limpa, sincronizada com `origin/main` em `99ee94e`, CI 6/6 verde.
+**Última atualização:** 2026-08-11
+**Estado do repositório:** `main` limpa, sincronizada com `origin/main` em `5497a72`, CI 6/6 verde.
 
 > Este arquivo é o ponto de partida rápido da próxima sessão — não substitui `PROJECT_STATUS.md`
 > (estado vivo completo), `KNOWN_ISSUES.md` (lista de bugs) nem `docs/operations/INCIDENTS/` (incidentes).
@@ -12,123 +12,154 @@
 ## Estado do Git
 
 ```
-main         99ee94ebe7b2b9c3de07547928f2e1ca23e0d1cb
-origin/main  99ee94ebe7b2b9c3de07547928f2e1ca23e0d1cb
+main         5497a72680472ca346d76e63b239763639856aa1
+origin/main  5497a72680472ca346d76e63b239763639856aa1
 CI            6/6 verde
 working tree  limpa
 ```
 
-**Branches locais preservadas, não apagar sem decisão explícita** (evidência do Dry-Run de Rollback):
-- `dry-run/rollback-f5fdb23` — Dry-Run 1A (mecanismo Git/local, sem conflito)
-- `dry-run/rollback-872496e` — Dry-Run 1B, caminho sem conflito (commit real revertido com sucesso)
-- `test/render-preview-isolation` (local + `origin/test/render-preview-isolation`) — base da PR #22
+**Branches locais preservadas, não apagar sem decisão explícita:**
+- `dry-run/rollback-f5fdb23` / `dry-run/rollback-872496e` — Dry-Run 1A/1B (Rollback Git, concluído)
+- `test/render-preview-isolation` (base da PR #22, evidência do INC-003)
+- `fix/preview-seguro-inc003-ki035` — já mergeada (PR #23), pode ser apagada quando quiser, sem urgência
+- `dry-run/2b-infra-rollback-render` (local + `origin/dry-run/2b-infra-rollback-render`) — base da
+  **PR #24**, Dry-Run 2B em andamento, **não apagar**
 
 **PR #22** (`https://github.com/TaldoDustin/assistencia_system/pull/22`) — **aberta, não mergeada, não
 fechada** — preserva evidência do INC-003. Não fechar/mergear sem decisão explícita.
 
-**Render PR Preview** (`srv-d9t2ms0u01pc73bmuaqg`, associado à PR #22) — **suspenso** desde
-2026-08-10 17:08. Não reativar sem decisão explícita da Frente B (correção arquitetural).
+**PR #23** — ✅ **MERGEADA** (`6bb2ede`, 2026-08-11). Implementou o Preview Seguro (INC-003 Frente B) +
+correções KI-035/KI-036. Confirmado em produção: Render `irflow-backend` "Deploy live for 6bb2ede",
+Vercel Production `6bb2ede` (via GitHub Deployments API).
+
+**PR #24** (`https://github.com/TaldoDustin/assistencia_system/pull/24`, `[render preview]`) — **aberta,
+em andamento** — Dry-Run 2B (rollback de infraestrutura Render). Ver seção própria abaixo.
+
+**Render PR Preview da PR #22** (`srv-d9t2ms0u01pc73bmuaqg`) — **continua suspenso** desde 2026-08-10.
+Não reativar — preserva evidência do INC-003. **Não é o mesmo preview da PR #24.**
+
+**Render PR Preview da PR #24** — provisionado, ver "achado a confirmar" abaixo.
 
 ---
 
-## O que foi concluído nesta sessão (2026-08-10)
+## O que foi concluído nesta sessão (2026-08-11)
 
-Sessão inteira dedicada à **Operação Release 1.0 — Parte B, item Rollback**, a partir do handoff da
-sessão anterior (Restore validado, `04cece3`).
+### 1. Discovery + Plano Técnico de "Preview Seguro" (aprovado pelo CTO)
+Consolidou INC-003 Frente B + KI-035 + KI-036 num único plano
+(`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`). Restrição adicionada na aprovação: a
+captura de `IntegrityError` em `migrations/runner.py` (KI-035) precisa ser específica à constraint
+`schema_migrations.id`, nunca um `except` genérico — implementada assim.
 
-### 1. Política de Rollback definida (commit `b04216f`)
-Escopo coordenado (backend+frontend), critério de acionamento, autoridade exclusiva do CTO, regra de
-interação com migrations (nunca cruza uma já aplicada — TD-03 roll-forward only), mecanismo (`git revert`
-+ `git push`), verificação (smoke test manual). Documentado em `docs/company/GO_LIVE_PLAN.md` e
-`DEPLOY.md`.
+### 2. Implementação + Testes + QA Manual + Revisão Arquitetural (ciclo `ADR-010` completo)
+- `fluxoly_config.py`: `IS_PULL_REQUEST` novo; `BACKGROUND_JOBS_ENABLED` incorpora
+  `and not IS_PULL_REQUEST`.
+- `app.py`: log `preview_background_jobs_desativados` no boot; `environment` do Sentry distingue
+  `preview`/`production`/`development`.
+- `migrations/runner.py`: captura restrita de `IntegrityError` (só `schema_migrations.id`).
+- 751 testes existentes + 10 novos, `ruff check .` limpo.
+- QA manual: 2 cenários (reprodução do INC-003 + baseline sem regressão), backend real, banco/disco
+  descartáveis, nunca `database.db`.
+- Revisão Arquitetural (4 eixos `ADR-010`): 3 limpos, 1 achado real — endpoints manuais de
+  `api_mercadophone.py` continuam alcançáveis por sessão `admin`/`tecnico` real num preview, sem
+  checagem de `IS_PULL_REQUEST` → registrado como **KI-037**, decisão do CTO de não expandir o escopo.
 
-### 2. Dry-Run 1A — mecanismo Git/local, sem conflito (branch `dry-run/rollback-f5fdb23`)
-Reverteu `tests/test_backup_restore.py` (commit `f5fdb23`) sem conflito. Testes (7/7) e `ruff check`
-verdes após o revert. Validou o mecanismo isoladamente.
+### 3. Encerramento do ciclo — KI-035/KI-036 resolvidos, INC-003 resolvido
+`KNOWN_ISSUES.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, relatório do INC-003 (nova seção 12) atualizados.
 
-### 3. Dry-Run 1B — caminho com conflito real (commit `d7ef012`)
-Usou `609619f` (fix de UI real): código reverteu limpo, mas `docs/operations/KNOWN_ISSUES.md`
-(append-only) gerou conflito real — resolvê-lo exigiria decisão de conteúdo, não é operação mecânica.
-`git revert --abort` executado, `main`/`origin/main` nunca tocadas. **Levou à nova regra formal**:
-qualquer conflito durante rollback é condição de parada (cobre qualquer tipo de arquivo) — não resolver
-automaticamente, informar o CTO, aguardar decisão explícita.
+### 4. PR #23 aberta, auditada e mergeada
+Auditoria final (commits, arquivos tocados, `api_mercadophone.py` confirmado intocado — KI-037 fora do
+escopo, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`) antes do merge. Duas correções de
+consistência documental encontradas na auditoria e corrigidas num commit à parte (`f67774c`) antes do
+merge: `GO_LIVE_PLAN.md` ainda justificava o bloqueio do Dry-Run 2B por QA/Revisão pendentes (já
+concluídas); `PROJECT_STATUS.md` ainda dizia "PR não aberta ainda".
 
-### 4. Dry-Run 1B — caminho sem conflito (branch `dry-run/rollback-872496e`)
-Usou `872496e` (fix de responsividade do Dashboard): revert sem conflito, lint/build idênticos ao
-baseline. Confirma que o mecanismo funciona de ponta a ponta quando o candidato é bem escolhido.
+### 5. Checkpoint pós-merge — produção confirmada
+`main`/`origin/main` = `6bb2ede`. CI pós-merge 6/6 (uma ressalva registrada: o job "Docker Build" ficou
+com o registro individual preso em `in_progress`/`conclusion: null` na API do GitHub apesar de todos os
+passos internos terem sucesso — artefato de sincronização conhecido da API de Actions, não uma falha
+real; a conclusão da *run* já estava fechada como sucesso). Vercel Production confirmado via GitHub
+Deployments API (`6bb2ede`, `vercel[bot]`, `state: success`). Render confirmado **pelo usuário no
+painel** — "Deploy live for 6bb2ede" no serviço `irflow-backend` (não consigo confirmar isso por API
+nesta sessão, não há `RENDER_API_KEY` disponível).
 
-### 5. KI-035 registrado (commit `2fa3b3c`)
-Durante deploy manual de `d7ef012` em produção (Render), condição de corrida real em
-`migrations/runner.py::run_migrations()` — dois workers Gunicorn tentando aplicar migrations pendentes
-simultaneamente, um recebe `sqlite3.IntegrityError` não capturado pelo tratamento existente de "database
-is locked". Segunda tentativa de deploy teve sucesso (corrida intermitente). Também descoberto e
-corrigido no processo: **Render estava com auto-deploy travado desde 3 de agosto** (GitHub App sem
-autorização completa) — reautorizado, auto-deploy confirmado funcionando de novo.
+**Ambiguidade resolvida:** o que parecia uma discrepância (`dd960eb` + "Suspended by you" no painel)
+era o **Preview da PR #22**, não produção — `dd960eb` só existe na branch `test/render-preview-isolation`
+(base da PR #22), nunca esteve em `main`. Confirmado por fora: `irflow-backend-pr-22.onrender.com` → 503
+"Service Suspended" (esperado); `irflow-backend.onrender.com/health` → 200 (produção saudável).
 
-### 6. INC-003 — dado real importado no Render PR Preview (commit `99ee94e`)
-Dry-Run 2A (validar se o Preview seria seguro para o Dry-Run 2B de rollback de infraestrutura): PR #22
-provisionou um preview que herdou `MERCADO_PHONE_SYNC_ENABLED`/`MERCADO_PHONE_API_TOKEN` de produção
-(comportamento documentado do Render) e importou **405 Ordens de Serviço reais** do MercadoPhone em 4
-ciclos de sincronização. Disco/banco do preview permaneceram fisicamente isolados de produção o tempo
-todo — o problema foi herança de credenciais de integração externa, não vazamento de disco. Nenhuma
-escrita de volta ao MercadoPhone (confirmado por leitura de código, só 2 call sites, ambos de leitura).
-KI-035 foi reproduzido de forma independente no primeiro boot deste mesmo preview. **Contido**: preview
-suspenso, PR mantida aberta para preservar evidência, produção confirmada intocada. Relatório completo em
-`docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md`.
+### 6. Decisão do CTO: critérios de autorização do Dry-Run 2B
+Registrada em `docs/company/GO_LIVE_PLAN.md` (seção "Preview Seguro", subseção "Critérios de autorização
+do Dry-Run 2B"):
+- Preview **novo**, nunca reaproveitar o da PR #22.
+- KI-037 aceito como risco residual **para este exercício específico**, mitigado operacionalmente:
+  nenhuma sessão `admin`/`tecnico` real dentro do preview do teste; smoke test restrito a rotas
+  públicas/leitura; camada de configuração (`MERCADO_PHONE_API_TOKEN` vazio/inválido,
+  `MERCADO_PHONE_SYNC_ENABLED=0`, `IR_FLOW_ENABLE_BACKGROUND_JOBS=0`) reforçada manualmente nesse preview.
+
+### 7. Dry-Run 2B iniciado — PR #24 aberta, EM ANDAMENTO, checkpoint aberto
+Branch `dry-run/2b-infra-rollback-render` a partir de `main`/`6bb2ede`, commit `1347fe1`
+(`RENDER_PREVIEW_TEST_MARKER_2B.md`). PR #24 aberta com `[render preview]` no título.
+
+**Achado a confirmar antes de continuar** (checkpoint aberto, não resolvido nesta sessão): sondagem
+externa (`curl`) mostrou `irflow-backend-pr-24.onrender.com/health` já respondendo `200 ok` — ou seja, o
+preview **já subiu** antes de qualquer confirmação de que a camada de configuração manual (item da
+seção 6 acima) foi aplicada. Isso sugere que o preview não está em modo Manual como o da PR #22 (ou já
+foi disparado), e que o primeiro boot pode ter acontecido com credenciais herdadas do serviço-base, como
+no INC-003 original — a diferença é que agora o guard de código (`IS_PULL_REQUEST`) deveria ter impedido
+o job automático de rodar mesmo assim (validado por QA nesta mesma sessão), mas isso **não foi confirmado
+por log real do Render** ainda, só inferido pelo comportamento esperado do código.
+
+**Não têm confirmação nesta sessão (dependem do painel Render, sem `RENDER_API_KEY` disponível):**
+1. Se o serviço da PR #24 é realmente distinto de `srv-d9t2ms0u01pc73bmuaqg`.
+2. Se o commit ativo bate com `1347fe1`.
+3. Se o preview está em modo Manual ou Automatic (explicaria por que já subiu sozinho).
+4. Se `preview_background_jobs_desativados` aparece nos logs do boot.
+5. Se há qualquer log de `mercadophone_sync_*` (não deveria haver).
+6. Valores atuais de `MERCADO_PHONE_SYNC_ENABLED`/`IR_FLOW_ENABLE_BACKGROUND_JOBS`/`MERCADO_PHONE_API_TOKEN`
+   nesse preview específico — herdados ou já sobrescritos.
 
 ---
 
-## Decisões tomadas (CTO, 2026-08-10)
+## Decisões tomadas (CTO, 2026-08-11)
 
-- Rollback é sempre coordenado (backend+frontend juntos).
-- Só o CTO autoriza rollback real — Claude nunca executa sem aprovação explícita a cada ocorrência.
-- Conflito durante `git revert` = parada obrigatória, qualquer tipo de arquivo.
-- `demo/commercial-preview` (branch antiga) não deve ser usada como base de nenhum teste — defasada.
-- Render PR Preview, modo **Manual** (`[render preview]` no título ou label `render-preview`), não
-  Automatic.
-- Preferência por defesa em profundidade para a correção do INC-003: configuração **e** guard de código,
-  não só uma das duas.
+- Preview Seguro: correção aprovada, implementada, testada, revisada, mergeada, deployada.
+- KI-037: aceito como risco residual — fora do escopo da PR #23, tratado só operacionalmente para o
+  Dry-Run 2B (sem sessão admin real no preview do teste).
+- Dry-Run 2B: autorizado a começar, com preview novo (nunca o da PR #22) e sequência rígida —
+  **provisionar → confirmar configuração segura → confirmar logs de boot → só então smoke test/commit
+  marcador/revert** — não pular etapas, exatamente porque o INC-003 mostrou que testar antes de confirmar
+  a configuração pode gerar efeito externo real mesmo com disco/banco isolados.
 
 ## Decisões pendentes
 
-1. **Correção do INC-003** (Frente B) — como impedir que um preview futuro herde credenciais/integrações
-   externas de produção. Não implementada ainda.
-2. **Correção do KI-035** — capturar `sqlite3.IntegrityError` explicitamente, ou coordenar migrations via
-   lock/processo mestre único. Não implementada ainda — decisão de arquitetura pendente.
-3. Destino final do preview suspenso e da PR #22 (quando a investigação for considerada encerrada).
-4. Se/quando destravar o Dry-Run 2B — bloqueado por INC-003 + KI-035, ambos precisam de decisão de
-   correção antes.
-
----
-
-## Estado da Release 1.0 (checklist)
-
-- Rollback testado: 🟡, **40%** (mantido — política mais robusta, mas rollback de infraestrutura ainda
-  não validado de ponta a ponta; ver raciocínio em `docs/company/RELEASE_1.0_MASTER_CHECKLIST.md`).
-- Operação geral: ~30%. Release 1.0 geral: ~61%. Nenhum desses números foi alterado pelo INC-003 (decisão
-  explícita — achado de infraestrutura, não conclusão adicional do teste).
-- Manual do usuário, Ambiente de demonstração, Piloto/homologação: sem decisão, como antes.
+1. As 6 confirmações do painel Render listadas acima (item 7).
+2. Se a camada de configuração não foi aplicada antes do primeiro boot (bem provável, dado o achado),
+   decidir se isso é aceitável (código já protegeu) ou se exige suspender e reprovisionar o preview da
+   PR #24 do zero, desta vez com a configuração aplicada antes do primeiro boot.
+3. Resto da sequência do Dry-Run 2B (commit marcador → auto-deploy → `git revert` → push → confirmação →
+   suspender preview) — **não iniciado ainda**, aguardando as confirmações acima.
+4. Correção de código do KI-037 (fora de escopo até agora) — sprint própria, não decidida.
 
 ---
 
 ## Próximo passo exato
 
-**Discovery/decisão da arquitetura de Preview seguro**, incorporando o aprendizado do INC-003 e do
-KI-035, **antes** de qualquer nova tentativa de Dry-Run 2B. Opções já esboçadas no relatório do INC-003
-(seção 9): configuração (desabilitar credenciais externas no preview), guard de código
-(`if IS_PULL_REQUEST: não iniciar jobs externos`), ou as duas juntas (preferência já registrada do CTO).
+**Não avançar para o commit marcador / `git revert` do Dry-Run 2B.** Primeiro, obter do usuário (painel
+Render) as 6 confirmações listadas na seção 7 acima sobre o preview da PR #24. Com base nelas, decidir se
+o preview atual serve para o resto do exercício ou se precisa ser suspenso e reprovisionado com a
+configuração aplicada antes do boot.
 
 ## O que NÃO fazer ainda
 
-- Não reativar o Render PR Preview (`srv-d9t2ms0u01pc73bmuaqg`).
-- Não fechar/mergear a PR #22.
-- Não remover os 405 registros importados no preview (evidência preservada).
-- Não implementar a correção do INC-003 nem do KI-035 sem uma decisão de arquitetura explícita primeiro.
-- Não iniciar o Dry-Run 2B enquanto os dois bloqueadores (INC-003, KI-035) não tiverem correção decidida.
-- Não avançar para Manual/Demo/Piloto — a ordem de prioridade (Rollback primeiro) continua valendo.
+- Não reativar/tocar o preview da PR #22 (`srv-d9t2ms0u01pc73bmuaqg`) — evidência do INC-003.
+- Não fazer o commit marcador, `git revert` ou qualquer smoke test autenticado no preview da PR #24 antes
+  das 6 confirmações.
+- Não usar sessão `admin`/`tecnico` real dentro de nenhum preview (mitigação operacional do KI-037).
+- Não mergear a PR #24 — é um exercício descartável, não uma feature.
+- Não corrigir o KI-037 sem decisão explícita de abrir escopo/sprint própria.
 
 ## Issues abertos relevantes
 
-`KI-035` (condição de corrida em migrations, reproduzida 2×) e `INC-003` (dado real importado em preview,
-contido) são os dois itens mais recentes e mais relevantes para a próxima sessão. Lista completa de KIs
-abertos em `docs/operations/KNOWN_ISSUES.md` (sem alteração nesta sessão além do KI-035).
+`KI-037` (endpoints manuais do MercadoPhone alcançáveis por sessão real num preview, risco residual
+aceito) é o único issue novo desta sessão. `KI-035`/`KI-036`/`INC-003` — resolvidos. Lista completa de
+KIs abertos em `docs/operations/KNOWN_ISSUES.md`.

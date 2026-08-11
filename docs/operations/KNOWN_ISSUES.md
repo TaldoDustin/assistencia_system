@@ -1256,3 +1256,35 @@ Rollback.
 
 Responsável:
 —
+
+---
+
+## KI-036
+
+Descrição:
+`app.py`, inicialização do Sentry (linha 156): `environment="production" if IS_SERVER_RUNTIME else
+"development"`. `IS_SERVER_RUNTIME` (`fluxoly_config.py`) é `True` tanto em produção quanto em qualquer
+Render PR Preview — ambos setam `RENDER`/`RENDER_SERVICE_ID`. Não existe hoje nenhuma distinção entre os
+dois no código (mesma lacuna de fundo do INC-003: nenhuma checagem de `IS_PULL_REQUEST` em lugar
+nenhum). Achado durante a Discovery da arquitetura de "Preview seguro" (Operação Release 1.0, Parte B,
+2026-08-11), ao inventariar toda credencial/config potencialmente herdada por um preview.
+
+Impacto:
+Médio (observabilidade, não dado/autorização). Qualquer erro real ocorrido dentro de um Render PR Preview
+seria reportado ao Sentry marcado como `environment=production` — poluiria/mascararia o monitoramento de
+erros de produção real com ruído de um ambiente de teste. Não exercitado ainda na prática (o preview do
+INC-003 foi suspenso antes de gerar qualquer exceção capturada pelo Sentry), mas é uma lacuna real e
+confirmada por leitura de código, não hipótese.
+
+Status:
+Aberto — identificado em 2026-08-11, registrado sem correção implementada ainda (decisão do CTO: tratar
+junto da correção arquitetural do INC-003/Frente B, já que a causa raiz é a mesma — ausência de um sinal
+`IS_PULL_REQUEST` no código para distinguir preview de produção). Correção candidata: usar `IS_PULL_REQUEST`
+para marcar `environment="preview"` (ou equivalente) no Sentry, em vez de depender só de
+`IS_SERVER_RUNTIME`.
+
+Sprint prevista:
+Não definida — candidata à mesma sprint/plano técnico da correção de "Preview seguro" (INC-003 Frente B).
+
+Responsável:
+—

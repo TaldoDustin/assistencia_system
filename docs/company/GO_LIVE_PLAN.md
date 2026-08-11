@@ -123,11 +123,28 @@ completo em `DEPLOY.md` seção "Preview Seguro"; plano de implementação em
 
 **Atualização (2026-08-11 — Encerramento do ciclo `ADR-010`):** a correção acima e a do KI-035 já foram
 implementadas, testadas (automatizado + QA manual) e revisadas arquiteturalmente — ver
-`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`. O Dry-Run 2B (rollback de infraestrutura
-Render/Vercel) **continua bloqueado**, mas não mais por QA/revisão pendente: agora é uma **decisão
-separada de autorização do CTO**, que também deve considerar o risco residual do KI-037 (endpoints
-manuais de sincronização do MercadoPhone ainda alcançáveis por uma sessão `admin`/`tecnico` real dentro
-de um preview reativado).
+`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`. Merge confirmado em `main`/`origin/main`
+(`6bb2ede`), CI 6/6, deploy confirmado tanto em produção Render (`irflow-backend`, "Deploy live for
+6bb2ede") quanto em Vercel Production. O Dry-Run 2B (rollback de infraestrutura Render/Vercel)
+**continua bloqueado**, mas não mais por QA/revisão pendente: era uma **decisão separada de autorização
+do CTO**, que também precisava considerar o risco residual do KI-037 (endpoints manuais de sincronização
+do MercadoPhone ainda alcançáveis por uma sessão `admin`/`tecnico` real dentro de um preview) — decisão
+tomada em 2026-08-11, ver abaixo.
+
+### Critérios de autorização do Dry-Run 2B (decisão do CTO, 2026-08-11)
+
+- **Ambiente:** um **preview novo**, provisionado a partir de `main`/`6bb2ede` — nunca o preview suspenso
+  da PR #22 (`srv-d9t2ms0u01pc73bmuaqg`), que permanece intocado como evidência pura do INC-003, não
+  reaproveitado para nenhum teste novo.
+- **KI-037:** aceito como risco residual para este exercício, mitigado operacionalmente (não corrigido em
+  código): nenhuma sessão `admin`/`tecnico` real é usada dentro do preview do Dry-Run 2B; o smoke test do
+  exercício fica restrito a rotas públicas/leitura. Camada de configuração reforçada manualmente nesse
+  preview específico (`MERCADO_PHONE_API_TOKEN` vazio/inválido, `MERCADO_PHONE_SYNC_ENABLED=0`), além do
+  guard de código já vigente.
+- **Separação de responsabilidade das três frentes** (não confundir): (1) mecanismo `git revert`/Git — já
+  validado (Dry-Run 1A/1B); (2) segurança do ambiente Preview contra jobs automáticos — corrigida e
+  mergeada; (3) rollback real contra infraestrutura Render/Vercel — é o que o Dry-Run 2B efetivamente
+  testa, usando o preview como substituto seguro de produção.
 
 ---
 

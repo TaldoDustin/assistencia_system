@@ -5,7 +5,7 @@
 sessão de 2026-08-11 a partir do handoff em `docs/operations/NEXT_SESSION.md`. Referências de fato:
 `docs/operations/INCIDENTS/INC-003-mercadophone-preview-dados-reais.md`, `docs/operations/KNOWN_ISSUES.md`
 (KI-035, KI-036).
-**Status:** Rascunho
+**Status:** Implementado (aguardando QA Manual + Revisão Arquitetural)
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -17,9 +17,14 @@ sessão de 2026-08-11 a partir do handoff em `docs/operations/NEXT_SESSION.md`. 
       credenciais, identificação de ambiente, migrations, critérios de desbloqueio; decisões do CTO:
       defesa em profundidade, guard cobre todos os background jobs, fix do KI-035 via captura de
       `IntegrityError`, registro do KI-036)
-- [ ] Plano Técnico — aguardando aprovação
-- [ ] Implementação
-- [ ] Testes
+- [x] Plano Técnico — aprovado pelo CTO em 2026-08-11 (com a restrição adicionada de que a captura de
+      `IntegrityError` em `migrations/runner.py` deve ser específica a `schema_migrations.id`, nunca
+      genérica)
+- [x] Implementação — `fluxoly_config.py` (`IS_PULL_REQUEST`, `BACKGROUND_JOBS_ENABLED`), `app.py`
+      (Sentry `environment`, log de boot), `migrations/runner.py` (captura específica de `IntegrityError`)
+- [x] Testes — `tests/test_ambiente_preview.py` (8 casos, novo), `tests/test_migrations.py`
+      (+2 casos, `TestProtecaoContraCorridaDeMigrations`, regressão confirmada contra o código anterior).
+      Suíte completa: 751/751 passando, `ruff check .` limpo.
 - [ ] QA Manual
 - [ ] Revisão Arquitetural — obrigatória (toca >3 arquivos: `fluxoly_config.py`, `app.py`,
       `migrations/runner.py`, `docs/`)

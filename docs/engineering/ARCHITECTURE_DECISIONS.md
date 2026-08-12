@@ -22,6 +22,7 @@ Para criar uma nova ADR: copie [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPL
 | [ADR-009](adr/ADR-009.md) | Unidade Serializada como agregado raiz do domínio Comercial — estado físico × situação comercial, `origem_tipo`, eventos de processo separados de estado | Aceita | 2026-07-27 |
 | [ADR-010](adr/ADR-010.md) | Ciclo obrigatório para features com regra de negócio — Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento, com gates explícitos | Aceita | 2026-07-28 |
 | [ADR-011](adr/ADR-011.md) | Atualização da ADR-002 — escopo desatualizado (6→13 domínios); rename de `irflow_blueprints_api.py` concluído na Housekeeping, decomposição (TD-01) adiada para sprint própria | Aceita | 2026-08-03 |
+| [ADR-012](adr/ADR-012.md) | Ambiente de Demonstração/Homologação — Render+Vercel dedicados, `IR_FLOW_ENVIRONMENT=demo`, KI-037 vira bloqueante, isolamento de credenciais por design (lição do INC-003) | Aceita | 2026-08-11 |
 
 ---
 

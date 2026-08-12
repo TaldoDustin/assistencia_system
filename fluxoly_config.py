@@ -61,6 +61,14 @@ IS_SERVER_RUNTIME = bool(
 # basta para identificar um preview -- ela é verdadeira tanto em produção quanto
 # em preview (ambos setam RENDER/RENDER_SERVICE_ID).
 IS_PULL_REQUEST = os.environ.get("IS_PULL_REQUEST", "").strip().lower() == "true"
+
+# IR_FLOW_ENVIRONMENT=demo: sinal manual de ambiente (ADR-012), distinto de
+# IS_PULL_REQUEST (que o Render seta sozinho em todo PR Preview). Os dois
+# coexistem -- nenhum substitui o outro. Só o valor "demo" tem efeito; qualquer
+# outro valor (incluindo ausente/vazio) é tratado como produção/desenvolvimento.
+IR_FLOW_ENVIRONMENT = os.environ.get("IR_FLOW_ENVIRONMENT", "").strip().lower()
+IS_DEMO_ENVIRONMENT = IR_FLOW_ENVIRONMENT == "demo"
+
 BACKGROUND_JOBS_ENABLED = (
     os.environ.get("IR_FLOW_ENABLE_BACKGROUND_JOBS", "1").strip().lower()
     not in {
@@ -70,6 +78,7 @@ BACKGROUND_JOBS_ENABLED = (
         "off",
     }
     and not IS_PULL_REQUEST
+    and not IS_DEMO_ENVIRONMENT
 )
 # ^ INC-003: um Render PR Preview herda todas as variáveis de ambiente do
 # serviço-base, inclusive IR_FLOW_ENABLE_BACKGROUND_JOBS=1 e as credenciais de
@@ -78,6 +87,19 @@ BACKGROUND_JOBS_ENABLED = (
 # herdado de IR_FLOW_ENABLE_BACKGROUND_JOBS diga o contrário -- não é possível
 # confiar em alguém lembrar de sobrescrever essa variável manualmente a cada
 # preview novo (ver docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md).
+# IS_DEMO_ENVIRONMENT segue a mesma lógica (ADR-012) para o ambiente Demo.
+
+
+def integracao_externa_bloqueada_neste_ambiente():
+    """Ponto único de verdade para o guard do KI-037 (Preview ou Demo).
+
+    Evita duplicar `IS_PULL_REQUEST or IS_DEMO_ENVIRONMENT` nos 4 endpoints de
+    escrita/ação de `api_mercadophone.py` -- ver ADR-012 e
+    docs/engineering/plans/PLAN-ambiente-demo-homologacao.md.
+    """
+    return IS_PULL_REQUEST or IS_DEMO_ENVIRONMENT
+
+
 APP_HOST = os.environ.get("IR_FLOW_HOST", "0.0.0.0" if IS_SERVER_RUNTIME else "127.0.0.1")
 APP_PORT = int(os.environ.get("IR_FLOW_PORT", "5080"))
 VERCEL_URL = (os.environ.get("VERCEL_URL") or "").strip()  # Ex: https://assistencia-system.vercel.app

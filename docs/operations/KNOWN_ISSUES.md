@@ -1321,3 +1321,38 @@ administrativa.
 
 Responsável:
 —
+
+---
+
+## KI-038
+
+Descrição:
+`app.py::criar_admin_padrao()` roda incondicionalmente na importação do módulo (fora de qualquer guard
+de ambiente) e cria um usuário `admin`/`irflow@2024` (senha hardcoded no código-fonte) sempre que a
+tabela `usuarios` está vazia. Achado durante o smoke test manual de `scripts/seed_demo.py`
+(`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`, ADR-012) contra um banco descartável: mesmo
+com as 3 contas de demonstração criadas pelo seed, a conta `admin`/`irflow@2024` também aparecia, sem
+que o seed a tivesse criado.
+
+Impacto:
+Alto (potencial) no Ambiente de Demonstração especificamente — introduz uma 4ª conta privilegiada, com
+senha fixa e conhecida (visível no código-fonte), fora do controle das 3 contas fixas do `ADR-012`
+(`admin.demo`/`tecnico.demo`/`vendedor.demo`), num ambiente que por definição terá acesso externo
+(prospects). Mesmo comportamento já existe hoje em produção (mesmo caminho de código, sem guard de
+ambiente) — não é uma regressão introduzida pelo Ambiente de Demo, mas o risco muda de categoria quando
+o ambiente passa a ter acesso de alguém fora da equipe.
+
+Status:
+Aberto — decisão do CTO (2026-08-12, durante a Implementação do Ambiente de Demonstração): não corrigir
+agora (fora do escopo do Plano Técnico aprovado; mudaria comportamento de bootstrap usado também em
+produção). Registrado como KI separado para avaliação em sprint própria, cobrindo produção e Demo juntas.
+Correção candidata: condicionar `criar_admin_padrao()` a nunca rodar quando `IS_DEMO_ENVIRONMENT` for
+verdadeiro, ou, de forma mais ampla, remover o fallback hardcoded e exigir criação explícita do admin
+inicial via variável de ambiente em qualquer ambiente novo.
+
+Sprint prevista:
+Não definida — candidata a sprint própria, antes do provisionamento real do serviço Render/Vercel do
+Ambiente de Demonstração.
+
+Responsável:
+—

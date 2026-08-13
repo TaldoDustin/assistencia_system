@@ -36,7 +36,7 @@
       pré-existente (não introduzido por este plano), fora do escopo aprovado, corretamente registrado
       como KI separado — não bloqueia este gate, mas é pendência real antes da homologação externa do
       Demo (acesso de alguém fora da equipe), conforme já registrado no próprio KI-038.
-- [ ] Encerramento
+- [x] Encerramento — 2026-08-12. Ciclo `ADR-010` completo (Discovery → ADR-012 → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento). Auditoria final: branch `feat/ambiente-demo-homologacao` com 2 commits atômicos (`59597bd8` código, `a14db05e` docs), 8 arquivos tocados no total — exatamente o escopo aprovado, nada a mais; árvore de trabalho limpa; CI 6/6 verde nos dois commits; sem divergência de `origin/main`. `KI-037` movido para Resolvidos em `docs/operations/KNOWN_ISSUES.md`. `KI-038` permanece aberto, corretamente separado, não mascarado como resolvido — é pendência real antes do provisionamento/homologação externa do Demo. `docs/operations/PROJECT_STATUS.md`/`docs/operations/CHANGELOG.md` atualizados. **Próximos gates, ainda não iniciados:** PR/merge em `main`, provisionamento real Render/Vercel, homologação externa (14 critérios do Definition of Done do `ADR-012`) — nenhum autorizado ainda.
 
 ---
 

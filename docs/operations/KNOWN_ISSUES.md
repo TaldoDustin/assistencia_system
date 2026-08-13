@@ -1291,13 +1291,13 @@ Responsável:
 
 ---
 
-## KI-037
+## ~~KI-037~~ — RESOLVIDO
 
 Descrição:
 A correção de "Preview seguro" (`docs/engineering/plans/PLAN-preview-seguro-inc003-ki035.md`, INC-003
 Frente B) desliga a sincronização **automática** do MercadoPhone e o backup automático em qualquer preview
 via `IS_PULL_REQUEST`, mas os endpoints **manuais/sob demanda** de `api_mercadophone.py`
-(`POST /api/integracoes/mercadophone/sincronizar`, `/reprocessar`, `/reimportar`) continuam sem qualquer
+(`POST /api/integracoes/mercadophone/sincronizar`, `/reprocessar`, `/reimportar`) continuavam sem qualquer
 checagem de `IS_PULL_REQUEST` — protegidos só por sessão `admin`/`tecnico` (KI-022). Achado durante a
 Revisão Arquitetural (eixo 3 — Risco de vazamento de dado, `ADR-010.md`) da correção acima, 2026-08-11.
 
@@ -1306,18 +1306,27 @@ Médio (residual, requer ação humana deliberada — não é automático como o
 PR Preview for reativado no futuro e alguém autenticar com uma sessão `admin`/`tecnico` real (usuário
 seedado ou herdado), chamar manualmente um desses 3 endpoints usaria o `MERCADO_PHONE_API_TOKEN` herdado
 do serviço-base para uma chamada real à API externa do MercadoPhone — o guard de boot desta correção não
-cobre esse caminho, só o disparo automático na inicialização do processo.
+cobria esse caminho, só o disparo automático na inicialização do processo.
 
 Status:
-Aberto — decisão do CTO (2026-08-11, Revisão Arquitetural do plano de Preview seguro): não expandir o
-escopo já aprovado (que cobria só o disparo automático) para corrigir isso agora; registrado aqui para
-decisão em sprint própria. Correção candidata: mesmo guard `IS_PULL_REQUEST` aplicado nos 3 endpoints de
-`api_mercadophone.py`, ou reforçar operacionalmente que nenhum preview reativado deve ter usuário `admin`/
-`tecnico` real até esta lacuna ser fechada.
+Resolvido em 2026-08-12, como parte da implementação do Ambiente de Demonstração/Homologação
+(`ADR-012`, `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`). Nova função
+`integracao_externa_bloqueada_neste_ambiente()` (`fluxoly_config.py`) — `return IS_PULL_REQUEST or
+IS_DEMO_ENVIRONMENT` — aplicada nos 4 endpoints de escrita/ação de `api_mercadophone.py`
+(`sincronizar`/`reprocessar`/`reimportar`/`config`, o último incluído por decisão do CTO na aprovação do
+plano, para o Demo nunca armazenar uma credencial real que não pode usar), inserida depois das checagens
+de permissão existentes, sem alterá-las. `status_mercadophone` (leitura) permanece intocado. 20 testes
+novos (`tests/test_ambiente_demo.py`, `tests/test_ki037_guard_integracoes.py`), CI 6/6 verde (Linux),
+QA manual em backend real e descartável confirmou os 4 endpoints retornando 403 em Preview e em Demo,
+`/config` sem persistir o token bloqueado, e nenhuma regressão em produção/dev. Revisão Arquitetural
+(4 eixos do `ADR-010`) rastreou todo call site de `chamar_api_mercado_phone()` e confirmou que os únicos
+caminhos alcançáveis (os 3 endpoints manuais + a thread de sync via `BACKGROUND_JOBS_ENABLED` + o webhook,
+já fail-secure por design quando `MERCADO_PHONE_WEBHOOK_TOKEN` está ausente, KI-023) estão todos cobertos.
+Branch `feat/ambiente-demo-homologacao`, commits `59597bd8`/`a14db05e`.
 
 Sprint prevista:
-Não definida — candidata a sprint própria, antes de qualquer preview real ser reativado com sessão
-administrativa.
+Ambiente de Demonstração/Homologação — concluído (código) em 2026-08-12. Reativar o preview suspenso
+continua sendo decisão separada do CTO, fora deste escopo.
 
 Responsável:
 —

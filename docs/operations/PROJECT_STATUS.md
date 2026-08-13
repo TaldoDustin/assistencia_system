@@ -5,15 +5,22 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-11
-**Próxima revisão:** Operação Release 1.0 — Parte B: **Dry-Run 2B (rollback de infraestrutura Render)
-concluído com sucesso (2026-08-11, ver seção própria abaixo)** — as três frentes separadas do rollback
-(mecanismo Git, segurança do ambiente Preview, rollback real de infraestrutura) estão todas validadas
-agora. PR #23 mergeada e deployada em produção (`6bb2ede`, confirmado Render + Vercel). Destino da PR #24
-(descartável) e da PR #22 (evidência preservada do INC-003) e a correção de código do KI-037 seguem sendo
-decisões separadas do CTO, fora do escopo deste Dry-Run.**
-Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
-o CTO for decidindo. Sequência recente: ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
+**Última revisão:** 2026-08-12
+**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`): **ciclo `ADR-010` completo no
+código — Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural →
+Encerramento, todos concluídos em 2026-08-12 (ver seção própria abaixo)**. `IR_FLOW_ENVIRONMENT=demo`/
+`IS_DEMO_ENVIRONMENT` implementados em `fluxoly_config.py`, coexistindo com `IS_PULL_REQUEST`; KI-037
+corrigido (guard nos 4 endpoints de escrita/ação de `api_mercadophone.py`) e movido para Resolvidos;
+`scripts/seed_demo.py` (loja modelo sintética + 3 contas de demo) e 20 testes novos criados. CI 6/6 verde
+(Linux) nos dois commits da branch `feat/ambiente-demo-homologacao` (`59597bd8`, `a14db05e`); QA manual
+completa contra backend real e descartável. **Ainda não autorizados:** abertura de PR/merge em `main`,
+provisionamento real Render/Vercel, e homologação externa (14 critérios do Definition of Done do
+`ADR-012`) — a QA local comprova que a implementação funciona, mas não substitui a homologação real do
+ambiente. `KI-038` (conta `admin`/`irflow@2024` padrão, achado durante a QA) registrado como pendência
+separada, a resolver antes de qualquer acesso externo ao Demo.
+Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
+Sequência recente: ✅ **Ambiente de Demonstração — Implementação/Testes/QA Manual/Revisão
+Arquitetural/Encerramento concluídos no código (2026-08-12, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
 (push → auto-deploy → revert → auto-deploy → confirmação, 2026-08-11, ver abaixo)** → ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
 ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
@@ -29,6 +36,76 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Ambiente de Demonstração — Implementação/Testes/QA Manual/Revisão Arquitetural/Encerramento concluídos no código (ADR-012)
+
+**Ver `docs/engineering/adr/ADR-012.md` (arquitetura aprovada) e
+`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (plano técnico e registro completo de todas as
+etapas) para o histórico completo.**
+
+Ciclo `ADR-010` completo (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão
+Arquitetural → Encerramento) em 2026-08-12, a partir de duas Discoveries somente-leitura de 2026-08-11
+(Parte C da Release 1.0; Discovery dedicada do Ambiente de Demonstração) que identificaram o Ambiente de
+Demonstração como o único bloqueador puramente técnico entre os 4 itens ainda em ❌ do
+`RELEASE_1.0_MASTER_CHECKLIST.md`.
+
+**Implementação (branch `feat/ambiente-demo-homologacao`, commit `59597bd8`):** `fluxoly_config.py` ganhou
+`IR_FLOW_ENVIRONMENT`/`IS_DEMO_ENVIRONMENT`, coexistindo com `IS_PULL_REQUEST` sem substituí-lo (Preview
+mantém precedência quando ambos estão setados), e `integracao_externa_bloqueada_neste_ambiente()` como
+ponto único de verdade do guard do **KI-037** — aplicado nos 4 endpoints de escrita/ação de
+`api_mercadophone.py` (`sincronizar`/`reprocessar`/`reimportar`/`config`, o último incluído por decisão do
+CTO para o Demo nunca armazenar uma credencial real que não pode usar), inserido depois das checagens de
+permissão já existentes, sem alterá-las — `status_mercadophone` (leitura) permanece intocado. `app.py`
+ganhou o log de boot `demo_background_jobs_desativados` e `IS_DEMO_ENVIRONMENT` no bloco do Sentry
+(`environment="demo"`, com Preview mantendo precedência). Novo `scripts/seed_demo.py` (standalone, via
+`conectar()` de `app.py`) popula uma "loja modelo" 100% sintética (18 clientes, 10 produtos/unidades, 24
+OS, 8 vendas com caixa) e as 3 contas de demonstração (`admin.demo`/`tecnico.demo`/`vendedor.demo`) —
+senhas só via variável de ambiente, sem default (lição do KI-029); guard de idempotência recusa rodar
+contra um banco já populado.
+
+**Testes:** 20 testes novos (`tests/test_ambiente_demo.py`, `tests/test_ki037_guard_integracoes.py`). CI
+6/6 verde no Linux nos dois commits da branch (`59597bd8`, `a14db05e` — Lint, Docker Build, Frontend
+Quality, Backend Tests, Frontend Build, Coverage Report). Suíte completa local: 764 passed / 5 failed — as
+5 falhas (2 já existentes de Preview + `test_sentry_init.py`, mais 2 equivalentes novas de Demo) são
+limitação de ambiente Windows local (subprocess + `sentry_sdk`/`_overlapped`, `WinError 10106`), confirmada
+pré-existente via `git stash` antes desta mudança — não é regressão, e o CI Linux já confirma verde.
+
+**QA Manual** (2026-08-12, backend Flask real e descartável, `IR_FLOW_DATA_DIR` isolado, nunca
+`database.db`): boot com `IR_FLOW_ENVIRONMENT=demo` confirmado (log de boot + `sentry_inicializado
+environment=demo` + zero log de sync mesmo com token/sync herdados simulando o cenário INC-003); os 4
+endpoints do KI-037 retornando 403 em Demo, com `/config` confirmado sem persistir o token bloqueado
+(`integrations.json` inalterado); ordem das checagens preservada (`vendedor.demo` barrado por permissão
+antes do guard); `status_mercadophone` continua acessível; regressão produção/dev confirmada (2º servidor
+descartável sem nenhuma flag, endpoints voltam ao 400 "não configurado" de sempre); as 3 contas de demo
+autenticando com os perfis corretos via `POST /api/auth/login` real; proteção contra segunda execução do
+seed testada 2x; reset/restore validado de ponta a ponta (backup `seed-inicial` → OS extra criada →
+restore → contagem revertida); CORS explícito confirmado (origem do Demo permitida, origem `*.vercel.app`
+arbitrária rejeitada, sem fallback permissivo).
+
+**Revisão Arquitetural (4 eixos do `ADR-010`, Etapa 6):** coerência do domínio ✅ (mudança puramente
+aditiva). Autorização centralizada ✅ (grep completo no repositório confirma só 3 pontos de uso reais de
+`IS_PULL_REQUEST`, todos com o correspondente `IS_DEMO_ENVIRONMENT` aplicado). Risco de vazamento de dado
+✅, com **1 achado documentado, não um bug**: todo call site de `chamar_api_mercado_phone()` rastreado e
+confirmado coberto pelos 3 endpoints manuais + `BACKGROUND_JOBS_ENABLED` (thread de sync) + o webhook, já
+fail-secure por design quando `MERCADO_PHONE_WEBHOOK_TOKEN` está ausente (KI-023) — essa variável não
+estava listada no Runbook de Provisionamento do plano; adicionada à tabela, sem necessidade de código
+novo. Consistência da máquina de estados ✅ (precedência do Preview sobre Demo provada por teste e por QA
+manual).
+
+**Achado registrado como KI-038 (novo, aberto):** `app.py::criar_admin_padrao()` cria incondicionalmente
+uma 4ª conta `admin`/`irflow@2024` (senha hardcoded) sempre que a tabela `usuarios` está vazia — comportamento
+pré-existente (mesmo em produção), fora do escopo deste plano. Decisão do CTO: registrar e não corrigir
+agora; é pendência real a resolver antes de qualquer acesso externo ao Demo, não antes deste Encerramento.
+
+**Auditoria final do ciclo:** branch com 2 commits atômicos (`feat:` código + `docs:` documentação), 8
+arquivos tocados no total — exatamente o escopo aprovado no Plano Técnico, nada a mais; árvore de trabalho
+limpa; sem divergência de `origin/main`. `KI-037` movido para Resolvidos em `KNOWN_ISSUES.md`.
+
+**Não provisionado e não autorizado ainda:** serviço Render `fluxoly-demo`, projeto Vercel dedicado, PR/
+merge em `main`, e homologação externa (14 critérios do Definition of Done do `ADR-012`) — próximos gates,
+decisão do CTO a cada um.
 
 ---
 

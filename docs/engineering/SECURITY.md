@@ -29,6 +29,7 @@ ambos os scans, cada item validado no código antes de classificar
 | Senhas armazenadas com hash seguro (Werkzeug) | ✅ | `generate_password_hash` / `check_password_hash` |
 | Salt único por senha | ✅ | Werkzeug gera automaticamente |
 | `FLASK_SECRET_KEY` forte e única por ambiente | ⚠️ | Fallback hardcoded corrigido em 2026-07-25 (falha no boot fora de dev local), mas ver seção 8 — valor em uso em produção ainda não foi rotacionado |
+| Senha do admin criado no primeiro boot não é fixa/hardcoded | ✅ | KI-038/KI-039 (2026-08-13). `criar_admin_padrao()` (`app.py`) exige `IR_FLOW_ADMIN_PASSWORD` fora de dev local — boot falha se ausente e não existir nenhum admin ainda. Distinto de `DEMO_SEED_ADMIN_PASSWORD` (`scripts/seed_demo.py`), que é dado sintético específico do Demo, não bootstrap genérico |
 | Sessão invalidada completamente no logout | ⚠️ | `session.clear()` — validar que não há cookie residual |
 | Rate limiting em `/api/auth/login` | ✅ | KI-001 resolvido — 5 tentativas/minuto por identificador (`irflow_rate_limit.py`, tabela `login_attempts`, contador em SQLite em vez de memória — ver nota abaixo) |
 | Bloqueio após tentativas excessivas | ✅ | Mesma implementação acima — 429 na 6ª tentativa dentro da janela |

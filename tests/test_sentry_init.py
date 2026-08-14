@@ -33,6 +33,7 @@ def _env_base(tmp_dir):
         "IR_FLOW_ENABLE_BACKGROUND_JOBS": "0",
         "MERCADO_PHONE_SYNC_ENABLED": "0",
         "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+        "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
     }
 
 

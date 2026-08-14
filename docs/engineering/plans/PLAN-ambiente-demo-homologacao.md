@@ -13,11 +13,30 @@
 - [x] Discovery — aprovada (Discovery da Parte C + Discovery dedicada do Ambiente de Demo, 2026-08-11)
 - [x] ADR — `ADR-012` aceita (2026-08-11): Render+Vercel dedicados, `IR_FLOW_ENVIRONMENT=demo`, KI-037 bloqueante, isolamento de credenciais por design
 - [x] Plano Técnico — aprovado pelo CTO (2026-08-11), com 3 ajustes de escopo
-- [ ] Implementação — aguardando sinal explícito do CTO para começar
-- [ ] Testes
-- [ ] QA Manual
-- [ ] Revisão Arquitetural — obrigatória (toca >3 arquivos: `fluxoly_config.py`, `app.py`, `api_mercadophone.py`, novo `scripts/seed_demo.py`, novos arquivos de teste)
-- [ ] Encerramento
+- [x] Implementação — concluída (2026-08-12), branch `feat/ambiente-demo-homologacao`, commit `59597bd8`. Escopo exatamente igual ao aprovado: `fluxoly_config.py` (`IR_FLOW_ENVIRONMENT`/`IS_DEMO_ENVIRONMENT`/`integracao_externa_bloqueada_neste_ambiente()`), `api_mercadophone.py` (guard KI-037 nos 4 endpoints), `app.py` (log de boot + precedência do Sentry), `scripts/seed_demo.py`, `tests/test_ambiente_demo.py`, `tests/test_ki037_guard_integracoes.py`
+- [x] Testes — CI 6/6 verde no Linux (commit `59597bd8`: Lint, Docker Build, Frontend Quality, Backend Tests, Frontend Build, Coverage Report). 20 testes novos, todos passando no CI. Suíte completa local: 764 passed / 5 failed — as 5 falhas (2 já existentes de Preview + `test_sentry_init.py` + 2 novas equivalentes de Demo) são limitação de ambiente Windows local (subprocess + `sentry_sdk`/`_overlapped`, `WinError 10106`), confirmada pré-existente via `git stash` antes desta mudança — não é regressão, e o CI Linux já confirma verde
+- [x] QA Manual — concluída (2026-08-12) contra backend Flask real e descartável (`IR_FLOW_DATA_DIR` isolado, nunca `database.db`). Evidências: log `demo_background_jobs_desativados` e ausência de log de sync mesmo com token/sync herdados simulando o cenário INC-003; `sentry_inicializado environment=demo`; os 4 endpoints do KI-037 retornam 403 para `admin.demo`/`tecnico.demo`, `/config` confirmado sem persistir token (`integrations.json` com `api_token: ""`); `vendedor.demo` barrado por permissão antes do guard; `status_mercadophone` continua 200; regressão produção/dev confirmada (2º servidor descartável sem flags, endpoints voltam ao 400 "não configurado" de antes); as 3 contas de demo autenticam com os perfis corretos via `POST /api/auth/login` real; proteção contra segunda execução do seed testada 2x; reset/restore validado (backup `seed-inicial` → OS extra → restore → contagem revertida de 25 para 24); CORS explícito confirmado (origem do Demo permitida, origem `*.vercel.app` arbitrária rejeitada, sem fallback permissivo). Achado registrado como `KI-038` (conta `admin`/`irflow@2024` padrão, fora de escopo deste plano) — não bloqueia este gate
+- [x] Revisão Arquitetural — 2026-08-12, 4 eixos do `ADR-010` (Etapa 6). **Coerência do domínio** ✅ (mudança
+      puramente aditiva, nada foi revogado/descontinuado — não se aplica). **Autorização centralizada** ✅
+      (`integracao_externa_bloqueada_neste_ambiente()` é o único ponto de verdade do guard; grep completo por
+      `IS_PULL_REQUEST` em todo o repositório confirma só 3 pontos de uso reais — `fluxoly_config.py`
+      (definição + `BACKGROUND_JOBS_ENABLED` + guard), `app.py` boot log, `app.py` Sentry — e os 3 têm o
+      correspondente `IS_DEMO_ENVIRONMENT` aplicado, nenhum ficou de fora, nenhuma checagem duplicada
+      inline). **Risco de vazamento de dado** ✅ (rastreados todos os call sites de
+      `chamar_api_mercado_phone()`: só alcançável via `sincronizar_mercado_phone()`/
+      `reprocessar_todas_os_mercado_phone()`/`reimportar_todas_os_mercado_phone()` — cobertos pelo guard
+      novo via os 3 endpoints manuais e por `BACKGROUND_JOBS_ENABLED` via a thread de sync — e via o
+      webhook `receber_os_mercado_phone`, já fail-secure por design quando `MERCADO_PHONE_WEBHOOK_TOKEN`
+      não está configurado, KI-023). **Achado documentado (não é bug, não exige código novo):** o Runbook
+      de Provisionamento não listava `MERCADO_PHONE_WEBHOOK_TOKEN` explicitamente — adicionado à tabela
+      acima, documentando que a variável já fica fechada por padrão quando ausente, e que o Demo nunca deve
+      configurá-la. **Consistência da máquina de estados** ✅ (Preview mantém precedência sobre Demo em
+      toda a cadeia — provado por teste automatizado e por QA manual; comportamento de produção/dev
+      confirmado idêntico ao anterior, sem regressão). **KI-038** considerado nesta revisão: comportamento
+      pré-existente (não introduzido por este plano), fora do escopo aprovado, corretamente registrado
+      como KI separado — não bloqueia este gate, mas é pendência real antes da homologação externa do
+      Demo (acesso de alguém fora da equipe), conforme já registrado no próprio KI-038.
+- [x] Encerramento — 2026-08-12. Ciclo `ADR-010` completo (Discovery → ADR-012 → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento). Auditoria final: branch `feat/ambiente-demo-homologacao` com 2 commits atômicos (`59597bd8` código, `a14db05e` docs), 8 arquivos tocados no total — exatamente o escopo aprovado, nada a mais; árvore de trabalho limpa; CI 6/6 verde nos dois commits; sem divergência de `origin/main`. `KI-037` movido para Resolvidos em `docs/operations/KNOWN_ISSUES.md`. `KI-038` permanece aberto, corretamente separado, não mascarado como resolvido — é pendência real antes do provisionamento/homologação externa do Demo. `docs/operations/PROJECT_STATUS.md`/`docs/operations/CHANGELOG.md` atualizados. **Próximos gates, ainda não iniciados:** PR/merge em `main`, provisionamento real Render/Vercel, homologação externa (14 critérios do Definition of Done do `ADR-012`) — nenhum autorizado ainda.
 
 ---
 
@@ -148,6 +167,7 @@ Documentação operacional — não é código, mas fica registrada aqui por ser
 | `IR_FLOW_CORS_ORIGINS` | `https://fluxoly-demo.vercel.app` (ou domínio Vercel real do projeto demo) | Explícito — **não** deixar em branco. Deixar em branco ativa o fallback de regex `https://.*\.vercel\.app` com `supports_credentials=True` (`fluxoly_app_security.py:47-50`), que aceitaria cookies de sessão de **qualquer** site `*.vercel.app`, não só o do Demo — risco desnecessário no primeiro ambiente exposto a alguém fora da equipe |
 | `MERCADO_PHONE_SYNC_ENABLED` | `0` | Explícito, mesma defesa em profundidade já usada em Preview — redundante com o guard de código, mas mantém o padrão de duas camadas do INC-003 |
 | `MERCADO_PHONE_API_TOKEN` | *(vazio)* | Nunca copiar de produção |
+| `MERCADO_PHONE_WEBHOOK_TOKEN` | *(vazio, nunca configurar)* | Achado da Revisão Arquitetural (Eixo 3): sem esta variável, `autenticar_integracao_mercado_phone()` já é fail-secure por design (KI-023) — nenhum candidato de token corresponde a uma string vazia, então `POST /integracoes/mercadophone/os` fica fechado por padrão. Nunca copiar de produção; se um dia o Demo precisar do webhook, isso é uma decisão nova, não uma herança |
 | `IR_FLOW_ENABLE_BACKGROUND_JOBS` | `0` | Explícito, mesma defesa em profundidade |
 | `SENTRY_DSN` | mesmo DSN do projeto Sentry já usado por produção/preview | Confirmado pelo CTO (2026-08-11): reaproveitar o projeto atual — `environment=demo` já separa os eventos, sem necessidade de projeto dedicado |
 | `METRICS_TOKEN` | gerado novo, se `/metrics` for exposto | Mesmo padrão de produção |

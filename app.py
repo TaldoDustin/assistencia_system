@@ -71,6 +71,7 @@ from fluxoly_config import (  # noqa: E402
     DB_PATH,
     GOOGLE_DRIVE_BACKUP_DIR,
     INTEGRATIONS_CONFIG_PATH,
+    IS_DEMO_ENVIRONMENT,
     IS_PULL_REQUEST,
     IS_SERVER_RUNTIME,
     MERCADO_PHONE_API_BASE,
@@ -143,6 +144,15 @@ if IS_PULL_REQUEST:
         extra={"motivo": "IS_PULL_REQUEST=true", "referencia": "INC-003/KI-035/KI-036"},
     )
 
+# ADR-012: mesma visibilidade explícita de boot, agora para o ambiente Demo --
+# IS_DEMO_ENVIRONMENT já desliga BACKGROUND_JOBS_ENABLED (fluxoly_config.py),
+# este log só evita que a ausência de sync/backup pareça um bug no Demo.
+if IS_DEMO_ENVIRONMENT:
+    logger.warning(
+        "demo_background_jobs_desativados",
+        extra={"motivo": "IR_FLOW_ENVIRONMENT=demo", "referencia": "ADR-012"},
+    )
+
 # Sentry (Sprint Observabilidade) -- só inicializa com SENTRY_DSN definida.
 # Vazia por padrão: usuário ainda não tem conta Sentry, vai criar depois e
 # só colar o DSN no Render (mesmo padrão de integração opcional já usado
@@ -164,6 +174,8 @@ if _sentry_dsn:
 
     if IS_PULL_REQUEST:
         _sentry_environment = "preview"
+    elif IS_DEMO_ENVIRONMENT:
+        _sentry_environment = "demo"
     elif IS_SERVER_RUNTIME:
         _sentry_environment = "production"
     else:

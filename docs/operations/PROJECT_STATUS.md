@@ -6,17 +6,24 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-13
-**Próxima revisão:** KI-038 (admin padrão com senha hardcoded, `criar_admin_padrao()`) encerrado — ciclo
-`ADR-010` completo (Discovery → decisão arquitetural do CTO → Plano Técnico → Implementação → Testes →
-Revisão Arquitetural → Encerramento), ver seção própria abaixo. Achado durante a Discovery: a conta
-`admin`/`irflow@2024` era a credencial real de produção do CTO até 2026-08-13 — já trocada manualmente
-como mitigação imediata, o que por sua vez revelou e já corrigiu o **KI-039** (troca de senha de usuário
-não persistia, hotfix `ba2d6294`/PR #25). PR #26 (KI-038) aberta contra `main`, CI 6/6 verde — merge segue
-sendo decisão separada do CTO, ainda não autorizada.
-Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
-o CTO for decidindo. Sequência recente: ✅ **KI-038 — admin padrão exige senha configurável (ciclo
-`ADR-010` completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia
-(hotfix, 2026-08-13, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
+**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) mergeado em `main` — ciclo `ADR-010`
+completo no código (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão
+Arquitetural → Encerramento, concluídos em 2026-08-12) e branch `feat/ambiente-demo-homologacao`
+atualizada a partir de `main` e mergeada em 2026-08-13, já incluindo KI-038 e KI-039 resolvidos.
+`IR_FLOW_ENVIRONMENT=demo`/`IS_DEMO_ENVIRONMENT` implementados em `fluxoly_config.py`, coexistindo com
+`IS_PULL_REQUEST`; KI-037 corrigido (guard nos 4 endpoints de escrita/ação de `api_mercadophone.py`) e
+movido para Resolvidos; `scripts/seed_demo.py` (loja modelo sintética + 3 contas de demo) e 20 testes
+novos criados; QA manual completa contra backend real e descartável. `KI-038` (`criar_admin_padrao()` com
+senha hardcoded, achado durante essa QA) e `KI-039` (troca de senha de usuário não persistia, achado ao
+mitigar o KI-038) ambos resolvidos e já em `main` antes deste merge (PR #25, PR #26). **Ainda não
+autorizados:** provisionamento real Render/Vercel, e homologação externa (14 critérios do Definition of
+Done do `ADR-012`) — a QA local comprova que a implementação funciona, mas não substitui a homologação
+real do ambiente.
+Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
+Sequência recente: ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
+(2026-08-13, ver abaixo)** → ✅ **KI-038 — admin padrão exige senha configurável (ciclo `ADR-010`
+completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia (hotfix,
+2026-08-13, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
 (push → auto-deploy → revert → auto-deploy → confirmação, 2026-08-11, ver abaixo)** → ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
 ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
@@ -35,24 +42,93 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
+## ✅ Ambiente de Demonstração — Implementação/Testes/QA Manual/Revisão Arquitetural/Encerramento concluídos no código (ADR-012)
+
+**Ver `docs/engineering/adr/ADR-012.md` (arquitetura aprovada) e
+`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (plano técnico e registro completo de todas as
+etapas) para o histórico completo.**
+
+Ciclo `ADR-010` completo (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão
+Arquitetural → Encerramento) em 2026-08-12, a partir de duas Discoveries somente-leitura de 2026-08-11
+(Parte C da Release 1.0; Discovery dedicada do Ambiente de Demonstração) que identificaram o Ambiente de
+Demonstração como o único bloqueador puramente técnico entre os 4 itens ainda em ❌ do
+`RELEASE_1.0_MASTER_CHECKLIST.md`.
+
+**Implementação (branch `feat/ambiente-demo-homologacao`, commit `59597bd8`):** `fluxoly_config.py` ganhou
+`IR_FLOW_ENVIRONMENT`/`IS_DEMO_ENVIRONMENT`, coexistindo com `IS_PULL_REQUEST` sem substituí-lo (Preview
+mantém precedência quando ambos estão setados), e `integracao_externa_bloqueada_neste_ambiente()` como
+ponto único de verdade do guard do **KI-037** — aplicado nos 4 endpoints de escrita/ação de
+`api_mercadophone.py` (`sincronizar`/`reprocessar`/`reimportar`/`config`, o último incluído por decisão do
+CTO para o Demo nunca armazenar uma credencial real que não pode usar), inserido depois das checagens de
+permissão já existentes, sem alterá-las — `status_mercadophone` (leitura) permanece intocado. `app.py`
+ganhou o log de boot `demo_background_jobs_desativados` e `IS_DEMO_ENVIRONMENT` no bloco do Sentry
+(`environment="demo"`, com Preview mantendo precedência). Novo `scripts/seed_demo.py` (standalone, via
+`conectar()` de `app.py`) popula uma "loja modelo" 100% sintética (18 clientes, 10 produtos/unidades, 24
+OS, 8 vendas com caixa) e as 3 contas de demonstração (`admin.demo`/`tecnico.demo`/`vendedor.demo`) —
+senhas só via variável de ambiente, sem default (lição do KI-029); guard de idempotência recusa rodar
+contra um banco já populado.
+
+**Testes:** 20 testes novos (`tests/test_ambiente_demo.py`, `tests/test_ki037_guard_integracoes.py`). CI
+6/6 verde no Linux nos dois commits da branch (`59597bd8`, `a14db05e` — Lint, Docker Build, Frontend
+Quality, Backend Tests, Frontend Build, Coverage Report). Suíte completa local: 764 passed / 5 failed — as
+5 falhas (2 já existentes de Preview + `test_sentry_init.py`, mais 2 equivalentes novas de Demo) são
+limitação de ambiente Windows local (subprocess + `sentry_sdk`/`_overlapped`, `WinError 10106`), confirmada
+pré-existente via `git stash` antes desta mudança — não é regressão, e o CI Linux já confirma verde.
+
+**QA Manual** (2026-08-12, backend Flask real e descartável, `IR_FLOW_DATA_DIR` isolado, nunca
+`database.db`): boot com `IR_FLOW_ENVIRONMENT=demo` confirmado (log de boot + `sentry_inicializado
+environment=demo` + zero log de sync mesmo com token/sync herdados simulando o cenário INC-003); os 4
+endpoints do KI-037 retornando 403 em Demo, com `/config` confirmado sem persistir o token bloqueado
+(`integrations.json` inalterado); ordem das checagens preservada (`vendedor.demo` barrado por permissão
+antes do guard); `status_mercadophone` continua acessível; regressão produção/dev confirmada (2º servidor
+descartável sem nenhuma flag, endpoints voltam ao 400 "não configurado" de sempre); as 3 contas de demo
+autenticando com os perfis corretos via `POST /api/auth/login` real; proteção contra segunda execução do
+seed testada 2x; reset/restore validado de ponta a ponta (backup `seed-inicial` → OS extra criada →
+restore → contagem revertida); CORS explícito confirmado (origem do Demo permitida, origem `*.vercel.app`
+arbitrária rejeitada, sem fallback permissivo).
+
+**Revisão Arquitetural (4 eixos do `ADR-010`, Etapa 6):** coerência do domínio ✅ (mudança puramente
+aditiva). Autorização centralizada ✅ (grep completo no repositório confirma só 3 pontos de uso reais de
+`IS_PULL_REQUEST`, todos com o correspondente `IS_DEMO_ENVIRONMENT` aplicado). Risco de vazamento de dado
+✅, com **1 achado documentado, não um bug**: todo call site de `chamar_api_mercado_phone()` rastreado e
+confirmado coberto pelos 3 endpoints manuais + `BACKGROUND_JOBS_ENABLED` (thread de sync) + o webhook, já
+fail-secure por design quando `MERCADO_PHONE_WEBHOOK_TOKEN` está ausente (KI-023) — essa variável não
+estava listada no Runbook de Provisionamento do plano; adicionada à tabela, sem necessidade de código
+novo. Consistência da máquina de estados ✅ (precedência do Preview sobre Demo provada por teste e por QA
+manual).
+
+**Achado registrado como KI-038 (novo, aberto):** `app.py::criar_admin_padrao()` cria incondicionalmente
+uma 4ª conta `admin`/`irflow@2024` (senha hardcoded) sempre que a tabela `usuarios` está vazia — comportamento
+pré-existente (mesmo em produção), fora do escopo deste plano. Decisão do CTO: registrar e não corrigir
+agora; é pendência real a resolver antes de qualquer acesso externo ao Demo, não antes deste Encerramento.
+
+**Auditoria final do ciclo:** branch com 2 commits atômicos (`feat:` código + `docs:` documentação), 8
+arquivos tocados no total — exatamente o escopo aprovado no Plano Técnico, nada a mais; árvore de trabalho
+limpa; sem divergência de `origin/main`. `KI-037` movido para Resolvidos em `KNOWN_ISSUES.md`.
+
+**Não provisionado e não autorizado ainda:** serviço Render `fluxoly-demo`, projeto Vercel dedicado, e
+homologação externa (14 critérios do Definition of Done do `ADR-012`) — próximos gates, decisão do CTO a
+cada um. PR/merge em `main` — resolvido em 2026-08-13, ver abaixo.
+
+---
+
 ## ✅ KI-038 — Admin padrão exige senha configurável
 
 **Ver `docs/operations/KNOWN_ISSUES.md` (KI-038, Resolvidos) e
 `docs/engineering/plans/PLAN-ki038-admin-senha-configuravel.md` para o registro completo.**
 
-Achado em 2026-08-12 durante a QA manual do Ambiente de Demonstração (`ADR-012`, branch separada, ainda
-não mergeada): `app.py::criar_admin_padrao()` criava incondicionalmente `admin`/`irflow@2024` (senha
-hardcoded) sempre que não existia nenhum `admin`. Discovery aprofundada em 2026-08-13 revelou que essa
-era, até então, a conta real de produção do CTO — já trocada manualmente como mitigação imediata (o que
-revelou o KI-039, ver seção abaixo).
+Achado em 2026-08-12 durante a QA manual do Ambiente de Demonstração (`ADR-012`, acima). Discovery
+aprofundada em 2026-08-13 revelou que a conta `admin`/`irflow@2024` era, até então, a credencial real de
+produção do CTO — já trocada manualmente como mitigação imediata (o que revelou o KI-039, ver seção
+abaixo).
 
 Decisão arquitetural do CTO: escopo amplo. `criar_admin_padrao()` (branch
 `feat/ki-038-admin-senha-configuravel`, commit `303c05c3`) passa a exigir `IR_FLOW_ADMIN_PASSWORD` fora de
 dev local, mesmo padrão do `FLASK_SECRET_KEY` — ausente, o boot falha em vez de criar um admin com senha
-conhecida. Produção atual não é afetada (admin já existe). Achado de Revisão Arquitetural, não um bug: o
+conhecida. Produção atual não é afetada (admin já existia). Achado de Revisão Arquitetural, não um bug: o
 Runbook de Provisionamento do Demo vai precisar dessa variável além de `DEMO_SEED_ADMIN_PASSWORD`. 3
 testes novos, suíte completa 751/754 (3 falhas pré-existentes de Windows local, não é regressão), CI 6/6
-verde. PR #26 aberta contra `main` — merge é decisão separada, ainda não autorizada.
+verde. PR #26 mergeada em `main` em 2026-08-13 (`54e34b72`).
 
 ---
 

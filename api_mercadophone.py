@@ -19,7 +19,7 @@ from datetime import datetime
 from flask import Blueprint, abort, jsonify, request, session
 
 from fluxoly_api_helpers import _texto_limpo_local, err, ok, usuario_admin, usuario_logado
-from fluxoly_config import MERCADO_PHONE_WEBHOOK_TOKEN
+from fluxoly_config import MERCADO_PHONE_WEBHOOK_TOKEN, integracao_externa_bloqueada_neste_ambiente
 from fluxoly_core import texto_limpo
 from fluxoly_logging import get_logger
 from fluxoly_mercadophone import (
@@ -122,6 +122,8 @@ def create_api_mercadophone_blueprint(deps):
             return err("Não autenticado.", 401)
         if session.get("usuario_perfil") not in ("admin", "tecnico"):
             return err("Permissão negada.", 403)
+        if integracao_externa_bloqueada_neste_ambiente():
+            return err("Integração externa desabilitada neste ambiente (preview/demo).", 403)
         try:
             _, mp_cfg = carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path)
             status_cfg = atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config)
@@ -141,6 +143,8 @@ def create_api_mercadophone_blueprint(deps):
             return err("Não autenticado.", 401)
         if session.get("usuario_perfil") not in ("admin", "tecnico"):
             return err("Permissão negada.", 403)
+        if integracao_externa_bloqueada_neste_ambiente():
+            return err("Integração externa desabilitada neste ambiente (preview/demo).", 403)
         try:
             _, mp_cfg = carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path)
             status_cfg = atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config)
@@ -180,6 +184,8 @@ def create_api_mercadophone_blueprint(deps):
             return err("Não autenticado.", 401)
         if session.get("usuario_perfil") not in ("admin", "tecnico"):
             return err("Permissão negada.", 403)
+        if integracao_externa_bloqueada_neste_ambiente():
+            return err("Integração externa desabilitada neste ambiente (preview/demo).", 403)
         try:
             _, mp_cfg = carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path)
             status_cfg = atualizar_runtime_mercadophone(mp_cfg, mercado_phone_runtime_config)
@@ -230,6 +236,8 @@ def create_api_mercadophone_blueprint(deps):
     def salvar_config_mercadophone():
         if not usuario_logado() or not usuario_admin():
             return err("Acesso negado.", 403)
+        if integracao_externa_bloqueada_neste_ambiente():
+            return err("Integração externa desabilitada neste ambiente (preview/demo).", 403)
 
         body = safe_json(request)
         dados, mp_cfg = carregar_config_mercadophone(carregar_configuracoes_integracoes, integrations_config_path)

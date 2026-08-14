@@ -860,6 +860,40 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   rigor dos hotfixes anteriores deste incidente). 683 testes no total, `ruff check .` limpo. Ver
   `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo
 
+### Adicionado (2026-08-12 — Ambiente de Demonstração/Homologação: Implementação, Testes, QA Manual, Revisão Arquitetural, Encerramento)
+- `docs/engineering/adr/ADR-012.md` (2026-08-11) — arquitetura do Ambiente de Demonstração: serviço Render
+  dedicado + projeto Vercel dedicado, nova flag `IR_FLOW_ENVIRONMENT=demo`, KI-037 promovido a bloqueante
+  para acesso externo, isolamento de credenciais por design (lição do INC-003). `docs/engineering/plans/
+  PLAN-ambiente-demo-homologacao.md` (2026-08-11) — plano técnico aprovado pelo CTO com 3 ajustes de
+  escopo.
+- `fluxoly_config.py` — `IR_FLOW_ENVIRONMENT`/`IS_DEMO_ENVIRONMENT`, coexistindo com `IS_PULL_REQUEST` sem
+  substituí-lo (Preview mantém precedência); `integracao_externa_bloqueada_neste_ambiente()` como ponto
+  único de verdade do guard do **KI-037**.
+- `api_mercadophone.py` — guard do KI-037 aplicado nos 4 endpoints de escrita/ação
+  (`sincronizar`/`reprocessar`/`reimportar`/`config`), inserido depois das checagens de permissão já
+  existentes, sem alterá-las; `status_mercadophone` (leitura) permanece intocado.
+- `app.py` — log de boot `demo_background_jobs_desativados`; `environment="demo"` no Sentry, com Preview
+  mantendo precedência quando as duas flags estão setadas juntas.
+- `scripts/seed_demo.py` — seed sintético standalone: "loja modelo" 100% fictícia (18 clientes, 10
+  produtos/unidades, 24 OS, 8 vendas com caixa) e as 3 contas de demonstração
+  (`admin.demo`/`tecnico.demo`/`vendedor.demo`), senhas só via variável de ambiente sem default (lição do
+  KI-029), guard de idempotência contra banco já populado.
+- `tests/test_ambiente_demo.py`, `tests/test_ki037_guard_integracoes.py` — 20 testes novos. CI 6/6 verde
+  no Linux (branch `feat/ambiente-demo-homologacao`, commits `59597bd8`/`a14db05e`).
+- QA manual de ponta a ponta contra backend Flask real e descartável (nunca `database.db`): guard do
+  KI-037 nos 4 endpoints em Demo, regressão zero em produção/dev, login real das 3 contas, reset/restore
+  (backup `seed-inicial` → mutação → restore), CORS explícito sem fallback permissivo.
+- Revisão Arquitetural (4 eixos do `ADR-010`) concluída sem inconsistência não documentada — achado
+  documental (não código): `MERCADO_PHONE_WEBHOOK_TOKEN` ausente do Runbook de Provisionamento,
+  adicionado à tabela (já fail-secure por design quando ausente, KI-023).
+- `docs/operations/KNOWN_ISSUES.md` — **KI-037 movido para Resolvidos**; **KI-038 registrado** (aberto):
+  `criar_admin_padrao()` cria uma 4ª conta `admin`/`irflow@2024` padrão sempre que `usuarios` está vazia
+  — comportamento pré-existente (também em produção), fora do escopo deste plano, pendência real antes de
+  qualquer acesso externo ao Demo.
+- Ciclo `ADR-010` completo (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual →
+  Revisão Arquitetural → Encerramento). Ainda não autorizados: PR/merge em `main`, provisionamento real
+  Render/Vercel, homologação externa (14 critérios do Definition of Done do `ADR-012`).
+
 ### Corrigido (2026-08-13 — hotfix/usuarios-senha-nao-persiste, KI-039)
 - `PUT /api/usuarios/<id>` espera `senha_nova` para trocar a senha; a tela de Usuários
   (`frontend/src/pages/Users.jsx`) sempre enviava `senha` — mesmo campo do `POST /api/usuarios` de

@@ -5,22 +5,25 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-12
-**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`): **ciclo `ADR-010` completo no
-código — Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural →
-Encerramento, todos concluídos em 2026-08-12 (ver seção própria abaixo)**. `IR_FLOW_ENVIRONMENT=demo`/
-`IS_DEMO_ENVIRONMENT` implementados em `fluxoly_config.py`, coexistindo com `IS_PULL_REQUEST`; KI-037
-corrigido (guard nos 4 endpoints de escrita/ação de `api_mercadophone.py`) e movido para Resolvidos;
-`scripts/seed_demo.py` (loja modelo sintética + 3 contas de demo) e 20 testes novos criados. CI 6/6 verde
-(Linux) nos dois commits da branch `feat/ambiente-demo-homologacao` (`59597bd8`, `a14db05e`); QA manual
-completa contra backend real e descartável. **Ainda não autorizados:** abertura de PR/merge em `main`,
-provisionamento real Render/Vercel, e homologação externa (14 critérios do Definition of Done do
-`ADR-012`) — a QA local comprova que a implementação funciona, mas não substitui a homologação real do
-ambiente. `KI-038` (conta `admin`/`irflow@2024` padrão, achado durante a QA) registrado como pendência
-separada, a resolver antes de qualquer acesso externo ao Demo.
+**Última revisão:** 2026-08-13
+**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) mergeado em `main` — ciclo `ADR-010`
+completo no código (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão
+Arquitetural → Encerramento, concluídos em 2026-08-12) e branch `feat/ambiente-demo-homologacao`
+atualizada a partir de `main` e mergeada em 2026-08-13, já incluindo KI-038 e KI-039 resolvidos.
+`IR_FLOW_ENVIRONMENT=demo`/`IS_DEMO_ENVIRONMENT` implementados em `fluxoly_config.py`, coexistindo com
+`IS_PULL_REQUEST`; KI-037 corrigido (guard nos 4 endpoints de escrita/ação de `api_mercadophone.py`) e
+movido para Resolvidos; `scripts/seed_demo.py` (loja modelo sintética + 3 contas de demo) e 20 testes
+novos criados; QA manual completa contra backend real e descartável. `KI-038` (`criar_admin_padrao()` com
+senha hardcoded, achado durante essa QA) e `KI-039` (troca de senha de usuário não persistia, achado ao
+mitigar o KI-038) ambos resolvidos e já em `main` antes deste merge (PR #25, PR #26). **Ainda não
+autorizados:** provisionamento real Render/Vercel, e homologação externa (14 critérios do Definition of
+Done do `ADR-012`) — a QA local comprova que a implementação funciona, mas não substitui a homologação
+real do ambiente.
 Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: ✅ **Ambiente de Demonstração — Implementação/Testes/QA Manual/Revisão
-Arquitetural/Encerramento concluídos no código (2026-08-12, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
+Sequência recente: ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
+(2026-08-13, ver abaixo)** → ✅ **KI-038 — admin padrão exige senha configurável (ciclo `ADR-010`
+completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia (hotfix,
+2026-08-13, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
 (push → auto-deploy → revert → auto-deploy → confirmação, 2026-08-11, ver abaixo)** → ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
 ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
@@ -103,9 +106,41 @@ agora; é pendência real a resolver antes de qualquer acesso externo ao Demo, n
 arquivos tocados no total — exatamente o escopo aprovado no Plano Técnico, nada a mais; árvore de trabalho
 limpa; sem divergência de `origin/main`. `KI-037` movido para Resolvidos em `KNOWN_ISSUES.md`.
 
-**Não provisionado e não autorizado ainda:** serviço Render `fluxoly-demo`, projeto Vercel dedicado, PR/
-merge em `main`, e homologação externa (14 critérios do Definition of Done do `ADR-012`) — próximos gates,
-decisão do CTO a cada um.
+**Não provisionado e não autorizado ainda:** serviço Render `fluxoly-demo`, projeto Vercel dedicado, e
+homologação externa (14 critérios do Definition of Done do `ADR-012`) — próximos gates, decisão do CTO a
+cada um. PR/merge em `main` — resolvido em 2026-08-13, ver abaixo.
+
+---
+
+## ✅ KI-038 — Admin padrão exige senha configurável
+
+**Ver `docs/operations/KNOWN_ISSUES.md` (KI-038, Resolvidos) e
+`docs/engineering/plans/PLAN-ki038-admin-senha-configuravel.md` para o registro completo.**
+
+Achado em 2026-08-12 durante a QA manual do Ambiente de Demonstração (`ADR-012`, acima). Discovery
+aprofundada em 2026-08-13 revelou que a conta `admin`/`irflow@2024` era, até então, a credencial real de
+produção do CTO — já trocada manualmente como mitigação imediata (o que revelou o KI-039, ver seção
+abaixo).
+
+Decisão arquitetural do CTO: escopo amplo. `criar_admin_padrao()` (branch
+`feat/ki-038-admin-senha-configuravel`, commit `303c05c3`) passa a exigir `IR_FLOW_ADMIN_PASSWORD` fora de
+dev local, mesmo padrão do `FLASK_SECRET_KEY` — ausente, o boot falha em vez de criar um admin com senha
+conhecida. Produção atual não é afetada (admin já existia). Achado de Revisão Arquitetural, não um bug: o
+Runbook de Provisionamento do Demo vai precisar dessa variável além de `DEMO_SEED_ADMIN_PASSWORD`. 3
+testes novos, suíte completa 751/754 (3 falhas pré-existentes de Windows local, não é regressão), CI 6/6
+verde. PR #26 mergeada em `main` em 2026-08-13 (`54e34b72`).
+
+---
+
+## ✅ KI-039 — Troca de senha de usuário não persistia
+
+**Ver `docs/operations/KNOWN_ISSUES.md` (KI-039, Resolvidos) para o registro completo.**
+
+Achado em 2026-08-13, ao tentar trocar a senha da conta `admin` de produção como mitigação do KI-038: a
+tela de Usuários enviava `senha`, o backend esperava `senha_nova` (`PUT /api/usuarios/<id>`) — a troca era
+silenciosamente ignorada, reportando sucesso mesmo assim. Hotfix imediato a partir de `main`
+(`hotfix/usuarios-senha-nao-persiste`, PR #25, commit `ba2d6294`, merge `ccf94baa`), um arquivo
+(`frontend/src/pages/Users.jsx`), CI 6/6 verde, já mergeado em `main`.
 
 ---
 

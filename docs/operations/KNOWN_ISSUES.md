@@ -1365,3 +1365,87 @@ Ambiente de Demonstração.
 
 Responsável:
 —
+
+---
+
+## ~~KI-039~~ — RESOLVIDO
+
+Descrição:
+A tela de edição de usuário (`frontend/src/pages/Users.jsx`) enviava o campo `senha` no `PUT
+/api/usuarios/<id>` para trocar a senha de um usuário existente. O backend (`api_users.py::atualizar_usuario`)
+lê `senha_nova` nesse endpoint — nome deliberadamente distinto de `senha` (usado só na criação, via `POST
+/api/usuarios`), para diferenciar "sem alteração" de "nova senha" num formulário de edição. Como os nomes
+não batiam, qualquer troca de senha pela tela de Usuários era silenciosamente ignorada: `nome`/`perfil`/
+`ativo` eram salvos normalmente, a rota comitava e respondia sucesso, mas `senha_hash` nunca era tocado.
+Achado em 2026-08-13, durante a Discovery do KI-038, ao tentar trocar a senha da conta `admin` de
+produção como mitigação imediata da exposição da credencial hardcoded — a tela confirmou "Usuário
+atualizado!", mas a senha antiga continuou sendo a única válida.
+
+Impacto:
+Alto (potencial). Qualquer admin que use a tela de Usuários para trocar a própria senha ou a de outra
+conta — inclusive em resposta a um desligamento ou suspeita de vazamento de credencial — acredita que a
+troca funcionou, sem nenhum erro visível, mas a senha antiga permanece ativa. Caminho real de produção
+(critério C-04 de `ENGINEERING_GUIDE.md` §11), mesma categoria de risco do critério C-01 (dado que o
+operador acredita ter mudado diverge do dado real, sem erro).
+
+Status:
+Resolvido em 2026-08-13 (`hotfix/usuarios-senha-nao-persiste`, PR #25, commit `ba2d6294`, merge
+`ccf94baa`, branch a partir de `main`). Correção mínima e cirúrgica, um arquivo: no caminho de edição,
+`handleSubmit` (`Users.jsx`) agora envia `senha_nova` (fluxo de criação, campo `senha`, inalterado).
+`pytest tests/test_users.py` (22/22, backend não alterado, confirma nenhuma regressão), `npm run lint`/
+`npm run build` limpos, CI 6/6 verde.
+
+Sprint prevista:
+Hotfix imediato — achado durante a Discovery do KI-038, corrigido antes de retomar o ciclo.
+
+Responsável:
+—
+
+---
+
+## ~~KI-038~~ — RESOLVIDO
+
+Descrição:
+`app.py::criar_admin_padrao()` rodava incondicionalmente na importação do módulo (fora de qualquer guard
+de ambiente) e criava um usuário `admin`/`irflow@2024` (senha hardcoded no código-fonte) sempre que não
+existia nenhum usuário `admin`. Achado durante o smoke test manual de `scripts/seed_demo.py`
+(`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`, ADR-012), 2026-08-12, contra um banco
+descartável. Discovery aprofundada em 2026-08-13 revelou que essa era, até então, a conta real de
+produção do CTO — comportamento pré-existente desde a implementação original de autenticação, não uma
+regressão.
+
+Impacto:
+Alto (potencial). Introduzia uma conta privilegiada com senha fixa e conhecida (visível no código-fonte)
+em qualquer ambiente novo com banco vazio — inclusive um futuro Demo com acesso externo (prospects). A
+senha de produção já foi trocada manualmente pelo CTO em 2026-08-13 como mitigação imediata (o que, por
+sua vez, revelou o KI-039, já resolvido).
+
+Status:
+Resolvido em 2026-08-13 (`feat/ki-038-admin-senha-configuravel`, PR #26, commit `303c05c3`, branch a
+partir de `main`). Decisão arquitetural do CTO: escopo amplo — `criar_admin_padrao()` reestruturada para
+exigir `IR_FLOW_ADMIN_PASSWORD` fora de dev local (`IS_SERVER_RUNTIME`), mesmo padrão já usado para
+`FLASK_SECRET_KEY` (`SECURITY_AUDIT_2026-07.md` item 3); ausente nesse caso, o boot falha com
+`RuntimeError` propagado (checagem fora do `try/except` que protege só a inserção, para não ser engolida
+como warning). Em dev local mantém o fallback `irflow@2024`, documentado em `.env.example`, sem quebrar
+onboarding. Produção atual não é afetada — o admin já existe, a função é um no-op independente da
+variável. 3 testes novos (`tests/test_ki038_admin_senha_configuravel.py`, mesmo padrão de subprocesso
+isolado de `test_security_flask_secret_key_fallback.py`); `tests/conftest.py` e os demais testes que
+importam `app` em subprocesso (`test_ambiente_preview.py`, `test_sentry_init.py`,
+`test_security_flask_secret_key_fallback.py`) ganharam `IR_FLOW_ADMIN_PASSWORD` para não quebrar. Suíte
+completa local: 751/754 (3 falhas pré-existentes de ambiente Windows, `sentry_sdk`/`_overlapped`,
+confirmadas idênticas via `git stash` antes desta mudança — não é regressão). CI 6/6 verde.
+
+**Achado registrado durante a Revisão Arquitetural, não um bug:** `scripts/seed_demo.py` importa `app.py`
+(via `conectar()`), herdando o mesmo `criar_admin_padrao()` na importação. Quando o Demo for provisionado
+com banco vazio pela primeira vez, `IR_FLOW_ADMIN_PASSWORD` vai precisar estar setada no Render **além**
+de `DEMO_SEED_ADMIN_PASSWORD` (usada pelo `seed_demo.py` para as 3 contas de demonstração) — variáveis
+distintas, para propósitos distintos. Pertence ao Runbook de Provisionamento do plano do Ambiente de Demo
+(`PLAN-ambiente-demo-homologacao.md`, branch separada, ainda não mergeada) — registrado aqui só para não
+ser esquecido quando esse gate futuro for autorizado.
+
+Sprint prevista:
+Ciclo `ADR-010` completo (Discovery → decisão arquitetural → Plano Técnico → Implementação → Testes →
+Revisão Arquitetural → Encerramento) — concluído em 2026-08-13.
+
+Responsável:
+—

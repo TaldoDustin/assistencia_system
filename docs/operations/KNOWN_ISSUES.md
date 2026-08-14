@@ -1333,41 +1333,6 @@ Responsável:
 
 ---
 
-## KI-038
-
-Descrição:
-`app.py::criar_admin_padrao()` roda incondicionalmente na importação do módulo (fora de qualquer guard
-de ambiente) e cria um usuário `admin`/`irflow@2024` (senha hardcoded no código-fonte) sempre que a
-tabela `usuarios` está vazia. Achado durante o smoke test manual de `scripts/seed_demo.py`
-(`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`, ADR-012) contra um banco descartável: mesmo
-com as 3 contas de demonstração criadas pelo seed, a conta `admin`/`irflow@2024` também aparecia, sem
-que o seed a tivesse criado.
-
-Impacto:
-Alto (potencial) no Ambiente de Demonstração especificamente — introduz uma 4ª conta privilegiada, com
-senha fixa e conhecida (visível no código-fonte), fora do controle das 3 contas fixas do `ADR-012`
-(`admin.demo`/`tecnico.demo`/`vendedor.demo`), num ambiente que por definição terá acesso externo
-(prospects). Mesmo comportamento já existe hoje em produção (mesmo caminho de código, sem guard de
-ambiente) — não é uma regressão introduzida pelo Ambiente de Demo, mas o risco muda de categoria quando
-o ambiente passa a ter acesso de alguém fora da equipe.
-
-Status:
-Aberto — decisão do CTO (2026-08-12, durante a Implementação do Ambiente de Demonstração): não corrigir
-agora (fora do escopo do Plano Técnico aprovado; mudaria comportamento de bootstrap usado também em
-produção). Registrado como KI separado para avaliação em sprint própria, cobrindo produção e Demo juntas.
-Correção candidata: condicionar `criar_admin_padrao()` a nunca rodar quando `IS_DEMO_ENVIRONMENT` for
-verdadeiro, ou, de forma mais ampla, remover o fallback hardcoded e exigir criação explícita do admin
-inicial via variável de ambiente em qualquer ambiente novo.
-
-Sprint prevista:
-Não definida — candidata a sprint própria, antes do provisionamento real do serviço Render/Vercel do
-Ambiente de Demonstração.
-
-Responsável:
-—
-
----
-
 ## ~~KI-039~~ — RESOLVIDO
 
 Descrição:
@@ -1439,13 +1404,47 @@ confirmadas idênticas via `git stash` antes desta mudança — não é regress�
 (via `conectar()`), herdando o mesmo `criar_admin_padrao()` na importação. Quando o Demo for provisionado
 com banco vazio pela primeira vez, `IR_FLOW_ADMIN_PASSWORD` vai precisar estar setada no Render **além**
 de `DEMO_SEED_ADMIN_PASSWORD` (usada pelo `seed_demo.py` para as 3 contas de demonstração) — variáveis
-distintas, para propósitos distintos. Pertence ao Runbook de Provisionamento do plano do Ambiente de Demo
-(`PLAN-ambiente-demo-homologacao.md`, branch separada, ainda não mergeada) — registrado aqui só para não
-ser esquecido quando esse gate futuro for autorizado.
+distintas, para propósitos distintos. Pertence ao Runbook de Provisionamento do plano do Ambiente de Demo (`PLAN-ambiente-demo-homologacao.md`)
+— já incorporado ao Runbook em 2026-08-14 (Discovery final de provisionamento) e confirmado funcionando
+no primeiro boot real do serviço `fluxoly-demo`.
 
 Sprint prevista:
 Ciclo `ADR-010` completo (Discovery → decisão arquitetural → Plano Técnico → Implementação → Testes →
 Revisão Arquitetural → Encerramento) — concluído em 2026-08-13.
+
+Responsável:
+—
+
+---
+
+## KI-040
+
+Descrição:
+`app.py::criar_admin_padrao()` faz `SELECT` para checar se `admin` já existe e só then `INSERT` se não
+existir — sem lock nem `INSERT OR IGNORE`. O Gunicorn de produção/Demo roda com `--workers 2`
+(`Dockerfile`), e cada worker importa `app.py` de forma independente no boot, cada um chamando
+`criar_admin_padrao()`. Contra um banco vazio, os dois workers podem passar pelo `SELECT` antes de
+qualquer um comitar o `INSERT`, e o segundo cai em `UNIQUE constraint failed: usuarios.usuario`. Achado
+observado ao vivo no primeiro boot real do serviço `fluxoly-demo` (2026-08-14, log
+`criar_admin_padrao_falhou`), mas a condição de corrida em si é pré-existente — mesmo formato de função
+desde a implementação original de autenticação, nunca alterado por nenhuma correção do KI-038.
+
+Impacto:
+Baixo, comportamento observado até agora. O worker perdedor só loga um `warning` e segue (`except
+Exception` já existente, não derruba o boot); o worker vencedor cria a conta corretamente, com a mesma
+senha que o outro teria usado (ambos leem a mesma `IR_FLOW_ADMIN_PASSWORD`) — não há dado inconsistente
+resultante. Não atende nenhum critério objetivo de interrupção do `ENGINEERING_GUIDE.md` §11 (não é C-01,
+o dado final está correto; é C-04, caminho real de boot, mas isso sozinho não basta). Ruído de log em todo
+primeiro boot com banco vazio (produção já passou por isso há muito tempo, sem ninguém notar; agora visível
+de novo no Demo).
+
+Status:
+Aberto — sem decisão do CTO ainda. Correção candidata: `INSERT OR IGNORE INTO usuarios (...)` seguido de
+checagem via `changes()`/`rowcount`, eliminando a janela de corrida entre `SELECT` e `INSERT` sem exigir
+lock explícito.
+
+Sprint prevista:
+Não definida — candidata a limpeza futura, sem urgência.
 
 Responsável:
 —

@@ -860,6 +860,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   rigor dos hotfixes anteriores deste incidente). 683 testes no total, `ruff check .` limpo. Ver
   `docs/operations/INCIDENTS/INC-001-database-is-locked.md` para o relatório completo
 
+### Corrigido (2026-08-13 — hotfix/usuarios-senha-nao-persiste, KI-039)
+- `PUT /api/usuarios/<id>` espera `senha_nova` para trocar a senha; a tela de Usuários
+  (`frontend/src/pages/Users.jsx`) sempre enviava `senha` — mesmo campo do `POST /api/usuarios` de
+  criação. Resultado: trocar a senha de qualquer usuário pela tela de edição era silenciosamente
+  ignorado pelo backend, que respondia sucesso mesmo assim. Achado durante a Discovery do KI-038, ao
+  tentar trocar a senha da conta `admin` de produção como mitigação imediata da credencial hardcoded
+  exposta. Correção mínima, um arquivo (payload do caminho de edição passa a usar `senha_nova`; criação
+  inalterada). `pytest tests/test_users.py` 22/22, lint/build limpos, CI 6/6 verde. PR #25, commit
+  `ba2d6294`, merge `ccf94baa`, hotfix a partir de `main` (KI-039)
+
 ---
 
 ## [1.1.0] — 2026-06-21

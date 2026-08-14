@@ -1321,3 +1321,38 @@ administrativa.
 
 Responsável:
 —
+
+---
+
+## ~~KI-039~~ — RESOLVIDO
+
+Descrição:
+A tela de edição de usuário (`frontend/src/pages/Users.jsx`) enviava o campo `senha` no `PUT
+/api/usuarios/<id>` para trocar a senha de um usuário existente. O backend (`api_users.py::atualizar_usuario`)
+lê `senha_nova` nesse endpoint — nome deliberadamente distinto de `senha` (usado só na criação, via `POST
+/api/usuarios`), para diferenciar "sem alteração" de "nova senha" num formulário de edição. Como os nomes
+não batiam, qualquer troca de senha pela tela de Usuários era silenciosamente ignorada: `nome`/`perfil`/
+`ativo` eram salvos normalmente, a rota comitava e respondia sucesso, mas `senha_hash` nunca era tocado.
+Achado em 2026-08-13, durante a Discovery do KI-038, ao tentar trocar a senha da conta `admin` de
+produção como mitigação imediata da exposição da credencial hardcoded — a tela confirmou "Usuário
+atualizado!", mas a senha antiga continuou sendo a única válida.
+
+Impacto:
+Alto (potencial). Qualquer admin que use a tela de Usuários para trocar a própria senha ou a de outra
+conta — inclusive em resposta a um desligamento ou suspeita de vazamento de credencial — acredita que a
+troca funcionou, sem nenhum erro visível, mas a senha antiga permanece ativa. Caminho real de produção
+(critério C-04 de `ENGINEERING_GUIDE.md` §11), mesma categoria de risco do critério C-01 (dado que o
+operador acredita ter mudado diverge do dado real, sem erro).
+
+Status:
+Resolvido em 2026-08-13 (`hotfix/usuarios-senha-nao-persiste`, PR #25, commit `ba2d6294`, merge
+`ccf94baa`, branch a partir de `main`). Correção mínima e cirúrgica, um arquivo: no caminho de edição,
+`handleSubmit` (`Users.jsx`) agora envia `senha_nova` (fluxo de criação, campo `senha`, inalterado).
+`pytest tests/test_users.py` (22/22, backend não alterado, confirma nenhuma regressão), `npm run lint`/
+`npm run build` limpos, CI 6/6 verde.
+
+Sprint prevista:
+Hotfix imediato — achado durante a Discovery do KI-038, corrigido antes de retomar o ciclo.
+
+Responsável:
+—

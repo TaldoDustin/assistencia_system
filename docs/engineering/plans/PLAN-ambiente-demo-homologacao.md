@@ -164,7 +164,9 @@ Documentação operacional — não é código, mas fica registrada aqui por ser
 | `IR_FLOW_ENVIRONMENT` | `demo` | Nova, este plano |
 | `FLASK_SECRET_KEY` | gerada nova (`python -c "import secrets; print(secrets.token_hex(32))"`) | Nunca a mesma de produção |
 | `IR_FLOW_DATA_DIR` | `/data` | Padrão já usado em produção |
-| `IR_FLOW_CORS_ORIGINS` | `https://fluxoly-demo.vercel.app` (ou domínio Vercel real do projeto demo) | Explícito — **não** deixar em branco. Deixar em branco ativa o fallback de regex `https://.*\.vercel\.app` com `supports_credentials=True` (`fluxoly_app_security.py:47-50`), que aceitaria cookies de sessão de **qualquer** site `*.vercel.app`, não só o do Demo — risco desnecessário no primeiro ambiente exposto a alguém fora da equipe |
+| `IR_FLOW_ADMIN_PASSWORD` | gerada nova | **Bloqueante (KI-038, achado na Discovery final de provisionamento, 2026-08-14):** sem esta variável, o primeiro boot falha (`RuntimeError`) — o banco nasce vazio e `criar_admin_padrao()` exige a variável fora de dev local. Runbook original (2026-08-11) é anterior ao KI-038, por isso não a listava |
+| `IR_FLOW_PUBLIC_BASE_URL` | URL pública do backend Demo (ex.: `https://fluxoly-demo.onrender.com`) | Achado da Discovery final de provisionamento — sem ela, links absolutos (ex.: checklist público de aparelho) ficam vazios, porque o fallback (`VERCEL_URL`) só existe no lado do Vercel, não no backend Render. Decisão do CTO (2026-08-14): configurar |
+| `IR_FLOW_CORS_ORIGINS` | `https://fluxoly-demo.vercel.app` (ou domínio Vercel real do projeto demo) | Explícito — **não** deixar em branco. Deixar em branco ativa o fallback de regex `https://.*\.vercel\.app` com `supports_credentials=True` (`fluxoly_app_security.py:47-50`), que aceitaria cookies de sessão de **qualquer** site `*.vercel.app`, não só o do Demo — risco desnecessário no primeiro ambiente exposto a alguém fora da equipe. **Depende do passo Vercel (item 5) já ter sido feito** — a URL só existe depois de criar o projeto |
 | `MERCADO_PHONE_SYNC_ENABLED` | `0` | Explícito, mesma defesa em profundidade já usada em Preview — redundante com o guard de código, mas mantém o padrão de duas camadas do INC-003 |
 | `MERCADO_PHONE_API_TOKEN` | *(vazio)* | Nunca copiar de produção |
 | `MERCADO_PHONE_WEBHOOK_TOKEN` | *(vazio, nunca configurar)* | Achado da Revisão Arquitetural (Eixo 3): sem esta variável, `autenticar_integracao_mercado_phone()` já é fail-secure por design (KI-023) — nenhum candidato de token corresponde a uma string vazia, então `POST /integracoes/mercadophone/os` fica fechado por padrão. Nunca copiar de produção; se um dia o Demo precisar do webhook, isso é uma decisão nova, não uma herança |
@@ -172,8 +174,22 @@ Documentação operacional — não é código, mas fica registrada aqui por ser
 | `SENTRY_DSN` | mesmo DSN do projeto Sentry já usado por produção/preview | Confirmado pelo CTO (2026-08-11): reaproveitar o projeto atual — `environment=demo` já separa os eventos, sem necessidade de projeto dedicado |
 | `METRICS_TOKEN` | gerado novo, se `/metrics` for exposto | Mesmo padrão de produção |
 
-5. Vercel: novo projeto apontando para `frontend/`, variável de build apontando para a URL do backend demo (mesmo padrão do projeto de produção, `VITE_API_URL` ou equivalente — confirmar nome exato da variável no projeto Vercel de produção existente antes de replicar).
-6. Após o primeiro boot bem-sucedido: confirmar nos logs a presença de `demo_background_jobs_desativados` e a ausência de qualquer log de sync do MercadoPhone — mesma verificação já usada no Dry-Run 2B.
+4a. Passo único (não é variável permanente do serviço): rodar `scripts/seed_demo.py` via shell do Render depois
+    do primeiro boot bem-sucedido, exportando `DEMO_SEED_ADMIN_PASSWORD`/`DEMO_SEED_TECNICO_PASSWORD`/
+    `DEMO_SEED_VENDEDOR_PASSWORD` só nessa sessão de shell — nunca como variável de ambiente persistida do
+    serviço.
+
+5. Vercel: novo projeto apontando para `frontend/`. Variáveis (confirmado por leitura do código, não mais "a
+   confirmar"):
+
+| Variável | Valor no Demo | Observação |
+|---|---|---|
+| `VITE_API_URL` | URL do backend Demo (ex.: `https://fluxoly-demo.onrender.com`) | Nome confirmado em `frontend/src/api/client.js:8` |
+| `VITE_SENTRY_DSN` | mesmo DSN do projeto Sentry do frontend de produção | Decisão do CTO (2026-08-14): reaproveitar, mesmo padrão já decidido para o `SENTRY_DSN` do backend — `environment=demo` separa os eventos |
+
+6. Depois que o projeto Vercel existir: voltar ao Render e atualizar `IR_FLOW_CORS_ORIGINS` (item 4) com a
+   URL real gerada pela Vercel — não dá para preencher numa passada só, a ordem importa.
+7. Após o primeiro boot bem-sucedido: confirmar nos logs a presença de `demo_background_jobs_desativados` e a ausência de qualquer log de sync do MercadoPhone — mesma verificação já usada no Dry-Run 2B.
 
 ---
 

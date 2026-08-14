@@ -75,7 +75,12 @@ export default function Users() {
     setSubmitting(true);
     try {
       const payload = { ...form };
-      if (editId && !payload.senha) delete payload.senha;
+      if (editId) {
+        // PUT /api/usuarios/<id> espera "senha_nova" (distingue de "sem alteração"),
+        // diferente de POST /api/usuarios que espera "senha" (KI-038 hotfix).
+        if (payload.senha) payload.senha_nova = payload.senha;
+        delete payload.senha;
+      }
       const res = editId ? await usuariosApi.update(editId, payload) : await usuariosApi.create(payload);
       if (res?.ok) {
         toast.success(editId ? "Usuário atualizado!" : "Usuário criado!");

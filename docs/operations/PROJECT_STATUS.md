@@ -5,15 +5,18 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-11
-**Próxima revisão:** Operação Release 1.0 — Parte B: **Dry-Run 2B (rollback de infraestrutura Render)
-concluído com sucesso (2026-08-11, ver seção própria abaixo)** — as três frentes separadas do rollback
-(mecanismo Git, segurança do ambiente Preview, rollback real de infraestrutura) estão todas validadas
-agora. PR #23 mergeada e deployada em produção (`6bb2ede`, confirmado Render + Vercel). Destino da PR #24
-(descartável) e da PR #22 (evidência preservada do INC-003) e a correção de código do KI-037 seguem sendo
-decisões separadas do CTO, fora do escopo deste Dry-Run.**
+**Última revisão:** 2026-08-13
+**Próxima revisão:** KI-038 (admin padrão com senha hardcoded, `criar_admin_padrao()`) encerrado — ciclo
+`ADR-010` completo (Discovery → decisão arquitetural do CTO → Plano Técnico → Implementação → Testes →
+Revisão Arquitetural → Encerramento), ver seção própria abaixo. Achado durante a Discovery: a conta
+`admin`/`irflow@2024` era a credencial real de produção do CTO até 2026-08-13 — já trocada manualmente
+como mitigação imediata, o que por sua vez revelou e já corrigiu o **KI-039** (troca de senha de usuário
+não persistia, hotfix `ba2d6294`/PR #25). PR #26 (KI-038) aberta contra `main`, CI 6/6 verde — merge segue
+sendo decisão separada do CTO, ainda não autorizada.
 Manual do usuário, Ambiente de demonstração e Piloto/homologação seguem sem decisão, um por vez, conforme
-o CTO for decidindo. Sequência recente: ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
+o CTO for decidindo. Sequência recente: ✅ **KI-038 — admin padrão exige senha configurável (ciclo
+`ADR-010` completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia
+(hotfix, 2026-08-13, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
 (push → auto-deploy → revert → auto-deploy → confirmação, 2026-08-11, ver abaixo)** → ✅ **Preview Seguro — INC-003 Frente B, KI-035, KI-036 resolvidos
 (Discovery → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural → Encerramento,
 ciclo `ADR-010` completo, 2026-08-11, ver abaixo)** → 🔴 **INC-003 — dado real importado no Preview,
@@ -29,6 +32,39 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ KI-038 — Admin padrão exige senha configurável
+
+**Ver `docs/operations/KNOWN_ISSUES.md` (KI-038, Resolvidos) e
+`docs/engineering/plans/PLAN-ki038-admin-senha-configuravel.md` para o registro completo.**
+
+Achado em 2026-08-12 durante a QA manual do Ambiente de Demonstração (`ADR-012`, branch separada, ainda
+não mergeada): `app.py::criar_admin_padrao()` criava incondicionalmente `admin`/`irflow@2024` (senha
+hardcoded) sempre que não existia nenhum `admin`. Discovery aprofundada em 2026-08-13 revelou que essa
+era, até então, a conta real de produção do CTO — já trocada manualmente como mitigação imediata (o que
+revelou o KI-039, ver seção abaixo).
+
+Decisão arquitetural do CTO: escopo amplo. `criar_admin_padrao()` (branch
+`feat/ki-038-admin-senha-configuravel`, commit `303c05c3`) passa a exigir `IR_FLOW_ADMIN_PASSWORD` fora de
+dev local, mesmo padrão do `FLASK_SECRET_KEY` — ausente, o boot falha em vez de criar um admin com senha
+conhecida. Produção atual não é afetada (admin já existe). Achado de Revisão Arquitetural, não um bug: o
+Runbook de Provisionamento do Demo vai precisar dessa variável além de `DEMO_SEED_ADMIN_PASSWORD`. 3
+testes novos, suíte completa 751/754 (3 falhas pré-existentes de Windows local, não é regressão), CI 6/6
+verde. PR #26 aberta contra `main` — merge é decisão separada, ainda não autorizada.
+
+---
+
+## ✅ KI-039 — Troca de senha de usuário não persistia
+
+**Ver `docs/operations/KNOWN_ISSUES.md` (KI-039, Resolvidos) para o registro completo.**
+
+Achado em 2026-08-13, ao tentar trocar a senha da conta `admin` de produção como mitigação do KI-038: a
+tela de Usuários enviava `senha`, o backend esperava `senha_nova` (`PUT /api/usuarios/<id>`) — a troca era
+silenciosamente ignorada, reportando sucesso mesmo assim. Hotfix imediato a partir de `main`
+(`hotfix/usuarios-senha-nao-persiste`, PR #25, commit `ba2d6294`, merge `ccf94baa`), um arquivo
+(`frontend/src/pages/Users.jsx`), CI 6/6 verde, já mergeado em `main`.
 
 ---
 

@@ -12,6 +12,9 @@ os.environ["MERCADO_PHONE_SYNC_ENABLED"] = "0"
 # FLASK_SECRET_KEY (SECURITY_AUDIT_2026-07.md item 3) -- valor fixo só para teste,
 # nunca usado fora deste processo.
 os.environ.setdefault("FLASK_SECRET_KEY", "chave-de-teste-nao-usar-em-producao")
+# KI-038: mesma razão do FLASK_SECRET_KEY acima -- IR_FLOW_DATA_DIR liga
+# IS_SERVER_RUNTIME, e criar_admin_padrao() agora exige a variável nesse caso.
+os.environ.setdefault("IR_FLOW_ADMIN_PASSWORD", "senha-admin-teste-nao-usar-em-producao")
 
 import pytest  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402

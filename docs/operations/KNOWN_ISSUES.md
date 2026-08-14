@@ -1356,3 +1356,52 @@ Hotfix imediato — achado durante a Discovery do KI-038, corrigido antes de ret
 
 Responsável:
 —
+
+---
+
+## ~~KI-038~~ — RESOLVIDO
+
+Descrição:
+`app.py::criar_admin_padrao()` rodava incondicionalmente na importação do módulo (fora de qualquer guard
+de ambiente) e criava um usuário `admin`/`irflow@2024` (senha hardcoded no código-fonte) sempre que não
+existia nenhum usuário `admin`. Achado durante o smoke test manual de `scripts/seed_demo.py`
+(`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`, ADR-012), 2026-08-12, contra um banco
+descartável. Discovery aprofundada em 2026-08-13 revelou que essa era, até então, a conta real de
+produção do CTO — comportamento pré-existente desde a implementação original de autenticação, não uma
+regressão.
+
+Impacto:
+Alto (potencial). Introduzia uma conta privilegiada com senha fixa e conhecida (visível no código-fonte)
+em qualquer ambiente novo com banco vazio — inclusive um futuro Demo com acesso externo (prospects). A
+senha de produção já foi trocada manualmente pelo CTO em 2026-08-13 como mitigação imediata (o que, por
+sua vez, revelou o KI-039, já resolvido).
+
+Status:
+Resolvido em 2026-08-13 (`feat/ki-038-admin-senha-configuravel`, PR #26, commit `303c05c3`, branch a
+partir de `main`). Decisão arquitetural do CTO: escopo amplo — `criar_admin_padrao()` reestruturada para
+exigir `IR_FLOW_ADMIN_PASSWORD` fora de dev local (`IS_SERVER_RUNTIME`), mesmo padrão já usado para
+`FLASK_SECRET_KEY` (`SECURITY_AUDIT_2026-07.md` item 3); ausente nesse caso, o boot falha com
+`RuntimeError` propagado (checagem fora do `try/except` que protege só a inserção, para não ser engolida
+como warning). Em dev local mantém o fallback `irflow@2024`, documentado em `.env.example`, sem quebrar
+onboarding. Produção atual não é afetada — o admin já existe, a função é um no-op independente da
+variável. 3 testes novos (`tests/test_ki038_admin_senha_configuravel.py`, mesmo padrão de subprocesso
+isolado de `test_security_flask_secret_key_fallback.py`); `tests/conftest.py` e os demais testes que
+importam `app` em subprocesso (`test_ambiente_preview.py`, `test_sentry_init.py`,
+`test_security_flask_secret_key_fallback.py`) ganharam `IR_FLOW_ADMIN_PASSWORD` para não quebrar. Suíte
+completa local: 751/754 (3 falhas pré-existentes de ambiente Windows, `sentry_sdk`/`_overlapped`,
+confirmadas idênticas via `git stash` antes desta mudança — não é regressão). CI 6/6 verde.
+
+**Achado registrado durante a Revisão Arquitetural, não um bug:** `scripts/seed_demo.py` importa `app.py`
+(via `conectar()`), herdando o mesmo `criar_admin_padrao()` na importação. Quando o Demo for provisionado
+com banco vazio pela primeira vez, `IR_FLOW_ADMIN_PASSWORD` vai precisar estar setada no Render **além**
+de `DEMO_SEED_ADMIN_PASSWORD` (usada pelo `seed_demo.py` para as 3 contas de demonstração) — variáveis
+distintas, para propósitos distintos. Pertence ao Runbook de Provisionamento do plano do Ambiente de Demo
+(`PLAN-ambiente-demo-homologacao.md`, branch separada, ainda não mergeada) — registrado aqui só para não
+ser esquecido quando esse gate futuro for autorizado.
+
+Sprint prevista:
+Ciclo `ADR-010` completo (Discovery → decisão arquitetural → Plano Técnico → Implementação → Testes →
+Revisão Arquitetural → Encerramento) — concluído em 2026-08-13.
+
+Responsável:
+—

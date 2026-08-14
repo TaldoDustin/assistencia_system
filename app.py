@@ -515,20 +515,45 @@ if BACKGROUND_JOBS_ENABLED:
 
 
 def criar_admin_padrao():
-    """Cria usuário admin padrão se não existir nenhum usuário."""
+    """Cria usuário admin padrão se não existir nenhum usuário admin.
+
+    KI-038/KI-039: a senha vem de IR_FLOW_ADMIN_PASSWORD fora de dev local
+    -- ausente nesse caso, o boot falha (RuntimeError propaga, não é
+    capturado pelo try/except abaixo, que protege só a inserção em si).
+    Em dev local (IS_SERVER_RUNTIME=False) mantém o fallback histórico,
+    documentado em .env.example.
+    """
     conn = conectar()
-    cursor = conn.cursor()
     try:
-        # Verifica se já existe um usuário com o nome 'admin'
+        cursor = conn.cursor()
         cursor.execute("SELECT 1 FROM usuarios WHERE usuario = ?", ("admin",))
-        if cursor.fetchone() is None:
-            cursor.execute(
-                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
-                ("Administrador", "admin", generate_password_hash("irflow@2024"), "admin"),
+        precisa_criar = cursor.fetchone() is None
+    finally:
+        conn.close()
+
+    if not precisa_criar:
+        return
+
+    admin_senha = os.environ.get("IR_FLOW_ADMIN_PASSWORD")
+    if not admin_senha:
+        if IS_SERVER_RUNTIME:
+            raise RuntimeError(
+                "IR_FLOW_ADMIN_PASSWORD obrigatória para criar o admin inicial fora de " "desenvolvimento local."
             )
-            conn.commit()
+        admin_senha = "irflow@2024"
+
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES (?, ?, ?, ?)",
+            ("Administrador", "admin", generate_password_hash(admin_senha), "admin"),
+        )
+        conn.commit()
     except Exception as exc:
-        # Loga o erro mas não interrompe o boot
+        conn.rollback()
+        # Loga o erro mas não interrompe o boot -- erro de banco na inserção,
+        # não de configuração ausente (esse já propagou acima).
         logger.warning("criar_admin_padrao_falhou", extra={"erro": str(exc)})
     finally:
         conn.close()

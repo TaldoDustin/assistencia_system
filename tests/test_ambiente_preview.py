@@ -97,6 +97,7 @@ class TestLogDeBootQuandoPreview:
                     "IR_FLOW_ENABLE_BACKGROUND_JOBS": "1",
                     "MERCADO_PHONE_SYNC_ENABLED": "0",
                     "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+                    "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
                 },
             )
         assert resultado.returncode == 0, resultado.stderr
@@ -112,6 +113,7 @@ class TestLogDeBootQuandoPreview:
                     "IR_FLOW_ENABLE_BACKGROUND_JOBS": "0",
                     "MERCADO_PHONE_SYNC_ENABLED": "0",
                     "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+                    "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
                 },
             )
         assert resultado.returncode == 0, resultado.stderr
@@ -138,6 +140,7 @@ class TestThreadMercadoPhoneNaoIniciaEmPreview:
                     "MERCADO_PHONE_SYNC_ENABLED": "1",
                     "MERCADO_PHONE_API_TOKEN": "token-herdado-de-producao-fake",
                     "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+                    "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
                 },
             )
         assert resultado.returncode == 0, resultado.stderr
@@ -160,6 +163,7 @@ class TestSentryEnvironmentPreview:
                     "IR_FLOW_ENABLE_BACKGROUND_JOBS": "0",
                     "MERCADO_PHONE_SYNC_ENABLED": "0",
                     "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+                    "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
                     "SENTRY_DSN": _DSN_FALSO,
                 },
             )
@@ -177,6 +181,7 @@ class TestSentryEnvironmentPreview:
                     "IR_FLOW_ENABLE_BACKGROUND_JOBS": "0",
                     "MERCADO_PHONE_SYNC_ENABLED": "0",
                     "FLASK_SECRET_KEY": "chave-de-teste-para-este-subprocesso",
+                    "IR_FLOW_ADMIN_PASSWORD": "senha-admin-teste-nao-usar-em-producao",
                     "SENTRY_DSN": _DSN_FALSO,
                 },
             )

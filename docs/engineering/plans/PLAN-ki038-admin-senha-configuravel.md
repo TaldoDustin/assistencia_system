@@ -15,8 +15,9 @@
       do CTO até 2026-08-13)
 - [x] Plano Técnico — aprovado pelo CTO (escopo amplo: remover o fallback hardcoded em qualquer ambiente
       que não seja dev local)
-- [ ] Implementação
-- [ ] Testes
+- [x] Implementação — `app.py::criar_admin_padrao()`, commit `303c05c3`
+- [x] Testes — 3 testes novos + suíte completa (751/754, 3 falhas pré-existentes de ambiente Windows não
+      relacionadas), `black`/`ruff` limpos, CI 6/6 verde (PR #26)
 - [ ] QA Manual
 - [ ] Revisão Arquitetural
 - [ ] Encerramento

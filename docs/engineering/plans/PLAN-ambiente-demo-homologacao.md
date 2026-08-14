@@ -166,7 +166,7 @@ Documentação operacional — não é código, mas fica registrada aqui por ser
 | `IR_FLOW_DATA_DIR` | `/data` | Padrão já usado em produção |
 | `IR_FLOW_ADMIN_PASSWORD` | gerada nova | **Bloqueante (KI-038, achado na Discovery final de provisionamento, 2026-08-14):** sem esta variável, o primeiro boot falha (`RuntimeError`) — o banco nasce vazio e `criar_admin_padrao()` exige a variável fora de dev local. Runbook original (2026-08-11) é anterior ao KI-038, por isso não a listava |
 | `IR_FLOW_PUBLIC_BASE_URL` | URL pública do backend Demo (ex.: `https://fluxoly-demo.onrender.com`) | Achado da Discovery final de provisionamento — sem ela, links absolutos (ex.: checklist público de aparelho) ficam vazios, porque o fallback (`VERCEL_URL`) só existe no lado do Vercel, não no backend Render. Decisão do CTO (2026-08-14): configurar |
-| `IR_FLOW_CORS_ORIGINS` | `https://fluxoly-demo.vercel.app` (ou domínio Vercel real do projeto demo) | Explícito — **não** deixar em branco. Deixar em branco ativa o fallback de regex `https://.*\.vercel\.app` com `supports_credentials=True` (`fluxoly_app_security.py:47-50`), que aceitaria cookies de sessão de **qualquer** site `*.vercel.app`, não só o do Demo — risco desnecessário no primeiro ambiente exposto a alguém fora da equipe. **Depende do passo Vercel (item 5) já ter sido feito** — a URL só existe depois de criar o projeto |
+| `IR_FLOW_CORS_ORIGINS` | URL real do projeto Vercel do Demo, sem barra final (confirmado em produção real: `https://assistencia-system-do1h.vercel.app`) | Explícito — **não** deixar em branco. Deixar em branco ativa o fallback de regex `https://.*\.vercel\.app` com `supports_credentials=True` (`fluxoly_app_security.py:47-50`), que aceitaria cookies de sessão de **qualquer** site `*.vercel.app`, não só o do Demo — risco desnecessário no primeiro ambiente exposto a alguém fora da equipe. **Depende do passo Vercel (item 5) já ter sido feito** — a URL só existe depois de criar o projeto. Produção usa esse mesmo padrão explícito (nunca depende do fallback de regex) |
 | `MERCADO_PHONE_SYNC_ENABLED` | `0` | Explícito, mesma defesa em profundidade já usada em Preview — redundante com o guard de código, mas mantém o padrão de duas camadas do INC-003 |
 | `MERCADO_PHONE_API_TOKEN` | *(vazio)* | Nunca copiar de produção |
 | `MERCADO_PHONE_WEBHOOK_TOKEN` | *(vazio, nunca configurar)* | Achado da Revisão Arquitetural (Eixo 3): sem esta variável, `autenticar_integracao_mercado_phone()` já é fail-secure por design (KI-023) — nenhum candidato de token corresponde a uma string vazia, então `POST /integracoes/mercadophone/os` fica fechado por padrão. Nunca copiar de produção; se um dia o Demo precisar do webhook, isso é uma decisão nova, não uma herança |
@@ -184,12 +184,22 @@ Documentação operacional — não é código, mas fica registrada aqui por ser
 
 | Variável | Valor no Demo | Observação |
 |---|---|---|
-| `VITE_API_URL` | URL do backend Demo (ex.: `https://fluxoly-demo.onrender.com`) | Nome confirmado em `frontend/src/api/client.js:8` |
+| `VITE_API_URL` | URL do backend Demo **com o sufixo `/api`** (ex.: `https://fluxoly-demo.onrender.com/api`) | Nome confirmado em `frontend/src/api/client.js:8`. **Achado real de provisionamento (2026-08-14):** ao contrário do fallback automático (`GUESSED_RENDER_BASE`, que já acrescenta `/api` sozinho), quando `VITE_API_URL` está definida ela é usada **como está**, sem acréscimo — esquecer o `/api` faz todo `fetch` cair em `.../auth/login` em vez de `.../api/auth/login` (404, e como a rota nem existe o CORS não é aplicado, então o navegador mostra erro de CORS mascarando a causa real) |
 | `VITE_SENTRY_DSN` | mesmo DSN do projeto Sentry do frontend de produção | Decisão do CTO (2026-08-14): reaproveitar, mesmo padrão já decidido para o `SENTRY_DSN` do backend — `environment=demo` separa os eventos |
 
 6. Depois que o projeto Vercel existir: voltar ao Render e atualizar `IR_FLOW_CORS_ORIGINS` (item 4) com a
    URL real gerada pela Vercel — não dá para preencher numa passada só, a ordem importa.
 7. Após o primeiro boot bem-sucedido: confirmar nos logs a presença de `demo_background_jobs_desativados` e a ausência de qualquer log de sync do MercadoPhone — mesma verificação já usada no Dry-Run 2B.
+
+**Execução real (2026-08-14):** serviço `fluxoly-demo` criado e no ar (`https://fluxoly-demo.onrender.com`),
+projeto Vercel criado (`https://assistencia-system-do1h.vercel.app`). Log de boot confirmou
+`demo_background_jobs_desativados` e `sentry_inicializado environment=demo` nos dois workers; login real
+com `admin`/`IR_FLOW_ADMIN_PASSWORD` confirmado via `curl` (200). Dois problemas encontrados e corrigidos
+na prática, já refletidos na tabela acima: `VITE_API_URL` sem o sufixo `/api` (404 em todas as chamadas) e
+`IR_FLOW_CORS_ORIGINS` desatualizada/ausente (bloqueio de CORS no navegador) — ambos corrigidos e
+confirmados via `curl -X OPTIONS` mostrando `access-control-allow-origin` correto. KI-040 (condição de
+corrida em `criar_admin_padrao()`, 2 workers do Gunicorn) observado ao vivo nesse primeiro boot, registrado
+em `KNOWN_ISSUES.md`, sem impacto no resultado final.
 
 ---
 

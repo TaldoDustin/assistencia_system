@@ -18,9 +18,14 @@
 - [x] Implementação — `app.py::criar_admin_padrao()`, commit `303c05c3`
 - [x] Testes — 3 testes novos + suíte completa (751/754, 3 falhas pré-existentes de ambiente Windows não
       relacionadas), `black`/`ruff` limpos, CI 6/6 verde (PR #26)
-- [ ] QA Manual
-- [ ] Revisão Arquitetural
-- [ ] Encerramento
+- [x] QA Manual — dispensado por decisão do CTO (os 3 testes automatizados de subprocesso isolado já
+      cobrem exatamente os cenários que um QA manual cobriria: boot sem a variável falhando, boot com a
+      variável criando a senha certa, admin já existente ignorando a variável)
+- [x] Revisão Arquitetural — 4 eixos do `ADR-010`, sem achados bloqueantes (ver
+      `docs/operations/KNOWN_ISSUES.md` KI-038 para o registro completo, inclusive a nota operacional
+      sobre `IR_FLOW_ADMIN_PASSWORD` no futuro Runbook de Provisionamento do Demo)
+- [x] Encerramento — `docs/operations/KNOWN_ISSUES.md` (KI-038 → Resolvido), `CHANGELOG.md` e
+      `PROJECT_STATUS.md` atualizados
 
 ---
 

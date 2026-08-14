@@ -870,6 +870,22 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   inalterada). `pytest tests/test_users.py` 22/22, lint/build limpos, CI 6/6 verde. PR #25, commit
   `ba2d6294`, merge `ccf94baa`, hotfix a partir de `main` (KI-039)
 
+### Adicionado (2026-08-13 — feat/ki-038-admin-senha-configuravel, KI-038, ciclo ADR-010 completo)
+- `app.py::criar_admin_padrao()` deixa de usar a senha fixa `irflow@2024` em qualquer ambiente que se
+  pareça com servidor real. Passa a exigir `IR_FLOW_ADMIN_PASSWORD` fora de dev local
+  (`IS_SERVER_RUNTIME`) — mesmo padrão já usado para `FLASK_SECRET_KEY` (`SECURITY_AUDIT_2026-07.md` item
+  3): ausente nesse caso, o boot falha com erro claro em vez de criar um admin com senha conhecida. Em dev
+  local mantém o fallback histórico, documentado em `.env.example`, sem quebrar onboarding. Produção atual
+  não é afetada (admin já existe, senha já trocada manualmente pelo CTO — KI-039); o guard passa a valer
+  para o próximo ambiente que subir com banco vazio (Demo, `ADR-012`). Achado registrado durante a Revisão
+  Arquitetural, não um bug: `scripts/seed_demo.py` herda o mesmo `criar_admin_padrao()` — o Runbook de
+  Provisionamento do Demo vai precisar de `IR_FLOW_ADMIN_PASSWORD` além de `DEMO_SEED_ADMIN_PASSWORD`. 3
+  testes novos (`tests/test_ki038_admin_senha_configuravel.py`), suíte completa 751/754 (3 falhas
+  pré-existentes de ambiente Windows, confirmadas via `git stash` — não é regressão), `black`/`ruff`
+  limpos, CI 6/6 verde. Ciclo `ADR-010` completo (Discovery → decisão arquitetural → Plano Técnico →
+  Implementação → Testes → Revisão Arquitetural → Encerramento). Ver
+  `docs/engineering/plans/PLAN-ki038-admin-senha-configuravel.md`. PR #26, commit `303c05c3` (KI-038)
+
 ---
 
 ## [1.1.0] — 2026-06-21

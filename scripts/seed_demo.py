@@ -41,6 +41,7 @@ from werkzeug.security import generate_password_hash  # noqa: E402
 import fluxoly_caixa_repository as caixa_repo  # noqa: E402
 import fluxoly_clientes_repository as clientes_repo  # noqa: E402
 import fluxoly_produtos_repository as produtos_repo  # noqa: E402
+import fluxoly_tipos_garantia_repository as tipos_garantia_repo  # noqa: E402
 import fluxoly_unidades_serializadas_repository as unidades_repo  # noqa: E402
 import fluxoly_vendas_repository as vendas_repo  # noqa: E402
 from app import conectar  # noqa: E402
@@ -172,6 +173,12 @@ def seed_clientes(cursor):
 
 def seed_reparos(cursor):
     return {nome: obter_ou_criar_reparo(cursor, nome) for nome in REPAROS_DEMO}
+
+
+def seed_tipos_garantia(cursor):
+    """KI-041 -- sem isso, Finalizar OS e Registrar Venda ficam bloqueados
+    (ambos exigem Tipo de Garantia obrigatório) para qualquer perfil."""
+    return tipos_garantia_repo.inserir(cursor, "Garantia Padrão", 3)
 
 
 def seed_estoque_pecas(cursor):
@@ -333,6 +340,7 @@ def main():
         usuario_ids = seed_usuarios(cursor, senhas)
         cliente_ids = seed_clientes(cursor)
         reparo_map = seed_reparos(cursor)
+        seed_tipos_garantia(cursor)
         pecas_estoque = seed_estoque_pecas(cursor)
         produtos = seed_produtos_e_unidades(cursor)
         seed_os(cursor, cliente_ids, reparo_map, pecas_estoque, usuario_ids)
@@ -350,6 +358,7 @@ def main():
     print(f"  Produtos/unidades: {len(PRODUTOS_DEMO)}")
     print("  OS: 24")
     print("  Vendas: 8")
+    print("  Tipos de Garantia: 1 (Garantia Padrão, 3 meses)")
     print("  Contas: admin.demo, tecnico.demo, vendedor.demo")
     print(
         "\nPróximo passo (fora deste script): criar o backup 'seed-inicial' via "

@@ -204,12 +204,19 @@ em `KNOWN_ISSUES.md`, sem impacto no resultado final.
 **Seed + backup `seed-inicial` (2026-08-15):** `scripts/seed_demo.py` executado via Web Shell do Render
 contra o banco vazio do `fluxoly-demo` (senhas das 3 contas exportadas só na sessão do shell, nunca
 persistidas), sem exceção, produzindo os volumes esperados (18 clientes, 10 produtos/unidades, 24 OS, 8
-vendas, contas `admin.demo`/`tecnico.demo`/`vendedor.demo`). Login real de `admin.demo` confirmado via
-navegador em `https://assistencia-system-do1h.vercel.app`; backup `backup-vseed-inicial-20260815-003424.db`
+vendas, contas `admin.demo`/`tecnico.demo`/`vendedor.demo`). Backup `backup-vseed-inicial-20260815-003424.db`
 (280.0 KB) criado a partir da tela Backups (`POST /api/backup/criar`, `versao=seed-inicial`) — vira o estado
-de referência do reset manual. **Ainda não testados nesta etapa:** login de `tecnico.demo`/`vendedor.demo`,
-e o ciclo completo de restore (alterar dado → restaurar `seed-inicial` → confirmar reversão) — ambos
-pendentes para a QA dos 14 critérios do DoD.
+de referência do reset manual.
+
+**Login das 3 contas + restore de ponta a ponta (2026-08-15):** login real via navegador confirmado para as
+3 contas em `https://assistencia-system-do1h.vercel.app` — `admin.demo` (perfil Admin), `tecnico.demo`
+(perfil Tecnico, menu sem Financeiro/Custos Operacionais/Tabelas de Preço/Backups/Usuários), `vendedor.demo`
+(perfil Vendedor, menu com Vendas, sem Kanban/Garantias) — cada perfil com o menu lateral correspondente.
+Teste de restore: cliente sintético "TESTE RESET - APAGAR" criado como marcador (18→19 clientes); backup
+`seed-inicial` baixado (280.0 KB) e reenviado via "Restaurar backup" (`POST /api/backup/restaurar`) — o
+sistema gerou automaticamente `pre-restore-20260815-005741.db` antes de aplicar o restore (mesmo
+comportamento já validado no item "Restore" do checklist de Release 1.0); após o restore, contagem de
+clientes voltou a 18 e o marcador de teste não existe mais — reversão confirmada de ponta a ponta.
 
 ---
 
@@ -273,9 +280,9 @@ Mapeamento para os 14 itens do Definition of Done do `ADR-012` (execução concr
 - [ ] Nenhuma regressão de comportamento em produção/desenvolvimento local (nenhuma das duas flags nunca é setada nesses ambientes).
 - [ ] Sentry reporta `environment="demo"` corretamente, sem colidir com `"preview"` ou `"production"`.
 - [x] `scripts/seed_demo.py` executa sem erro contra um banco vazio e produz os volumes de dados esperados — confirmado em produção real do `fluxoly-demo`, 2026-08-15 (ver "Seed + backup" acima).
-- [ ] As 3 contas de demonstração autenticam corretamente com os perfis certos (`admin`, `tecnico`, `vendedor`) — só `admin.demo` confirmado até aqui (2026-08-15); `tecnico.demo`/`vendedor.demo` pendentes.
+- [x] As 3 contas de demonstração autenticam corretamente com os perfis certos (`admin`, `tecnico`, `vendedor`) — confirmado em 2026-08-15 via navegador real: `admin.demo` (perfil Admin, menu completo), `tecnico.demo` (perfil Tecnico, sem Financeiro/Custos Operacionais/Tabelas de Preço/Backups/Usuários), `vendedor.demo` (perfil Vendedor, com Vendas, sem Kanban/Garantias) — cada um com o menu lateral correto para o perfil.
 - [x] Runbook de provisionamento seguido item a item na criação real do serviço Render/Vercel (Implementação).
-- [ ] Reset (backup `seed-inicial` → restore) testado de ponta a ponta pelo menos uma vez.
+- [x] Reset (backup `seed-inicial` → restore) testado de ponta a ponta pelo menos uma vez — confirmado em 2026-08-15: cliente de teste "TESTE RESET - APAGAR" criado (19→18 revertido), `pre-restore-20260815-005741.db` gerado automaticamente antes do restore (mesmo comportamento já validado no item "Restore" do checklist de Release 1.0), contagem de clientes voltou a 18 após restaurar `seed-inicial`.
 - [ ] Os 14 itens do Definition of Done do `ADR-012` verificados e marcados na QA Manual.
 - [ ] Suíte completa + `ruff check .` sem regressão.
 - [ ] `KI-037` movido para "Resolvidos" em `KNOWN_ISSUES.md`, com data e commit.

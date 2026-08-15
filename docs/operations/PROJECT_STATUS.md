@@ -11,17 +11,24 @@ Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
 (`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais. Ver
 `docs/engineering/adr/ADR-012.md` (Definition of Done) e
 `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` para o registro completo de cada evidência.
-Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora. O ciclo de **Homologação Externa**
-(produto, não engenharia) teve Discovery e Plano concluídos (homologador = pessoa interna simulando usuário
-externo; escopo = 1 pessoa nos 3 perfis; período = sessão única de 1 dia; decisão final = só o CTO) — ver
-`docs/engineering/plans/PLAN-homologacao-externa-demo.md` — mas sua etapa de Preparação (data + homologador
-humano) foi **adiada** por decisão do CTO em favor da **Homologação Interna Controlada** via Claude in
-Chrome, gate vigente agora — ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md`. LGPD
-(Discovery própria, trilha paralela) e KI-040 (race condition em `criar_admin_padrao()` sob
-`--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual do usuário e Piloto/homologação
-seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Roteiro de Homologação Interna Controlada aprovado, substitui por agora a
-Homologação Externa (2026-08-15, ver abaixo)** → 🟡 **Plano de Homologação Externa do Ambiente Demo
+Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora. O ciclo de **Homologação Interna
+Controlada** (via Claude in Chrome, substituindo por agora o gate da Homologação Externa) foi **executado
+nos 3 perfis em 2026-08-15** — resultado: 🟡 **CONCLUÍDA COM PENDÊNCIAS** (nem homologado, nem rejeitado).
+Achado bloqueante: seed do Demo sem nenhum Tipo de Garantia cadastrado, impedindo Finalizar OS e Registrar
+Venda para qualquer perfil (**KI-041**, correção necessária em `scripts/seed_demo.py` antes de retomar).
+Achados não bloqueantes de menu/autorização e visão financeira (**KI-042**). Nenhum guardrail violado,
+nenhuma falha estrutural de segurança confirmada, produção intocada. Demo já restaurado ao backup
+`seed-inicial` (dados de teste da execução removidos) — ver
+`docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo. O ciclo de
+**Homologação Externa** (produto, não engenharia) segue com Discovery e Plano concluídos (ver
+`docs/engineering/plans/PLAN-homologacao-externa-demo.md`) mas etapa de Preparação **adiada** até a
+Homologação Interna fechar com 🟢 HOMOLOGADO. LGPD (Discovery própria, trilha paralela) e KI-040 (race
+condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
+do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
+Sequência recente: 🟡 **Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS, KI-041/KI-042
+registrados, Demo restaurado ao seed-inicial (2026-08-15, ver abaixo)** → 🟡 **Roteiro de Homologação Interna
+Controlada aprovado, substitui por agora a Homologação Externa (2026-08-15, ver abaixo)** → 🟡 **Plano de
+Homologação Externa do Ambiente Demo
 concluído (2026-08-15, ver abaixo)** → 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
 abaixo)** → 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
 abaixo)** → 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
@@ -48,6 +55,36 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
+## 🟡 Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS
+
+**Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo de
+evidências, achados e o encerramento.**
+
+2026-08-15. Os 3 perfis (`admin.demo`/`tecnico.demo`/`vendedor.demo`) foram exercitados via Claude in
+Chrome: login/menu, fluxos funcionais por perfil, e testes negativos de controle de acesso. Guardrails
+respeitados integralmente (nenhum dado real, nenhuma chamada MercadoPhone, produção intocada, confirmada
+saudável ao final). Decisão do CTO: **🟡 CONCLUÍDA COM PENDÊNCIAS** — nem HOMOLOGADO, nem REJEITADO.
+
+**Achado bloqueante — KI-041:** `scripts/seed_demo.py` não cria nenhum Tipo de Garantia, o que impede
+Finalizar OS e Registrar Venda (os dois fluxos centrais do sistema) para qualquer perfil. Confirmado como
+gap de dado, não bug de lógica — a validação de campo obrigatório está correta. Durante a execução, um Tipo
+de Garantia foi criado manualmente só para validar que os fluxos funcionam com o dado presente (ambos
+passaram); em seguida o Demo foi restaurado ao backup `seed-inicial`, removendo esse dado manual junto com o
+cliente e a venda de teste criados na sessão — o Demo está limpo, e o gap volta a existir até a correção
+formal (Discovery + Plano Técnico já registrados no próprio KI-041, aguardando aprovação do CTO antes de
+implementar em `scripts/seed_demo.py`).
+
+**Achados não bloqueantes — KI-042:** menu do `vendedor.demo` expõe Kanban/Garantias (leitura completa,
+escrita bloqueada no backend) e do `tecnico.demo` expõe `/vendas` (mesmo padrão), ambos contradizendo o
+`ADR-012`; Dashboard não reflete receita de Vendas de produto. Nenhum bypass de autorização confirmado.
+Registrado como frente futura de consistência, sem sprint definida.
+
+**Próximo passo:** CTO aprovar o Plano Técnico do KI-041 (quantos/quais Tipos de Garantia sintéticos) antes
+de qualquer implementação em `scripts/seed_demo.py`. Depois: código → CI → merge → deploy → reset do Demo →
+reexecução dos fluxos afetados → nova decisão de homologação.
+
+---
+
 ## 🟡 Roteiro de Homologação Interna Controlada aprovado
 
 **Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo.**
@@ -60,9 +97,6 @@ bloqueio do MercadoPhone na UI). Guardrails de "o que não pode acontecer" (nenh
 MercadoPhone real, produção intocada) continuam valendo integralmente. Decisão final (HOMOLOGADO
 INTERNAMENTE / REJEITADO) permanece exclusiva do CTO. A etapa de Preparação da Homologação Externa
 (definir data + homologador humano) fica adiada, sem data prevista.
-
-**Próximo passo:** execução do Fluxo 1 (login/navegação) via Claude in Chrome, com confirmação do CTO a
-cada perfil.
 
 ---
 

@@ -5,22 +5,21 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-13
-**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) mergeado em `main` — ciclo `ADR-010`
-completo no código (Discovery → ADR → Plano Técnico → Implementação → Testes → QA Manual → Revisão
-Arquitetural → Encerramento, concluídos em 2026-08-12) e branch `feat/ambiente-demo-homologacao`
-atualizada a partir de `main` e mergeada em 2026-08-13, já incluindo KI-038 e KI-039 resolvidos.
-`IR_FLOW_ENVIRONMENT=demo`/`IS_DEMO_ENVIRONMENT` implementados em `fluxoly_config.py`, coexistindo com
-`IS_PULL_REQUEST`; KI-037 corrigido (guard nos 4 endpoints de escrita/ação de `api_mercadophone.py`) e
-movido para Resolvidos; `scripts/seed_demo.py` (loja modelo sintética + 3 contas de demo) e 20 testes
-novos criados; QA manual completa contra backend real e descartável. `KI-038` (`criar_admin_padrao()` com
-senha hardcoded, achado durante essa QA) e `KI-039` (troca de senha de usuário não persistia, achado ao
-mitigar o KI-038) ambos resolvidos e já em `main` antes deste merge (PR #25, PR #26). **Ainda não
-autorizados:** provisionamento real Render/Vercel, e homologação externa (14 critérios do Definition of
-Done do `ADR-012`) — a QA local comprova que a implementação funciona, mas não substitui a homologação
-real do ambiente.
+**Última revisão:** 2026-08-15
+**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) provisionado e populado — serviço
+Render `fluxoly-demo` (`https://fluxoly-demo.onrender.com`) e projeto Vercel
+(`https://assistencia-system-do1h.vercel.app`) no ar desde 2026-08-14; `scripts/seed_demo.py` executado
+com sucesso em 2026-08-15 (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
+`admin.demo`/`tecnico.demo`/`vendedor.demo`) e backup `seed-inicial` criado
+(`backup-vseed-inicial-20260815-003424.db`). Login de `admin.demo` confirmado via navegador; login de
+`tecnico.demo`/`vendedor.demo` e o ciclo de restore ainda pendentes. **Ainda não autorizada:** homologação
+externa — faltam validar os 14 critérios do Definition of Done do `ADR-012` (ver
+`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`). KI-040 (race condition em
+`criar_admin_padrao()` sob `--workers 2`, achado ao vivo no boot do Demo em 2026-08-14) segue aberto, sem
+decisão do CTO, sem bloquear a sequência.
 Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
+Sequência recente: 🟡 **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
+ver abaixo)** → ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
 (2026-08-13, ver abaixo)** → ✅ **KI-038 — admin padrão exige senha configurável (ciclo `ADR-010`
 completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia (hotfix,
 2026-08-13, ver abaixo)** → ✅ **Dry-Run 2B — rollback de infraestrutura Render validado
@@ -39,6 +38,27 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Seed + Backup `seed-inicial` do Ambiente de Demonstração (ADR-012)
+
+**Ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (seção "Runbook de Provisionamento",
+"Execução real") para o registro completo.**
+
+2026-08-15, sequência posterior ao provisionamento real do `fluxoly-demo`/Vercel (2026-08-14, ver abaixo).
+`scripts/seed_demo.py` executado via Web Shell do Render contra o banco vazio (senhas das 3 contas
+exportadas só na sessão do shell, nunca persistidas como variável do serviço) — sem exceção, volumes
+conferindo com o esperado (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
+`admin.demo`/`tecnico.demo`/`vendedor.demo`). Login de `admin.demo` confirmado via navegador real em
+`https://assistencia-system-do1h.vercel.app`; backup `backup-vseed-inicial-20260815-003424.db` (280.0 KB)
+criado pela tela Backups (`POST /api/backup/criar`, `versao=seed-inicial`) — vira o estado de referência
+do reset manual.
+
+**Ainda pendente:** login de `tecnico.demo`/`vendedor.demo`, e o ciclo completo de restore (alterar dado →
+restaurar `seed-inicial` → confirmar reversão) — ambos fazem parte dos 14 critérios do Definition of Done
+do `ADR-012`, que seguem não verificados como um todo. Homologação externa continua não autorizada até
+essa verificação estar completa.
 
 ---
 

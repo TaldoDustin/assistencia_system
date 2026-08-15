@@ -6,19 +6,23 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-15
-**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) provisionado e populado — serviço
-Render `fluxoly-demo` (`https://fluxoly-demo.onrender.com`) e projeto Vercel
-(`https://assistencia-system-do1h.vercel.app`) no ar desde 2026-08-14; `scripts/seed_demo.py` executado
-com sucesso em 2026-08-15 (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
+**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) provisionado, populado e com QA
+funcional inicial concluída — serviço Render `fluxoly-demo` (`https://fluxoly-demo.onrender.com`) e projeto
+Vercel (`https://assistencia-system-do1h.vercel.app`) no ar desde 2026-08-14; `scripts/seed_demo.py`
+executado com sucesso em 2026-08-15 (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
 `admin.demo`/`tecnico.demo`/`vendedor.demo`) e backup `seed-inicial` criado
-(`backup-vseed-inicial-20260815-003424.db`). Login de `admin.demo` confirmado via navegador; login de
-`tecnico.demo`/`vendedor.demo` e o ciclo de restore ainda pendentes. **Ainda não autorizada:** homologação
-externa — faltam validar os 14 critérios do Definition of Done do `ADR-012` (ver
-`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`). KI-040 (race condition em
+(`backup-vseed-inicial-20260815-003424.db`). Login das 3 contas confirmado via navegador com o menu lateral
+correto para cada perfil; ciclo de restore testado de ponta a ponta (cliente marcador criado → backup
+`seed-inicial` baixado e reenviado → `pre-restore-*.db` gerado automaticamente → reversão confirmada).
+**Ainda não autorizada:** homologação externa — faltam revisar formalmente os 14 critérios do Definition of
+Done do `ADR-012` como um todo (ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`), incluindo
+os itens ainda não reverificados contra o Demo real (guard KI-037 nos 4 endpoints do MercadoPhone, Sentry
+`environment=demo`, ausência de destino externo no backup). KI-040 (race condition em
 `criar_admin_padrao()` sob `--workers 2`, achado ao vivo no boot do Demo em 2026-08-14) segue aberto, sem
 decisão do CTO, sem bloquear a sequência.
 Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
+Sequência recente: 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
+abaixo)** → 🟡 **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
 ver abaixo)** → ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
 (2026-08-13, ver abaixo)** → ✅ **KI-038 — admin padrão exige senha configurável (ciclo `ADR-010`
 completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia (hotfix,
@@ -41,7 +45,32 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Seed + Backup `seed-inicial` do Ambiente de Demonstração (ADR-012)
+## 🟡 Login das 3 contas de demo + restore de ponta a ponta validados (ADR-012)
+
+**Ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (seção "Runbook de Provisionamento",
+"Login das 3 contas + restore de ponta a ponta") para o registro completo.**
+
+2026-08-15, sequência imediata ao seed (ver seção abaixo). Login real via navegador confirmado para as 3
+contas em `https://assistencia-system-do1h.vercel.app`: `admin.demo` (perfil Admin, menu completo),
+`tecnico.demo` (perfil Tecnico, menu sem Financeiro/Custos Operacionais/Tabelas de Preço/Backups/Usuários),
+`vendedor.demo` (perfil Vendedor, menu com Vendas, sem Kanban/Garantias) — cada perfil restrito ao menu
+lateral correto, sem regressão de permissão.
+
+**Restore de ponta a ponta:** cliente sintético "TESTE RESET - APAGAR" criado como marcador (18→19
+clientes); backup `seed-inicial` baixado (280.0 KB) e reenviado via "Restaurar backup"
+(`POST /api/backup/restaurar`) — o sistema gerou automaticamente `pre-restore-20260815-005741.db` antes de
+aplicar o restore (mesmo comportamento já validado no item "Restore" do checklist de Release 1.0); após o
+restore, contagem de clientes voltou a 18 e o marcador de teste não existe mais — reversão confirmada.
+
+**Ainda pendente para fechar os 14 critérios do DoD do `ADR-012`:** reverificação contra o Demo real (não
+só a QA manual local de 2026-08-12) dos itens de guard KI-037 nos 4 endpoints do MercadoPhone, Sentry
+`environment=demo` disparando um erro controlado, e confirmação de que o backup não envia dado a nenhum
+destino externo no ambiente Demo. Homologação externa continua não autorizada até a revisão formal dos 14
+itens estar completa.
+
+---
+
+## ✅ Seed + Backup `seed-inicial` do Ambiente de Demonstração (ADR-012)
 
 **Ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (seção "Runbook de Provisionamento",
 "Execução real") para o registro completo.**
@@ -50,15 +79,9 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 `scripts/seed_demo.py` executado via Web Shell do Render contra o banco vazio (senhas das 3 contas
 exportadas só na sessão do shell, nunca persistidas como variável do serviço) — sem exceção, volumes
 conferindo com o esperado (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
-`admin.demo`/`tecnico.demo`/`vendedor.demo`). Login de `admin.demo` confirmado via navegador real em
-`https://assistencia-system-do1h.vercel.app`; backup `backup-vseed-inicial-20260815-003424.db` (280.0 KB)
+`admin.demo`/`tecnico.demo`/`vendedor.demo`). Backup `backup-vseed-inicial-20260815-003424.db` (280.0 KB)
 criado pela tela Backups (`POST /api/backup/criar`, `versao=seed-inicial`) — vira o estado de referência
 do reset manual.
-
-**Ainda pendente:** login de `tecnico.demo`/`vendedor.demo`, e o ciclo completo de restore (alterar dado →
-restaurar `seed-inicial` → confirmar reversão) — ambos fazem parte dos 14 critérios do Definition of Done
-do `ADR-012`, que seguem não verificados como um todo. Homologação externa continua não autorizada até
-essa verificação estar completa.
 
 ---
 

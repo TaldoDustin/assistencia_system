@@ -6,20 +6,20 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-15
-**Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) provisionado, populado e com QA
-completa — **os 14 critérios do Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
-(`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais: as 3
-contas de demo autenticam com o perfil/menu corretos, os 4 endpoints do KI-037 retornam 403 ao vivo, backup
-sem destino externo configurado (12 env vars conferidas no painel Render), Sentry `environment=demo` e
-MercadoPhone inacessível confirmados pelos logs de boot, CORS/sessão cross-site funcionando, reset/restore
-testado de ponta a ponta, e produção confirmada intocada (`/health` → 200) após toda a sequência. Ver
+**Próxima revisão:** Gate técnico do Ambiente de Demonstração (`ADR-012`) fechado — **14/14 critérios do
+Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
+(`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais. Ver
 `docs/engineering/adr/ADR-012.md` (Definition of Done) e
 `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` para o registro completo de cada evidência.
-**Homologação externa ainda não autorizada** — decisão pendente do CTO, agora com o gate técnico
-completo. KI-040 (race condition em `criar_admin_padrao()` sob `--workers 2`, achado ao vivo no boot do
-Demo em 2026-08-14) segue aberto, sem decisão do CTO, sem bloquear a sequência.
+Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora — o próximo movimento é o ciclo de
+**Homologação Externa** (produto, não engenharia). Discovery concluída (homologador = pessoa interna
+simulando usuário externo; escopo = 1 pessoa nos 3 perfis; período = sessão única de 1 dia; decisão final
+= só o CTO) — ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md`. Aguardando aprovação do CTO
+para avançar ao Plano de Homologação formal. LGPD (Discovery própria, trilha paralela) e KI-040
+(race condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência.
 Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
+Sequência recente: 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
+abaixo)** → 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
 abaixo)** → 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
 abaixo)** → ✅ **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
 ver abaixo)** → ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
@@ -41,6 +41,27 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Discovery — Homologação Externa do Ambiente Demo concluída
+
+**Ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md` para o registro completo.**
+
+2026-08-15, sequência imediata ao fechamento do gate técnico do `ADR-012` (ver seção abaixo). Decisão do
+CTO: com o Demo tecnicamente pronto, o próximo movimento não é mais código — é transformar "ambiente
+funciona" em "ambiente homologável por alguém de fora da equipe". Discovery curta (sem código) definiu:
+homologador = pessoa interna simulando usuário externo; escopo = 1 pessoa testando os 3 perfis
+(`admin.demo`/`tecnico.demo`/`vendedor.demo`); período = sessão única de 1 dia; decisão final
+(ACEITO/REJEITADO) = só o CTO. Documento também registra a lista de cenários por perfil, os guardrails
+("o que não pode acontecer" — nenhum dado real, nenhuma chamada MercadoPhone, nenhum backup externo,
+produção intocada) e um Definition of Done próprio da homologação (distinto do DoD técnico do `ADR-012`).
+
+KI-040 e a decisão sobre LGPD ficam explicitamente como trilhas separadas, não bloqueando este ciclo. PR
+#24 e PR #22 seguem sem decisão de disposição, também fora deste escopo.
+
+**Próximo passo:** aguardando aprovação do CTO para avançar ao Plano de Homologação formal (roteiro de
+execução, formulário de feedback, logística de acesso).
 
 ---
 

@@ -14,11 +14,14 @@ Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
 Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora — o próximo movimento é o ciclo de
 **Homologação Externa** (produto, não engenharia). Discovery concluída (homologador = pessoa interna
 simulando usuário externo; escopo = 1 pessoa nos 3 perfis; período = sessão única de 1 dia; decisão final
-= só o CTO) — ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md`. Aguardando aprovação do CTO
-para avançar ao Plano de Homologação formal. LGPD (Discovery própria, trilha paralela) e KI-040
-(race condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência.
-Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
+= só o CTO) e Plano de Homologação formal concluído na sequência (roteiro de execução, formulário de
+feedback, logística de acesso) — ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md`. Data da
+sessão e homologador ficam `TBD` por decisão do CTO, definidos só na próxima etapa (Preparação). LGPD
+(Discovery própria, trilha paralela) e KI-040 (race condition em `criar_admin_padrao()` sob
+`--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual do usuário e Piloto/homologação
+seguem sem decisão, um por vez, conforme o CTO for decidindo.
+Sequência recente: 🟡 **Plano de Homologação Externa do Ambiente Demo concluído (2026-08-15, ver
+abaixo)** → 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
 abaixo)** → 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
 abaixo)** → 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
 abaixo)** → ✅ **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
@@ -44,6 +47,23 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
+## 🟡 Plano de Homologação Externa do Ambiente Demo concluído
+
+**Ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md` (seção "Plano de Homologação") para o
+registro completo.**
+
+2026-08-15, sequência imediata à Discovery (ver seção abaixo). Roteiro de execução definido (Preparação →
+Execução sem suporte ao vivo, para simular uso real → reset via `seed-inicial` → coleta e classificação do
+feedback → decisão do CTO), estrutura do formulário de feedback por cenário (perfil, conclusão,
+dificuldades, sugestões, bugs, nota), e logística de acesso (URLs do Demo, reaproveitamento das 3 contas
+existentes, senhas por canal separado, nunca em texto plano no repositório). Decisão do CTO: data da
+sessão e homologador ficam `TBD` — antecipar esses dois compromissos antes de fechar a logística seria
+prematuro; ambos definidos na próxima etapa (Preparação).
+
+**Próximo passo:** CTO decide data e homologador para iniciar a Preparação.
+
+---
+
 ## 🟡 Discovery — Homologação Externa do Ambiente Demo concluída
 
 **Ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md` para o registro completo.**
@@ -60,8 +80,7 @@ produção intocada) e um Definition of Done próprio da homologação (distinto
 KI-040 e a decisão sobre LGPD ficam explicitamente como trilhas separadas, não bloqueando este ciclo. PR
 #24 e PR #22 seguem sem decisão de disposição, também fora deste escopo.
 
-**Próximo passo:** aguardando aprovação do CTO para avançar ao Plano de Homologação formal (roteiro de
-execução, formulário de feedback, logística de acesso).
+Avançou para o Plano de Homologação formal na sequência imediata — ver seção acima.
 
 ---
 

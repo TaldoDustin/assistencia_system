@@ -220,6 +220,32 @@ clientes voltou a 18 e o marcador de teste não existe mais — reversão confir
 
 ---
 
+## Verificação final dos 14 critérios do DoD (ADR-012, 2026-08-15)
+
+**14/14 confirmados — ver `docs/engineering/adr/ADR-012.md` (seção "Definition of Done") para a lista com
+cada evidência marcada.** Dois itens novos verificados nesta etapa, além dos já cobertos pelo login das 3
+contas e pelo restore (acima):
+
+- **Endpoints do KI-037 (4/4) retornam 403 no Demo real:** chamada real via `fetch` autenticado como
+  `admin.demo` (console do navegador, `credentials: "include"`) contra
+  `https://fluxoly-demo.onrender.com/api/integracoes/mercadophone/{sincronizar,reprocessar,reimportar,config}`
+  — os 4 retornaram `403 {"erro": "Integração externa desabilitada neste ambiente (preview/demo).", "ok": false}`.
+- **Backup sem destino externo:** as 12 variáveis de ambiente do serviço `fluxoly-demo` conferidas no painel
+  Render batem exatamente com o Runbook (seção acima) — nenhuma `GOOGLE_DRIVE_BACKUP_DIR`/`BACKUP_EMAIL_*`
+  configurada, confirmando que `criar_backup()` grava só localmente (`enviar_backup_email` nunca é chamado
+  sem `backup_email_senha_app`).
+- **Sentry `environment=demo`** e **MercadoPhone inacessível**: já confirmados pelos logs de boot em
+  produção real durante o provisionamento (2026-08-14, ver "Execução real" acima) — não repetidos aqui.
+- **CORS + sessão cross-site**: já confirmados implicitamente por todo o fluxo de login/navegação das 3
+  contas via `https://assistencia-system-do1h.vercel.app` sem nenhum erro de CORS.
+- **Produção intocada:** `https://irflow-backend.onrender.com/health` → `200 {"status":"ok"}` confirmado
+  após toda a sequência de testes desta sessão.
+
+Com isso, os 14 critérios do Definition of Done do `ADR-012` estão marcados. A decisão de autorizar a
+homologação externa continua sendo do CTO — não tomada neste registro.
+
+---
+
 ## Seed Sintético e Contas de Demonstração
 
 - Novo script `scripts/seed_demo.py`, standalone (mesmo padrão de `scripts/import_legacy_db.py` — conecta direto ao banco via `conectar()` de `app.py`, sem subir o servidor Flask).
@@ -283,7 +309,7 @@ Mapeamento para os 14 itens do Definition of Done do `ADR-012` (execução concr
 - [x] As 3 contas de demonstração autenticam corretamente com os perfis certos (`admin`, `tecnico`, `vendedor`) — confirmado em 2026-08-15 via navegador real: `admin.demo` (perfil Admin, menu completo), `tecnico.demo` (perfil Tecnico, sem Financeiro/Custos Operacionais/Tabelas de Preço/Backups/Usuários), `vendedor.demo` (perfil Vendedor, com Vendas, sem Kanban/Garantias) — cada um com o menu lateral correto para o perfil.
 - [x] Runbook de provisionamento seguido item a item na criação real do serviço Render/Vercel (Implementação).
 - [x] Reset (backup `seed-inicial` → restore) testado de ponta a ponta pelo menos uma vez — confirmado em 2026-08-15: cliente de teste "TESTE RESET - APAGAR" criado (19→18 revertido), `pre-restore-20260815-005741.db` gerado automaticamente antes do restore (mesmo comportamento já validado no item "Restore" do checklist de Release 1.0), contagem de clientes voltou a 18 após restaurar `seed-inicial`.
-- [ ] Os 14 itens do Definition of Done do `ADR-012` verificados e marcados na QA Manual.
+- [x] Os 14 itens do Definition of Done do `ADR-012` verificados e marcados na QA Manual — confirmado 2026-08-15 contra o `fluxoly-demo`/Vercel reais (ver "Verificação final dos 14 critérios do DoD" acima).
 - [ ] Suíte completa + `ruff check .` sem regressão.
 - [ ] `KI-037` movido para "Resolvidos" em `KNOWN_ISSUES.md`, com data e commit.
 

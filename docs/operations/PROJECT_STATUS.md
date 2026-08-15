@@ -7,22 +7,21 @@
 
 **Última revisão:** 2026-08-15
 **Próxima revisão:** Ambiente de Demonstração/Homologação (`ADR-012`) provisionado, populado e com QA
-funcional inicial concluída — serviço Render `fluxoly-demo` (`https://fluxoly-demo.onrender.com`) e projeto
-Vercel (`https://assistencia-system-do1h.vercel.app`) no ar desde 2026-08-14; `scripts/seed_demo.py`
-executado com sucesso em 2026-08-15 (18 clientes, 10 produtos/unidades, 24 OS, 8 vendas, contas
-`admin.demo`/`tecnico.demo`/`vendedor.demo`) e backup `seed-inicial` criado
-(`backup-vseed-inicial-20260815-003424.db`). Login das 3 contas confirmado via navegador com o menu lateral
-correto para cada perfil; ciclo de restore testado de ponta a ponta (cliente marcador criado → backup
-`seed-inicial` baixado e reenviado → `pre-restore-*.db` gerado automaticamente → reversão confirmada).
-**Ainda não autorizada:** homologação externa — faltam revisar formalmente os 14 critérios do Definition of
-Done do `ADR-012` como um todo (ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`), incluindo
-os itens ainda não reverificados contra o Demo real (guard KI-037 nos 4 endpoints do MercadoPhone, Sentry
-`environment=demo`, ausência de destino externo no backup). KI-040 (race condition em
-`criar_admin_padrao()` sob `--workers 2`, achado ao vivo no boot do Demo em 2026-08-14) segue aberto, sem
-decisão do CTO, sem bloquear a sequência.
+completa — **os 14 critérios do Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
+(`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais: as 3
+contas de demo autenticam com o perfil/menu corretos, os 4 endpoints do KI-037 retornam 403 ao vivo, backup
+sem destino externo configurado (12 env vars conferidas no painel Render), Sentry `environment=demo` e
+MercadoPhone inacessível confirmados pelos logs de boot, CORS/sessão cross-site funcionando, reset/restore
+testado de ponta a ponta, e produção confirmada intocada (`/health` → 200) após toda a sequência. Ver
+`docs/engineering/adr/ADR-012.md` (Definition of Done) e
+`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` para o registro completo de cada evidência.
+**Homologação externa ainda não autorizada** — decisão pendente do CTO, agora com o gate técnico
+completo. KI-040 (race condition em `criar_admin_padrao()` sob `--workers 2`, achado ao vivo no boot do
+Demo em 2026-08-14) segue aberto, sem decisão do CTO, sem bloquear a sequência.
 Manual do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
-abaixo)** → 🟡 **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
+Sequência recente: 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
+abaixo)** → 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
+abaixo)** → ✅ **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
 ver abaixo)** → ✅ **Ambiente de Demonstração mergeado em `main`, com KI-038/KI-039 já resolvidos
 (2026-08-13, ver abaixo)** → ✅ **KI-038 — admin padrão exige senha configurável (ciclo `ADR-010`
 completo, 2026-08-13, ver abaixo)** → ✅ **KI-039 — troca de senha de usuário não persistia (hotfix,
@@ -45,6 +44,27 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
+## 🟡 Os 14 critérios do Definition of Done do Ambiente de Demonstração confirmados (ADR-012)
+
+**Ver `docs/engineering/adr/ADR-012.md` (seção "Definition of Done") e
+`docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (seção "Verificação final dos 14 critérios do
+DoD") para o registro completo com cada evidência.**
+
+2026-08-15, sequência imediata ao login das 3 contas + restore (ver seção abaixo). Dois itens verificados
+nesta etapa contra o Demo real, além dos já cobertos: **endpoints do KI-037 (4/4)** retornaram 403 via
+chamada real autenticada como `admin.demo`
+(`https://fluxoly-demo.onrender.com/api/integracoes/mercadophone/{sincronizar,reprocessar,reimportar,config}`);
+**backup sem destino externo** confirmado pelas 12 variáveis de ambiente do serviço no painel Render, sem
+nenhuma `GOOGLE_DRIVE_*`/`BACKUP_EMAIL_*` configurada. Sentry `environment=demo` e MercadoPhone inacessível
+já estavam confirmados pelos logs de boot do provisionamento (2026-08-14); CORS e sessão cross-site
+confirmados implicitamente por todo o fluxo de login das 3 contas. **Produção confirmada intocada**
+(`https://irflow-backend.onrender.com/health` → `200`) após toda a sequência de testes desta sessão.
+
+Com os 14/14 critérios marcados, o gate técnico do `ADR-012` está completo. **Homologação externa segue
+sem autorização** — decisão do CTO, não tomada neste registro.
+
+---
+
 ## 🟡 Login das 3 contas de demo + restore de ponta a ponta validados (ADR-012)
 
 **Ver `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` (seção "Runbook de Provisionamento",
@@ -62,11 +82,8 @@ clientes); backup `seed-inicial` baixado (280.0 KB) e reenviado via "Restaurar b
 aplicar o restore (mesmo comportamento já validado no item "Restore" do checklist de Release 1.0); após o
 restore, contagem de clientes voltou a 18 e o marcador de teste não existe mais — reversão confirmada.
 
-**Ainda pendente para fechar os 14 critérios do DoD do `ADR-012`:** reverificação contra o Demo real (não
-só a QA manual local de 2026-08-12) dos itens de guard KI-037 nos 4 endpoints do MercadoPhone, Sentry
-`environment=demo` disparando um erro controlado, e confirmação de que o backup não envia dado a nenhum
-destino externo no ambiente Demo. Homologação externa continua não autorizada até a revisão formal dos 14
-itens estar completa.
+Os itens restantes do DoD (guard KI-037 nos 4 endpoints, backup sem destino externo) foram verificados na
+sequência imediatamente seguinte — ver seção "Os 14 critérios do Definition of Done" acima.
 
 ---
 

@@ -11,17 +11,25 @@ Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
 (`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais. Ver
 `docs/engineering/adr/ADR-012.md` (Definition of Done) e
 `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` para o registro completo de cada evidência.
-Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora — o próximo movimento é o ciclo de
-**Homologação Externa** (produto, não engenharia). Discovery concluída (homologador = pessoa interna
-simulando usuário externo; escopo = 1 pessoa nos 3 perfis; período = sessão única de 1 dia; decisão final
-= só o CTO) e Plano de Homologação formal concluído na sequência (roteiro de execução, formulário de
-feedback, logística de acesso) — ver `docs/engineering/plans/PLAN-homologacao-externa-demo.md`. Data da
-sessão e homologador ficam `TBD` por decisão do CTO, definidos só na próxima etapa (Preparação). LGPD
-(Discovery própria, trilha paralela) e KI-040 (race condition em `criar_admin_padrao()` sob
-`--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual do usuário e Piloto/homologação
-seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Plano de Homologação Externa do Ambiente Demo concluído (2026-08-15, ver
-abaixo)** → 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
+Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora. O ciclo de **Homologação Interna
+Controlada** (via Claude in Chrome, substituindo por agora o gate da Homologação Externa) foi **executado
+nos 3 perfis em 2026-08-15** — resultado: 🟡 **CONCLUÍDA COM PENDÊNCIAS** (nem homologado, nem rejeitado).
+Achado bloqueante: seed do Demo sem nenhum Tipo de Garantia cadastrado, impedindo Finalizar OS e Registrar
+Venda para qualquer perfil (**KI-041**, correção necessária em `scripts/seed_demo.py` antes de retomar).
+Achados não bloqueantes de menu/autorização e visão financeira (**KI-042**). Nenhum guardrail violado,
+nenhuma falha estrutural de segurança confirmada, produção intocada. Demo já restaurado ao backup
+`seed-inicial` (dados de teste da execução removidos) — ver
+`docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo. O ciclo de
+**Homologação Externa** (produto, não engenharia) segue com Discovery e Plano concluídos (ver
+`docs/engineering/plans/PLAN-homologacao-externa-demo.md`) mas etapa de Preparação **adiada** até a
+Homologação Interna fechar com 🟢 HOMOLOGADO. LGPD (Discovery própria, trilha paralela) e KI-040 (race
+condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
+do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
+Sequência recente: 🟡 **Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS, KI-041/KI-042
+registrados, Demo restaurado ao seed-inicial (2026-08-15, ver abaixo)** → 🟡 **Roteiro de Homologação Interna
+Controlada aprovado, substitui por agora a Homologação Externa (2026-08-15, ver abaixo)** → 🟡 **Plano de
+Homologação Externa do Ambiente Demo
+concluído (2026-08-15, ver abaixo)** → 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
 abaixo)** → 🟡 **Os 14 critérios do DoD do Ambiente de Demonstração confirmados (2026-08-15, ver
 abaixo)** → 🟡 **Login das 3 contas de demo + restore de ponta a ponta validados (2026-08-15, ver
 abaixo)** → ✅ **Seed + backup `seed-inicial` do Ambiente de Demonstração concluídos (2026-08-15,
@@ -44,6 +52,51 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS
+
+**Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo de
+evidências, achados e o encerramento.**
+
+2026-08-15. Os 3 perfis (`admin.demo`/`tecnico.demo`/`vendedor.demo`) foram exercitados via Claude in
+Chrome: login/menu, fluxos funcionais por perfil, e testes negativos de controle de acesso. Guardrails
+respeitados integralmente (nenhum dado real, nenhuma chamada MercadoPhone, produção intocada, confirmada
+saudável ao final). Decisão do CTO: **🟡 CONCLUÍDA COM PENDÊNCIAS** — nem HOMOLOGADO, nem REJEITADO.
+
+**Achado bloqueante — KI-041:** `scripts/seed_demo.py` não cria nenhum Tipo de Garantia, o que impede
+Finalizar OS e Registrar Venda (os dois fluxos centrais do sistema) para qualquer perfil. Confirmado como
+gap de dado, não bug de lógica — a validação de campo obrigatório está correta. Durante a execução, um Tipo
+de Garantia foi criado manualmente só para validar que os fluxos funcionam com o dado presente (ambos
+passaram); em seguida o Demo foi restaurado ao backup `seed-inicial`, removendo esse dado manual junto com o
+cliente e a venda de teste criados na sessão — o Demo está limpo, e o gap volta a existir até a correção
+formal (Discovery + Plano Técnico já registrados no próprio KI-041, aguardando aprovação do CTO antes de
+implementar em `scripts/seed_demo.py`).
+
+**Achados não bloqueantes — KI-042:** menu do `vendedor.demo` expõe Kanban/Garantias (leitura completa,
+escrita bloqueada no backend) e do `tecnico.demo` expõe `/vendas` (mesmo padrão), ambos contradizendo o
+`ADR-012`; Dashboard não reflete receita de Vendas de produto. Nenhum bypass de autorização confirmado.
+Registrado como frente futura de consistência, sem sprint definida.
+
+**Próximo passo:** CTO aprovar o Plano Técnico do KI-041 (quantos/quais Tipos de Garantia sintéticos) antes
+de qualquer implementação em `scripts/seed_demo.py`. Depois: código → CI → merge → deploy → reset do Demo →
+reexecução dos fluxos afetados → nova decisão de homologação.
+
+---
+
+## 🟡 Roteiro de Homologação Interna Controlada aprovado
+
+**Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo.**
+
+2026-08-15. Decisão do CTO: substituir, por agora, o gate da Homologação Externa (homologador humano,
+`PLAN-homologacao-externa-demo.md`) por um ciclo interno executado via Claude in Chrome — login e navegação
+nos 3 perfis, fluxos funcionais por perfil (adaptados da lista já definida na Discovery externa), e um bloco
+de testes negativos de controle de acesso (tentativa de acesso indevido entre perfis, verificação de
+bloqueio do MercadoPhone na UI). Guardrails de "o que não pode acontecer" (nenhum dado real, nenhuma chamada
+MercadoPhone real, produção intocada) continuam valendo integralmente. Decisão final (HOMOLOGADO
+INTERNAMENTE / REJEITADO) permanece exclusiva do CTO. A etapa de Preparação da Homologação Externa
+(definir data + homologador humano) fica adiada, sem data prevista.
 
 ---
 

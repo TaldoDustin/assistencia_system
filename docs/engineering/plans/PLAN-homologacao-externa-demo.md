@@ -3,9 +3,12 @@
 **Data:** 2026-08-15
 **Feature:** Não é código — é o ciclo operacional que decide se o Ambiente Demo (`ADR-012`, gate técnico
 14/14 já fechado) está pronto para ser usado por alguém de fora da equipe. Não há BR-NNN novo.
-**Status:** Plano de Homologação concluído (roteiro abaixo). Aguardando a etapa de Preparação — que inclui
-definir data da sessão e homologador, ambos `TBD` neste documento por decisão do CTO (2026-08-15): não
-antecipar esses dois compromissos antes de fechar a logística.
+**Status:** Plano de Homologação concluído (roteiro abaixo). **Etapa de Preparação adiada** por decisão do
+CTO (2026-08-15) — este ciclo com homologador humano foi substituído, por agora, pela **Homologação Interna
+Controlada** via Claude in Chrome (ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md`).
+Este documento permanece como histórico do Discovery e do Plano já aprovados (PR #34/#35); não é revertido
+nem apagado. Retomada desta etapa (definir data e homologador) sem data prevista, sujeita a decisão futura
+do CTO depois do ciclo interno.
 
 > Este documento é efêmero (mesmo padrão de `docs/engineering/adr/ADR-010.md`). Depois que o ciclo de
 > homologação encerra, ele permanece só como histórico — não é mantido atualizado como `ARCHITECTURE.md` ou
@@ -242,5 +245,7 @@ planilha, formulário digital) é decisão de logística, não deste documento �
 
 ## Próximo passo
 
-Aguardando o CTO decidir data da sessão e homologador para iniciar a etapa de **Preparação** — o resto do
-roteiro acima já está definido e não muda até lá.
+**Adiado.** Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o ciclo vigente.
+Quando o CTO decidir retomar este documento, o próximo passo continua sendo definir data da sessão e
+homologador para iniciar a etapa de **Preparação** — o resto do roteiro acima já está definido e não muda
+até lá.

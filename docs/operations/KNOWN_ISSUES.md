@@ -1448,3 +1448,90 @@ Não definida — candidata a limpeza futura, sem urgência.
 
 Responsável:
 —
+
+---
+
+## KI-041
+
+Descrição:
+`scripts/seed_demo.py` não popula nenhum registro em Tipos de Garantia durante o provisionamento do
+Ambiente Demo. Achado durante a Homologação Interna Controlada (2026-08-15, ver
+`docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md`) ao executar os fluxos de Finalizar OS
+(perfil `tecnico.demo`) e Registrar Venda (perfil `vendedor.demo`): ambos exigem selecionar um Tipo de
+Garantia (`Selecione o Tipo de Garantia *`), e o dropdown estava vazio — "Nenhum Tipo de Garantia
+cadastrado — crie um em Tipos de Garantia antes de concluir/vender." Reproduzido de forma determinística
+após restore do backup `seed-inicial` (o Tipo de Garantia criado manualmente durante a execução some,
+confirmando que o gap está no seed, não em dado transitório).
+
+Impacto:
+Alto para o propósito do Ambiente Demo, mas não é bug de lógica de negócio — a validação de
+`Tipo de Garantia *` obrigatório está correta e funcionando (`api_os.py`, `fluxoly_vendas_controller.py`).
+Sem esse dado, **nenhum perfil** consegue finalizar uma OS ou registrar uma venda no Demo, os dois fluxos
+centrais do sistema. Não atende nenhum critério objetivo de interrupção do `ENGINEERING_GUIDE.md` §11 (não
+é C-01/C-02/C-03; é C-04 sozinho, que não basta) — por isso não virou hotfix imediato durante a execução,
+mas bloqueia a homologação em si.
+
+Status:
+Aberto — correção necessária antes de reabrir o ciclo de homologação. Escopo: dado de seed, não lógica de
+negócio (não precisa do ciclo completo `ADR-010`).
+
+**Discovery (decisão pendente do CTO antes de implementar):**
+- Quantos Tipos de Garantia sintéticos o seed deve criar? Proposta mínima: 1 (`"Garantia Padrão"`, 90 dias
+  — mesmo valor usado ad-hoc durante a execução desta homologação, que desbloqueou os dois fluxos).
+  Alternativa: refletir o leque mais realista que uma loja usaria (ex.: 2-3 opções de duração).
+- Nome/duração exatos ficam a critério do CTO — não assumidos aqui.
+
+**Plano Técnico (proposto, aguardando aprovação — não implementado):**
+- Arquivo: `scripts/seed_demo.py`.
+- Adicionar inserção de Tipo(s) de Garantia sintético(s), seguindo o mesmo padrão de idempotência já usado
+  para as 3 contas de demonstração (não duplicar em reexecução do seed).
+- Testar localmente contra banco descartável (`IR_FLOW_DATA_DIR` isolado, nunca `database.db`), confirmando
+  que os dois fluxos (Finalizar OS, Registrar Venda) passam a funcionar sem intervenção manual.
+- Após aprovação e merge: reset do Demo (restore `seed-inicial` gerado pela versão corrigida do script) e
+  reexecução dos fluxos afetados antes de qualquer nova decisão de homologação.
+
+Sprint prevista:
+Próxima — bloqueia a retomada da Homologação Interna Controlada.
+
+Responsável:
+—
+
+---
+
+## KI-042
+
+Descrição:
+Duas divergências de escopo por perfil encontradas durante a Homologação Interna Controlada (2026-08-15,
+ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md`), ambas com o mesmo padrão: o menu
+do frontend expõe uma tela para um perfil que não deveria tê-la, mas o backend bloqueia corretamente
+qualquer escrita — não há bypass de autorização confirmado, apenas inconsistência de UX/visão.
+
+1. `vendedor.demo` vê e acessa **Kanban** e **Garantias** no menu, com dados reais e completos (leitura),
+   contradizendo o que o `ADR-012` documentou como validado na mesma data ("vendedor.demo... sem
+   Kanban/Garantias"). Escrita confirmada bloqueada: `PUT /ordens/<id>` e `PATCH /ordens/<id>/status`
+   verificam `session.get("usuario_perfil") not in ("admin", "tecnico")` → 403 (`api_os.py:671,905`).
+2. `tecnico.demo` acessa `/vendas` e vê o formulário completo "Nova Venda" (busca de cliente, aparelho),
+   quando o menu já esconde esse item para o perfil. Escrita confirmada bloqueada:
+   `POST /api/vendas` verifica `usuario_pode_vender()` (`admin`/`vendedor` apenas) → 403 "Permissão
+   negada." (`fluxoly_vendas_controller.py:108-109`).
+
+Também observado na mesma sessão, sem risco de segurança: o Dashboard ("Faturamento") não inclui receita
+de Vendas de produto, só de OS/serviço — a venda de teste (#9, R$ 4.900,00) não refletiu no card
+"Faturamento", mas apareceu corretamente em Vendas > Histórico.
+
+Impacto:
+Baixo/médio — nenhum bypass de autorização confirmado (backend protege as duas rotas de escrita
+verificadas), mas a experiência do usuário é inconsistente: `/usuarios` e `/financeiro` mostram tela de
+"acesso negado" explícita para perfis sem permissão, enquanto `/vendas` (para técnico) e Kanban/Garantias
+(para vendedor) não seguem o mesmo padrão.
+
+Status:
+Aberto — não atende critério objetivo de interrupção do `ENGINEERING_GUIDE.md` §11 (nenhum C-01/C-02/C-03
+confirmado). Registrado como frente de trabalho futura de consistência de autorização/UX entre perfis,
+salvo decisão do CTO de alinhar estritamente ao `ADR-012` antes de retomar a homologação.
+
+Sprint prevista:
+Não definida — não bloqueia a correção do KI-041 nem a retomada da homologação.
+
+Responsável:
+—

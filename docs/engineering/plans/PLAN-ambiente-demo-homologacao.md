@@ -201,6 +201,16 @@ confirmados via `curl -X OPTIONS` mostrando `access-control-allow-origin` corret
 corrida em `criar_admin_padrao()`, 2 workers do Gunicorn) observado ao vivo nesse primeiro boot, registrado
 em `KNOWN_ISSUES.md`, sem impacto no resultado final.
 
+**Seed + backup `seed-inicial` (2026-08-15):** `scripts/seed_demo.py` executado via Web Shell do Render
+contra o banco vazio do `fluxoly-demo` (senhas das 3 contas exportadas só na sessão do shell, nunca
+persistidas), sem exceção, produzindo os volumes esperados (18 clientes, 10 produtos/unidades, 24 OS, 8
+vendas, contas `admin.demo`/`tecnico.demo`/`vendedor.demo`). Login real de `admin.demo` confirmado via
+navegador em `https://assistencia-system-do1h.vercel.app`; backup `backup-vseed-inicial-20260815-003424.db`
+(280.0 KB) criado a partir da tela Backups (`POST /api/backup/criar`, `versao=seed-inicial`) — vira o estado
+de referência do reset manual. **Ainda não testados nesta etapa:** login de `tecnico.demo`/`vendedor.demo`,
+e o ciclo completo de restore (alterar dado → restaurar `seed-inicial` → confirmar reversão) — ambos
+pendentes para a QA dos 14 critérios do DoD.
+
 ---
 
 ## Seed Sintético e Contas de Demonstração
@@ -262,9 +272,9 @@ Mapeamento para os 14 itens do Definition of Done do `ADR-012` (execução concr
 - [ ] Os 4 endpoints de escrita/ação do KI-037 (`sincronizar`/`reprocessar`/`reimportar`/`config`) retornam 403 tanto em Preview quanto em Demo, com sessão admin/técnico real — provado por teste automatizado (não só leitura de código).
 - [ ] Nenhuma regressão de comportamento em produção/desenvolvimento local (nenhuma das duas flags nunca é setada nesses ambientes).
 - [ ] Sentry reporta `environment="demo"` corretamente, sem colidir com `"preview"` ou `"production"`.
-- [ ] `scripts/seed_demo.py` executa sem erro contra um banco vazio e produz os volumes de dados esperados.
-- [ ] As 3 contas de demonstração autenticam corretamente com os perfis certos (`admin`, `tecnico`, `vendedor`).
-- [ ] Runbook de provisionamento seguido item a item na criação real do serviço Render/Vercel (Implementação).
+- [x] `scripts/seed_demo.py` executa sem erro contra um banco vazio e produz os volumes de dados esperados — confirmado em produção real do `fluxoly-demo`, 2026-08-15 (ver "Seed + backup" acima).
+- [ ] As 3 contas de demonstração autenticam corretamente com os perfis certos (`admin`, `tecnico`, `vendedor`) — só `admin.demo` confirmado até aqui (2026-08-15); `tecnico.demo`/`vendedor.demo` pendentes.
+- [x] Runbook de provisionamento seguido item a item na criação real do serviço Render/Vercel (Implementação).
 - [ ] Reset (backup `seed-inicial` → restore) testado de ponta a ponta pelo menos uma vez.
 - [ ] Os 14 itens do Definition of Done do `ADR-012` verificados e marcados na QA Manual.
 - [ ] Suíte completa + `ruff check .` sem regressão.

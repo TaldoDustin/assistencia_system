@@ -4,9 +4,11 @@
 **Feature:** Não é código — é o ciclo operacional que valida a experiência funcional do Ambiente Demo
 (`ADR-012`, gate técnico 14/14 já fechado), incluindo controle de acesso por perfil, executado via Claude in
 Chrome sob supervisão do CTO. Não há BR-NNN novo.
-**Status:** 🟡 **Execução concluída (2026-08-15) — CONCLUÍDA COM PENDÊNCIAS.** Substitui, por decisão do
-CTO, o gate atual da Homologação Externa (`PLAN-homologacao-externa-demo.md`) — ver "Relação com a
-Homologação Externa" abaixo. Ver "Encerramento" para a decisão final e os achados (KI-041, KI-042).
+**Status:** 🟢 **HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA (2026-08-15).** Substitui, por decisão do CTO, o
+gate atual da Homologação Externa (`PLAN-homologacao-externa-demo.md`) — ver "Relação com a Homologação
+Externa" abaixo. KI-041 (bloqueante) corrigido e reexecutado no Demo real com sucesso; KI-042 (não
+bloqueante) permanece registrado como frente futura. Ver "Encerramento" para a decisão final e o histórico
+completo (KI-041, KI-042).
 
 > Este documento é efêmero (mesmo padrão de `docs/engineering/adr/ADR-010.md` e de
 > `PLAN-homologacao-externa-demo.md`). Depois que o ciclo encerra, permanece só como histórico.
@@ -20,9 +22,10 @@ Homologação Externa" abaixo. Ver "Encerramento" para a decisão final e os ach
 - [x] Coleta e classificação dos achados (2026-08-15) — ver KI-041, KI-042
 - [x] Restore do Demo para `seed-inicial` pós-execução (2026-08-15) — ambiente limpo, produção confirmada
   saudável (`/health` → `{"status":"ok"}`)
-- [ ] Correções (KI-041 — seed sem Tipo de Garantia — bloqueia reabertura do ciclo)
-- [x] Encerramento — 🟡 **CONCLUÍDA COM PENDÊNCIAS** (nem HOMOLOGADO, nem REJEITADO — ver seção
-  "Encerramento")
+- [x] Correções (KI-041 — PR #38 mergeada, CI 6/6, seed cria Tipo de Garantia) (2026-08-15)
+- [x] Re-homologação — Finalizar OS e Registrar Venda reexecutados no Demo real com sucesso (2026-08-15)
+- [x] Reset final do Demo ao novo backup `seed-inicial` (2026-08-15) — estado limpo, produção saudável
+- [x] Encerramento — 🟢 **HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA** (ver seção "Encerramento")
 
 ---
 
@@ -203,55 +206,76 @@ em `KNOWN_ISSUES.md` (KI-041, KI-042).
 
 ## Encerramento
 
-**Decisão do CTO (2026-08-15): 🟡 CONCLUÍDA COM PENDÊNCIAS.**
+**Decisão do CTO (2026-08-15): 🟢 HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA.**
 
-Não é HOMOLOGADO nem REJEITADO — categoria intermediária, mais precisa para o resultado real:
+O ciclo passou por duas etapas: execução inicial (achou o bloqueador do KI-041) e re-homologação (confirmou
+a correção no Demo real). Histórico completo:
 
-- Os fluxos principais foram exercitados nos 3 perfis.
-- O ambiente se mostrou funcional e os guardrails foram respeitados integralmente (nenhum dado real, nenhuma
-  chamada MercadoPhone, nenhum acesso à produção, produção confirmada saudável ao final).
-- Não foi encontrada nenhuma falha estrutural grave de segurança ou lógica de negócio — os achados de
-  autorização/UX (KI-042) são inconsistências de exposição de tela, não bypass confirmado (backend valida
-  corretamente em ambos os casos verificados).
-- Mas o **seed inicial estava incompleto** (KI-041): sem nenhum Tipo de Garantia cadastrado, os dois fluxos
-  centrais do sistema — Finalizar OS e Registrar Venda — ficam bloqueados para qualquer perfil. Isso não é
-  aceitável para uma homologação (interna ou externa) ser considerada concluída.
+**Etapa 1 — Execução inicial (2026-08-15):**
+- Fluxos principais exercitados nos 3 perfis (`admin.demo`/`tecnico.demo`/`vendedor.demo`).
+- Guardrails respeitados integralmente (nenhum dado real, nenhuma chamada MercadoPhone, nenhum acesso à
+  produção).
+- Nenhuma falha estrutural grave de segurança ou lógica de negócio — os achados de autorização/UX (KI-042)
+  são inconsistências de exposição de tela, não bypass confirmado (backend valida corretamente nos dois
+  casos verificados).
+- Achado bloqueante: seed sem nenhum Tipo de Garantia cadastrado (KI-041) — impedia Finalizar OS e
+  Registrar Venda para qualquer perfil. Resultado provisório desta etapa: 🟡 CONCLUÍDA COM PENDÊNCIAS.
+- Demo restaurado ao `seed-inicial` original ao final desta etapa, sem correção permanente aplicada.
 
-**Correção aplicada durante a execução, só para validar o desbloqueio — não é a correção definitiva:** um
-Tipo de Garantia foi criado manualmente via `admin.demo` para confirmar que os fluxos de Finalizar OS e
-Registrar Venda funcionam corretamente quando o dado existe (ambos passaram). Em seguida o Demo foi
-restaurado ao backup `seed-inicial`, removendo esse dado manual (junto com o cliente e a venda de teste
-criados durante a execução) — o Demo está limpo novamente, e o gap do seed volta a existir até a correção
-formal entrar via `scripts/seed_demo.py` (ver KI-041).
+**Etapa 2 — Correção e re-homologação (2026-08-15, mesma data):**
+- KI-041: Discovery (1 Tipo de Garantia sintético, "Garantia Padrão", 90 dias) e Plano Técnico formalizados
+  e aprovados via PR #37 (documentação, mergeada).
+- Auditoria da PR #37 confirmou: 1 arquivo alterado, nenhum código escondido, conteúdo fiel à decisão.
+- Implementação: PR #38 (`fix/seed-demo-tipo-garantia`) — `scripts/seed_demo.py`, função
+  `seed_tipos_garantia()`, testada localmente (banco descartável, 56/56 testes de garantia passando) —
+  mergeada, CI 6/6 verde.
+- Deploy automático do `fluxoly-demo` confirmado live para o commit `5a1bbdb`.
+- Banco do Demo esvaziado (arquivo renomeado, não apagado) e serviço reiniciado contra schema vazio (boot
+  disparou o KI-040 já conhecido — condição de corrida inofensiva entre workers, não confundir com falha
+  deste ciclo).
+- `scripts/seed_demo.py` executado via Web Shell do Render: confirmado "Tipos de Garantia: 1 (Garantia
+  Padrão, 3 meses)", junto dos demais volumes do seed.
+- Novo backup `seed-inicial` criado (`backup-vseed-inicial-20260815-172644.db`).
+- **Reexecução no Demo real, não apenas local:**
+  - Finalizar OS (`tecnico.demo`, OS #12) → "Ordem finalizada!" ✅
+  - Registrar Venda (`vendedor.demo`, cliente Ana Beatriz Ferreira, iPhone 14, Pix, R$ 4.300,00) → "Venda
+    concluída!" ✅, confirmada em Vendas > Histórico (Venda #9).
+  - Achado incidental (não regressão): Dashboard/"Faturamento" continua sem refletir venda de produto —
+    mesmo comportamento já coberto pelo KI-042.
+- Demo restaurado ao novo backup `seed-inicial` — 18 clientes confirmados, estado limpo, dados de teste da
+  reexecução removidos.
+- Produção confirmada saudável (`/health` → `{"status":"ok"}`) durante toda a operação — nunca tocada.
 
-**Regra mantida:** nenhum achado desta homologação foi corrigido diretamente no código ou no Demo de forma
-permanente. A correção do KI-041 segue o fluxo normal — Git → CI → deploy → nova homologação — não uma
-correção ad-hoc contra o ambiente vivo.
+**Regra mantida durante todo o ciclo:** nenhum achado foi corrigido diretamente no código ou no Demo de
+forma permanente fora do fluxo normal. A correção do KI-041 seguiu Git → CI → merge → deploy → nova
+homologação, com auditoria do diff antes de cada aprovação.
 
 ```
 Homologação Interna Controlada — EXECUTADA (2026-08-15)
        ↓
-🟡 CONCLUÍDA COM PENDÊNCIAS (não HOMOLOGADO, não REJEITADO)
+🟡 CONCLUÍDA COM PENDÊNCIAS (achado: KI-041 bloqueante)
        ↓
-Restore seed-inicial (limpeza) ✅
+Restore seed-inicial original (limpeza) ✅
        ↓
-KI-041 registrado (seed sem Tipo de Garantia) — bloqueante
-KI-042 registrado (menu/autorização, Dashboard) — não bloqueante
+KI-041: Discovery + Plano Técnico (PR #37, auditada, mergeada)
        ↓
-Correção do seed (scripts/seed_demo.py) — aguardando aprovação do Plano Técnico (KI-041)
+KI-041: Implementação (PR #38, testada, CI 6/6, mergeada)
        ↓
-Testes + CI + reset do Demo com seed corrigido
+Deploy automático do Demo confirmado live
        ↓
-Reexecução dos fluxos afetados (Finalizar OS, Registrar Venda, Caixa)
+Banco esvaziado → restart → seed_demo.py → novo backup seed-inicial
        ↓
-Nova decisão: 🟢 HOMOLOGADO INTERNAMENTE ou novas pendências
+Re-homologação no Demo real: Finalizar OS ✅ | Registrar Venda ✅ | Histórico ✅
        ↓
-Só então: apresentação a prospect / retomada da Homologação Externa (TBD)
+Reset final ao novo seed-inicial — Demo limpo, produção saudável
+       ↓
+🟢 HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA
+       ↓
+Próxima decisão do CTO: apresentação a prospect / retomada da Homologação Externa (TBD)
 ```
 
 ## Próximo passo
 
-Aguardando o CTO aprovar o Plano Técnico do KI-041 (quantos/quais Tipos de Garantia sintéticos) para então
-implementar a correção em `scripts/seed_demo.py` — fora do escopo deste documento, segue o ciclo normal de
-código (branch → PR → CI → merge → deploy). KI-042 fica registrado, sem sprint definida, não bloqueia a
-retomada.
+Ciclo encerrado. KI-041 resolvido e fechado em `KNOWN_ISSUES.md`. KI-042 permanece aberto, sem sprint
+definida, não bloqueante — frente futura de consistência de autorização/UX entre perfis. Próxima decisão
+(apresentação a prospect, retomada da Homologação Externa) fica a critério do CTO, sem data definida aqui.

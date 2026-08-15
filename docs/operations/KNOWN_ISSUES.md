@@ -1472,8 +1472,28 @@ centrais do sistema. Não atende nenhum critério objetivo de interrupção do `
 mas bloqueia a homologação em si.
 
 Status:
-Aberto — Plano Técnico aprovado (CTO, 2026-08-15), implementação ainda não iniciada. Escopo: dado de seed,
-não lógica de negócio (não precisa do ciclo completo `ADR-010`).
+**Resolvido em 2026-08-15** (PR #38, `fix/seed-demo-tipo-garantia`, mergeada, CI 6/6 verde). Escopo: dado
+de seed, não lógica de negócio (não precisou do ciclo completo `ADR-010`).
+
+**Evidência de resolução — reexecução no Demo real (2026-08-15), não só localmente:**
+- Deploy automático do `fluxoly-demo` confirmado live para o commit `5a1bbdb` (auto-deploy do `main`).
+- Banco do Demo esvaziado (`database.db` renomeado, não apagado) e serviço reiniciado — boot confirmado
+  contra schema vazio (a mensagem `criar_admin_padrao_falhou`/`UNIQUE constraint` nesse boot é o KI-040 já
+  conhecido, condição de corrida entre os 2 workers do Gunicorn — não confundir com falha deste KI).
+- `scripts/seed_demo.py` executado via Web Shell do Render: saída confirmou `Tipos de Garantia: 1
+  (Garantia Padrão, 3 meses)`, junto dos demais volumes (18 clientes, 10 produtos/unidades, 24 OS, 8
+  vendas).
+- Novo backup `seed-inicial` criado (`backup-vseed-inicial-20260815-172644.db`) a partir desse estado.
+- **Finalizar OS** reexecutado como `tecnico.demo` na OS #12 real do Demo → "Ordem finalizada!" (12→13
+  finalizadas).
+- **Registrar Venda** reexecutado como `vendedor.demo` (cliente `Ana Beatriz Ferreira`, iPhone 14, Pix,
+  R$ 4.300,00) → "Venda concluída!", confirmada em Vendas > Histórico (Venda #9, status Concluída).
+- Demo restaurado ao backup `seed-inicial` recém-criado após a reexecução — 18 clientes confirmados, estado
+  limpo, dados de teste removidos.
+- Produção confirmada saudável (`https://irflow-backend.onrender.com/health` → `{"status":"ok"}`) durante
+  toda a operação — nunca tocada.
+- Achado incidental durante a reexecução: Dashboard ("Faturamento") continua sem refletir a venda de
+  produto registrada — mesmo comportamento já registrado no KI-042, não é regressão nova.
 
 **Discovery — decidido (CTO, 2026-08-15):**
 1 Tipo de Garantia sintético: **"Garantia Padrão", 90 dias (3 meses)**. Suficiente para exercitar os fluxos
@@ -1508,7 +1528,7 @@ adicional fica para uma frente futura, só se uma demonstração mais rica exigi
   in Chrome antes de qualquer nova decisão de homologação.
 
 Sprint prevista:
-Próxima — bloqueia a retomada da Homologação Interna Controlada.
+Resolvido dentro do próprio ciclo de Homologação Interna Controlada, 2026-08-15.
 
 Responsável:
 —

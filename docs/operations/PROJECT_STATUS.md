@@ -13,20 +13,24 @@ Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
 `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md` para o registro completo de cada evidência.
 Decisão do CTO (2026-08-15): não abrir nova sprint técnica agora. O ciclo de **Homologação Interna
 Controlada** (via Claude in Chrome, substituindo por agora o gate da Homologação Externa) foi **executado
-nos 3 perfis em 2026-08-15** — resultado: 🟡 **CONCLUÍDA COM PENDÊNCIAS** (nem homologado, nem rejeitado).
-Achado bloqueante: seed do Demo sem nenhum Tipo de Garantia cadastrado, impedindo Finalizar OS e Registrar
-Venda para qualquer perfil (**KI-041**, correção necessária em `scripts/seed_demo.py` antes de retomar).
-Achados não bloqueantes de menu/autorização e visão financeira (**KI-042**). Nenhum guardrail violado,
-nenhuma falha estrutural de segurança confirmada, produção intocada. Demo já restaurado ao backup
-`seed-inicial` (dados de teste da execução removidos) — ver
+nos 3 perfis em 2026-08-15** e resultou em 🟢 **HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA**. A execução
+inicial achou um bloqueador (KI-041 — seed do Demo sem Tipo de Garantia, impedindo Finalizar OS e
+Registrar Venda); a correção (PR #37 Discovery/Plano + PR #38 implementação, CI 6/6) foi aplicada e
+**reexecutada com sucesso no Demo real** (Finalizar OS ✅, Registrar Venda ✅, confirmados no
+Histórico), com reset final do Demo ao novo backup `seed-inicial`. KI-041 fechado. Achados não bloqueantes
+de menu/autorização e visão financeira permanecem registrados (**KI-042**, frente futura, sem sprint).
+Nenhum guardrail violado em nenhuma etapa, nenhuma falha estrutural de segurança confirmada, produção
+intocada e saudável durante toda a operação — ver
 `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo. O ciclo de
 **Homologação Externa** (produto, não engenharia) segue com Discovery e Plano concluídos (ver
-`docs/engineering/plans/PLAN-homologacao-externa-demo.md`) mas etapa de Preparação **adiada** até a
-Homologação Interna fechar com 🟢 HOMOLOGADO. LGPD (Discovery própria, trilha paralela) e KI-040 (race
+`docs/engineering/plans/PLAN-homologacao-externa-demo.md`); retomada da Preparação (data + homologador
+humano) fica a critério do CTO, sem data definida. LGPD (Discovery própria, trilha paralela) e KI-040 (race
 condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
 do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS, KI-041/KI-042
-registrados, Demo restaurado ao seed-inicial (2026-08-15, ver abaixo)** → 🟡 **Roteiro de Homologação Interna
+Sequência recente: 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
+sucesso no Demo real, KI-042 registrado como frente futura (2026-08-15, ver abaixo)** → 🟡 **Homologação
+Interna Controlada executada — achado inicial KI-041, Demo restaurado ao seed-inicial (2026-08-15, ver
+abaixo)** → 🟡 **Roteiro de Homologação Interna
 Controlada aprovado, substitui por agora a Homologação Externa (2026-08-15, ver abaixo)** → 🟡 **Plano de
 Homologação Externa do Ambiente Demo
 concluído (2026-08-15, ver abaixo)** → 🟡 **Discovery — Homologação Externa do Ambiente Demo concluída (2026-08-15, ver
@@ -55,7 +59,28 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Homologação Interna Controlada executada — CONCLUÍDA COM PENDÊNCIAS
+## 🟢 Homologação Interna Controlada — APROVADA
+
+**Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo (duas
+etapas: execução inicial + correção/re-homologação) e `KNOWN_ISSUES.md` (KI-041) para a evidência técnica
+da correção.**
+
+2026-08-15, sequência imediata à execução inicial (ver seção abaixo). Depois do achado do KI-041, o ciclo
+completo de correção rodou no mesmo dia: Discovery + Plano Técnico (PR #37, auditada, mergeada) →
+implementação (PR #38, `scripts/seed_demo.py`, testada localmente, CI 6/6, mergeada) → deploy automático
+confirmado live no `fluxoly-demo` → banco do Demo esvaziado e reiniciado → `seed_demo.py` executado via
+Web Shell → novo backup `seed-inicial` criado. Re-homologação no Demo real (não só local): **Finalizar
+OS** (`tecnico.demo`) → "Ordem finalizada!"; **Registrar Venda** (`vendedor.demo`) → "Venda concluída!",
+confirmada em Vendas > Histórico. Demo restaurado ao novo `seed-inicial` ao final — estado limpo, produção
+confirmada saudável (`/health` → 200) durante toda a operação, nunca tocada. KI-041 fechado
+(`KNOWN_ISSUES.md`). KI-042 permanece aberto, não bloqueante, sem sprint definida.
+
+**Decisão do CTO:** 🟢 **HOMOLOGAÇÃO INTERNA CONTROLADA — APROVADA.** Próxima decisão (apresentação a
+prospect, retomada da Homologação Externa) fica em aberto, sem data definida.
+
+---
+
+## 🟡 Homologação Interna Controlada executada (execução inicial) — achado KI-041
 
 **Ver `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md` para o registro completo de
 evidências, achados e o encerramento.**

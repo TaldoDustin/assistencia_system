@@ -9,6 +9,19 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Corrigido (2026-08-15 — fix/seed-demo-tipo-garantia, KI-041)
+- `scripts/seed_demo.py` não criava nenhum registro em `tipos_garantia`, bloqueando **Finalizar OS** e
+  **Registrar Venda** (campo obrigatório) para qualquer perfil no Ambiente Demo. Achado durante a
+  Homologação Interna Controlada (2026-08-15, ver `docs/engineering/plans/
+  ROTEIRO-homologacao-interna-controlada.md`). Correção: nova função `seed_tipos_garantia()`, 1 registro
+  sintético ("Garantia Padrão", 3 meses) — decisão Discovery/Plano Técnico do CTO, auditada na PR #37
+  (documentação) antes da implementação. Sem checagem de duplicata: `_garantir_banco_vazio()` já garante
+  banco limpo no início do seed. Testado localmente contra banco descartável (nunca `database.db`):
+  1 linha criada em `tipos_garantia`, `ruff check` limpo, 56/56 testes de garantia passando. PR #38, CI
+  6/6 verde. Reexecução pós-fix confirmada no Demo real, não só localmente: Finalizar OS e Registrar
+  Venda concluídos com sucesso, novo backup `seed-inicial` gerado, Demo restaurado a esse estado limpo,
+  produção intocada durante toda a operação. KI-041 fechado (`KNOWN_ISSUES.md`)
+
 ### Adicionado
 - `docs/company/BRAND_IDENTITY.md` — Constituição da Marca Fluxoly V1.0 (Product Owner): nome, 6 pilares macrossistêmicos, escopo negativo, promessa de mercado, visão 2030, cronograma de transição técnica de marca. Registra gap conhecido: promessa de rastreamento por IMEI sem suporte na tabela `estoque` hoje
 - `docs/engineering/adr/ADR-006.md` — decisão de reorganizar `docs/` em `company/`, `engineering/`, `product/`, `operations/` por audiência, com mapeamento completo arquivo-a-arquivo e cronograma de rename

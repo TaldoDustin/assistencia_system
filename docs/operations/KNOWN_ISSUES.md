@@ -1472,23 +1472,40 @@ centrais do sistema. Não atende nenhum critério objetivo de interrupção do `
 mas bloqueia a homologação em si.
 
 Status:
-Aberto — correção necessária antes de reabrir o ciclo de homologação. Escopo: dado de seed, não lógica de
-negócio (não precisa do ciclo completo `ADR-010`).
+Aberto — Plano Técnico aprovado (CTO, 2026-08-15), implementação ainda não iniciada. Escopo: dado de seed,
+não lógica de negócio (não precisa do ciclo completo `ADR-010`).
 
-**Discovery (decisão pendente do CTO antes de implementar):**
-- Quantos Tipos de Garantia sintéticos o seed deve criar? Proposta mínima: 1 (`"Garantia Padrão"`, 90 dias
-  — mesmo valor usado ad-hoc durante a execução desta homologação, que desbloqueou os dois fluxos).
-  Alternativa: refletir o leque mais realista que uma loja usaria (ex.: 2-3 opções de duração).
-- Nome/duração exatos ficam a critério do CTO — não assumidos aqui.
+**Discovery — decidido (CTO, 2026-08-15):**
+1 Tipo de Garantia sintético: **"Garantia Padrão", 90 dias (3 meses)**. Suficiente para exercitar os fluxos
+principais — não é objetivo do seed simular o catálogo comercial completo de uma assistência. Variedade
+adicional fica para uma frente futura, só se uma demonstração mais rica exigir.
 
-**Plano Técnico (proposto, aguardando aprovação — não implementado):**
-- Arquivo: `scripts/seed_demo.py`.
-- Adicionar inserção de Tipo(s) de Garantia sintético(s), seguindo o mesmo padrão de idempotência já usado
-  para as 3 contas de demonstração (não duplicar em reexecução do seed).
-- Testar localmente contra banco descartável (`IR_FLOW_DATA_DIR` isolado, nunca `database.db`), confirmando
-  que os dois fluxos (Finalizar OS, Registrar Venda) passam a funcionar sem intervenção manual.
-- Após aprovação e merge: reset do Demo (restore `seed-inicial` gerado pela versão corrigida do script) e
-  reexecução dos fluxos afetados antes de qualquer nova decisão de homologação.
+**Plano Técnico — aprovado (CTO, 2026-08-15), aguardando implementação:**
+- Arquivo: `scripts/seed_demo.py` (único arquivo alterado).
+- Nova função `seed_tipos_garantia(cursor)`, seguindo o mesmo padrão direto de `seed_usuarios`/
+  `seed_clientes` (sem checagem de duplicata — `_garantir_banco_vazio(cursor)` já garante banco limpo no
+  início do `main()`, então uma única execução do seed nunca encontra dado pré-existente):
+  ```python
+  import fluxoly_tipos_garantia_repository as tipos_garantia_repo
+  # ...
+  def seed_tipos_garantia(cursor):
+      return tipos_garantia_repo.inserir(cursor, "Garantia Padrão", 3)  # duracao_meses
+  ```
+- Chamar `seed_tipos_garantia(cursor)` em `main()`, mesmo bloco `try` dos demais `seed_*`, antes de
+  `seed_os`/`seed_vendas` (nenhuma dependência de ordem com as demais chamadas, mas fica junto das outras
+  entidades de cadastro).
+- Testar localmente contra banco descartável (`IR_FLOW_DATA_DIR` isolado, nunca `database.db`): rodar o
+  script, confirmar 1 linha em `tipos_garantia`, depois validar manualmente (ou via teste automatizado, se
+  existir suíte para `seed_demo.py`) que Finalizar OS e Registrar Venda completam sem o erro "Nenhum Tipo de
+  Garantia cadastrado".
+- Branch: `fix/seed-demo-tipo-garantia` (a partir de `main`, escopo isolado — só o seed, sem misturar com o
+  KI-042).
+- Após aprovação final do PR e merge em `main`: gerar novo backup `seed-inicial` no Demo (rodar o script
+  corrigido contra o Demo, criar backup via `POST /api/backup/criar` ou pela tela de Backups, mesmo
+  procedimento já documentado em `PLAN-ambiente-demo-homologacao.md`), depois reset do Demo com esse novo
+  backup.
+- Reexecução dos fluxos afetados (Finalizar OS, Registrar Venda, reflexo em Vendas > Histórico) via Claude
+  in Chrome antes de qualquer nova decisão de homologação.
 
 Sprint prevista:
 Próxima — bloqueia a retomada da Homologação Interna Controlada.

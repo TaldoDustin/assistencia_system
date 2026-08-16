@@ -1,59 +1,60 @@
-import { createElement, useState } from "react";
+import { createElement } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, ClipboardList, Package, ShoppingBag, Wrench, DollarSign,
-  BarChart3, Menu, X, Kanban, Shield, Tag, Users, LogOut, User, UserCircle, HardDriveDownload,
-  ScanBarcode, ShoppingCart,
-} from "lucide-react";
+  SquaresFour, ClipboardText, Package, ShoppingBag, Wrench, CurrencyDollar,
+  ChartBar, Kanban, Shield, Tag, Users, SignOut, User, UserCircle, HardDrives,
+  Barcode, ShoppingCart,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarTrigger,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 const navItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/compras", label: "Compras", icon: ClipboardList },
-  { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardList },
+  { path: "/", label: "Dashboard", icon: SquaresFour },
+  { path: "/compras", label: "Compras", icon: ClipboardText },
+  { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardText },
   { path: "/kanban", label: "Kanban", icon: Kanban },
   { path: "/garantias", label: "Garantias", icon: Shield },
   { path: "/clientes", label: "Clientes", icon: UserCircle },
   { path: "/vendas", label: "Vendas", icon: ShoppingCart, perfis: ["admin", "vendedor"] },
   { path: "/produtos", label: "Produtos", icon: ShoppingBag },
-  { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: ScanBarcode },
-  { path: "/financeiro", label: "Financeiro", icon: DollarSign, perfis: ["admin", "financeiro"] },
+  { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: Barcode },
+  { path: "/financeiro", label: "Financeiro", icon: CurrencyDollar, perfis: ["admin", "financeiro"] },
   { path: "/estoque", label: "Estoque", icon: Package },
-  { path: "/compras", label: "Lista de Compras", icon: ClipboardList },
+  { path: "/compras", label: "Lista de Compras", icon: ClipboardText },
   { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
   { path: "/tipos-garantia", label: "Tipos de Garantia", icon: Shield, adminOnly: true },
   { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
-  { path: "/custos", label: "Custos Operacionais", icon: DollarSign, adminOnly: true },
-  { path: "/relatorios", label: "Relatórios", icon: BarChart3, adminOnly: true },
-  { path: "/backup", label: "Backups", icon: HardDriveDownload, adminOnly: true },
+  { path: "/custos", label: "Custos Operacionais", icon: CurrencyDollar, adminOnly: true },
+  { path: "/relatorios", label: "Relatórios", icon: ChartBar, adminOnly: true },
+  { path: "/backup", label: "Backups", icon: HardDrives, adminOnly: true },
   { path: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
 ];
 
-function SidebarContent({ currentPath, user, onNavigate, onLogout }) {
-  return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-5 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">F</span>
-          </div>
-          <span className="font-semibold text-sidebar-foreground text-base">Fluxoly</span>
-        </div>
-      </div>
+function SidebarNav({ currentPath, user }) {
+  const { closeMobile } = useSidebar();
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItems
-          .filter((item) => !item.adminOnly || user?.perfil === "admin")
-          .filter((item) => !item.perfis || item.perfis.includes(user?.perfil))
-          .map(({ path, label, icon }) => {
+  return (
+    <SidebarContent>
+      {navItems
+        .filter((item) => !item.adminOnly || user?.perfil === "admin")
+        .filter((item) => !item.perfis || item.perfis.includes(user?.perfil))
+        .map(({ path, label, icon }) => {
           const isActive = path === "/" ? currentPath === "/" : currentPath.startsWith(path);
           return (
             <Link
               key={path}
               to={path}
-              onClick={onNavigate}
+              onClick={closeMobile}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -65,36 +66,56 @@ function SidebarContent({ currentPath, user, onNavigate, onLogout }) {
             </Link>
           );
         })}
-      </nav>
+    </SidebarContent>
+  );
+}
 
-      <div className="px-3 py-3 border-t border-sidebar-border space-y-2">
-        {user && (
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center">
-              <User className="h-4 w-4 text-sidebar-foreground/70" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">{user.nome || user.usuario}</p>
-              <p className="text-xs text-sidebar-foreground/60 capitalize">{user.perfil}</p>
-            </div>
+function SidebarUserFooter({ user, onLogout }) {
+  return (
+    <SidebarFooter>
+      {user && (
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center">
+            <User className="h-4 w-4 text-sidebar-foreground/70" />
           </div>
-        )}
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs text-sidebar-foreground/60">v1.0.0</span>
-          <div className="flex items-center gap-1">
-            <GlobalAlerts />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onLogout}
-              className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">{user.nome || user.usuario}</p>
+            <p className="text-xs text-sidebar-foreground/60 capitalize">{user.perfil}</p>
           </div>
         </div>
+      )}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs text-sidebar-foreground/60">v1.0.0</span>
+        <div className="flex items-center gap-1">
+          <GlobalAlerts />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onLogout}
+            className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <SignOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-    </div>
+    </SidebarFooter>
+  );
+}
+
+function AppSidebar({ currentPath, user, onLogout }) {
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">F</span>
+          </div>
+          <span className="font-semibold text-sidebar-foreground text-base">Fluxoly</span>
+        </div>
+      </SidebarHeader>
+      <SidebarNav currentPath={currentPath} user={user} />
+      <SidebarUserFooter user={user} onLogout={onLogout} />
+    </Sidebar>
   );
 }
 
@@ -102,69 +123,28 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
-  const closeMobileMenu = () => setMobileOpen(false);
-
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border z-30">
-        <SidebarContent
-          currentPath={location.pathname}
-          user={user}
-          onNavigate={closeMobileMenu}
-          onLogout={handleLogout}
-        />
-      </aside>
+    <SidebarProvider>
+      <div className="flex min-h-screen bg-background">
+        <AppSidebar currentPath={location.pathname} user={user} onLogout={handleLogout} />
 
-      <div className="fixed top-0 left-0 right-0 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 lg:hidden z-30">
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-sidebar-accent"
-        >
-          <Menu className="h-5 w-5 text-sidebar-foreground" />
-        </button>
-        <span className="ml-3 font-semibold text-sidebar-foreground">Fluxoly</span>
+        <div className="fixed top-0 left-0 right-0 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 lg:hidden z-30">
+          <SidebarTrigger />
+          <span className="ml-3 font-semibold text-sidebar-foreground">Fluxoly</span>
+        </div>
+
+        <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 min-h-screen">
+          <div className="p-4 lg:p-6">
+            <Outlet />
+          </div>
+        </main>
       </div>
-
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-          onClick={closeMobileMenu}
-        />
-      )}
-
-      <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border z-50 transition-transform lg:hidden ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="absolute right-3 top-3">
-          <button
-            onClick={closeMobileMenu}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-sidebar-accent"
-          >
-            <X className="h-4 w-4 text-sidebar-foreground" />
-          </button>
-        </div>
-        <SidebarContent
-          currentPath={location.pathname}
-          user={user}
-          onNavigate={closeMobileMenu}
-          onLogout={handleLogout}
-        />
-      </aside>
-
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 min-h-screen">
-        <div className="p-4 lg:p-6">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+    </SidebarProvider>
   );
 }

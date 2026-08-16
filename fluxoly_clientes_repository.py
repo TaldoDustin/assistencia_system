@@ -81,3 +81,17 @@ def possui_os_vinculada(cursor, cliente_id):
 
 def deletar(cursor, cliente_id):
     cursor.execute("DELETE FROM clientes WHERE id = ?", (cliente_id,))
+
+
+def anonimizar(cursor, cliente_id, nome_placeholder):
+    """KI-044: mascara PII preservando o id (e, com ele, todo FK em os.cliente_id/vendas.cliente_id) --
+    usada para clientes com histórico vinculado, onde `deletar` não é uma opção (`possui_os_vinculada`)."""
+    cursor.execute(
+        """
+        UPDATE clientes
+        SET nome = ?, telefone = NULL, email = NULL, cpf_cnpj = NULL, observacoes = '',
+            atualizado_em = datetime('now')
+        WHERE id = ?
+        """,
+        (nome_placeholder, cliente_id),
+    )

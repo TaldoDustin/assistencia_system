@@ -23,6 +23,12 @@ from fluxoly_audit import registrar_log_auditoria
 PAGINA_PADRAO = 1
 POR_PAGINA_PADRAO = 20
 
+# KI-045: sentinel distinto de "" -- quem não pode ver o CPF/CNPJ atual (session sem admin/financeiro)
+# não recebe o valor do GET, então "campo ausente na requisição de PUT" precisa significar "preservar o
+# valor atual", não "limpar o campo" (que seria uma mutação silenciosa de um dado que essa sessão nunca
+# chegou a ver). Só usado por `atualizar_cliente` -- `criar_cliente` não tem valor anterior a preservar.
+CPF_NAO_INFORMADO = object()
+
 
 def _cliente_para_dict(row):
     if not row:
@@ -108,12 +114,13 @@ def criar_cliente(conectar, usuario_id, nome, telefone="", email="", cpf_cnpj=""
     return cliente_id, None
 
 
-def atualizar_cliente(conectar, usuario_id, cliente_id, nome, telefone="", email="", cpf_cnpj="", observacoes=""):
+def atualizar_cliente(
+    conectar, usuario_id, cliente_id, nome, telefone="", email="", cpf_cnpj=CPF_NAO_INFORMADO, observacoes=""
+):
     """Retorna (sucesso, erro). `erro` é None em caso de sucesso."""
     nome = (nome or "").strip()
     telefone = (telefone or "").strip()
     email = (email or "").strip()
-    cpf_cnpj = (cpf_cnpj or "").strip()
     observacoes = (observacoes or "").strip()
 
     if not nome:
@@ -127,6 +134,8 @@ def atualizar_cliente(conectar, usuario_id, cliente_id, nome, telefone="", email
         antes = repo.buscar_por_id(cursor, cliente_id)
         if not antes:
             return False, "Cliente não encontrado."
+
+        cpf_cnpj = antes[4] or "" if cpf_cnpj is CPF_NAO_INFORMADO else (cpf_cnpj or "").strip()
 
         repo.atualizar(cursor, cliente_id, nome, telefone, email, cpf_cnpj, observacoes)
         registrar_log_auditoria(
@@ -160,6 +169,35 @@ def excluir_cliente(conectar, usuario_id, cliente_id):
         repo.deletar(cursor, cliente_id)
         registrar_log_auditoria(
             cursor, "cliente", cliente_id, usuario_id, "delete", antes=_cliente_para_dict(antes)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return True, None
+
+
+def anonimizar_cliente(conectar, usuario_id, cliente_id):
+    """Retorna (sucesso, erro). KI-044: mascara PII preservando o `id` e o histórico de OS/vendas
+    vinculado -- complementa, não substitui, `excluir_cliente` (que continua servindo só para clientes
+    órfãos, sem OS/venda vinculada, decisão do CTO em docs/engineering/plans/PLAN-LGPD-Compliance.md)."""
+    conn = conectar()
+    try:
+        cursor = conn.cursor()
+        antes = repo.buscar_por_id(cursor, cliente_id)
+        if not antes:
+            return False, "Cliente não encontrado."
+
+        nome_placeholder = f"Cliente Anonimizado #{cliente_id}"
+        repo.anonimizar(cursor, cliente_id, nome_placeholder)
+        registrar_log_auditoria(
+            cursor,
+            "cliente",
+            cliente_id,
+            usuario_id,
+            "anonymize",
+            antes=_cliente_para_dict(antes),
+            depois={"nome": nome_placeholder, "telefone": "", "email": "", "cpf_cnpj": "", "observacoes": ""},
         )
         conn.commit()
     finally:

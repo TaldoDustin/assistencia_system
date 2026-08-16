@@ -298,6 +298,21 @@ mesmo padrão de `dialog.jsx`/`popover.jsx`.
 TypeScript — o projeto usa `.jsx`) para permitir `npx shadcn add <componente>` quando um componente novo for
 necessário, sem precisar reconfigurar a cada vez.
 
+### Motion vs. transição CSS — quando usar cada um
+
+Regra fixada durante o PR 3 da Fase 1 (Tooltip/Sheet/Sidebar), para não decidir caso a caso de novo:
+
+- **Componente que envolve `Portal`/ciclo de montagem próprio do Radix** (`Dialog`, `AlertDialog`,
+  `Popover`, `Tooltip`, `Sheet`) — usa transição CSS pura via `data-[state=open]:`/`data-[state=closed]:`
+  (Tailwind já suporta nativamente, mesmo idioma já usado em `checkbox.jsx`). Motivo: o `Presence` interno
+  do Radix decide quando desmontar o nó esperando um evento `transitionend`/`animationend` do DOM — o
+  Motion anima via WAAPI/`requestAnimationFrame`, que o `Presence` do Radix não detecta, cortando a
+  animação de saída antes do tempo se usado ali.
+- **Componente com estado próprio (React puro, sem `Portal` do Radix por trás)** — pode usar Motion
+  (`AnimatePresence` + `motion.*`) livremente, controlando o próprio ciclo de montagem/desmontagem. Exemplo:
+  o drawer mobile do `Sidebar` (`sidebar.jsx`).
+- Sempre respeitar `useReducedMotion()` em qualquer uso de Motion (acessibilidade — ver seção 4 abaixo).
+
 ---
 
 ## 4. Padrões Frontend (React / Vite)

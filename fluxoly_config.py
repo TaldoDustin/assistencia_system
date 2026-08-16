@@ -137,6 +137,27 @@ BACKUP_EMAIL_SENHA_APP_CONFIGURADA = os.environ.get("IR_FLOW_BACKUP_EMAIL_SENHA"
 BACKUP_EMAIL_SENHA_APP = BACKUP_EMAIL_SENHA_APP_CONFIGURADA if EXTERNAL_BACKUP_DESTINATIONS_ENABLED else ""
 BACKUP_EMAIL_DESTINO = os.environ.get("IR_FLOW_BACKUP_EMAIL_DESTINO", "ir.phones.flow@gmail.com")
 
+
+def _parse_dias_retencao(valor):
+    """KI-044 decisão 6 (PLAN-LGPD-Compliance.md): sem valor configurado (ou valor inválido/não
+    positivo), retorna None -- ausência de prazo real desliga a rotina de manutenção do audit_log por
+    completo, nunca um número inventado pela engenharia."""
+    valor = (valor or "").strip()
+    if not valor:
+        return None
+    try:
+        dias = int(valor)
+    except ValueError:
+        return None
+    return dias if dias > 0 else None
+
+
+# Prazos de mascaramento/expurgo de PII em audit_log -- deliberadamente sem default. Aguardam decisão
+# jurídica/operacional (não de engenharia); até lá, iniciar_thread_manutencao_audit_log() nunca é
+# chamada em app.py.
+AUDIT_LOG_PII_MASK_APOS_DIAS = _parse_dias_retencao(os.environ.get("AUDIT_LOG_PII_MASK_APOS_DIAS"))
+AUDIT_LOG_EXPURGO_APOS_DIAS = _parse_dias_retencao(os.environ.get("AUDIT_LOG_EXPURGO_APOS_DIAS"))
+
 # Tabelas de preço ficam no volume persistente; na primeira execução, copia o
 # arquivo de referência embutido no código para o diretório de dados.
 _PRICE_TABLES_SEED = os.path.join(RESOURCE_DIR, "data", "price_tables.json")

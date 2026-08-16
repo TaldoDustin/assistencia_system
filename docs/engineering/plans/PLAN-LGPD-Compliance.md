@@ -30,8 +30,20 @@ histórico) segue como gate separado, não incluído nesta aprovação.
       `test_clientes_pii_acesso.py`, `test_audit_log_retencao.py`), suíte completa 798 passed / 5 failed
       (KI-030, pré-existente, ambiente Windows local, não relacionado), `ruff check .` limpo nos arquivos
       tocados, `git ls-files` confirma zero `.db` rastreado, frontend `eslint`/`build` limpos
-- [ ] QA Manual
-- [ ] Revisão Arquitetural — obrigatória (toca >3 arquivos e mais de um domínio: Clientes, Backup, Auditoria)
+- [x] QA Manual — 2026-08-16, backend Flask real e descartável (`IR_FLOW_DATA_DIR` isolado, porta 5099,
+      nunca `database.db`/Demo). 14/14 critérios confirmados (KI-029 Fase 1, contenção de backup local e
+      externo com log de aviso, anonimização preservando `id`/FK de OS, bloqueio para perfil não-admin,
+      leitura de CPF por perfil, edição sem apagar CPF, auditoria da anonimização, retenção inativa sem
+      prazo, regressão de Clientes/OS/Vendas). Nenhum achado novo. Servidor descartável encerrado.
+- [x] Revisão Arquitetural — 2026-08-17, 4 eixos do `ADR-010`. Coerência do domínio ✅ (anonimização não
+      contradiz nenhuma regra existente; `DELETE` e anonimizar continuam dois caminhos coerentes com suas
+      situações). Autorização centralizada ✅ (só o controller decide visibilidade de `cpf_cnpj`; grep
+      confirma nenhum outro módulo de produção referencia o campo). Consistência da máquina de estados ✅
+      (órfão vs. com histórico permanece explícito, sem ambiguidade). **Risco de vazamento de dado —
+      achado real, não bloqueante:** `GET /api/clientes?q=` casa contra `cpf_cnpj` antes do filtro do
+      KI-045 decidir a visibilidade — oráculo de match/no-match por tentativa, não o valor. Registrado como
+      **KI-046**, mesmo padrão de residual risk aceito para o KI-037. **Decisão: Aprovada com ressalvas**
+      (a ressalva é o KI-046, que não bloqueia o Encerramento).
 - [ ] Encerramento
 
 ---

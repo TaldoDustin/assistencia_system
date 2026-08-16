@@ -390,8 +390,13 @@ nenhuma dependência é instalada antes do PR 2.
 
 ## Questões em Aberto
 
-- Nome exato do pacote npm do Phosphor Icons para React a instalar (`phosphor-react` está em modo de
-  manutenção; `@phosphor-icons/react` é o pacote atual mantido) — confirmar na hora da instalação, não é
-  uma decisão de negócio, é um detalhe técnico a resolver no PR 3.
-- Se a escala de spacing do Tailwind v4 default já cobre 4/8/12/16/24/32/48/64 sem necessidade de tokens
-  nomeados redundantes — investigação técnica a fazer no PR 4, não muda o escopo deste plano.
+Ambas resolvidas durante o PR 2 (detalhe técnico, não decisão de negócio — registrado aqui só para
+fechamento do plano):
+
+- **Nome do pacote Phosphor:** `@phosphor-icons/react` (pacote atual mantido; `phosphor-react` está em modo
+  de manutenção) — instalado no PR 2.
+- **Escala de spacing/radius/shadow do Tailwind v4 default:** confirmado que já cobre exatamente os valores
+  aprovados (spacing 4/8/12/16/24/32/48/64; radius sm/lg/xl/full já em uso consistente; shadow sm/xl já em
+  uso consistente) — decisão foi **não** criar tokens customizados redundantes, e sim formalizar a escala
+  padrão como convenção documentada. Ver `docs/engineering/ENGINEERING_GUIDE.md` §3.2 para o registro
+  completo.

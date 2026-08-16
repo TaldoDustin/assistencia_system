@@ -4,9 +4,11 @@
 **Feature:** `docs/product/research/DISCOVERY_LGPD.md` (Discovery + seção "Decisões do CTO", baseline
 aprovada 2026-08-16). Referências de fato: `docs/operations/KNOWN_ISSUES.md` (KI-029, KI-043, KI-044,
 KI-045).
-**Status:** Aprovado pelo CTO em 2026-08-16 (Fase 1 do KI-029 + KI-043 + KI-044 + KI-045 + mecanismo
-parametrizável do `audit_log`, inativo em produção até prazo definido). KI-029 Fase 2 (reescrita de
-histórico) segue como gate separado, não incluído nesta aprovação.
+**Status:** Encerrado em 2026-08-17 (ciclo `ADR-010` completo). Branch `feat/lgpd-compliance-fase1`
+auditada, CI 6/6 verde, QA Manual 14/14, Revisão Arquitetural aprovada com ressalva (KI-046). **Merge em
+`main` é decisão separada do CTO, ainda não autorizada** — o Encerramento deste ciclo é a conclusão do
+trabalho de engenharia (implementação, testes, QA, revisão), não implica deploy em produção. KI-029 Fase 2
+(reescrita de histórico) segue como gate separado, não incluído em nenhuma etapa deste ciclo.
 
 > Este documento é efêmero (ver `docs/engineering/adr/ADR-010.md`). Depois que a sprint encerra, ele
 > permanece só como histórico da decisão de implementação — não é mantido atualizado como `ARCHITECTURE.md`
@@ -44,7 +46,16 @@ histórico) segue como gate separado, não incluído nesta aprovação.
       KI-045 decidir a visibilidade — oráculo de match/no-match por tentativa, não o valor. Registrado como
       **KI-046**, mesmo padrão de residual risk aceito para o KI-037. **Decisão: Aprovada com ressalvas**
       (a ressalva é o KI-046, que não bloqueia o Encerramento).
-- [ ] Encerramento
+- [x] Encerramento — 2026-08-17. **Entregue:** KI-029 Fase 1 (arquivos removidos do índice, `.gitignore`
+      reforçado), KI-043 mitigado (contenção de destinos externos), KI-044 resolvido (anonimização
+      preservando histórico), KI-045 resolvido (leitura de CPF restrita, escrita liberada), mecanismo
+      parametrizável de retenção do `audit_log` (inativo até prazo definido). `KNOWN_ISSUES.md` atualizado
+      (KI-029 nota de Fase 1, KI-043 → Mitigado, KI-044/KI-045 → Resolvido, KI-046 registrado durante a
+      Revisão Arquitetural), `CHANGELOG.md` atualizado. **Fora deste ciclo, deliberadamente:** KI-029 Fase
+      2 (reescrita de histórico, gate próprio), criptografia completa de backup, prazos reais de retenção
+      do `audit_log`, documento de privacidade, validação jurídica formal, KI-046 — todos pós-release,
+      nenhum reaberto nem resolvido às pressas dentro deste ciclo. **Não realizado nesta etapa:** merge em
+      `main` (branch permanece aberta, aguardando autorização explícita separada do CTO); nenhum PR aberto.
 
 ---
 

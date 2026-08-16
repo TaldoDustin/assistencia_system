@@ -5,8 +5,21 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-15
-**Próxima revisão:** Gate técnico do Ambiente de Demonstração (`ADR-012`) fechado — **14/14 critérios do
+**Última revisão:** 2026-08-17
+**Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
+completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
+→ QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
+`feat/lgpd-compliance-fase1`, CI 6/6 verde, auditada (escopo confere exatamente com o plano, `main`
+intocada, KI-029 Fase 2 confirmada não executada). **Merge em `main` ainda não autorizado** — decisão
+separada do CTO, produção não afetada por este ciclo. Ver `docs/engineering/plans/PLAN-LGPD-Compliance.md`
+para o registro completo e `docs/product/research/DISCOVERY_LGPD.md`/
+`DISCOVERY_RELEASE_1.0_RESTANTE.md` para o levantamento que originou este ciclo. Achado residual não
+bloqueante da Revisão Arquitetural registrado como **KI-046** (busca de cliente por CPF vaza sinal de
+match antes do filtro de leitura do KI-045), pós-release. Fora deste ciclo, deliberadamente: KI-029 Fase 2
+(reescrita de histórico), criptografia completa de backup, prazos reais de retenção do `audit_log`,
+documento de privacidade, validação jurídica formal.
+
+Gate técnico do Ambiente de Demonstração (`ADR-012`) fechado — **14/14 critérios do
 Definition of Done confirmados em 2026-08-15** contra o `fluxoly-demo`
 (`https://fluxoly-demo.onrender.com`)/Vercel (`https://assistencia-system-do1h.vercel.app`) reais. Ver
 `docs/engineering/adr/ADR-012.md` (Definition of Done) e
@@ -27,7 +40,10 @@ intocada e saudável durante toda a operação — ver
 humano) fica a critério do CTO, sem data definida. LGPD (Discovery própria, trilha paralela) e KI-040 (race
 condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
 do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
+Sequência recente: 🟡 **Fase 1 de LGPD/Compliance ENCERRADA (ciclo `ADR-010` completo — KI-029 Fase 1 +
+KI-043 mitigado + KI-044/KI-045 resolvidos + KI-046 registrado; branch `feat/lgpd-compliance-fase1`, CI
+6/6, QA Manual 14/14, Revisão Arquitetural aprovada com ressalva; merge em `main` pendente de autorização,
+2026-08-17, ver abaixo)** → 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
 sucesso no Demo real, KI-042 registrado como frente futura (2026-08-15, ver abaixo)** → 🟡 **Homologação
 Interna Controlada executada — achado inicial KI-041, Demo restaurado ao seed-inicial (2026-08-15, ver
 abaixo)** → 🟡 **Roteiro de Homologação Interna
@@ -56,6 +72,49 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Fase 1 de LGPD/Compliance — ENCERRADA (ciclo ADR-010 completo, merge pendente)
+
+**Ver `docs/engineering/plans/PLAN-LGPD-Compliance.md` para o registro completo (Discovery, Decisões do
+CTO, Plano Técnico, Implementação, Testes, QA Manual, Revisão Arquitetural, Encerramento) e
+`docs/product/research/DISCOVERY_LGPD.md`/`DISCOVERY_RELEASE_1.0_RESTANTE.md` para o levantamento que
+originou este ciclo.**
+
+2026-08-17. A Discovery consolidada da Release 1.0 (parte restante) identificou LGPD como o maior risco
+desconhecido do que falta para o primeiro cliente pagante. A Discovery de LGPD (pesquisa somente-leitura
+sobre o próprio código) mapeou onde o dado pessoal vive, e o CTO aprovou uma baseline de 7 decisões:
+escopo intermediário, KI-029 obrigatório antes do piloto (mas só a Fase 1 não-destrutiva neste ciclo),
+KI-043 com contenção (não criptografia ainda), KI-044 com anonimização (não hard-delete), KI-045
+restringindo só leitura de CPF, `audit_log` com mecanismo parametrizável sem prazo hardcoded, e posição
+jurídica conservadora provisória.
+
+**Entregue** (branch `feat/lgpd-compliance-fase1`, commits atômicos por escopo, CI 6/6 verde):
+- **KI-029 Fase 1:** os dois arquivos `.db` reais removidos do índice do git (`git rm --cached`, não do
+  histórico); `.gitignore` reforçado. Fase 2 (reescrita de histórico) confirmada não executada em nenhum
+  momento — `main` permanece no mesmo commit desde o início do ciclo.
+- **KI-043 (mitigado):** destinos externos de backup (Google Drive, e-mail) contidos por decisão de
+  produto (`EXTERNAL_BACKUP_DESTINATIONS_ENABLED = False`); backup local não afetado.
+- **KI-044 (resolvido):** `POST /api/clientes/<id>/anonimizar` (admin-only) mascara PII preservando `id`
+  e FK de OS/vendas — complementa o `DELETE` existente, que continua só para clientes órfãos.
+- **KI-045 (resolvido):** leitura de `cpf_cnpj` restrita a admin/financeiro; escrita permanece liberada a
+  todo perfil. Achado corrigido durante a própria implementação: edição por perfil restrito sem `cpf_cnpj`
+  no payload agora preserva o valor existente em vez de apagá-lo silenciosamente.
+- Mecanismo parametrizável de mascaramento/expurgo do `audit_log`, inativo em produção sem prazo
+  configurado (fail-safe, sem default).
+- 33 testes novos, suíte completa 798 passed / 5 failed (KI-030, pré-existente, não relacionado). QA
+  Manual 14/14 contra backend real e descartável. Revisão Arquitetural aprovada com ressalva: achado
+  **KI-046** (busca de cliente por CPF vaza sinal de match/no-match antes do filtro de leitura do KI-045
+  decidir a visibilidade) — baixo impacto, registrado, não bloqueou o Encerramento.
+
+**Fora deste ciclo, deliberadamente:** KI-029 Fase 2 (reescrita de histórico, gate próprio, autorização
+específica separada), criptografia completa de backup em repouso, prazos reais de retenção do `audit_log`
+(aguardam orientação jurídica/operacional), documento de privacidade, validação jurídica formal do
+relacionamento Fluxoly (operador) × loja-cliente (controladora), KI-046.
+
+**Decisão do CTO:** ciclo de engenharia formalmente encerrado. **Merge em `main` não realizado** — decisão
+separada, ainda não autorizada; produção não foi afetada em nenhum momento deste ciclo.
 
 ---
 

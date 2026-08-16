@@ -955,11 +955,12 @@ exposição de dado em um artefato versionado. Contraria diretamente os princíp
 sidecars `-shm`/`-wal`) e não afetam arquivos já commitados de qualquer forma.
 
 Status:
-Aberto — identificado em 2026-07-31. **Nenhuma ação foi tomada** (nem remoção do working tree, nem
-reescrita de histórico) — decisão explícita necessária do usuário antes de qualquer mudança, dado que
-remover do working tree (`git rm`) não apaga do histórico, e reescrever histórico (`git filter-repo`/BFG
-+ force-push) é uma operação destrutiva que exige aprovação explícita à parte, fora do fluxo normal da
-Sprint Housekeeping.
+Aberto — parcialmente endereçado. **Fase 1 concluída em 2026-08-17** (branch `feat/lgpd-compliance-fase1`,
+commit `c5e64f37`, ver `docs/engineering/plans/PLAN-LGPD-Compliance.md`): os dois arquivos removidos do
+índice (`git rm --cached`, não do histórico) e `.gitignore` reforçado para impedir recorrência. **Fase 2
+(reescrita de histórico) permanece não executada** — decisão explícita necessária do CTO antes de
+qualquer mudança, dado que reescrever histórico (`git filter-repo`/BFG + force-push) é uma operação
+destrutiva que exige aprovação própria e específica, separada desta Fase 1.
 
 Sprint prevista:
 Não definida — decisão pendente sobre remover do working tree vs. reescrever histórico vs. avaliar
@@ -1575,7 +1576,7 @@ Responsável:
 
 ---
 
-## KI-043
+## ~~KI-043~~ — MITIGADO (contenção); criptografia de backup pendente (pós-release)
 
 Descrição:
 Nenhum backup do banco de dados é criptografado em nenhum ponto do fluxo. `criar_backup()`
@@ -1595,8 +1596,12 @@ ausência de controle, não uma vulnerabilidade explorável remotamente. Relevan
 (princípio de segurança/proteção do dado armazenado).
 
 Status:
-Aberto — identificado em 2026-08-16. Nenhuma ação tomada; decisão de escopo (criptografar arquivo de
-backup em repouso, restringir destinos externos, ou aceitar o risco documentado) pendente do CTO.
+**Mitigado em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `025278f6`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): destinos externos (Google Drive, e-mail) contidos —
+`EXTERNAL_BACKUP_DESTINATIONS_ENABLED = False`, único ponto de verdade em `fluxoly_config.py`, testado
+(6 testes) e validado em QA Manual contra servidor real com os dois destinos configurados. Backup local
+não afetado. **Criptografia de backup em repouso permanece pendente** — decisão de escopo/gestão de
+chave/rotação/recuperação, pós-release.
 
 Sprint prevista:
 Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
@@ -1606,7 +1611,7 @@ Responsável:
 
 ---
 
-## KI-044
+## ~~KI-044~~ — RESOLVIDO
 
 Descrição:
 A "exclusão" de cliente (`DELETE /api/clientes/<id>`, `fluxoly_clientes_service.py::excluir_cliente`) tem
@@ -1627,9 +1632,13 @@ sistema, o que pode ser um requisito direto dependendo do que a Discovery de LGP
 para o primeiro cliente.
 
 Status:
-Aberto — identificado em 2026-08-16. Decisão de escopo (implementar anonimização em vez de hard-delete,
-aplicar retenção ao `audit_log`, ou aceitar como limitação documentada) pendente do CTO, depende da
-conclusão da Discovery de LGPD.
+**Resolvido em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `02efbb9a`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): novo `POST /api/clientes/<id>/anonimizar` (admin-only)
+mascara PII preservando `id`/FK de OS/vendas; complementa, não substitui, o `DELETE` (que continua só
+para órfãos, decisão explícita do CTO). `audit_log` registra a ação (`acao='anonymize'`). 5 testes novos,
+validado em QA Manual contra servidor real (preservação de FK, bloqueio para perfil não-admin,
+mascaramento confirmado no banco). Mecanismo de retenção do `audit_log` (mascaramento/expurgo
+parametrizável, prazo real pendente) tratado junto, ver `fluxoly_audit.py`.
 
 Sprint prevista:
 Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
@@ -1639,7 +1648,7 @@ Responsável:
 
 ---
 
-## KI-045
+## ~~KI-045~~ — RESOLVIDO
 
 Descrição:
 `GET/POST/PUT /api/clientes` (`fluxoly_clientes_controller.py`) exigem só `usuario_logado()` — qualquer
@@ -1656,8 +1665,14 @@ princípio de minimização de acesso frequentemente exigido por LGPD para dado 
 Não há evidência de que isso tenha sido uma decisão deliberada de produto.
 
 Status:
-Aberto — identificado em 2026-08-16. Decisão pendente do CTO: manter acesso amplo (todo perfil precisa
-ver cliente para operar OS/vendas) ou restringir campos sensíveis (ex.: CPF) a perfis específicos.
+**Resolvido em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `02efbb9a`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): leitura de `cpf_cnpj` restrita a `admin`/`financeiro`
+em `GET /api/clientes`/`GET /api/clientes/<id>`; escrita permanece liberada a todo perfil (decisão
+explícita do CTO). Edição por perfil restrito sem `cpf_cnpj` no payload preserva o valor existente em vez
+de apagá-lo (sentinel `CPF_NAO_INFORMADO`). 9 testes novos, validado em QA Manual contra servidor real
+com os 5 perfis. **Achado residual durante a Revisão Arquitetural, não bloqueante:** a busca
+(`GET /api/clientes?q=`) casa contra `cpf_cnpj` antes deste filtro decidir a visibilidade — registrado
+separadamente como **KI-046**, pós-release.
 
 Sprint prevista:
 Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.

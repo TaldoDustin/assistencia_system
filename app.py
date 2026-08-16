@@ -68,8 +68,11 @@ from fluxoly_config import (  # noqa: E402
     BACKUP_EMAIL_DESTINO,
     BACKUP_EMAIL_REMETENTE,
     BACKUP_EMAIL_SENHA_APP,
+    BACKUP_EMAIL_SENHA_APP_CONFIGURADA,
     DB_PATH,
+    EXTERNAL_BACKUP_DESTINATIONS_ENABLED,
     GOOGLE_DRIVE_BACKUP_DIR,
+    GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO,
     INTEGRATIONS_CONFIG_PATH,
     IS_DEMO_ENVIRONMENT,
     IS_PULL_REQUEST,
@@ -515,6 +518,14 @@ def forcar_migracao_schema():
 
 
 run_migrations()
+if not EXTERNAL_BACKUP_DESTINATIONS_ENABLED and (GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO or BACKUP_EMAIL_SENHA_APP_CONFIGURADA):
+    logger.warning(
+        "backup_destinos_externos_contidos",
+        extra={
+            "google_drive_configurado": bool(GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO),
+            "email_configurado": bool(BACKUP_EMAIL_SENHA_APP_CONFIGURADA),
+        },
+    )
 if BACKGROUND_JOBS_ENABLED:
     iniciar_thread_backup_automatico(
         BACKUP_DIR,

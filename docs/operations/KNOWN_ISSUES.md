@@ -1572,3 +1572,95 @@ Não definida — não bloqueia a correção do KI-041 nem a retomada da homolog
 
 Responsável:
 —
+
+---
+
+## KI-043
+
+Descrição:
+Nenhum backup do banco de dados é criptografado em nenhum ponto do fluxo. `criar_backup()`
+(`fluxoly_storage.py`) faz uma cópia binária (`sqlite3.Connection.backup()`) do `database.db` sem
+criptografia própria — o arquivo `.db` resultante contém todo o dado pessoal de `clientes` (nome,
+telefone, e-mail, CPF/CNPJ) em texto puro, legível por qualquer processo com acesso ao arquivo. O mesmo
+arquivo não-criptografado é copiado (`shutil.copy2`) para `IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR` quando
+configurado, e anexado a e-mail via SMTP (`enviar_backup_email`) quando `IR_FLOW_BACKUP_EMAIL_SENHA` está
+configurado — nesse último caso, a única proteção em trânsito é o TLS do próprio SMTP, sem criptografia
+adicional do anexo. Achado durante a Discovery de LGPD (2026-08-16, pesquisa somente-leitura, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Alto em potencial (dado pessoal real exposto em múltiplos destinos sem proteção adicional — disco local,
+possível pasta de Drive sincronizada, caixa de e-mail), mas sem exploração confirmada — é exposição por
+ausência de controle, não uma vulnerabilidade explorável remotamente. Relevante diretamente para LGPD
+(princípio de segurança/proteção do dado armazenado).
+
+Status:
+Aberto — identificado em 2026-08-16. Nenhuma ação tomada; decisão de escopo (criptografar arquivo de
+backup em repouso, restringir destinos externos, ou aceitar o risco documentado) pendente do CTO.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—
+
+---
+
+## KI-044
+
+Descrição:
+A "exclusão" de cliente (`DELETE /api/clientes/<id>`, `fluxoly_clientes_service.py::excluir_cliente`) tem
+duas limitações relevantes para direito de apagamento/anonimização (tema típico de LGPD): (1) é
+**bloqueada** com 409 sempre que o cliente tem qualquer OS vinculada (`possui_os_vinculada`) — não existe
+caminho de anonimização alternativo, então nenhum cliente com histórico real de atendimento pode ser
+removido, hoje ou no futuro; (2) mesmo quando a exclusão ocorre (cliente órfão, sem OS), o snapshot
+completo do registro (nome, telefone, e-mail, CPF/CNPJ) é gravado em `audit_log.valor_anterior` como JSON
+em texto puro — o dado sobrevive indefinidamente na tabela de auditoria, que também não tem nenhuma
+política de retenção. Achado durante a Discovery de LGPD (2026-08-16, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Médio/Alto para fins de compliance — não é um bug de comportamento (o bloqueio de exclusão com histórico
+vinculado é uma decisão de integridade referencial razoável, e o log de auditoria existe por design), mas
+significa que hoje **não existe nenhum mecanismo real de apagamento ou anonimização de dado pessoal** no
+sistema, o que pode ser um requisito direto dependendo do que a Discovery de LGPD concluir ser necessário
+para o primeiro cliente.
+
+Status:
+Aberto — identificado em 2026-08-16. Decisão de escopo (implementar anonimização em vez de hard-delete,
+aplicar retenção ao `audit_log`, ou aceitar como limitação documentada) pendente do CTO, depende da
+conclusão da Discovery de LGPD.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—
+
+---
+
+## KI-045
+
+Descrição:
+`GET/POST/PUT /api/clientes` (`fluxoly_clientes_controller.py`) exigem só `usuario_logado()` — qualquer
+perfil autenticado (`admin`/`tecnico`/`vendedor`/`estoque`) pode ler e escrever o dado pessoal completo de
+qualquer cliente (nome, telefone, e-mail, CPF/CNPJ), sem segregação por perfil. `GET /api/garantias`
+(`api_garantias.py`) tem o mesmo padrão — qualquer perfil vê nome de cliente + IMEI agregados. É mais
+amplo que o padrão já aplicado a outras entidades sensíveis do sistema (Financeiro e Usuários restritos a
+`admin`/perfis específicos). Achado durante a Discovery de LGPD (2026-08-16, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Baixo/médio hoje (não é bypass de autorização — é o desenho atual, intencional ou não) — mas contradiz o
+princípio de minimização de acesso frequentemente exigido por LGPD para dado pessoal, especialmente CPF.
+Não há evidência de que isso tenha sido uma decisão deliberada de produto.
+
+Status:
+Aberto — identificado em 2026-08-16. Decisão pendente do CTO: manter acesso amplo (todo perfil precisa
+ver cliente para operar OS/vendas) ou restringir campos sensíveis (ex.: CPF) a perfis específicos.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—

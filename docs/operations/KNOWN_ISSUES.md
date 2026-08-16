@@ -1664,3 +1664,38 @@ Não definida — candidato a entrar no escopo de qualquer sprint de implementa�
 
 Responsável:
 —
+
+---
+
+## KI-046
+
+Descrição:
+`GET /api/clientes?q=<termo>` (`fluxoly_clientes_repository.py::buscar_paginado`/`contar`) casa o termo de
+busca contra `cpf_cnpj` (`WHERE ... OR lower(COALESCE(cpf_cnpj, '')) LIKE ?`) **antes** do filtro de
+leitura do KI-045 ser aplicado no controller — a decisão de quais clientes entram no resultado já usa o
+CPF completo, e só depois o campo é removido da resposta para quem não é admin/financeiro. Um perfil
+restrito não recebe o valor, mas pode inferir por tentativa (`?q=123`, `?q=1234`, ...) se algum cliente
+tem aquele prefixo/substring de CPF — um oráculo de correspondência, não o valor em si. Achado durante a
+Revisão Arquitetural da Fase 1 de LGPD/Compliance (2026-08-17, eixo "risco de vazamento de dado" do
+`ADR-010`), ao enumerar toda rota que devolve `cpf_cnpj` e confirmar que passam pelo único ponto de
+filtragem — a busca é a única que decide *quais linhas retornam* usando o campo, sem passar por esse
+ponto.
+
+Impacto:
+Baixo — exige tentativa deliberada e repetida (não é a UI normal fazendo isso), produz só um sinal de
+match/no-match por substring, não o valor. Não atende nenhum critério objetivo de interrupção do
+`ENGINEERING_GUIDE.md` §11 (não é C-01/C-02/C-03; é uma nuance de C-04 que sozinha não basta). Não
+bloqueia o Encerramento da Fase 1 do Plano Técnico de LGPD/Compliance — mesmo padrão de residual risk já
+aceito para o KI-037 durante o ciclo de Preview Seguro.
+
+Status:
+Aberto — identificado em 2026-08-17. Correção candidata: excluir `cpf_cnpj` da cláusula de busca quando
+`termo` parece um CPF/CNPJ (ou, mais simples, remover `cpf_cnpj` da busca por completo e depender só de
+nome/telefone) — decisão de escopo pendente do CTO, não implementada nesta Revisão Arquitetural.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint futura de LGPD, não bloqueia o Encerramento
+da Fase 1.
+
+Responsável:
+—

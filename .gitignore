@@ -1,5 +1,11 @@
 # Ignorar backups de banco de dados
 backup-*.db
+
+# Qualquer banco SQLite ou sidecar WAL solto na raiz do repo (KI-029 — o padrão anterior não cobria
+# nomes como "database-pre-cleanup-*.db", só "database.db*"/"backup-*.db")
+/*.db
+/*.db-shm
+/*.db-wal
 # Python
 __pycache__/
 *.pyc

@@ -56,6 +56,8 @@ Meta para Sprint 4: separar a camada de acesso a dados.
 | Frontend framework | React | ^19 | ADR-001 |
 | Build tool | Vite | ^8 | ADR-001 |
 | UI components | Radix UI | ^1 | ADR-001 |
+| Composição de UI | shadcn/ui (componentes em `components/ui/`, sem pacote npm) | — | ADR-001 (amendment 2026-08-16) |
+| Ícones (componentes novos) | Phosphor Icons | ^2 | ADR-001 (amendment 2026-08-16) — coexiste com `lucide-react`, sem migração retroativa |
 | Estilização | Tailwind CSS | ^4 | — |
 | Gráficos | Recharts | ^3 | — |
 | Testes E2E | Playwright | ^1.55 | — |
@@ -239,6 +241,62 @@ cursor.execute("SELECT * FROM os WHERE cliente = ?", (nome,))
 - Toda rota protegida verifica `session.get("usuario_id")` antes de qualquer operação.
 - Rotas admin verificam `session.get("perfil") == "admin"`.
 - A verificação de autenticação é feita no início da função, antes de qualquer acesso ao banco.
+
+---
+
+## 3.2 Fluxoly Design System (Fase 1 — Fundação)
+
+Formalizado em `docs/engineering/plans/PLAN-design-system-fase1.md` e no amendment de
+`docs/engineering/adr/ADR-001.md` (2026-08-16). Radix UI continua a fundação de primitivas; shadcn/ui é o
+padrão de composição (componentes vivem em `frontend/src/components/ui/`, editáveis, nunca uma dependência
+de runtime opaca); Phosphor Icons é o padrão de ícones para componentes novos, coexistindo com
+`lucide-react` já em uso (sem migração retroativa).
+
+### Design Tokens
+
+**Cor** — já formalizada em `frontend/src/index.css` (`@theme`) desde antes desta fase: paleta de marca
+(fundo escuro, vermelho `#FF0125` como `--color-primary`, sidebar quase preta), tokens semânticos
+(`--color-card`, `--color-muted`, `--color-border`, `--color-sidebar-*`, `--color-chart-1` a `5`). Não
+redesenhada nesta fase.
+
+**Spacing, radius e shadow — decisão desta fase: usar a escala padrão do Tailwind, não criar tokens
+customizados.** Investigação confirmou que o código já converge nisso organicamente:
+
+- **Spacing:** a escala numérica padrão do Tailwind (`1`=4px, `2`=8px, `3`=12px, `4`=16px, `6`=24px,
+  `8`=32px, `12`=48px, `16`=64px) já cobre exatamente os valores 4/8/12/16/24/32/48/64 aprovados — usar
+  `p-4`/`gap-6`/`px-8` etc. diretamente, nunca um valor arbitrário (`p-[13px]`).
+- **Radius:** `rounded-sm` (pequenos elementos de controle — botão de fechar em `dialog.jsx`), `rounded-lg`
+  (padrão — botões, inputs, itens de navegação, já usado em `button.jsx`/`input.jsx`/`Layout.jsx`),
+  `rounded-xl` (contêineres maiores — cards, dialogs, popovers, já usado em `dialog.jsx`/`popover.jsx`),
+  `rounded-full` (badges, avatares). Sem radius customizado fora dessa escala.
+- **Shadow:** uso restrito e intencional (`shadow-sm` em inputs, `shadow-xl` em overlays — dialog, popover
+  — já o padrão em uso). Superfícies estáticas (cards de conteúdo, seções de página) não recebem shadow —
+  a separação visual vem de `border`/`bg-card` contra `bg-background`, não de elevação. Evita a estética de
+  "dashboard genérico de template" (decisão do CTO, `PLAN-design-system-fase1.md`).
+
+**Por que não criar `--spacing-*`/`--radius-*`/`--shadow-*` customizados:** o Tailwind v4 já expõe esses
+três eixos como tokens de tema (`--spacing`, `--radius-*`, `--shadow-*` no tema padrão) e o código já os usa
+de forma consistente — sobrepor tokens próprios criaria dois vocabulários para a mesma coisa (`p-4` vs.
+`p-[var(--spacing-md)]`), o oposto de um Design System coerente. Se uma necessidade real de valor fora da
+escala padrão aparecer no futuro (ex.: um radius exclusivo de marca), aí sim vira um token nomeado — não
+antecipado aqui.
+
+**Tipografia, breakpoints e tamanhos de componente** seguem o mesmo princípio (escala padrão do Tailwind,
+já em uso — `text-sm`/`text-2xl font-bold` no Dashboard, breakpoints `lg:`/lg: 1024px já usado no Shell para
+o corte desktop/mobile) — não redecidido nesta fase; formalizado aqui só como confirmação de que não há
+divergência a resolver.
+
+### Componentes (shadcn/ui)
+
+`frontend/src/components/ui/` — convenção: função nomeada exportada (não `default export`), `cn()` de
+`@/lib/utils` para merge de classes, `cva` só quando o componente tem variantes reais (`button.jsx`,
+`badge.jsx`) — componentes sem variante (`card.jsx`, `skeleton.jsx`) usam classes diretas. Sem
+`data-slot`/atributos extras além do que os componentes já existentes usam — mantém o arquivo simples,
+mesmo padrão de `dialog.jsx`/`popover.jsx`.
+
+`components.json` na raiz de `frontend/` registra a configuração do CLI shadcn (estilo, alias, ausência de
+TypeScript — o projeto usa `.jsx`) para permitir `npx shadcn add <componente>` quando um componente novo for
+necessário, sem precisar reconfigurar a cada vez.
 
 ---
 

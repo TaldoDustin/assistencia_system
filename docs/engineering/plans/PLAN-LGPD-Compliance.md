@@ -22,8 +22,14 @@ histórico) segue como gate separado, não incluído nesta aprovação.
       do KI-029 confirmada como gate separado; produção não ativa expurgo/mascaramento do `audit_log` sem
       prazo definido; KI-045 restringe só leitura de CPF, escrita permanece liberada; `DELETE` de cliente
       órfão mantém-se separado da anonimização)
-- [ ] Implementação
-- [ ] Testes
+- [x] Implementação — branch `feat/lgpd-compliance-fase1`, 5 commits atômicos: docs (Discovery+Plano),
+      KI-029 Fase 1 (`.gitignore` + `git rm --cached` dos 2 arquivos), KI-043 (contenção de destinos
+      externos de backup), KI-044+KI-045 (anonimização + leitura restrita de CPF), Decisão 6 (mecanismo
+      parametrizável do `audit_log`, inativo em produção)
+- [x] Testes — 33 testes novos (`test_backup_contencao_externa.py`, `test_clientes_anonimizacao.py`,
+      `test_clientes_pii_acesso.py`, `test_audit_log_retencao.py`), suíte completa 798 passed / 5 failed
+      (KI-030, pré-existente, ambiente Windows local, não relacionado), `ruff check .` limpo nos arquivos
+      tocados, `git ls-files` confirma zero `.db` rastreado, frontend `eslint`/`build` limpos
 - [ ] QA Manual
 - [ ] Revisão Arquitetural — obrigatória (toca >3 arquivos e mais de um domínio: Clientes, Backup, Auditoria)
 - [ ] Encerramento

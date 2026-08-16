@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Search, User, Phone, Mail, FileText } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Search, User, Phone, Mail, FileText, UserX } from "lucide-react";
 import { clientes as clientesApi, ordens as ordensApi, garantias as garantiasApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -148,6 +148,10 @@ function PerfilCliente({ cliente, onClose }) {
 export default function Clientes() {
   const { user } = useAuth();
   const isAdmin = user?.perfil === "admin";
+  // KI-045: leitura de CPF/CNPJ restrita a admin/financeiro -- escrita segue liberada a todo perfil
+  // (docs/engineering/plans/PLAN-LGPD-Compliance.md). O backend já omite cpf_cnpj da resposta para
+  // quem não pode ver; canSeeCpf só controla o hint do formulário de edição.
+  const canSeeCpf = user?.perfil === "admin" || user?.perfil === "financeiro";
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,6 +162,8 @@ export default function Clientes() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [anonymizeId, setAnonymizeId] = useState(null);
+  const [anonymizing, setAnonymizing] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState(null);
 
   const fetchItems = async () => {
@@ -199,7 +205,14 @@ export default function Clientes() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = editId ? await clientesApi.update(editId, form) : await clientesApi.create(form);
+      const payload = { ...form };
+      // KI-045: quem não vê o CPF atual (não-admin/financeiro) recebe o campo vazio ao editar --
+      // se não digitou nada, omite a chave do payload em vez de mandar "" e apagar silenciosamente
+      // o valor já salvo, que essa sessão nunca chegou a ver.
+      if (editId && !canSeeCpf && !form.cpf_cnpj) {
+        delete payload.cpf_cnpj;
+      }
+      const res = editId ? await clientesApi.update(editId, payload) : await clientesApi.create(payload);
       if (res?.ok) {
         toast.success(editId ? "Cliente atualizado!" : "Cliente criado!");
         setDialogOpen(false);
@@ -229,6 +242,24 @@ export default function Clientes() {
     } finally {
       setDeleting(false);
       setDeleteId(null);
+    }
+  };
+
+  const handleAnonymize = async () => {
+    setAnonymizing(true);
+    try {
+      const res = await clientesApi.anonymize(anonymizeId);
+      if (res?.ok) {
+        toast.success("Cliente anonimizado");
+        fetchItems();
+      } else {
+        toast.error(res?.erro || "Erro ao anonimizar cliente");
+      }
+    } catch {
+      toast.error("Erro ao anonimizar cliente");
+    } finally {
+      setAnonymizing(false);
+      setAnonymizeId(null);
     }
   };
 
@@ -308,6 +339,11 @@ export default function Clientes() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         {isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label={`Anonimizar cliente ${item.id}`} title="Anonimizar (LGPD)" onClick={() => setAnonymizeId(item.id)}>
+                            <UserX className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {isAdmin && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -345,7 +381,13 @@ export default function Clientes() {
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="cliente-cpf-cnpj">CPF/CNPJ</Label>
-                <Input id="cliente-cpf-cnpj" value={form.cpf_cnpj} onChange={(e) => setForm((p) => ({ ...p, cpf_cnpj: e.target.value }))} />
+                <Input id="cliente-cpf-cnpj" value={form.cpf_cnpj} onChange={(e) => setForm((p) => ({ ...p, cpf_cnpj: e.target.value }))} placeholder={editId && !canSeeCpf ? "Deixe em branco para não alterar" : undefined} />
+                {editId && !canSeeCpf && (
+                  <p className="text-xs text-muted-foreground">
+                    Seu perfil não vê o CPF/CNPJ já salvo. Deixe em branco para manter o valor atual, ou
+                    digite um novo para substituí-lo.
+                  </p>
+                )}
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="cliente-observacoes">Observações</Label>
@@ -377,6 +419,27 @@ export default function Clientes() {
               <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isAdmin && (
+        <AlertDialog open={!!anonymizeId} onOpenChange={(open) => !open && setAnonymizeId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Anonimizar Cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Remove nome, telefone, e-mail, CPF/CNPJ e observações deste cliente, preservando o
+                histórico de OS/vendas vinculado (KI-044). Não pode ser desfeito.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={anonymizing}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleAnonymize} disabled={anonymizing}>
+                {anonymizing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {anonymizing ? "Anonimizando..." : "Anonimizar"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

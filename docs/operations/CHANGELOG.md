@@ -9,6 +9,40 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado/Corrigido (2026-08-17 — feat/lgpd-compliance-fase1, KI-029 Fase 1/KI-043/KI-044/KI-045)
+- Ciclo `ADR-010` completo (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes → QA
+  Manual → Revisão Arquitetural → Encerramento) para a Fase 1 de LGPD/Compliance — ver
+  `docs/product/research/DISCOVERY_LGPD.md` e `docs/engineering/plans/PLAN-LGPD-Compliance.md`.
+  **Branch auditada e com CI 6/6 verde, ainda não mergeada em `main`** — merge é decisão separada do CTO.
+- **KI-029 Fase 1:** os dois arquivos `.db` reais ainda rastreados em `main` (`backup-20260429-015724.db`,
+  `database-pre-cleanup-20260517-123834.db`) removidos do índice (`git rm --cached`, não do histórico);
+  `.gitignore` reforçado para impedir qualquer `*.db`/`*.db-shm`/`*.db-wal` novo na raiz do repositório.
+  Fase 2 (reescrita de histórico) permanece separada, não executada, exige autorização própria.
+- **KI-043:** `GOOGLE_DRIVE_BACKUP_DIR`/`BACKUP_EMAIL_SENHA_APP` (`fluxoly_config.py`) passam a ficar
+  vazios independente do ambiente enquanto `EXTERNAL_BACKUP_DESTINATIONS_ENABLED` (hardcoded `False`) não
+  for reativado por decisão de produto — backup local não afetado, log de aviso estruturado no boot se um
+  destino externo configurado for ignorado. Criptografia de backup em repouso fica pós-release.
+- **KI-044:** novo `POST /api/clientes/<id>/anonimizar` (admin-only) mascara PII preservando o `id` do
+  cliente e toda FK em `os.cliente_id`/`vendas.cliente_id` — complementa, não substitui, o `DELETE`
+  existente (que continua só para clientes órfãos, sem histórico vinculado). `audit_log` registra a ação.
+- **KI-045:** `GET /api/clientes`/`GET /api/clientes/<id>` omitem `cpf_cnpj` da resposta para quem não é
+  `admin`/`financeiro`; escrita permanece liberada a todo perfil (decisão explícita do CTO). Edição por
+  perfil restrito sem `cpf_cnpj` no payload preserva o valor existente em vez de apagá-lo (sentinel
+  `CPF_NAO_INFORMADO`, `fluxoly_clientes_service.py`) — achado durante a própria implementação, corrigido
+  antes de virar bug real.
+- Mecanismo parametrizável de mascaramento/expurgo de `audit_log` (`fluxoly_audit.py`) implementado e
+  testado, mas **inativo em produção**: sem `AUDIT_LOG_PII_MASK_APOS_DIAS`/`AUDIT_LOG_EXPURGO_APOS_DIAS`
+  configuradas (sem default), a thread de manutenção nunca é iniciada — prazos reais aguardam orientação
+  jurídica/operacional, não são decisão de engenharia.
+- 33 testes novos (`test_backup_contencao_externa.py`, `test_clientes_anonimizacao.py`,
+  `test_clientes_pii_acesso.py`, `test_audit_log_retencao.py`); suíte completa 798 passed / 5 failed
+  (KI-030, pré-existente, ambiente Windows local, não relacionado); QA Manual 14/14 contra backend real e
+  descartável; Revisão Arquitetural aprovada com ressalva (**KI-046**, novo — busca de clientes por CPF
+  vaza sinal de match/no-match antes do filtro de leitura do KI-045 decidir a visibilidade, baixo impacto,
+  pós-release, não bloqueia este ciclo).
+- **Fora de escopo deste ciclo, deliberadamente:** KI-029 Fase 2, criptografia completa de backup, prazos
+  reais de retenção do `audit_log`, documento de privacidade, validação jurídica formal, KI-046.
+
 ### Corrigido (2026-08-15 — fix/seed-demo-tipo-garantia, KI-041)
 - `scripts/seed_demo.py` não criava nenhum registro em `tipos_garantia`, bloqueando **Finalizar OS** e
   **Registrar Venda** (campo obrigatório) para qualquer perfil no Ambiente Demo. Achado durante a

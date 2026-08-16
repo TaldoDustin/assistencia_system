@@ -117,12 +117,46 @@ def _normalizar_url_publica(valor):
 PUBLIC_BASE_URL = _normalizar_url_publica(os.environ.get("IR_FLOW_PUBLIC_BASE_URL")) or _normalizar_url_publica(
     VERCEL_URL
 )
-GOOGLE_DRIVE_BACKUP_DIR = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
+# KI-043 (2026-08-16, docs/engineering/plans/PLAN-LGPD-Compliance.md): destinos externos de backup
+# (Google Drive, e-mail) contidos até existir solução de criptografia em repouso com gestão de
+# chave/rotação/recuperação -- nenhum backup hoje é criptografado, e os dois destinos copiam o
+# arquivo .db inteiro (com dado pessoal em texto puro) para fora do disco local. Decisão de produto,
+# não operacional -- não é uma env var, para não poder ser reativada sem novo deploy/revisão de código.
+EXTERNAL_BACKUP_DESTINATIONS_ENABLED = False
+
+# *_CONFIGURADO preserva o valor bruto do ambiente (usado só para logar aviso em app.py se alguém
+# configurou um destino externo que está sendo ignorado pela contenção acima) -- as constantes
+# consumidas pelo resto do sistema (GOOGLE_DRIVE_BACKUP_DIR/BACKUP_EMAIL_SENHA_APP) ficam vazias
+# independente do ambiente, único ponto de verdade da contenção.
+GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO = os.environ.get("IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR", "")
+GOOGLE_DRIVE_BACKUP_DIR = GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO if EXTERNAL_BACKUP_DESTINATIONS_ENABLED else ""
 
 # Configuração de e-mail para envio automático de backup
 BACKUP_EMAIL_REMETENTE = os.environ.get("IR_FLOW_BACKUP_EMAIL", "ir.phones.flow@gmail.com")
-BACKUP_EMAIL_SENHA_APP = os.environ.get("IR_FLOW_BACKUP_EMAIL_SENHA", "")
+BACKUP_EMAIL_SENHA_APP_CONFIGURADA = os.environ.get("IR_FLOW_BACKUP_EMAIL_SENHA", "")
+BACKUP_EMAIL_SENHA_APP = BACKUP_EMAIL_SENHA_APP_CONFIGURADA if EXTERNAL_BACKUP_DESTINATIONS_ENABLED else ""
 BACKUP_EMAIL_DESTINO = os.environ.get("IR_FLOW_BACKUP_EMAIL_DESTINO", "ir.phones.flow@gmail.com")
+
+
+def _parse_dias_retencao(valor):
+    """KI-044 decisão 6 (PLAN-LGPD-Compliance.md): sem valor configurado (ou valor inválido/não
+    positivo), retorna None -- ausência de prazo real desliga a rotina de manutenção do audit_log por
+    completo, nunca um número inventado pela engenharia."""
+    valor = (valor or "").strip()
+    if not valor:
+        return None
+    try:
+        dias = int(valor)
+    except ValueError:
+        return None
+    return dias if dias > 0 else None
+
+
+# Prazos de mascaramento/expurgo de PII em audit_log -- deliberadamente sem default. Aguardam decisão
+# jurídica/operacional (não de engenharia); até lá, iniciar_thread_manutencao_audit_log() nunca é
+# chamada em app.py.
+AUDIT_LOG_PII_MASK_APOS_DIAS = _parse_dias_retencao(os.environ.get("AUDIT_LOG_PII_MASK_APOS_DIAS"))
+AUDIT_LOG_EXPURGO_APOS_DIAS = _parse_dias_retencao(os.environ.get("AUDIT_LOG_EXPURGO_APOS_DIAS"))
 
 # Tabelas de preço ficam no volume persistente; na primeira execução, copia o
 # arquivo de referência embutido no código para o diretório de dados.

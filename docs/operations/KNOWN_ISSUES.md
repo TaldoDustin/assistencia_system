@@ -955,11 +955,12 @@ exposição de dado em um artefato versionado. Contraria diretamente os princíp
 sidecars `-shm`/`-wal`) e não afetam arquivos já commitados de qualquer forma.
 
 Status:
-Aberto — identificado em 2026-07-31. **Nenhuma ação foi tomada** (nem remoção do working tree, nem
-reescrita de histórico) — decisão explícita necessária do usuário antes de qualquer mudança, dado que
-remover do working tree (`git rm`) não apaga do histórico, e reescrever histórico (`git filter-repo`/BFG
-+ force-push) é uma operação destrutiva que exige aprovação explícita à parte, fora do fluxo normal da
-Sprint Housekeeping.
+Aberto — parcialmente endereçado. **Fase 1 concluída em 2026-08-17** (branch `feat/lgpd-compliance-fase1`,
+commit `c5e64f37`, ver `docs/engineering/plans/PLAN-LGPD-Compliance.md`): os dois arquivos removidos do
+índice (`git rm --cached`, não do histórico) e `.gitignore` reforçado para impedir recorrência. **Fase 2
+(reescrita de histórico) permanece não executada** — decisão explícita necessária do CTO antes de
+qualquer mudança, dado que reescrever histórico (`git filter-repo`/BFG + force-push) é uma operação
+destrutiva que exige aprovação própria e específica, separada desta Fase 1.
 
 Sprint prevista:
 Não definida — decisão pendente sobre remover do working tree vs. reescrever histórico vs. avaliar
@@ -1569,6 +1570,147 @@ salvo decisão do CTO de alinhar estritamente ao `ADR-012` antes de retomar a ho
 
 Sprint prevista:
 Não definida — não bloqueia a correção do KI-041 nem a retomada da homologação.
+
+Responsável:
+—
+
+---
+
+## ~~KI-043~~ — MITIGADO (contenção); criptografia de backup pendente (pós-release)
+
+Descrição:
+Nenhum backup do banco de dados é criptografado em nenhum ponto do fluxo. `criar_backup()`
+(`fluxoly_storage.py`) faz uma cópia binária (`sqlite3.Connection.backup()`) do `database.db` sem
+criptografia própria — o arquivo `.db` resultante contém todo o dado pessoal de `clientes` (nome,
+telefone, e-mail, CPF/CNPJ) em texto puro, legível por qualquer processo com acesso ao arquivo. O mesmo
+arquivo não-criptografado é copiado (`shutil.copy2`) para `IR_FLOW_GOOGLE_DRIVE_BACKUP_DIR` quando
+configurado, e anexado a e-mail via SMTP (`enviar_backup_email`) quando `IR_FLOW_BACKUP_EMAIL_SENHA` está
+configurado — nesse último caso, a única proteção em trânsito é o TLS do próprio SMTP, sem criptografia
+adicional do anexo. Achado durante a Discovery de LGPD (2026-08-16, pesquisa somente-leitura, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Alto em potencial (dado pessoal real exposto em múltiplos destinos sem proteção adicional — disco local,
+possível pasta de Drive sincronizada, caixa de e-mail), mas sem exploração confirmada — é exposição por
+ausência de controle, não uma vulnerabilidade explorável remotamente. Relevante diretamente para LGPD
+(princípio de segurança/proteção do dado armazenado).
+
+Status:
+**Mitigado em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `025278f6`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): destinos externos (Google Drive, e-mail) contidos —
+`EXTERNAL_BACKUP_DESTINATIONS_ENABLED = False`, único ponto de verdade em `fluxoly_config.py`, testado
+(6 testes) e validado em QA Manual contra servidor real com os dois destinos configurados. Backup local
+não afetado. **Criptografia de backup em repouso permanece pendente** — decisão de escopo/gestão de
+chave/rotação/recuperação, pós-release.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—
+
+---
+
+## ~~KI-044~~ — RESOLVIDO
+
+Descrição:
+A "exclusão" de cliente (`DELETE /api/clientes/<id>`, `fluxoly_clientes_service.py::excluir_cliente`) tem
+duas limitações relevantes para direito de apagamento/anonimização (tema típico de LGPD): (1) é
+**bloqueada** com 409 sempre que o cliente tem qualquer OS vinculada (`possui_os_vinculada`) — não existe
+caminho de anonimização alternativo, então nenhum cliente com histórico real de atendimento pode ser
+removido, hoje ou no futuro; (2) mesmo quando a exclusão ocorre (cliente órfão, sem OS), o snapshot
+completo do registro (nome, telefone, e-mail, CPF/CNPJ) é gravado em `audit_log.valor_anterior` como JSON
+em texto puro — o dado sobrevive indefinidamente na tabela de auditoria, que também não tem nenhuma
+política de retenção. Achado durante a Discovery de LGPD (2026-08-16, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Médio/Alto para fins de compliance — não é um bug de comportamento (o bloqueio de exclusão com histórico
+vinculado é uma decisão de integridade referencial razoável, e o log de auditoria existe por design), mas
+significa que hoje **não existe nenhum mecanismo real de apagamento ou anonimização de dado pessoal** no
+sistema, o que pode ser um requisito direto dependendo do que a Discovery de LGPD concluir ser necessário
+para o primeiro cliente.
+
+Status:
+**Resolvido em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `02efbb9a`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): novo `POST /api/clientes/<id>/anonimizar` (admin-only)
+mascara PII preservando `id`/FK de OS/vendas; complementa, não substitui, o `DELETE` (que continua só
+para órfãos, decisão explícita do CTO). `audit_log` registra a ação (`acao='anonymize'`). 5 testes novos,
+validado em QA Manual contra servidor real (preservação de FK, bloqueio para perfil não-admin,
+mascaramento confirmado no banco). Mecanismo de retenção do `audit_log` (mascaramento/expurgo
+parametrizável, prazo real pendente) tratado junto, ver `fluxoly_audit.py`.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—
+
+---
+
+## ~~KI-045~~ — RESOLVIDO
+
+Descrição:
+`GET/POST/PUT /api/clientes` (`fluxoly_clientes_controller.py`) exigem só `usuario_logado()` — qualquer
+perfil autenticado (`admin`/`tecnico`/`vendedor`/`estoque`) pode ler e escrever o dado pessoal completo de
+qualquer cliente (nome, telefone, e-mail, CPF/CNPJ), sem segregação por perfil. `GET /api/garantias`
+(`api_garantias.py`) tem o mesmo padrão — qualquer perfil vê nome de cliente + IMEI agregados. É mais
+amplo que o padrão já aplicado a outras entidades sensíveis do sistema (Financeiro e Usuários restritos a
+`admin`/perfis específicos). Achado durante a Discovery de LGPD (2026-08-16, ver
+`docs/product/research/DISCOVERY_LGPD.md`).
+
+Impacto:
+Baixo/médio hoje (não é bypass de autorização — é o desenho atual, intencional ou não) — mas contradiz o
+princípio de minimização de acesso frequentemente exigido por LGPD para dado pessoal, especialmente CPF.
+Não há evidência de que isso tenha sido uma decisão deliberada de produto.
+
+Status:
+**Resolvido em 2026-08-17** (branch `feat/lgpd-compliance-fase1`, commit `02efbb9a`,
+`docs/engineering/plans/PLAN-LGPD-Compliance.md`): leitura de `cpf_cnpj` restrita a `admin`/`financeiro`
+em `GET /api/clientes`/`GET /api/clientes/<id>`; escrita permanece liberada a todo perfil (decisão
+explícita do CTO). Edição por perfil restrito sem `cpf_cnpj` no payload preserva o valor existente em vez
+de apagá-lo (sentinel `CPF_NAO_INFORMADO`). 9 testes novos, validado em QA Manual contra servidor real
+com os 5 perfis. **Achado residual durante a Revisão Arquitetural, não bloqueante:** a busca
+(`GET /api/clientes?q=`) casa contra `cpf_cnpj` antes deste filtro decidir a visibilidade — registrado
+separadamente como **KI-046**, pós-release.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint de implementação de medidas de LGPD.
+
+Responsável:
+—
+
+---
+
+## KI-046
+
+Descrição:
+`GET /api/clientes?q=<termo>` (`fluxoly_clientes_repository.py::buscar_paginado`/`contar`) casa o termo de
+busca contra `cpf_cnpj` (`WHERE ... OR lower(COALESCE(cpf_cnpj, '')) LIKE ?`) **antes** do filtro de
+leitura do KI-045 ser aplicado no controller — a decisão de quais clientes entram no resultado já usa o
+CPF completo, e só depois o campo é removido da resposta para quem não é admin/financeiro. Um perfil
+restrito não recebe o valor, mas pode inferir por tentativa (`?q=123`, `?q=1234`, ...) se algum cliente
+tem aquele prefixo/substring de CPF — um oráculo de correspondência, não o valor em si. Achado durante a
+Revisão Arquitetural da Fase 1 de LGPD/Compliance (2026-08-17, eixo "risco de vazamento de dado" do
+`ADR-010`), ao enumerar toda rota que devolve `cpf_cnpj` e confirmar que passam pelo único ponto de
+filtragem — a busca é a única que decide *quais linhas retornam* usando o campo, sem passar por esse
+ponto.
+
+Impacto:
+Baixo — exige tentativa deliberada e repetida (não é a UI normal fazendo isso), produz só um sinal de
+match/no-match por substring, não o valor. Não atende nenhum critério objetivo de interrupção do
+`ENGINEERING_GUIDE.md` §11 (não é C-01/C-02/C-03; é uma nuance de C-04 que sozinha não basta). Não
+bloqueia o Encerramento da Fase 1 do Plano Técnico de LGPD/Compliance — mesmo padrão de residual risk já
+aceito para o KI-037 durante o ciclo de Preview Seguro.
+
+Status:
+Aberto — identificado em 2026-08-17. Correção candidata: excluir `cpf_cnpj` da cláusula de busca quando
+`termo` parece um CPF/CNPJ (ou, mais simples, remover `cpf_cnpj` da busca por completo e depender só de
+nome/telefone) — decisão de escopo pendente do CTO, não implementada nesta Revisão Arquitetural.
+
+Sprint prevista:
+Não definida — candidato a entrar no escopo de qualquer sprint futura de LGPD, não bloqueia o Encerramento
+da Fase 1.
 
 Responsável:
 —

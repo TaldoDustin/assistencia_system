@@ -30,6 +30,19 @@ def create_clientes_blueprint(deps: dict):
     def usuario_admin():
         return session.get("usuario_perfil") == "admin"
 
+    def usuario_pode_ver_cpf():
+        # KI-045: leitura de CPF/CNPJ restrita a admin/financeiro -- escrita (criar/atualizar) segue
+        # liberada a todo perfil autenticado, decisão explícita do CTO (docs/engineering/plans/
+        # PLAN-LGPD-Compliance.md) para não travar o cadastro no balcão.
+        return session.get("usuario_perfil") in ("admin", "financeiro")
+
+    def _sem_cpf(cliente):
+        if not cliente:
+            return cliente
+        cliente = dict(cliente)
+        cliente.pop("cpf_cnpj", None)
+        return cliente
+
     def err(msg, code=400):
         return jsonify({"ok": False, "erro": msg}), code
 
@@ -52,6 +65,8 @@ def create_clientes_blueprint(deps: dict):
             return err("Parâmetros page/per_page inválidos.")
 
         resultado = service.listar_clientes(conectar, termo, page, per_page)
+        if not usuario_pode_ver_cpf():
+            resultado["items"] = [_sem_cpf(c) for c in resultado["items"]]
         return ok(**resultado)
 
     @clientes_api.route("/<int:cliente_id>")
@@ -62,6 +77,8 @@ def create_clientes_blueprint(deps: dict):
         cliente = service.obter_cliente(conectar, cliente_id)
         if not cliente:
             return err("Cliente não encontrado.", 404)
+        if not usuario_pode_ver_cpf():
+            cliente = _sem_cpf(cliente)
         return ok(cliente=cliente)
 
     @clientes_api.route("", methods=["POST"])
@@ -89,6 +106,10 @@ def create_clientes_blueprint(deps: dict):
             return err("Não autenticado.", 401)
 
         body = safe_json(request)
+        # KI-045: chave ausente no body (frontend a omite quando quem edita não pode ver o CPF atual)
+        # vira o sentinel "preservar valor atual" -- distinto de cpf_cnpj="" enviado explicitamente,
+        # que continua limpando o campo normalmente (comportamento inalterado para admin/financeiro).
+        cpf_cnpj = body.get("cpf_cnpj", service.CPF_NAO_INFORMADO)
         sucesso, erro = service.atualizar_cliente(
             conectar,
             session.get("usuario_id"),
@@ -96,7 +117,7 @@ def create_clientes_blueprint(deps: dict):
             body.get("nome"),
             body.get("telefone"),
             body.get("email"),
-            body.get("cpf_cnpj"),
+            cpf_cnpj,
             body.get("observacoes"),
         )
         if not sucesso:
@@ -112,6 +133,19 @@ def create_clientes_blueprint(deps: dict):
         sucesso, erro = service.excluir_cliente(conectar, session.get("usuario_id"), cliente_id)
         if not sucesso:
             code = 404 if erro == "Cliente não encontrado." else 409
+            return err(erro, code)
+        return ok()
+
+    @clientes_api.route("/<int:cliente_id>/anonimizar", methods=["POST"])
+    def anonimizar_cliente(cliente_id):
+        # KI-044: admin-only, mesmo padrão de DELETE -- complementa, não substitui, a exclusão (que
+        # continua servindo só para clientes órfãos, sem histórico vinculado).
+        if not usuario_logado() or not usuario_admin():
+            return err("Acesso negado.", 403)
+
+        sucesso, erro = service.anonimizar_cliente(conectar, session.get("usuario_id"), cliente_id)
+        if not sucesso:
+            code = 404 if erro == "Cliente não encontrado." else 400
             return err(erro, code)
         return ok()
 

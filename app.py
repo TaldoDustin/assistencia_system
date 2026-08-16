@@ -63,13 +63,18 @@ from fluxoly_blueprint_registry import RuntimeDeps, registrar_blueprints
 from fluxoly_config import (  # noqa: E402
     APP_HOST,
     APP_PORT,
+    AUDIT_LOG_EXPURGO_APOS_DIAS,
+    AUDIT_LOG_PII_MASK_APOS_DIAS,
     BACKGROUND_JOBS_ENABLED,
     BACKUP_DIR,
     BACKUP_EMAIL_DESTINO,
     BACKUP_EMAIL_REMETENTE,
     BACKUP_EMAIL_SENHA_APP,
+    BACKUP_EMAIL_SENHA_APP_CONFIGURADA,
     DB_PATH,
+    EXTERNAL_BACKUP_DESTINATIONS_ENABLED,
     GOOGLE_DRIVE_BACKUP_DIR,
+    GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO,
     INTEGRATIONS_CONFIG_PATH,
     IS_DEMO_ENVIRONMENT,
     IS_PULL_REQUEST,
@@ -118,6 +123,7 @@ from fluxoly_reference_data import (
     nome_reparo_importavel,
     normalizar_imei,
 )
+from fluxoly_audit import iniciar_thread_manutencao_audit_log
 from fluxoly_storage import carregar_configuracoes_integracoes, iniciar_thread_backup_automatico
 from fluxoly_web import anexar_query_string
 
@@ -515,6 +521,14 @@ def forcar_migracao_schema():
 
 
 run_migrations()
+if not EXTERNAL_BACKUP_DESTINATIONS_ENABLED and (GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO or BACKUP_EMAIL_SENHA_APP_CONFIGURADA):
+    logger.warning(
+        "backup_destinos_externos_contidos",
+        extra={
+            "google_drive_configurado": bool(GOOGLE_DRIVE_BACKUP_DIR_CONFIGURADO),
+            "email_configurado": bool(BACKUP_EMAIL_SENHA_APP_CONFIGURADA),
+        },
+    )
 if BACKGROUND_JOBS_ENABLED:
     iniciar_thread_backup_automatico(
         BACKUP_DIR,
@@ -524,6 +538,13 @@ if BACKGROUND_JOBS_ENABLED:
         email_senha_app=BACKUP_EMAIL_SENHA_APP,
         email_destino=BACKUP_EMAIL_DESTINO,
     )
+    # Decisão 6 (PLAN-LGPD-Compliance.md): só inicia se pelo menos um prazo estiver configurado --
+    # sem AUDIT_LOG_PII_MASK_APOS_DIAS/AUDIT_LOG_EXPURGO_APOS_DIAS, a rotina nunca é chamada (fail-safe
+    # por ausência de invocação, não por uma checagem interna que poderia ser esquecida).
+    if AUDIT_LOG_PII_MASK_APOS_DIAS or AUDIT_LOG_EXPURGO_APOS_DIAS:
+        iniciar_thread_manutencao_audit_log(
+            conectar, AUDIT_LOG_PII_MASK_APOS_DIAS, AUDIT_LOG_EXPURGO_APOS_DIAS
+        )
 
 
 def criar_admin_padrao():

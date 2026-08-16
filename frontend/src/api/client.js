@@ -344,6 +344,7 @@ export const clientes = {
   create: (data)       => post("/clientes", data),
   update: (id, data)   => put(`/clientes/${id}`, data),
   delete: (id)         => del(`/clientes/${id}`),
+  anonymize: (id)      => post(`/clientes/${id}/anonimizar`),
 };
 
 // ── Vendas ───────────────────────────────────────────────────────────────────

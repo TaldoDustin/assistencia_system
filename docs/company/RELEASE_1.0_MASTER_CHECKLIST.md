@@ -1,8 +1,8 @@
 # RELEASE_1.0_MASTER_CHECKLIST.md — Certificação para o primeiro cliente pagante
 
 **Status:** 🔵 Em construção — criado em 2026-07-25
-**Última revisão:** 2026-08-11 (Dry-Run 2B — rollback de infraestrutura Render validado, ver item
-"Rollback testado")
+**Última revisão:** 2026-08-16 (Ambiente de demonstração concluído — DoD do `ADR-012` 14/14 + Homologação
+Interna Controlada aprovada em 2026-08-15, ver item "Ambiente de demonstração")
 **Regra de uso:** este não é um backlog nem um roadmap — é um checklist de certificação. Quando todos os
 itens estiverem `[x]`, a Fluxoly está pronta para o primeiro cliente pagante (Fase 1 / Release 1.0, ver
 `docs/company/RELEASE_STRATEGY.md`). Toda sprint nova deveria responder: *"isto marca algum item deste
@@ -48,10 +48,10 @@ abaixo são as mesmas seções do checklist detalhado, não uma categorização 
 | Confiabilidade (bugs, backup, restore, carga) | 🟡 | ~66% |
 | Segurança e Compliance | 🟡 | ~55% |
 | Observabilidade | 🟢 | ~85% |
-| Operação (deploy, rollback, manual, demo, piloto) | 🔴 | ~35% |
+| Operação (deploy, rollback, manual, demo, piloto) | 🟡 | ~52% |
 
 ```
-Release 1.0:  ████████████░░░░░░░░  ~62%
+Release 1.0:  █████████████░░░░░░░  ~65%
 ```
 
 **Correção (2026-08-10, auditoria de estado real):** esta tabela media há duas semanas contra um estado
@@ -66,7 +66,7 @@ documentado), mas a agregação nunca foi recalculada. Cálculo por área, mesma
 | Confiabilidade | Bugs 70% · Backup 60% · Restore 100% · Carga 35% | ~66% |
 | Segurança | Segurança revisada 100% · LGPD 10% | ~55% (inalterada — nenhum dos dois itens mudou) |
 | Observabilidade | Logs 100% · Monitorização 70% | ~85% |
-| Operação | Deploy 100% · Rollback 65% · Manual 5% · Demo 5% · Piloto 0% | ~35% |
+| Operação | Deploy 100% · Rollback 65% · Manual 5% · Demo ~90% · Piloto 0% | ~52% |
 
 Visão geral recalculada de ~29% para ~55% em 2026-08-10 (auditoria de estado real), no mesmo dia de ~55%
 para ~59% com o fechamento do item Restore validado (Discovery → testes automatizados → QA manual →
@@ -77,11 +77,22 @@ correção de medição que gerou o primeiro. Em 2026-08-11, de ~61% para ~62% c
 (rollback de infraestrutura Render validado de ponta a ponta, ver detalhamento abaixo). **Segurança não
 mudou** — controle de que o método não foi inflado arbitrariamente fora do item que de fato avançou.
 
+**Nova revisão (2026-08-16):** de ~62% para ~65% com a conclusão do item "Ambiente de demonstração" —
+Discovery → ADR-012 → Plano Técnico → Implementação → Testes → QA Manual → Revisão Arquitetural →
+Encerramento no código (2026-08-12), provisionamento real do `fluxoly-demo`/Vercel dedicado (2026-08-14),
+seed + backup `seed-inicial` (2026-08-15), os 14/14 critérios do Definition of Done do `ADR-012`
+confirmados contra o Demo real (2026-08-15), e Homologação Interna Controlada — 🟢 **APROVADA**
+(2026-08-15, achado KI-041 corrigido e reexecutado com sucesso, ver `PROJECT_STATUS.md`). Item elevado de
+~5% para ~90% (não 100%: a Homologação Externa formal, com homologador humano de fora da equipe, segue
+sem data — Discovery e Plano concluídos, Preparação não iniciada; decisão do CTO em 2026-08-16 de manter
+o Demo como ambiente interno por enquanto, sem prospect definido).
+
 Maior bloco de trabalho real pela % (não pela quantidade de itens) continua sendo **Operação** — Rollback
-agora tem política completa (escopo, critério, autoridade, mecanismo, verificação) **e** dois dry-runs
+tem política completa (escopo, critério, autoridade, mecanismo, verificação) **e** dois dry-runs
 concluídos (mecanismo Git — Dry-Run 1A/1B; infraestrutura Render — Dry-Run 2B, 2026-08-11), mas ainda não
-exercitou um conflito de infraestrutura nem o lado Vercel/frontend do rollback coordenado; os demais
-(manual, demo, piloto) seguem do zero. Ver detalhamento item a item abaixo.
+exercitou um conflito de infraestrutura nem o lado Vercel/frontend do rollback coordenado; Ambiente de
+demonstração está tecnicamente pronto e homologado internamente, mas sem homologação externa; Manual do
+usuário e Piloto seguem do zero. Ver detalhamento item a item abaixo.
 
 ---
 
@@ -236,9 +247,22 @@ exercitou um conflito de infraestrutura nem o lado Vercel/frontend do rollback c
   Estado: ❌ Não existe.
   Link: —
 
-- [ ] **Ambiente de demonstração**
-  Estado: ❌ Não confirmado — não identificado nenhum ambiente separado de produção para demo/trial.
-  Link: —
+- [x] **Ambiente de demonstração**
+  Estado: ✅ Concluído tecnicamente e homologado internamente (2026-08-16). `fluxoly-demo` (Render) +
+  projeto Vercel dedicado provisionados (2026-08-14); `scripts/seed_demo.py` popula uma loja modelo 100%
+  sintética + 3 contas de demo (`admin.demo`/`tecnico.demo`/`vendedor.demo`); os 14/14 critérios do
+  Definition of Done do `ADR-012` confirmados contra o Demo real (guard KI-037, background jobs
+  desativados, Sentry `environment=demo`, backup sem destino externo, CORS, restore de ponta a ponta,
+  2026-08-15); Homologação Interna Controlada (via Claude in Chrome, substituindo por agora o gate da
+  Homologação Externa) 🟢 **APROVADA** (2026-08-15) — achado bloqueante KI-041 corrigido e reexecutado
+  com sucesso no Demo real. Achados não bloqueantes de menu/autorização e visão financeira registrados
+  como KI-042, frente futura. **Homologação Externa formal** (homologador humano de fora da equipe)
+  segue com Discovery e Plano concluídos, mas Preparação (data + homologador) não iniciada — decisão do
+  CTO (2026-08-16): manter o Demo como ambiente interno por enquanto, sem prospect definido.
+  Link: `docs/engineering/adr/ADR-012.md`, `docs/engineering/plans/PLAN-ambiente-demo-homologacao.md`,
+  `docs/engineering/plans/ROTEIRO-homologacao-interna-controlada.md`,
+  `docs/engineering/plans/PLAN-homologacao-externa-demo.md`, `docs/operations/KNOWN_ISSUES.md` (KI-041,
+  KI-042)
 
 - [ ] **Cliente piloto homologou**
   Estado: ❌ Não aplicável ainda — depende de todos os itens acima.
@@ -250,8 +274,8 @@ exercitou um conflito de infraestrutura nem o lado Vercel/frontend do rollback c
 
 - ❌ = não iniciado, confirmado por busca no código/docs (não é suposição)
 - 🟡 = parcial — existe algo, mas não cobre o critério de aceitação inteiro
-- ✅ = concluído e verificado (5 itens em 2026-08-10: Financeiro mínimo, Segurança revisada, Logs
-  estruturados, Deploy documentado, Restore validado)
+- ✅ = concluído e verificado (6 itens: Financeiro mínimo, Segurança revisada, Logs estruturados, Deploy
+  documentado, Restore validado — todos em 2026-08-10 — e Ambiente de demonstração, em 2026-08-16)
 - Todo item "🟡" ou "❌" deveria ter uma entrada correspondente em
   `docs/product/PRODUCT_BACKLOG.md` (ver seção seguinte) quando virar trabalho planejado.
 

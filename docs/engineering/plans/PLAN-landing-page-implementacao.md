@@ -19,9 +19,13 @@ que este documento resolve.
 **Estado**
 
 - [x] Plano Técnico — aprovado pelo CTO
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
+- [x] Implementação (3 commits: Design System aditivo → conteúdo/seções → roteamento + testes)
+- [x] Testes (18/18 — 11 pré-existentes + 7 novos, `App.test.jsx`/`Landing.test.jsx`)
+- [~] QA Manual — desktop confirmado ao vivo (`npm run dev` + Claude in Chrome, todas as 14 seções, FAQ
+      abre/fecha, CTA aponta para `/login`); **mobile não confirmado visualmente** (resize da ferramenta de
+      automação não afetou o viewport real da página — mesma limitação já registrada na QA da Fase 1 do
+      Design System) — coberto só por revisão de código (breakpoints `sm:`/`lg:` seguem o mesmo padrão já
+      testado do `Sidebar`/PR #47) e pelos testes automatizados, não por inspeção visual real
 - [ ] Revisão Arquitetural
 - [ ] Encerramento
 

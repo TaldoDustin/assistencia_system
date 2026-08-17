@@ -5,7 +5,8 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-17
+**Última revisão:** 2026-08-17 — inclui a Fase 1 do Fluxoly Design System (ver seção logo abaixo) e a Fase 1
+de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -40,7 +41,8 @@ intocada e saudável durante toda a operação — ver
 humano) fica a critério do CTO, sem data definida. LGPD (Discovery própria, trilha paralela) e KI-040 (race
 condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
 do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: 🟡 **Fase 1 de LGPD/Compliance ENCERRADA (ciclo `ADR-010` completo — KI-029 Fase 1 +
+Sequência recente: ✅ **Fase 1 do Fluxoly Design System ENCERRADA (7 PRs — #41 a #47 — mergeados em `main`,
+2026-08-16, ver seção própria abaixo)** → 🟡 **Fase 1 de LGPD/Compliance ENCERRADA (ciclo `ADR-010` completo — KI-029 Fase 1 +
 KI-043 mitigado + KI-044/KI-045 resolvidos + KI-046 registrado; branch `feat/lgpd-compliance-fase1`, CI
 6/6, QA Manual 14/14, Revisão Arquitetural aprovada com ressalva; merge em `main` pendente de autorização,
 2026-08-17, ver abaixo)** → 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
@@ -72,6 +74,60 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Fase 1 do Fluxoly Design System — ENCERRADA (7 PRs mergeados)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase1.md` para o registro completo de todas as etapas e
+`docs/engineering/adr/ADR-001.md` (amendment) para a decisão arquitetural.**
+
+2026-08-16. Iniciativa de UI/UX proposta pelo CTO — formalizar shadcn/ui, Motion e Phosphor Icons como
+padrão de composição do Fluxoly, mantendo Radix UI como fundação já decidida (ADR-001) e a identidade
+visual já em produção (`#FF0125` + fundo escuro). Investigação de código antes do plano confirmou que o
+projeto já convergia organicamente para o padrão shadcn (`button.jsx` já era `cva` + `Slot` + `cn()`) —
+reduziu o escopo real de "adoção do zero" para "formalização e expansão". Executado em 7 PRs sequenciais,
+cada um com CI 6/6 e aprovação explícita do CTO antes do merge:
+
+- **PR #41 — Governance/ADR:** Plano Técnico + amendment do ADR-001, sem nenhuma dependência instalada.
+- **PR #42 — Design System Foundation:** tokens de spacing/radius/shadow (decisão de usar a escala padrão
+  do Tailwind em vez de tokens customizados), `components.json`, `Card`/`Skeleton`, Phosphor instalado.
+- **PR #43 — Motion + componentes:** Motion + `@radix-ui/react-tooltip` instalados, `Tooltip`/`Sheet`
+  (transição CSS via `data-state` — Radix `Presence` não detecta a animação via WAAPI do Motion) e
+  `Sidebar` (drawer mobile com Motion de verdade, `useReducedMotion` respeitado).
+- **PR #44 — Landing Page (frente separada, doc-only):** especificação de conteúdo/estrutura/Design System
+  da futura Landing Page institucional (`docs/product/features/LANDING_PAGE.md`), Mercado Phone analisado
+  como benchmark de mercado/concorrente direto (sem parceria — dependência técnica de API, não relação
+  comercial), identidade visual **não** derivada do concorrente. Nenhuma implementação — não faz parte da
+  sequência técnica dos 7 PRs, decisão do CTO de não misturar com o Shell.
+- **PR #45 — Application Shell:** `Layout.jsx` migrado para `SidebarProvider`/`Sidebar`, elimina a
+  duplicação de markup desktop/mobile anterior, comportamento preservado 1:1, ícones em Phosphor.
+- **PR #46 — Dashboard Pilot:** 4 estados explícitos (loading/success/empty/error — antes só existia
+  loading e um `toast.error` que desaparecia), ícones em Phosphor.
+- **PR #47 — Frontend Tests:** Vitest + Testing Library inaugurados (0% → 11 testes), job de CI não-
+  bloqueante nesta fase.
+- **Final QA (fechamento, sem PR própria de código):** QA Manual nos 3 perfis (admin/técnico/vendedor)
+  contra backend real e descartável (seed via `scripts/seed_demo.py`, nunca `database.db`) confirmou o
+  Shell renderizando e filtrando o menu corretamente nos três perfis, e navegação por teclado com foco
+  visível. Achado de ambiente (não de código, não bloqueante): a sessão de login não persistiu no
+  navegador de automação usado nesta QA — nova reprodução do `KI-027` já conhecido, confirmado via `curl`
+  que backend/proxy/sessão funcionam corretamente fora do navegador de automação (registrado em
+  `KNOWN_ISSUES.md`). Esse mesmo achado validou organicamente o estado de erro do Dashboard (PR #46) contra
+  uma falha real, não simulada. Resize de viewport da ferramenta de automação não afetou o viewport real da
+  página nesta sessão — o drawer mobile não pôde ser clicado interativamente ao vivo; validado por revisão
+  de código + teste automatizado do hook `useIsMobile` (PR #47).
+
+**Bundle:** chunk principal (Shell, carregado em toda rota) cresceu de 115 kB para 167 kB gzip — Motion
+agora faz parte do carregamento inicial. Chunk do Dashboard (lazy, por rota) não afetou o bundle principal.
+Otimização futura possível, não implementada: lazy-load do caminho mobile-only do `Sidebar`.
+
+**Fora de escopo desta fase, deliberadamente:** redesign de qualquer módulo além de Shell/Dashboard,
+Next.js, GSAP/Three.js/Anime.js, meta de cobertura de teste do frontend inteiro, implementação da Landing
+Page (fica para um plano técnico próprio e futuro).
+
+**Decisão do CTO:** ciclo encerrado, todos os 7 PRs mergeados em `main`. Próxima iniciativa de UI/UX (se
+houver) — incluindo a possível implementação da Landing Page especificada no PR #44 — fica em aberto, sem
+data definida.
 
 ---
 
@@ -737,9 +793,9 @@ INC-001 permanece com o registro histórico completo, mas a causa raiz está con
 |--------------------|---------------------------------|
 | Produção           | Operacional (Render + Vercel)    |
 | Backend            | Estável — Flask + SQLite (WAL)  |
-| Frontend           | Estável — React 19 + Vite       |
-| CI/CD              | Presente e ativo (`.github/workflows/ci.yml` — lint, testes, frontend, build, cobertura, docker build). Cobertura bloqueante (`fail_under = 60`, elevado de 40 na Sprint CI/CD 1.1 — Hardening, 2026-07-31). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros). Workflow `CI` como um todo verde desde 2026-07-27 (Sprint Infra 1.1) — histórico de por que não estava, ver KI-026 (resolvida). `main` protegida, exige 6 status checks antes de merge (Lint, Backend Tests, Frontend Quality, Frontend Build, Coverage Report, Docker Build — R-10/R-11 mitigados, `Docker Build` adicionado na Sprint CI/CD 1.1; endurecimento adicional em TD-13) |
-| Cobertura de testes| 65.22% global (`pytest --cov`, 2026-07-31), 682 testes (ver Cobertura de Testes) |
+| Frontend           | Estável — React 19 + Vite + Radix UI/shadcn (Fase 1 do Design System encerrada 2026-08-16 — tokens, Motion, Phosphor Icons, Shell/Dashboard migrados, ver seção acima) |
+| CI/CD              | Presente e ativo (`.github/workflows/ci.yml` — lint, testes, frontend, build, cobertura, docker build, + `Frontend Unit Tests` desde 2026-08-16, não-bloqueante). Cobertura bloqueante (`fail_under = 60`, elevado de 40 na Sprint CI/CD 1.1 — Hardening, 2026-07-31). Job `Lint` (Ruff, backend) verde em `main` desde 2026-07-21 (KI-017 resolvido, `ruff check .` → 0 erros). Workflow `CI` como um todo verde desde 2026-07-27 (Sprint Infra 1.1) — histórico de por que não estava, ver KI-026 (resolvida). `main` protegida, exige 6 status checks antes de merge (Lint, Backend Tests, Frontend Quality, Frontend Build, Coverage Report, Docker Build — R-10/R-11 mitigados, `Docker Build` adicionado na Sprint CI/CD 1.1; endurecimento adicional em TD-13) |
+| Cobertura de testes| Backend: 65.22% global (`pytest --cov`, 2026-07-31), 682 testes. Frontend: testes de componente inaugurados em 2026-08-16 (Vitest, 11 testes — `Layout`/`Dashboard`), sem threshold ainda, restrito aos componentes migrados na Fase 1 do Design System (ver Cobertura de Testes) |
 | Dívida técnica     | Alta                            |
 | Segurança          | Melhor — Sprint Segurança 1.0 + 2º scan Aikido (2026-07-25), ambos fechados: `FLASK_SECRET_KEY` rotacionada em produção, autorização de OS/Estoque por perfil, headers HTTP, Docker non-root (validado com `docker build`/`docker run` reais), gunicorn/deps atualizadas — ver `docs/security/SECURITY_AUDIT_2026-07.md` |
 | Observabilidade    | Logs estruturados em JSON, correlation ID por request, `/health`/`/ready`, métricas Prometheus (`/metrics`, modo multiprocess validado com Docker real), Sentry ativo nos dois lados (backend + frontend novo, `environment`/`release` automáticos, conta criada e captura real validada em 2026-07-30) — ver `docs/operations/SPRINTS/SPRINT_OBSERVABILIDADE.md` e `docs/engineering/plans/PLAN-Observabilidade-Sentry-Frontend.md`. Falta configurar `SENTRY_DSN`/`VITE_SENTRY_DSN` nos dashboards Render/Vercel para ativar em produção |

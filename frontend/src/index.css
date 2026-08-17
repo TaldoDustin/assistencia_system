@@ -24,8 +24,23 @@
   --color-accent: hsl(0 0% 18%);
   --color-accent-foreground: hsl(0 0% 96%);
 
-  --color-destructive: hsl(351 100% 50%);
+  /* Destructive — coral, deliberadamente distinto do primary (hue 9° vs 351°). Antes desta
+     mudança era hsl(351 100% 50%), idêntico ao primary — CTA principal e ação destrutiva
+     ficavam visualmente indistinguíveis. Ver exploração "Cores Semânticas" (Opção B). */
+  --color-destructive: hsl(9 90% 58%);      /* #F9502C */
   --color-destructive-foreground: hsl(0 0% 100%);
+
+  /* Estados semânticos — sucesso/aviso/informativo. Tokens novos: nenhum componente usava
+     essas cores antes (toasts usam o preset embutido do sonner via `richColors`, não estes
+     tokens). Recalibrados para legibilidade sobre --color-background/--color-card. */
+  --color-success: hsl(152 55% 48%);        /* #33B884 */
+  --color-success-foreground: hsl(0 0% 100%);
+
+  --color-warning: hsl(43 96% 56%);         /* #F7B312 */
+  --color-warning-foreground: hsl(30 15% 10%); /* âmbar não sustenta texto claro — tinta quente, não preto puro */
+
+  --color-info: hsl(210 90% 60%);           /* #3D8FF5 */
+  --color-info-foreground: hsl(0 0% 100%);
 
   --color-border: hsl(0 0% 20%);
   --color-input: hsl(0 0% 18%);

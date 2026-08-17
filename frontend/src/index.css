@@ -47,6 +47,21 @@
   --color-chart-3: hsl(38 92% 50%);         /* amber */
   --color-chart-4: hsl(280 65% 60%);        /* purple */
   --color-chart-5: hsl(200 80% 55%);        /* cyan */
+
+  /* Accordion (ui/accordion.jsx) — usa --radix-accordion-content-height,
+     exposta pelo Radix em runtime, para animar a altura real do conteúdo. */
+  --animate-accordion-down: accordion-down 200ms ease-out;
+  --animate-accordion-up: accordion-up 200ms ease-out;
+}
+
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
 }
 
 @layer base {

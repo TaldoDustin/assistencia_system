@@ -5,8 +5,8 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-17 — inclui a Fase 1 do Fluxoly Design System (ver seção logo abaixo) e a Fase 1
-de LGPD/Compliance
+**Última revisão:** 2026-08-17 — inclui a implementação da Landing Page institucional (PR #49, mergeado em
+`main`), a Fase 1 do Fluxoly Design System (ver seção logo abaixo) e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -41,7 +41,8 @@ intocada e saudável durante toda a operação — ver
 humano) fica a critério do CTO, sem data definida. LGPD (Discovery própria, trilha paralela) e KI-040 (race
 condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não bloqueiam a sequência. Manual
 do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
-Sequência recente: ✅ **Fase 1 do Fluxoly Design System ENCERRADA (7 PRs — #41 a #47 — mergeados em `main`,
+Sequência recente: ✅ **Landing Page institucional — implementação ENCERRADA (PR #49 mergeado em `main`,
+2026-08-17, ver seção própria abaixo)** → ✅ **Fase 1 do Fluxoly Design System ENCERRADA (7 PRs — #41 a #47 — mergeados em `main`,
 2026-08-16, ver seção própria abaixo)** → 🟡 **Fase 1 de LGPD/Compliance ENCERRADA (ciclo `ADR-010` completo — KI-029 Fase 1 +
 KI-043 mitigado + KI-044/KI-045 resolvidos + KI-046 registrado; branch `feat/lgpd-compliance-fase1`, CI
 6/6, QA Manual 14/14, Revisão Arquitetural aprovada com ressalva; merge em `main` pendente de autorização,
@@ -74,6 +75,64 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Landing Page Institucional — Implementação ENCERRADA (PR #49 mergeado)
+
+**Ver `docs/engineering/plans/PLAN-landing-page-implementacao.md` para o registro completo e
+`docs/product/features/LANDING_PAGE.md` para a especificação de conteúdo/UX que originou o plano.**
+
+2026-08-17. Implementação em código das 14 seções especificadas no `LANDING_PAGE.md` (PR #44, doc-only,
+2026-08-16), fechando o item final do checklist daquele documento ("Plano Técnico de implementação
+redigido e aprovado pelo CTO... antes de qualquer código React ser escrito"). Ciclo leve (mesmo gate da
+Fase 1 do Design System — "apresentar plano e aguardar aprovação" do `CLAUDE.md`, sem BR nova), não o
+`ADR-010` completo.
+
+**Decisões do CTO que definiram o plano:** roteamento — `/` pública quando deslogado (Landing) e Dashboard
+quando autenticado, padrão Linear/Stripe/Vercel; escopo — estrutura completa das 14 seções já nesta fatia,
+com os itens ainda `[DEFINIR]` (preço, prova social, trial) como placeholder textual, sem bloquear o resto.
+
+**Entregue** (branch `feat/landing-page-implementacao`, 5 commits atômicos, CI 8/8 verde — 2 checks a mais
+que o padrão de 6 porque o job `Frontend Unit Tests` deste PR passou a cobrir `App.jsx`/`Landing.jsx`):
+- **Roteamento:** único ponto de mudança em `ProtectedRoute` (`App.jsx`) — `/` deslogado renderiza a
+  `Landing` em vez de redirecionar para `/login`; toda outra rota protegida continua redirecionando
+  normalmente. `AuthContext`, `Login.jsx`, `Layout.jsx`, backend e banco não foram tocados.
+- **14 componentes de seção** (`frontend/src/components/landing/`) + `Landing.jsx`, mapeamento 1:1 com a
+  tabela do `LANDING_PAGE.md`, reaproveitando 100% do Design System já mergeado (Button, Card, Badge,
+  Skeleton). Copy centralizada em `content.js`, extraída literalmente da spec — nenhum item `[DEFINIR]`
+  (preço, prova social, trial) preenchido com dado inventado.
+- **Design System aditivo:** `size="lg"` no `Button` e `Accordion` novo (padrão shadcn manual, mesma
+  convenção do Tooltip/Sheet — sem CLI funcional em projeto sem `tsconfig`/`jsconfig`), única dependência
+  nova (`@radix-ui/react-accordion`). Mockups de Hero/"Visão do sistema" construídos com Card/Skeleton reais
+  do Design System, não screenshot nem banco de imagens.
+- **Testes:** 18/18 (11 pré-existentes + 7 novos — `App.test.jsx` trava a regra "só `/` muda"; `Landing.test.jsx`
+  cobre as 14 seções, CTA, placeholders `[DEFINIR]` e o Accordion do FAQ). `IntersectionObserver` (ausente
+  em jsdom, exigido pelo `whileInView` do Motion) recebeu stub em `test/setup.js`.
+- **QA Manual:** desktop confirmado ao vivo (`npm run dev` + Claude in Chrome — 14 seções, FAQ abre/fecha,
+  CTAs corretos). **Mobile não confirmado visualmente** — mesma limitação já registrada na QA da Fase 1 do
+  Design System (resize da ferramenta de automação não afeta o viewport real da página); coberto por
+  revisão de código (breakpoints seguem o mesmo padrão já testado do `Sidebar`) e pelos testes
+  automatizados, aceito explicitamente pelo CTO antes da abertura do PR.
+- **Revisão Arquitetural** (4 eixos, CTO): roteamento ✅, isolamento de Auth/Login/Layout/APIs/banco ✅,
+  dependência nova validada pelo CI ✅, conteúdo sem invenções ✅. Achado de conteúdo revisado e confirmado
+  não-bloqueante: o `<title>`/meta description usa "dispositivos móveis premium" — checado contra
+  `docs/company/BRAND_IDENTITY.md` (nome, promessa, escopo negativo e visão da marca já usam "premium" há
+  muito antes deste PR) e contra o próprio FAQ da Landing (já aprovado) — mantido como estava, não é uma
+  decisão de posicionamento nova desta PR.
+- **Achado durante o CI, corrigido no próprio ciclo:** primeira execução falhou (`npm ci` estrito do Linux
+  não encontrou `@emnapi/core`/`@emnapi/runtime` no lockfile — o `npm install` no Windows remove essas
+  entradas top-level porque só precisa da build nativa da plataforma atual). Mesmo problema e mesma
+  correção já vistos na Sprint Infra 1.1 (**KI-026** causa 2) — restaurado num commit `fix:` próprio,
+  versões/hashes reconferidos contra o registry, CI reexecutado do zero: 8/8 verde.
+
+**Fora deste ciclo, deliberadamente:** preencher qualquer `[DEFINIR]` (preço, prova social, trial, suporte),
+fonte Inter (amendment do Design System ainda não decidido), GSAP/Three.js/Anime.js, screenshot real do
+Dashboard, captura de lead, SEO avançado (Open Graph dinâmico, SSR).
+
+**Decisão do CTO:** PR #49 aprovado nos 4 eixos da Revisão Arquitetural + merge autorizado. Mergeado em
+`main` (`a339de19`), branch deletada. Produção confirmada saudável pós-merge (`/health` backend → 200,
+frontend Vercel → 200, `<title>` da build de produção conferido).
 
 ---
 

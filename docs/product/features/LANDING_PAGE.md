@@ -1,9 +1,10 @@
 # LANDING_PAGE.md — Especificação da Landing Page Institucional do Fluxoly
 
-**Status:** Rascunho — especificação de conteúdo/estrutura/Design System. **Não implementar ainda** (decisão
-explícita do CTO, 2026-08-16) — implementação em React/JSX é uma etapa futura separada, com plano técnico
-próprio, seguindo o mesmo gate do `CLAUDE.md` já usado na Fase 1 do Design System interno
-(`docs/engineering/plans/PLAN-design-system-fase1.md`).
+**Status:** ✅ Implementada e em produção (PR #49, mergeado em `main` em 2026-08-17). Esta especificação
+permanece como registro do conteúdo/UX aprovado — ver
+`docs/engineering/plans/PLAN-landing-page-implementacao.md` para o plano técnico da implementação e
+`docs/operations/PROJECT_STATUS.md` (seção "Landing Page Institucional") para o registro executivo de
+encerramento.
 
 **Escopo desta etapa:** estrutura, copy, Design System (reaproveitando o que já foi formalizado nas PRs #41
 a #43), regras de UX/responsividade/acessibilidade/performance/animação, e um checklist objetivo para a
@@ -386,19 +387,26 @@ produto interno (PR #43, `ENGINEERING_GUIDE.md` §3.2 "Motion vs. transição CS
 
 ## 8. Checklist para Implementação Futura
 
-- [ ] Design System validado (Parte 4 revisada e aprovada pelo CTO, incluindo a confirmação dos tokens de
-      sucesso/atenção/informativo contra `index.css`)
-- [ ] Copy validada (Parte 3 revisada — inclusive decisão sobre os itens `[DEFINIR]`: preço, prova social,
-      trial)
-- [ ] Estrutura validada (Parte 2 — 12 seções aprovadas ou ajustadas)
-- [ ] Responsividade planejada (Parte 6)
-- [ ] Acessibilidade planejada (Parte 5 + Parte 6)
-- [ ] Performance planejada (lazy loading de imagens/seções abaixo da dobra, code splitting da rota da
-      Landing Page separada do bundle autenticado, GSAP carregado só se/quando usado)
-- [ ] Componentes definidos (Parte 4 — reaproveitar `button`/`input`/`card`/`badge`; `accordion` a adicionar)
-- [ ] Animações definidas (Parte 7 — Motion agora, GSAP reservado, Three.js/Anime.js só com justificativa)
-- [ ] CTAs definidos (Parte 2/3 — "Começar agora" como CTA único e consistente em toda a página)
-- [ ] SEO planejado (título, meta description, Open Graph, `alt` de imagens — nenhuma dessas peças definida
-      nesta especificação, fica para o plano técnico de implementação)
-- [ ] Plano Técnico de implementação redigido e aprovado pelo CTO, seguindo o mesmo gate do `CLAUDE.md`
-      (`docs/engineering/plans/PLAN-*.md`) antes de qualquer código React ser escrito
+**Concluído — ver `docs/engineering/plans/PLAN-landing-page-implementacao.md` para o registro completo de
+cada item (PR #49, mergeado em 2026-08-17).**
+
+- [x] Design System validado (Parte 4 — tokens de sucesso/atenção/informativo confirmados contra
+      `index.css` no Plano Técnico: `--color-chart-2`/`3`/`5`)
+- [x] Copy validada (Parte 3 — extraída literalmente para `content.js`; itens `[DEFINIR]` preservados como
+      placeholder, preço/prova social/trial seguem sem decisão de negócio)
+- [x] Estrutura validada (Parte 2 — 14 seções implementadas 1:1 com a tabela)
+- [x] Responsividade planejada e implementada (Parte 6 — breakpoints `sm:`/`lg:`, tabela de Diferenciais
+      empilhada no mobile, drawer via `Sheet` no Navbar)
+- [x] Acessibilidade planejada e implementada (Parte 5 + Parte 6 — primitivas Radix, `useReducedMotion`
+      respeitado no `FadeInSection`)
+- [x] Performance planejada e implementada (`Landing` carregada via `lazy()`, chunk separado do bundle
+      autenticado — 16.92 kB gzip; GSAP não usado nesta fatia)
+- [x] Componentes definidos e implementados (Parte 4 — `button`/`card`/`badge`/`skeleton` reaproveitados;
+      `accordion` adicionado)
+- [x] Animações definidas e implementadas (Parte 7 — só Motion nesta fatia; GSAP/Three.js/Anime.js fora de
+      escopo, sem justificativa visual identificada)
+- [x] CTAs definidos e implementados (Parte 2/3 — "Começar agora" consistente, aponta para `/login`)
+- [x] SEO planejado (título/meta description atualizados em `index.html`; Open Graph dinâmico e SSR ficam
+      fora de escopo — SPA sem esse mecanismo)
+- [x] Plano Técnico de implementação redigido e aprovado pelo CTO
+      (`docs/engineering/plans/PLAN-landing-page-implementacao.md`), seguindo o gate do `CLAUDE.md`

@@ -9,6 +9,24 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-17 — Landing Page institucional, PR #49)
+- **Implementação em código das 14 seções** especificadas em `docs/product/features/LANDING_PAGE.md`
+  (PR #44, doc-only): `Landing.jsx` + `components/landing/` (mapeamento 1:1 com a spec), copy centralizada
+  em `content.js` — extraída literalmente da spec, itens `[DEFINIR]` (preço, prova social, trial)
+  preservados como placeholder, nenhum dado comercial inventado.
+- **Roteamento:** único ponto de mudança em `ProtectedRoute` (`App.jsx`) — `/` deslogado renderiza a
+  Landing pública; `/` autenticado continua o Dashboard no `Layout`, sem regressão; todas as outras rotas
+  protegidas continuam redirecionando para `/login` normalmente. `AuthContext`/`Login.jsx`/backend/banco
+  não foram alterados.
+- **Design System aditivo:** `Accordion` novo (`@radix-ui/react-accordion`, único pacote novo) e
+  `size="lg"` no `Button`. Mockups de Hero/"Visão do sistema" usam Card/Skeleton reais, não screenshot nem
+  banco de imagens.
+- **Testes:** 18/18 (7 novos — `App.test.jsx`/`Landing.test.jsx`); `IntersectionObserver` (ausente em
+  jsdom) recebeu stub em `test/setup.js` para o `whileInView` do Motion.
+- **CI:** primeira execução falhou por lockfile desatualizado (`@emnapi/core`/`@emnapi/runtime` — mesma
+  causa já vista em KI-026), corrigido em commit próprio; segunda execução 8/8 verde.
+- Ver `docs/engineering/plans/PLAN-landing-page-implementacao.md` para o registro completo.
+
 ### Adicionado (2026-08-16 — Fase 1 do Fluxoly Design System, PRs #41-#47)
 - **Design System formalizado:** amendment do ADR-001 (shadcn/ui como padrão de composição sobre o Radix
   UI já adotado, sem substituí-lo) e `ENGINEERING_GUIDE.md` §3.2 documentam a decisão de reaproveitar a

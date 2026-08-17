@@ -7,7 +7,13 @@ completo, por não haver BR envolvida). O Discovery de conteúdo/UX já existe e
 2026-08-16 — ver `docs/product/features/LANDING_PAGE.md`, cujo item final do checklist ("Plano Técnico de
 implementação redigido e aprovado pelo CTO... antes de qualquer código React ser escrito") é exatamente o
 que este documento resolve.
-**Status:** 🟢 Plano Técnico aprovado pelo CTO (2026-08-17) — implementação em andamento
+**Status:** ✅ Encerrado (2026-08-17) — PR #49 mergeado em `main` (`a339de19`). Ver
+`docs/operations/PROJECT_STATUS.md` (seção "Landing Page Institucional") para o registro executivo de
+fechamento.
+
+> Este documento é efêmero (mesmo princípio do `ADR-010`/`CONTRIBUTING.md` §9, mesma nota do
+> `PLAN-design-system-fase1.md`). Depois do encerramento, permanece só como histórico da decisão de
+> implementação.
 
 **Decisões do CTO que definem este plano (2026-08-17):**
 - Roteamento: **`/` pública quando deslogado** (landing) e continua Dashboard quando autenticado — padrão
@@ -25,9 +31,15 @@ que este documento resolve.
       abre/fecha, CTA aponta para `/login`); **mobile não confirmado visualmente** (resize da ferramenta de
       automação não afetou o viewport real da página — mesma limitação já registrada na QA da Fase 1 do
       Design System) — coberto só por revisão de código (breakpoints `sm:`/`lg:` seguem o mesmo padrão já
-      testado do `Sidebar`/PR #47) e pelos testes automatizados, não por inspeção visual real
-- [ ] Revisão Arquitetural
-- [ ] Encerramento
+      testado do `Sidebar`/PR #47) e pelos testes automatizados, não por inspeção visual real. Aceito
+      explicitamente pelo CTO antes da abertura do PR.
+- [x] Revisão Arquitetural — aprovada pelo CTO nos 4 eixos: roteamento, isolamento de
+      Auth/Login/Layout/APIs/banco, dependência nova validada pelo CI, conteúdo sem invenções. Achado de
+      conteúdo revisado (uso de "premium" no `<title>`) confirmado consistente com
+      `docs/company/BRAND_IDENTITY.md` e com o FAQ já aprovado da própria Landing — mantido como estava.
+- [x] Encerramento — PR #49 mergeado em `main` (`a339de19`), branch deletada, produção confirmada saudável
+      pós-merge (`/health` backend → 200, frontend Vercel → 200). `PROJECT_STATUS.md`, `CHANGELOG.md` e o
+      checklist da Parte 8 de `docs/product/features/LANDING_PAGE.md` atualizados.
 
 ---
 

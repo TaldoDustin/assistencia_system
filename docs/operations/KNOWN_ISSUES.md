@@ -834,8 +834,21 @@ Status:
 **Causa 3 (ESLint) resolvida em 2026-07-27, Sprint Infra 1.1** — branch `chore/frontend-eslint-cleanup`
 a partir de `main` (regra de mudança única do `CLAUDE.md` preservada: só os 4 arquivos com erro, nenhuma
 mudança de comportamento), mergeada em `main`. Primeiro sucesso do workflow `CI` identificado nas
-execuções verificadas (`total_count` da API, run `30313428268`, commit `a86cc62`). Causas 1 (Ruff) e 2
-(`npm ci`) já eram história — nenhuma das três reproduz mais.
+execuções verificadas (`total_count` da API, run `30313428268`, commit `a86cc62`). Causa 1 (Ruff) já era
+história. Causa 2 (`npm ci`) recorreu (ver nota abaixo) — não é mais um problema encerrado.
+
+**Recorrência da causa 2 (2026-08-17, PR #49 — Landing Page):** `npm install @radix-ui/react-accordion`
+rodado no Windows local removeu de novo as entradas top-level `node_modules/@emnapi/core`/
+`node_modules/@emnapi/runtime` do `frontend/package-lock.json` (o npm no Windows só resolve a build nativa
+da plataforma atual, mas o `npm ci --strict` do runner Linux do CI exige as duas para validar
+`bundleDependencies` de `@tailwindcss/oxide-wasm32-wasi`). `Frontend Quality`/`Frontend Unit Tests`
+falharam na primeira execução; corrigido no mesmo ciclo com um commit `fix:` isolado (versões/hashes
+reconferidos contra o registry antes de reaplicar), CI reexecutado do zero: 8/8 verde. Registrado por
+decisão do CTO — não é mais um caso isolado resolvido em 2026-07, é uma fragilidade estrutural do fluxo
+`npm install` (Windows) → `npm ci` (CI Linux) sempre que uma dependência nova é adicionada a partir de uma
+máquina Windows. Nenhuma correção estrutural aplicada ainda (ex.: gerar/validar o lockfile a partir de um
+ambiente Linux, ou script de verificação pré-push) — fica como possível item futuro, fora do escopo do
+PR #49 (ver `docs/engineering/plans/PLAN-landing-page-implementacao.md`).
 
 **Achado relacionado, mais grave (2026-07-27, mesma investigação):** o motivo de 84/84 falhas nunca terem
 travado um merge é que `main` **não tinha nenhuma proteção de branch configurada** — confirmado via

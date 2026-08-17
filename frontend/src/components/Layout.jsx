@@ -92,6 +92,7 @@ function SidebarUserFooter({ user, onLogout }) {
             variant="ghost"
             size="icon"
             onClick={onLogout}
+            aria-label="Sair"
             className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
           >
             <SignOut className="h-4 w-4" />

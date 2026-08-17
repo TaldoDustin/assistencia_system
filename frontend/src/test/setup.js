@@ -28,3 +28,15 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     }),
   });
 }
+
+// jsdom nao implementa IntersectionObserver - necessario para o whileInView do Motion
+// (frontend/src/components/landing/FadeInSection.jsx), usado em toda a Landing Page.
+if (typeof window !== "undefined" && !window.IntersectionObserver) {
+  class IntersectionObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.IntersectionObserver = IntersectionObserverStub;
+  global.IntersectionObserver = IntersectionObserverStub;
+}

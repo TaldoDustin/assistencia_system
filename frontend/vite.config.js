@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
@@ -9,6 +9,13 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    // tests/e2e/ é Playwright (npm run test:e2e), não Vitest — exclusão
+    // explícita evita que o runner errado tente executar aquele arquivo.
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
   define: {
     // Sprint Observabilidade -- release do Sentry via git commit, sem exigir

@@ -1,10 +1,11 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import { Loader2 } from "lucide-react";
 
+const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
 const ChecklistDevice = lazy(() => import("@/pages/ChecklistDevice"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -32,6 +33,7 @@ const Users = lazy(() => import("@/pages/Users"));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -39,7 +41,12 @@ function ProtectedRoute({ children }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    // Só a raiz ganha a Landing Page pública quando deslogado — todo o resto das rotas
+    // protegidas continua redirecionando para /login normalmente (ver PLAN-landing-page-implementacao.md).
+    if (location.pathname === "/") return <Landing />;
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 

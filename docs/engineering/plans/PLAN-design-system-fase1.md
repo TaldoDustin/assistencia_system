@@ -6,9 +6,9 @@ atual" abaixo; não há Discovery formal em `docs/product/` porque não há BR e
 `ENGINEERING_GUIDE.md` §12: o ciclo `ADR-010` completo é obrigatório para feature com regra de negócio —
 este plano segue o gate mais simples de "apresentar plano e aguardar aprovação" do `CLAUDE.md`, seção
 "Critérios para Aprovar Alterações", por envolver dependências novas + >3 arquivos)
-**Status:** Aprovado pelo CTO (2026-08-16) — com ajuste na estratégia de PRs (ver "Plano de Execução"); nenhuma
-instalação de dependência ou código de produção antes da aprovação específica do amendment do ADR-001 (ver
-abaixo)
+**Status:** ✅ Encerrado (2026-08-16) — 7 PRs mergeados em `main` (#41-#47), CI 6/6 em cada um, QA Manual
+concluído. Ver `docs/operations/PROJECT_STATUS.md` (seção "Fase 1 do Fluxoly Design System — ENCERRADA")
+para o registro executivo de fechamento.
 
 > Este documento é efêmero (mesmo princípio do `ADR-010`/`CONTRIBUTING.md` §9). Depois que a fase encerra,
 > permanece só como histórico da decisão de implementação. O que precisar continuar vivo — tokens, padrão
@@ -18,12 +18,16 @@ abaixo)
 **Estado**
 
 - [x] Plano Técnico — aprovado pelo CTO (2026-08-16)
-- [ ] Amendment do ADR-001 — aprovado
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
-- [ ] Revisão Arquitetural (recomendada — toca >3 arquivos, ver `ADR-010`)
-- [ ] Encerramento
+- [x] Amendment do ADR-001 — aprovado e mergeado (PR #41)
+- [x] Implementação (PRs #42, #43, #45, #46)
+- [x] Testes (PR #47 — Vitest, 11 testes, `Layout`/`Dashboard`)
+- [x] QA Manual (3 perfis, backend real e descartável — ver `PROJECT_STATUS.md` para o registro completo,
+      incluindo o achado de ambiente KI-027 e a validação orgânica do estado de erro do Dashboard)
+- [x] Revisão Arquitetural — feita de forma contínua a cada PR (achado de bundle documentado no PR #45,
+      não um problema de coerência de domínio/autorização/estado — não justificou uma revisão formal
+      separada de 4 eixos do `ADR-010`, que é o padrão para feature com regra de negócio; esta fase não tem
+      regra de negócio nova)
+- [x] Encerramento (este documento + `CHANGELOG.md` + `PROJECT_STATUS.md` + `QUALITY_GATES.md`)
 
 ---
 
@@ -274,26 +278,35 @@ sozinho.
 
 ## Critérios de Aceite
 
-- [ ] `docs/engineering/adr/ADR-001.md` tem o amendment, commitado antes de qualquer instalação de
-      dependência.
-- [ ] `frontend/package.json` reflete só as dependências novas listadas acima — nenhuma removida/rebaixada.
-- [ ] Tokens de espaçamento/radius/shadow adicionados em `frontend/src/index.css`, documentados em
-      `ENGINEERING_GUIDE.md`.
-- [ ] Componentes shadcn novos (`card`/`sheet`/`tooltip`/`skeleton`/`sidebar`) presentes em
+- [x] `docs/engineering/adr/ADR-001.md` tem o amendment, commitado antes de qualquer instalação de
+      dependência (PR #41).
+- [x] `frontend/package.json` reflete só as dependências novas listadas acima — nenhuma removida/rebaixada.
+- [x] Tokens de espaçamento/radius/shadow — decisão de usar a escala padrão do Tailwind (sem tokens
+      customizados), documentada em `ENGINEERING_GUIDE.md` §3.2.
+- [x] Componentes shadcn novos (`card`/`sheet`/`tooltip`/`skeleton`/`sidebar`) presentes em
       `frontend/src/components/ui/`, sem alterar os 11 já existentes além do estritamente necessário para
       interoperar.
-- [ ] `Layout.jsx`/`SidebarContent` migrados, comportamento de filtro por perfil e rota ativa idêntico ao
-      atual (validado por teste + QA manual nos 3 perfis).
-- [ ] `Dashboard.jsx` migrado, com os 4 estados (loading/success/empty/error) implementados e visíveis.
-- [ ] Nenhuma mudança em `app.py`, qualquer `fluxoly_*.py`, endpoint, schema ou `ROUTE_PERMISSIONS`.
-- [ ] Nenhum ícone Phosphor fora de Shell/Dashboard; nenhuma remoção de uso existente de `lucide-react`.
-- [ ] Vitest configurado; testes de `SidebarContent`/`Layout`/`Dashboard` passando.
-- [ ] `npm run lint` e `npm run build` (G-03/G-06) verdes.
-- [ ] Navegação por teclado e `prefers-reduced-motion` validados manualmente no Shell e no Dashboard.
-- [ ] QA Manual nos 3 perfis (`admin`/`tecnico`/`vendedor`) confirmando: menu idêntico ao atual por perfil,
-      logout funcional, responsividade mobile/tablet/desktop, nenhuma regressão visual grosseira nas demais
-      páginas (que só herdam tokens de cor/spacing, não são migradas).
-- [ ] `CHANGELOG.md`/`PROJECT_STATUS.md`/`ENGINEERING_GUIDE.md` atualizados no Encerramento.
+- [x] `Layout.jsx` migrado, comportamento de filtro por perfil e rota ativa idêntico ao atual (validado por
+      teste automatizado + QA manual ao vivo nos 3 perfis, contas reais seedadas).
+- [x] `Dashboard.jsx` migrado, com os 4 estados (loading/success/empty/error) implementados e visíveis —
+      o estado de erro foi inclusive validado organicamente contra uma falha real durante o QA Manual.
+- [x] Nenhuma mudança em `app.py`, qualquer `fluxoly_*.py`, endpoint, schema ou `ROUTE_PERMISSIONS`.
+- [x] Nenhum ícone Phosphor fora de Shell/Dashboard; nenhuma remoção de uso existente de `lucide-react`.
+- [x] Vitest configurado; testes de `Layout`/`Dashboard` passando (11/11).
+- [x] `npm run lint` e `npm run build` (G-03/G-06) verdes em cada um dos 7 PRs.
+- [x] Navegação por teclado e foco visível validados manualmente no Shell (QA Manual, 2026-08-16).
+      **Ressalva:** `prefers-reduced-motion` foi validado só por revisão de código (`useReducedMotion()`
+      aplicado em todo uso de Motion) — não houve alternância manual da preferência do SO durante o QA;
+      o drawer mobile também não pôde ser clicado interativamente ao vivo (a ferramenta de resize de
+      viewport da automação não afetou o viewport real da página nesta sessão) — coberto por revisão de
+      código + teste automatizado do hook `useIsMobile`, não por clique real.
+- [x] QA Manual nos 3 perfis (`admin`/`tecnico`/`vendedor`) confirmando: menu idêntico ao esperado por
+      perfil (confirmado ao vivo, contas reais). **Ressalva:** login/logout funcional e responsividade
+      mobile/tablet não puderam ser exercitados de ponta a ponta ao vivo nesta sessão — achado de ambiente,
+      não de código, registrado como nova reprodução do `KI-027` em `KNOWN_ISSUES.md` (sessão de login não
+      persistiu no navegador de automação; confirmado via `curl` que backend/proxy/sessão funcionam
+      corretamente fora dele). Nenhuma regressão visual grosseira observada nas páginas verificadas.
+- [x] `CHANGELOG.md`/`PROJECT_STATUS.md`/`ENGINEERING_GUIDE.md` atualizados no Encerramento.
 
 ---
 

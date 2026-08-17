@@ -926,6 +926,23 @@ pela ferramenta de automação em cada sessão, não ser 100% determinístico. N
 escopo da sessão de V1.5); registrado só para não assumir que o wrapper de `SESSION_COOKIE_SECURE` é
 sempre necessário daqui pra frente.
 
+**Nova reprodução (2026-08-16, QA Manual do PR 7 — Final QA da Fase 1 do Design System):** com o wrapper
+de override já aplicado (`SESSION_COOKIE_SECURE=False`/`SAMESITE=Lax`/`PARTITIONED=False`, confirmado via
+`curl -i` que o header `Set-Cookie` de fato saía sem `Secure`), o login via Claude in Chrome ainda assim não
+persistiu a sessão entre requisições: `POST /api/auth/login` retornou `200` e populou o estado do usuário no
+React (a UI mostrou nome/perfil corretamente, porque `Login.jsx` usa a resposta do próprio login, sem
+depender de um `GET /api/auth/me` separado), mas a chamada seguinte real (`GET /api/dashboard`) voltou
+`401`, e um `fetch('/api/auth/me', {credentials:'include'})` manual confirmou `401`/`{"ok":false}`.
+**Confirmado que não é bug de código:** o mesmo fluxo (login → cookie → `/api/auth/me`) via `curl` com
+cookie jar, passando pelo mesmo proxy do Vite (`http://localhost:5173`), funcionou perfeitamente (`200`,
+sessão reconhecida) — o backend, o proxy e o `SESSION_COOKIE_*` override estão corretos; o problema é
+inteiramente da persistência de cookie dentro do navegador de automação nesta sessão específica, reforçando
+a hipótese de dependência de versão/perfil do Chrome já registrada acima. Também testado e descartado:
+`127.0.0.1:5173` não é uma alternativa via este ambiente (Vite não aceita conexão nesse host aqui — só
+`localhost`). **Efeito colateral útil:** essa reprodução acabou validando organicamente o estado de erro do
+Dashboard (`DashboardError`, PR #46) — a tela mostrou exatamente "Erro ao carregar dashboard." com botão
+"Tentar novamente", disparado por um 401 real, não simulado.
+
 ---
 
 ## KI-029

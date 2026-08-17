@@ -167,6 +167,27 @@ docker build .
 
 ---
 
+### G-20 — Testes de Componente Frontend (Vitest)
+
+```bash
+cd frontend && npm run test
+```
+
+| Estado | Critério |
+|--------|---------|
+| ✅ PASSOU | Componentes migrados/criados na Fase 1 do Design System (`Layout`, `Dashboard`, e o que vier depois) têm teste correspondente, todos passando |
+| ⚠️ NÃO BLOQUEANTE | Falha não bloqueia merge nesta fase |
+| ❌ BLOQUEANTE (data a definir) | Quando o CTO decidir formalizar — mesmo precedente do G-07 (Playwright), que também começou não-bloqueante |
+
+**Escopo:** restrito aos componentes efetivamente migrados/criados a partir da Fase 1 do Fluxoly Design
+System (`docs/engineering/plans/PLAN-design-system-fase1.md`) — não é meta de cobertura do frontend
+inteiro (0% antes desta fase, permanece dívida técnica conhecida fora do escopo migrado).
+**Status:** Ativo em CI (job `Frontend Unit Tests`, `continue-on-error: true`), Fase 1 do Design System
+(2026-08-16)  
+**Responsável:** CI pipeline
+
+---
+
 ## Gates de Documentação (Manual)
 
 Verificados pelo revisor (ou pelo autor em projeto solo) antes de aprovar.
@@ -308,6 +329,7 @@ fail_under = 60  # ver docs/operations/PROJECT_STATUS.md para o número real med
 - [ ] G-07 Playwright passou (ou não-bloqueante se Sprint < 3)
 - [ ] G-08 Auditoria de dependências (sem High/Critical)
 - [ ] G-19 Docker build passou
+- [ ] G-20 Vitest passou (frontend, se PR toca componente migrado na Fase 1 do Design System)
 
 ### Documentação
 - [ ] G-09 CHANGELOG atualizado (se feat/fix)
@@ -351,6 +373,7 @@ fail_under = 60  # ver docs/operations/PROJECT_STATUS.md para o número real med
 | G-17 Testes para novo código | ⚠️ Manual (seguido na prática) | Não enforçado em CI |
 | G-18 Hotfix para achados críticos | ⚠️ Manual | Ativo (2026-07-07, ADR-004) |
 | G-19 Docker build | ✅ Ativo em CI, bloqueante | Sprint CI/CD 1.1 — Hardening (2026-07-31) |
+| G-20 Vitest (frontend) | ⚠️ Ativo em CI, não-bloqueante | Fase 1 do Design System (2026-08-16) |
 
 **Branch `main` protegida** (Sprint Infra 1.1, 2026-07-27) exige G-01, G-03, G-04, G-05, G-06 e (a partir desta
 sprint) G-19 como status checks obrigatórios antes de merge — confirmado via

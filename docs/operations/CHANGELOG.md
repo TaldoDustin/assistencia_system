@@ -9,6 +9,41 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-16 — Fase 1 do Fluxoly Design System, PRs #41-#47)
+- **Design System formalizado:** amendment do ADR-001 (shadcn/ui como padrão de composição sobre o Radix
+  UI já adotado, sem substituí-lo) e `ENGINEERING_GUIDE.md` §3.2 documentam a decisão de reaproveitar a
+  escala padrão do Tailwind para spacing/radius/shadow (sem tokens customizados) e a paleta de marca já
+  existente (`#FF0125` + fundo escuro) — nada derivado do site de um concorrente usado como referência de
+  mercado (`docs/product/features/LANDING_PAGE.md`, especificação, sem implementação).
+- **Componentes novos:** `Card`, `Skeleton`, `Tooltip`, `Sheet`, `Sidebar` (`frontend/src/components/ui/`)
+  seguindo o padrão já em uso (`cva` + `cn()`, sem `data-slot`), `components.json` do CLI shadcn.
+- **Phosphor Icons** adotado para componentes novos/migrados (Shell, Dashboard); `lucide-react` permanece
+  no resto do frontend, sem migração retroativa.
+- **Motion** adotado para microinterações isoladas — drawer mobile do Sidebar (`AnimatePresence`,
+  `useReducedMotion` respeitado). Tooltip/Sheet usam transição CSS via `data-state`, não Motion (Radix
+  `Presence` não detecta a animação via WAAPI do Motion — regra registrada em `ENGINEERING_GUIDE.md` §3.2).
+- **Shell migrado:** `Layout.jsx` reescrito sobre `SidebarProvider`/`Sidebar`, elimina a duplicação de
+  markup entre desktop/mobile que existia antes. Comportamento de filtro por perfil e rota ativa
+  preservado 1:1. Ganhou `aria-label="Sair"` no botão de logout (gap de acessibilidade corrigido).
+- **Dashboard migrado:** 4 estados explícitos — loading (skeleton no formato do layout final), success
+  (preservado), empty (novo, quando não há nenhum indicador no período) e error (novo, banner/tela cheia
+  com "Tentar novamente", substituindo o `toast.error` que desaparecia sozinho).
+- **Testes de componente inaugurados:** Vitest + Testing Library (0% → 11 testes, `Layout.test.jsx` e
+  `Dashboard.test.jsx`), job `Frontend Unit Tests` no CI (não-bloqueante nesta fase).
+- **QA Manual** (3 perfis — admin/técnico/vendedor, backend real e descartável, nunca `database.db`):
+  Shell renderiza corretamente e filtra o menu por perfil em todos os três (confirmado contra contas reais
+  seedadas, não só o teste automatizado); navegação por teclado com foco visível confirmada. Achado de
+  ambiente, não de código: sessão de login não persistiu no navegador de automação usado nesta QA —
+  reprodução do `KI-027` já documentado, confirmado via `curl` que backend/proxy/sessão funcionam
+  corretamente fora do navegador de automação; o estado de erro do Dashboard acabou sendo validado
+  organicamente por esse mesmo achado. Resize de viewport da ferramenta de automação não afetou o
+  viewport real da página nesta sessão — o drawer mobile não pôde ser clicado interativamente, validado
+  só por revisão de código + teste automatizado do hook `useIsMobile`.
+- **Bundle:** chunk principal (Shell, não-lazy) cresceu de 115 kB para 167 kB gzip — Motion agora faz parte
+  do carregamento inicial; chunk do Dashboard (lazy, por rota) não teve impacto no bundle principal.
+  Otimização futura possível (não implementada): lazy-load do caminho mobile-only do Sidebar.
+- Ver `docs/engineering/plans/PLAN-design-system-fase1.md` para o registro completo de todas as etapas.
+
 ### Adicionado/Corrigido (2026-08-17 — feat/lgpd-compliance-fase1, KI-029 Fase 1/KI-043/KI-044/KI-045)
 - Ciclo `ADR-010` completo (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes → QA
   Manual → Revisão Arquitetural → Encerramento) para a Fase 1 de LGPD/Compliance — ver

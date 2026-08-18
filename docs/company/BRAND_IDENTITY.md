@@ -151,6 +151,57 @@ servida via Render + Vercel — a hospedagem já migrou de Fly.io, mas o nome le
 
 ---
 
+## 10. Identidade Visual (Logo e Tipografia)
+
+**Status:** Decidido — 2026-08-18.
+
+### 10.1 Ícone
+
+Monograma abstrato inspirado na letra "F" (de Fluxoly): haste vertical, dois braços horizontais,
+um pequeno furo circular decorativo próximo ao topo-esquerdo, e a base termina em uma cauda
+curva/ganchada em vez de um canto reto — reforçando o conceito de fluxo contínuo da marca.
+Desenhado como um único path SVG contínuo.
+
+O ícone tem 5 variações de cor, cada uma para um contexto de uso diferente:
+
+| Variação | Cor | Uso |
+|---|---|---|
+| Vermelho | `#FF0125` | Uso primário — fundo escuro (`#141414`), aplicação padrão da marca |
+| Branco | `#FFFFFF` | Sobre fundos coloridos, fotográficos ou de alto contraste |
+| Preto | `#000000` | Impressão e fundos claros |
+| Cinza | `#8A8A8A` | Uso monocromático discreto — marca d'água, estados desabilitados |
+| Invertido | Ícone branco sobre badge vermelho sólido (`#FF0125`) | Favicon, ícone de app, avatar — contexto que exige um contêiner de fundo sólido |
+
+Arquivos-fonte atuais: `Brand Indetity/assets/fluxoly-icon-{red,white,black,gray,inverted}.svg`
+(pasta de exploração de design, fora do controle de versão — `git status` a confirma como
+untracked). **Pendente:** mover os arquivos finais para um local definitivo dentro do repositório
+versionado (ex. `frontend/public/brand/`) quando forem efetivamente aplicados ao produto
+(favicon, header, materiais institucionais).
+
+### 10.2 Tipografia (Wordmark)
+
+**Fonte:** Onest, peso **Bold (700)** — geométrica/arredondada, licença aberta (Google Fonts),
+combina com o ícone e com o restante da paleta tech/premium da marca.
+
+Decisão tomada após comparativo entre ~15 fontes candidatas (Cabinet Grotesk, Sora, General
+Sans, Clash Display, Satoshi, Switzer, Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist,
+Inter, entre outras) — Onest se destacou desde a primeira rodada e foi confirmada após teste de
+todos os pesos (400–900) lado a lado com o ícone. Fontes personalizadas testadas e descartadas
+antes desta decisão: "Surgena" (uso pessoal) e "Goodly" (todas as 5 variantes).
+
+### 10.3 Paleta de cores da marca
+
+Fonte de verdade: `frontend/src/index.css` (tokens `@theme`).
+
+| Token | Valor | Papel |
+|---|---|---|
+| `--color-primary` | `#FF0125` (`hsl(351 100% 50%)`) | Vermelho de marca — ação primária, ícone padrão |
+| `--color-background` | `#141414` (`hsl(0 0% 8%)`) | Fundo padrão da aplicação |
+| `--color-foreground` | `#EBEBEB` | Texto sobre fundo escuro |
+| `--color-destructive`, `--color-success`, `--color-warning`, `--color-info` | — | Tokens semânticos de estado, independentes do vermelho de marca |
+
+---
+
 ## Documentos relacionados
 
 - `docs/company/VISION.md` — missão, visão, valores e critérios de sucesso (deriva deste documento)

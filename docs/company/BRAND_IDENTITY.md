@@ -172,11 +172,10 @@ O ícone tem 5 variações de cor, cada uma para um contexto de uso diferente:
 | Cinza | `#8A8A8A` | Uso monocromático discreto — marca d'água, estados desabilitados |
 | Invertido | Ícone branco sobre badge vermelho sólido (`#FF0125`) | Favicon, ícone de app, avatar — contexto que exige um contêiner de fundo sólido |
 
-Arquivos-fonte atuais: `Brand Indetity/assets/fluxoly-icon-{red,white,black,gray,inverted}.svg`
-(pasta de exploração de design, fora do controle de versão — `git status` a confirma como
-untracked). **Pendente:** mover os arquivos finais para um local definitivo dentro do repositório
-versionado (ex. `frontend/public/brand/`) quando forem efetivamente aplicados ao produto
-(favicon, header, materiais institucionais).
+Arquivos-fonte: `frontend/public/brand/fluxoly-icon-{red,white,black,gray,inverted}.svg`
+(versionados no repositório). **Pendente:** os arquivos ainda não estão referenciados em
+nenhum componente do produto — aplicá-los de fato (favicon, header, materiais institucionais)
+é um passo separado, ainda não feito.
 
 ### 10.2 Tipografia (Wordmark)
 

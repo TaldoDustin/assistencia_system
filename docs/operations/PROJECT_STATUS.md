@@ -5,8 +5,9 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-17 — inclui a implementação da Landing Page institucional (PR #49, mergeado em
-`main`), a Fase 1 do Fluxoly Design System (ver seção logo abaixo) e a Fase 1 de LGPD/Compliance
+**Última revisão:** 2026-08-19 — inclui o PR 1 (Foundation) da Fase 2 do Fluxoly Design System (ver seção
+logo abaixo), a implementação da Landing Page institucional (PR #49, mergeado em `main`), a Fase 1 do
+Fluxoly Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -75,6 +76,35 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Fase 2 do Fluxoly Design System — PR 1 (Foundation) implementado, aguardando CI/revisão
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase2.md` para o registro completo (auditoria das 24
+páginas, plano de 8 PRs aprovado pelo CTO) e `docs/engineering/ENGINEERING_GUIDE.md` §3.3 para as
+convenções vivas.**
+
+2026-08-19. Auditoria das 24 páginas do frontend confirmou que o Design System Fase 1 (PRs #41-#49) cobre
+só Shell/Dashboard/Landing — as outras 21 páginas operacionais seguem com badges de status reimplementados
+à mão (~13 arquivos), sem estados de loading/empty/error além de spinner genérico, e `ChecklistDevice.jsx`
+(única tela pública) com paleta própria, sem relação com a marca. CTO aprovou plano de 8 PRs sequenciais,
+com o PR 1 estabelecendo o vocabulário compartilhado antes de qualquer tela ser redesenhada (correção do
+CTO ao plano inicial, que começaria pelo `ChecklistDevice` isolado — Foundation primeiro evita retrabalho).
+
+**Entregue neste PR (branch `feat/design-system-fase2-foundation`, aberta a partir de `main` — não da
+branch não mergeada `feat/aplicar-identidade-visual-marca`/PR #53, para não misturar as duas frentes):**
+`Badge` com variantes semânticas (`success`/`warning`/`error`/`info`/`neutral`), `EmptyState`/
+`ErrorState`/`ErrorBanner`/`ListSkeleton`/`CardGridSkeleton` (generalização do padrão de 4 estados do
+Dashboard, PR #46), `FilterBar`/`FilterSelect`/`FilterInput`/`DateRangeFilter`/`ClearFiltersButton`
+(composição visual, sem tocar lógica de filtragem de nenhuma página), `Reveal` (Motion discreto para
+conteúdo pós-fetch, distinto do `FadeInSection` da Landing) e `lib/interaction.js` (convenção CSS de
+hover/foco). Nenhuma página em `pages/` foi tocada — só `components/ui/` e `lib/`. 26 testes novos
+(Vitest), suíte completa 40/40, lint 0 erros (2 warnings pré-existentes em `ShoppingList.jsx`/`Stock.jsx`,
+fora de escopo), build de produção confirmado sem erro.
+
+**Próximo passo:** CI + revisão do CTO antes do merge (mesmo gate leve da Fase 1). Depois: PR 2
+(`ChecklistDevice.jsx` como golden standard da fase).
 
 ---
 

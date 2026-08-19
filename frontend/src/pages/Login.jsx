@@ -45,10 +45,12 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-3">
-            <span className="text-primary-foreground font-bold text-lg">F</span>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Fluxoly</h1>
+          <img
+            src="/brand/fluxoly-icon-inverted.svg"
+            alt=""
+            className="h-12 w-12 rounded-xl mx-auto mb-3"
+          />
+          <h1 className="font-wordmark text-2xl text-foreground">Fluxoly</h1>
           <p className="text-muted-foreground text-sm mt-1">Sistema de Assistência Técnica</p>
         </div>
 

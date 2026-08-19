@@ -108,10 +108,8 @@ function AppSidebar({ currentPath, user, onLogout }) {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">F</span>
-          </div>
-          <span className="font-semibold text-sidebar-foreground text-base">Fluxoly</span>
+          <img src="/brand/fluxoly-icon-inverted.svg" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="font-wordmark text-sidebar-foreground text-base">Fluxoly</span>
         </div>
       </SidebarHeader>
       <SidebarNav currentPath={currentPath} user={user} />
@@ -137,7 +135,7 @@ export default function Layout() {
 
         <div className="fixed top-0 left-0 right-0 h-14 bg-sidebar border-b border-sidebar-border flex items-center px-4 lg:hidden z-30">
           <SidebarTrigger />
-          <span className="ml-3 font-semibold text-sidebar-foreground">Fluxoly</span>
+          <span className="ml-3 font-wordmark text-sidebar-foreground">Fluxoly</span>
         </div>
 
         <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 min-h-screen">

@@ -23,10 +23,8 @@ export function LandingNavbar() {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 lg:px-6">
         <a href="#top" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">F</span>
-          </div>
-          <span className="text-base font-semibold text-foreground">Fluxoly</span>
+          <img src="/brand/fluxoly-icon-inverted.svg" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="font-wordmark text-base text-foreground">Fluxoly</span>
         </a>
 
         <div className="hidden items-center gap-6 lg:flex">

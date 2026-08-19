@@ -5,10 +5,8 @@ export function LandingFooter() {
     <footer className="bg-sidebar border-t border-sidebar-border py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 text-center lg:flex-row lg:justify-between lg:px-6 lg:text-left">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">F</span>
-          </div>
-          <span className="text-sm font-semibold text-sidebar-foreground">Fluxoly</span>
+          <img src="/brand/fluxoly-icon-inverted.svg" alt="" className="h-7 w-7 rounded-lg" />
+          <span className="font-wordmark text-sm text-sidebar-foreground">Fluxoly</span>
         </div>
 
         <nav className="flex flex-wrap items-center justify-center gap-4">

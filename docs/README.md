@@ -78,6 +78,7 @@ Decisões de marca, produto e mercado — do Product Owner, não da engenharia:
 - [`engineering/CODE_STYLE.md`](engineering/CODE_STYLE.md) — Guia de estilo: Python, React, Git. Elimina discussões subjetivas.
 - [`engineering/QUALITY_GATES.md`](engineering/QUALITY_GATES.md) — Contrato de qualidade: critérios objetivos para aprovação de PR.
 - [`engineering/AI_WORKFLOW.md`](engineering/AI_WORKFLOW.md) — Protocolo de trabalho para qualquer IA.
+- [`engineering/CLAUDE_CODE_TOOLING.md`](engineering/CLAUDE_CODE_TOOLING.md) — Implementação do `AI_WORKFLOW.md` específica do ambiente Claude Code: quais plugins/skills/MCPs usar em cada etapa (Superpowers, frontend-design, Playwright, ECC DevTools, Claude-in-Chrome).
 - [`engineering/CONTRIBUTING.md`](engineering/CONTRIBUTING.md) — Como contribuir: setup, branches, commits, PRs, revisão.
 - [`engineering/FUTURE_TECH_EVALUATIONS.md`](engineering/FUTURE_TECH_EVALUATIONS.md) — Ideias técnicas de longo prazo (Next.js para landing, BetterAuth, Supabase, Redis, Resend, Firebase). **Não são decisões aprovadas** — cada item vira ADR só quando houver decisão real a tomar.
 

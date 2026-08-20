@@ -1,21 +1,46 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, Mic, QrCode, Smartphone, Volume2, Camera, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  CircleNotch,
+  Microphone,
+  QrCode,
+  DeviceMobile,
+  SpeakerHigh,
+  Camera,
+  CheckCircle,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { checklist as checklistApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
+import { Reveal } from "@/components/ui/reveal";
 import { getOrderDisplayNumber } from "@/lib/constants";
 
 const TOUCH_CELL_COUNT = 20;
+
+function statusLabel(status) {
+  if (status === "ok") return "OK";
+  if (status === "falha") return "Falha";
+  return "Não testado";
+}
+
+function statusVariant(status) {
+  if (status === "ok") return "success";
+  if (status === "falha") return "error";
+  return "neutral";
+}
 
 function StatusButtons({ value, onChange }) {
   const options = [
     { key: "ok", label: "OK" },
     { key: "falha", label: "Falha" },
-    { key: "nao_testado", label: "Nao testado" },
+    { key: "nao_testado", label: "Não testado" },
   ];
 
   return (
@@ -34,10 +59,12 @@ function StatusButtons({ value, onChange }) {
   );
 }
 
-function statusLabel(status) {
-  if (status === "ok") return "OK";
-  if (status === "falha") return "Falha";
-  return "Nao testado";
+function Section({ children }) {
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-4">{children}</CardContent>
+    </Card>
+  );
 }
 
 export default function ChecklistDevice() {
@@ -305,196 +332,208 @@ export default function ChecklistDevice() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <CircleNotch className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   if (!ordem) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white px-6 text-center">
-        <div className="max-w-md space-y-3">
-          <AlertTriangle className="h-10 w-10 mx-auto text-amber-400" />
-          <h1 className="text-2xl font-semibold">Checklist indisponivel</h1>
-          <p className="text-slate-300">O link informado nao encontrou um aparelho valido para teste.</p>
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="w-full max-w-md">
+          <ErrorState
+            title="Checklist indisponível"
+            description="O link informado não encontrou um aparelho válido para teste."
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b,_#020617_62%)] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4 shadow-2xl">
-          <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-cyan-400/15 p-3">
-              <Smartphone className="h-6 w-6 text-cyan-300" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">Checklist de entrada</p>
-              <h1 className="text-2xl font-semibold">OS #{getOrderDisplayNumber(ordem)}</h1>
-              <p className="text-sm text-slate-300">{ordem.cliente} • {ordem.modelo || "Modelo nao informado"}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
-              <p className="text-slate-400">Cor</p>
-              <p className="font-medium">{ordem.cor || "Nao informada"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
-              <p className="text-slate-400">IMEI</p>
-              <p className="font-medium">{ordem.imei || "Nao informado"}</p>
-            </div>
-          </div>
-
-          {existingChecklist?.atualizado_em ? (
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-              Ultimo checklist salvo em {existingChecklist.atualizado_em}.
-            </div>
-          ) : null}
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <QrCode className="h-5 w-5 text-cyan-300" />
-            <h2 className="text-lg font-semibold">Identificacao</h2>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="executado-por" className="text-slate-200">Quem executou o checklist</Label>
-            <Input
-              id="executado-por"
-              value={executadoPor}
-              onChange={(event) => setExecutadoPor(event.target.value)}
-              placeholder="Nome do tecnico ou cliente"
-              className="bg-slate-950/50 border-white/10 text-white"
-            />
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Touch</h2>
-              <p className="text-sm text-slate-300">Passe o dedo por toda a grade. Cobertura atual: {touchCoverage}%.</p>
-            </div>
-            <CheckCircle2 className="h-5 w-5 text-cyan-300" />
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {touchMap.map((touched, index) => (
-              <button
-                key={index}
-                type="button"
-                data-cell-index={index}
-                onPointerDown={(event) => {
-                  setDraggingTouch(true);
-                  handleTouchPointer(event);
-                }}
-                onPointerEnter={(event) => {
-                  if (draggingTouch) handleTouchPointer(event);
-                }}
-                className={`aspect-square rounded-xl border transition ${touched ? "bg-cyan-400 border-cyan-200" : "bg-slate-950/50 border-white/10"}`}
-              />
-            ))}
-          </div>
-          <StatusButtons value={testStatus.touch} onChange={(value) => setTestStatus((current) => ({ ...current, touch: value }))} />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Volume2 className="h-5 w-5 text-cyan-300" />
-            <div>
-              <h2 className="text-lg font-semibold">Alto-falante</h2>
-              <p className="text-sm text-slate-300">Reproduza o som e confirme se ele sai limpo.</p>
-            </div>
-          </div>
-          <Button type="button" onClick={playAudioTest}>Reproduzir som de teste</Button>
-          <p className="text-sm text-slate-400">Som reproduzido: {audioPlayed ? "sim" : "nao"}</p>
-          <StatusButtons value={testStatus.audio} onChange={(value) => setTestStatus((current) => ({ ...current, audio: value }))} />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Mic className="h-5 w-5 text-cyan-300" />
-            <div>
-              <h2 className="text-lg font-semibold">Microfone</h2>
-              <p className="text-sm text-slate-300">Grave um trecho curto e escute a reproducao.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={startMicTest} disabled={micState.recording}>Iniciar gravacao</Button>
-            <Button type="button" variant="outline" onClick={stopMicTest} disabled={!micState.recording}>Parar gravacao</Button>
-          </div>
-          {micState.error ? <p className="text-sm text-amber-300">{micState.error}</p> : null}
-          {micState.previewUrl ? <audio controls src={micState.previewUrl} className="w-full" /> : null}
-          <StatusButtons value={testStatus.microfone} onChange={(value) => setTestStatus((current) => ({ ...current, microfone: value }))} />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Camera className="h-5 w-5 text-cyan-300" />
-            <div>
-              <h2 className="text-lg font-semibold">Camera</h2>
-              <p className="text-sm text-slate-300">Abra a camera e verifique foco, imagem e tremor.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={startCameraTest} disabled={cameraState.active}>Abrir camera</Button>
-            <Button type="button" variant="outline" onClick={stopCameraTest} disabled={!cameraState.active}>Encerrar camera</Button>
-          </div>
-          {cameraState.error ? <p className="text-sm text-amber-300">{cameraState.error}</p> : null}
-          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black">
-            <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full min-h-56 object-cover" />
-          </div>
-          <StatusButtons value={testStatus.camera} onChange={(value) => setTestStatus((current) => ({ ...current, camera: value }))} />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">Botoes fisicos</h2>
-            <p className="text-sm text-slate-300">Marque os botoes que responderam corretamente.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {[
-              ["power", "Power"],
-              ["volumeUp", "Volume +"],
-              ["volumeDown", "Volume -"],
-              ["silent", "Silent / vibracao"],
-            ].map(([key, label]) => (
-              <label key={key} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={buttonChecks[key]}
-                  onChange={(event) => setButtonChecks((current) => ({ ...current, [key]: event.target.checked }))}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-          <p className="text-sm text-slate-400">Sugestao automatica: {statusLabel(suggestedButtonsStatus)}</p>
-          <StatusButtons value={testStatus.botoes} onChange={(value) => setTestStatus((current) => ({ ...current, botoes: value }))} />
-        </section>
-
-        <section className="rounded-3xl border border-white/10 bg-white/8 backdrop-blur-md p-5 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">Observacoes</h2>
-            <p className="text-sm text-slate-300">Registre riscos, trincas, oxidacao, marcas ou qualquer detalhe importante.</p>
-          </div>
-          <Textarea
-            value={observacoes}
-            onChange={(event) => setObservacoes(event.target.value)}
-            placeholder="Ex.: touch falhando no canto superior direito; aparelho com marcas na tampa."
-            className="min-h-32 bg-slate-950/50 border-white/10 text-white"
-          />
-        </section>
-
-        <div className="sticky bottom-4">
-          <Button type="button" onClick={saveChecklist} disabled={saving} className="w-full h-12 text-base">
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Salvar checklist
-          </Button>
+        <div className="flex items-center justify-center gap-2">
+          <img src="/brand/fluxoly-icon-inverted.svg" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="font-wordmark text-lg text-foreground">Fluxoly</span>
         </div>
+
+        <Reveal className="space-y-6">
+          <Section>
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-primary/15 p-3">
+                <DeviceMobile className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Checklist de entrada</p>
+                <h1 className="text-2xl font-semibold text-foreground">OS #{getOrderDisplayNumber(ordem)}</h1>
+                <p className="text-sm text-muted-foreground">{ordem.cliente} • {ordem.modelo || "Modelo não informado"}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border border-border bg-muted p-3">
+                <p className="text-muted-foreground">Cor</p>
+                <p className="font-medium text-foreground">{ordem.cor || "Não informada"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted p-3">
+                <p className="text-muted-foreground">IMEI</p>
+                <p className="font-medium text-foreground">{ordem.imei || "Não informado"}</p>
+              </div>
+            </div>
+
+            {existingChecklist?.atualizado_em ? (
+              <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+                Último checklist salvo em {existingChecklist.atualizado_em}.
+              </div>
+            ) : null}
+          </Section>
+
+          <Section>
+            <div className="flex items-center gap-3">
+              <QrCode className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">Identificação</h2>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="executado-por">Quem executou o checklist</Label>
+              <Input
+                id="executado-por"
+                value={executadoPor}
+                onChange={(event) => setExecutadoPor(event.target.value)}
+                placeholder="Nome do técnico ou cliente"
+              />
+            </div>
+          </Section>
+
+          <Section>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Touch</h2>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                  Passe o dedo por toda a grade. Cobertura atual: {touchCoverage}%
+                  <Badge variant={statusVariant(suggestedTouchStatus)}>{statusLabel(suggestedTouchStatus)}</Badge>
+                </div>
+              </div>
+              <CheckCircle className="h-5 w-5 text-primary shrink-0" />
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {touchMap.map((touched, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  data-cell-index={index}
+                  onPointerDown={(event) => {
+                    setDraggingTouch(true);
+                    handleTouchPointer(event);
+                  }}
+                  onPointerEnter={(event) => {
+                    if (draggingTouch) handleTouchPointer(event);
+                  }}
+                  className={`aspect-square rounded-xl border transition-colors ${touched ? "bg-primary border-primary" : "bg-muted border-border"}`}
+                />
+              ))}
+            </div>
+            <StatusButtons value={testStatus.touch} onChange={(value) => setTestStatus((current) => ({ ...current, touch: value }))} />
+          </Section>
+
+          <Section>
+            <div className="flex items-center gap-3">
+              <SpeakerHigh className="h-5 w-5 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Alto-falante</h2>
+                <p className="text-sm text-muted-foreground">Reproduza o som e confirme se ele sai limpo.</p>
+              </div>
+            </div>
+            <Button type="button" onClick={playAudioTest}>Reproduzir som de teste</Button>
+            <p className="text-sm text-muted-foreground">Som reproduzido: {audioPlayed ? "sim" : "não"}</p>
+            <StatusButtons value={testStatus.audio} onChange={(value) => setTestStatus((current) => ({ ...current, audio: value }))} />
+          </Section>
+
+          <Section>
+            <div className="flex items-center gap-3">
+              <Microphone className="h-5 w-5 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Microfone</h2>
+                <p className="text-sm text-muted-foreground">Grave um trecho curto e escute a reprodução.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={startMicTest} disabled={micState.recording}>Iniciar gravação</Button>
+              <Button type="button" variant="outline" onClick={stopMicTest} disabled={!micState.recording}>Parar gravação</Button>
+            </div>
+            {micState.error ? <p className="text-sm text-warning">{micState.error}</p> : null}
+            {micState.previewUrl ? <audio controls src={micState.previewUrl} className="w-full" /> : null}
+            <StatusButtons value={testStatus.microfone} onChange={(value) => setTestStatus((current) => ({ ...current, microfone: value }))} />
+          </Section>
+
+          <Section>
+            <div className="flex items-center gap-3">
+              <Camera className="h-5 w-5 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Câmera</h2>
+                <p className="text-sm text-muted-foreground">Abra a câmera e verifique foco, imagem e tremor.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={startCameraTest} disabled={cameraState.active}>Abrir câmera</Button>
+              <Button type="button" variant="outline" onClick={stopCameraTest} disabled={!cameraState.active}>Encerrar câmera</Button>
+            </div>
+            {cameraState.error ? <p className="text-sm text-warning">{cameraState.error}</p> : null}
+            <div className="rounded-xl overflow-hidden border border-border bg-black">
+              <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full min-h-56 object-cover" />
+            </div>
+            <StatusButtons value={testStatus.camera} onChange={(value) => setTestStatus((current) => ({ ...current, camera: value }))} />
+          </Section>
+
+          <Section>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Botões físicos</h2>
+              <p className="text-sm text-muted-foreground">Marque os botões que responderam corretamente.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                ["power", "Power"],
+                ["volumeUp", "Volume +"],
+                ["volumeDown", "Volume -"],
+                ["silent", "Silent / vibração"],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 rounded-xl border border-border bg-muted px-4 py-3">
+                  <Checkbox
+                    checked={buttonChecks[key]}
+                    onCheckedChange={(checked) => setButtonChecks((current) => ({ ...current, [key]: Boolean(checked) }))}
+                  />
+                  <span className="text-foreground">{label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              Sugestão automática:
+              <Badge variant={statusVariant(suggestedButtonsStatus)}>{statusLabel(suggestedButtonsStatus)}</Badge>
+            </div>
+            <StatusButtons value={testStatus.botoes} onChange={(value) => setTestStatus((current) => ({ ...current, botoes: value }))} />
+          </Section>
+
+          <Section>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Observações</h2>
+              <p className="text-sm text-muted-foreground">Registre riscos, trincas, oxidação, marcas ou qualquer detalhe importante.</p>
+            </div>
+            <Textarea
+              value={observacoes}
+              onChange={(event) => setObservacoes(event.target.value)}
+              placeholder="Ex.: touch falhando no canto superior direito; aparelho com marcas na tampa."
+              className="min-h-32"
+            />
+          </Section>
+
+          <div className="sticky bottom-4">
+            <Button type="button" onClick={saveChecklist} disabled={saving} className="w-full h-12 text-base">
+              {saving ? <CircleNotch className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Salvar checklist
+            </Button>
+          </div>
+        </Reveal>
       </div>
     </div>
   );

@@ -278,6 +278,7 @@ docs/
 │   ├── CODE_STYLE.md                        ← guia de estilo
 │   ├── QUALITY_GATES.md                     ← contrato de qualidade
 │   ├── AI_WORKFLOW.md                       ← protocolo de trabalho para IA
+│   ├── CLAUDE_CODE_TOOLING.md               ← implementação do AI_WORKFLOW.md no ambiente Claude Code (plugins/skills/MCPs)
 │   ├── CONTRIBUTING.md                      ← processo de desenvolvimento e PR
 │   └── templates/ADR_TEMPLATE.md
 ├── security/                                ← auditorias pontuais (distinto de engineering/SECURITY.md, que é a política permanente)

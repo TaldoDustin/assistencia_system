@@ -120,6 +120,11 @@
   }
 }
 
+.font-wordmark {
+  font-family: "Onest", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+}
+
 /* UX-001 -- Preservação de Contexto da Navegação: destaque temporário do
    registro restaurado ao voltar de uma edição/detalhe (ver useListContext.js). */
 @keyframes nav-context-pulse {

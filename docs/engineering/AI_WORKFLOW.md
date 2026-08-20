@@ -274,6 +274,10 @@ Este workflow foi projetado para funcionar com qualquer IA, mas cada ferramenta 
 **Para IAs que não carregam CLAUDE.md automaticamente:**
 Copie e cole o conteúdo das seções "Leitura Obrigatória" e "Protocolo de Trabalho" de CLAUDE.md no início da conversa, e aponte para este documento para o fluxo completo.
 
+**Para Claude Code especificamente:** este documento define o contrato agnóstico de ferramenta. A
+implementação desse contrato no ambiente Claude Code — quais plugins/skills/MCPs usar em cada etapa do
+protocolo — está em [`CLAUDE_CODE_TOOLING.md`](CLAUDE_CODE_TOOLING.md).
+
 ---
 
 ## Resumo Visual

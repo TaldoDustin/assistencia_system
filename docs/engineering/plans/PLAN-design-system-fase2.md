@@ -6,10 +6,8 @@ da Fase 1: "apresentar plano e aguardar aprovação" do `CLAUDE.md`, por envolve
 o ciclo `ADR-010` completo, que é obrigatório só para feature com regra de negócio nova, `ENGINEERING_GUIDE.md`
 §12)
 **Status:** 🟡 Em andamento — PRs 1 (Foundation), 2 (`ChecklistDevice.jsx`), 3
-(Orders/Kanban/NewOrder/EditOrder) e 4 (Estoque/Unidades Serializadas/Produtos) mergeados, PR 5 (Vendas +
-VendaDetalhe + Financeiro + Clientes) implementado (6 commits em
-`feat/design-system-fase2-vendas-financeiro-clientes`), aguardando checkpoint arquitetural + CI antes do
-merge
+(Orders/Kanban/NewOrder/EditOrder), 4 (Estoque/Unidades Serializadas/Produtos) e 5 (Vendas/VendaDetalhe/
+Financeiro/Clientes) mergeados, PR 6 (Reports/Price Tables/Repair Types/Users) ainda não iniciado
 
 > Este documento é efêmero, mesmo princípio do `PLAN-design-system-fase1.md`. O que precisar continuar
 > vivo — componentes, convenções — é promovido para `ENGINEERING_GUIDE.md` no Encerramento de cada PR.
@@ -73,7 +71,7 @@ corrigir automaticamente.
 | 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ✅ Mergeado (PR #55) |
 | 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ✅ Mergeado (PR #56) |
 | 4 | Stock + Unidades Serializadas + Produtos | ✅ Mergeado (PR #57) |
-| 5 | Vendas + VendaDetalhe + Financeiro + Clientes | 🟡 Implementado (aguardando CI/revisão) |
+| 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ✅ Mergeado (PR #58) |
 | 6 | Reports + Price Tables + Repair Types + Users | ⬜ |
 | 7 | Garantias + Operational Costs + Backup + Shopping List + Compras | ⬜ |
 | 8 | QA visual global + correção dos 2 desvios de radius/shadow + documentação final | ⬜ |
@@ -264,7 +262,7 @@ sobre o diff/teste/documentação deste commit primeiro.
 
 ---
 
-## PR 5 — Vendas + VendaDetalhe + Financeiro + Clientes (escopo detalhado)
+## PR 5 — Vendas + VendaDetalhe + Financeiro + Clientes (escopo detalhado, mergeado)
 
 Checkpoint arquitetural somente-leitura do CTO antes de autorizar o início, como nos PRs anteriores. Migração
 dos 3 usos de `variant="tag"` (commit `2fa03d70`, fecha o achado do PR 4) seguida da aplicação da Foundation
@@ -315,6 +313,9 @@ build ok.
 `.catch()`; `Financeiro.jsx` foi auditado e está limpo (já tinha `.catch()` explícito). `KI-049` novo —
 `Clientes.jsx::fetchItems` já usa `try/catch` (sem o bug do KI-048), mas não tem estado de erro dedicado —
 falha de rede fica indistinguível de lista vazia.
+
+**Decisão do CTO:** aprovado. CI 6/6 verde (duas execuções), revisão de diff completo sem alteração de
+lógica de negócio. Mergeado em `main` (squash, `58c40e7b`, PR #58), branch preservada.
 
 ---
 

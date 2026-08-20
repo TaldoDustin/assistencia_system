@@ -216,7 +216,7 @@ Mergeado em `main` (squash, `14527ea4`), branch preservada.
 
 ---
 
-## 🟡 Fase 2 do Fluxoly Design System — PR 5 (Vendas + VendaDetalhe + Financeiro + Clientes) implementado
+## ✅ Fase 2 do Fluxoly Design System — PR 5 (Vendas + VendaDetalhe + Financeiro + Clientes) mergeado
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 5") para o registro completo.**
 
@@ -246,7 +246,11 @@ critério do PR 3 (NewOrder/EditOrder). Suíte completa 89/89, lint 0 erros, bui
 1×, `Clientes.jsx::PerfilCliente` 1×; `Financeiro.jsx` auditado e limpo). `KI-049` novo —
 `Clientes.jsx::fetchItems` sem estado de erro dedicado, distinto do KI-048.
 
-**Próximo passo:** checkpoint arquitetural final + CI 6/6 antes de abrir o PR e mergear.
+**Decisão do CTO:** aprovado. CI 6/6 verde (duas execuções), revisão de diff completo sem alteração de
+lógica de negócio. Mergeado em `main` (squash, `58c40e7b`, PR #58), branch preservada.
+
+**Próximo passo:** PR 6 (Reports + Price Tables + Repair Types + Users) — não iniciado, aguardando
+autorização do CTO.
 
 ---
 

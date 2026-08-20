@@ -1744,3 +1744,34 @@ da Fase 1.
 
 Responsável:
 —
+
+---
+
+## KI-047
+
+Descrição:
+A grade de touch de `ChecklistDevice.jsx` (20 células, `frontend/src/pages/ChecklistDevice.jsx`) renderiza
+cada célula como `<button type="button" data-cell-index={index} ...>` sem `aria-label` nem qualquer texto
+acessível — um leitor de tela anuncia "botão" 20 vezes, sem indicar posição na grade nem estado
+tocado/não-tocado. Comportamento pré-existente, confirmado idêntico antes e depois do PR 2 da Fase 2 do
+Design System (`docs/engineering/plans/PLAN-design-system-fase2.md`) — o diff dessa mudança tocou só
+`className` (cor/token), nunca os atributos do elemento; achado durante a Revisão Arquitetural desse PR,
+não introduzido por ele.
+
+Impacto:
+Baixo/Médio — `ChecklistDevice.jsx` é a única tela pública do sistema (sem login, acessada via link de
+checklist), potencialmente usada por cliente final da loja em qualquer dispositivo/tecnologia assistiva.
+Não impede o uso por mouse/toque; afeta apenas navegação por leitor de tela.
+
+Status:
+Aberto — identificado em 2026-08-19. Correção candidata: `aria-label={`Célula ${index + 1} de 20 —
+${touched ? "tocada" : "não tocada"}`}` em cada célula. Não corrigido nesta Revisão Arquitetural por estar
+fora do escopo puramente visual do PR 2 (regra da Fase 2: achado fora do escopo é registrado, não
+corrigido automaticamente).
+
+Sprint prevista:
+Não definida — candidato a qualquer sprint futura de acessibilidade ou à próxima vez que
+`ChecklistDevice.jsx` for tocado.
+
+Responsável:
+—

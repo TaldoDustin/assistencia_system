@@ -19,6 +19,13 @@ const badgeVariants = cva(
         error: "border-destructive/30 bg-destructive/10 text-destructive",
         info: "border-info/30 bg-info/10 text-info",
         neutral: "border-transparent bg-muted text-muted-foreground",
+        // Variante taxonômica (Fase 2, PR 5, PLAN-design-system-fase2.md) — distinta das 5 acima
+        // por design: não responde "como está indo" (severidade), responde "que tipo de coisa é
+        // isso" (categoria/origem/tag). Deliberadamente uma cor neutra única, sem tom por valor —
+        // cor não deve carregar significado de taxonomia arbitrária. Substitui a prática de badge
+        // categórico com className cru por cor (ex.: ORIGEM_BADGE em Vendas.jsx/
+        // UnidadesSerializadas.jsx, CATEGORIA_BADGE em Produtos.jsx).
+        tag: "border-border bg-secondary/60 text-secondary-foreground",
       },
     },
     defaultVariants: {

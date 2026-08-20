@@ -235,6 +235,33 @@ rejeição de promise na carga inicial (mesmo padrão já registrado para NewOrd
 
 ---
 
+## PR 5 — Foundation: `variant="tag"` (escopo detalhado)
+
+Fecha o achado deixado aberto no PR 4 (linha acima): decisão de Design System sobre badges categóricos
+(`ORIGEM_BADGE` duplicado em `Vendas.jsx`/`UnidadesSerializadas.jsx`, `CATEGORIA_BADGE` em `Produtos.jsx`).
+Checkpoint arquitetural do CTO antes de abrir a branch (escopo de `Vendas.jsx`/`VendaDetalhe.jsx`/
+`Financeiro.jsx`/`Clientes.jsx` mapeado, `.then()` sem `.catch()` confirmado presente nos 4 arquivos —
+mesmo padrão do `KI-048`, candidato a estender de novo na Revisão Arquitetural). Apresentei proposta técnica
+somente-leitura (implementação atual do `Badge`, tokens disponíveis, aparência recomendada, impacto em
+testes/documentação, aplicação futura aos 3 usos) antes de tocar em qualquer código — decisão do CTO:
+aprovada, com a mudança de processo de isolar a criação da variante da migração dos 3 usos em commits
+separados.
+
+**Decisão:** nova variante taxonômica `tag` (`border-border bg-secondary/60 text-secondary-foreground`),
+distinta das 5 variantes de severidade (`success`/`warning`/`error`/`info`/`neutral` respondem "como está
+indo"; `tag` responde "que tipo de coisa é isso"). Deliberadamente uma única cor neutra sem tom por valor —
+**perda intencional** da diferenciação cromática por categoria que existe hoje em `CATEGORIA_BADGE` (4
+cores: iPhone/Apple Watch/AirPods/Acessório) e `ORIGEM_BADGE` (2 cores: estoque/produto), confirmada pelo
+CTO como consequência explícita da decisão, não um efeito colateral não avaliado. Nenhum token novo — reusa
+`--color-secondary`/`--color-border` já existentes em `index.css`, respeitando a regra de ouro da Fase 2
+(nenhuma paleta nova).
+
+**Este commit:** só a variante na Foundation (`badge.jsx` + `badge.test.jsx` + documentação). Migração dos
+3 usos (`ORIGEM_BADGE` × 2, `CATEGORIA_BADGE`) fica para um commit separado, aguardando autorização do CTO
+sobre o diff/teste/documentação deste commit primeiro.
+
+---
+
 ## Ver também
 
 - `docs/engineering/plans/PLAN-design-system-fase1.md` — Fase 1 (fundação + Shell + Dashboard).

@@ -5,9 +5,9 @@
 da Fase 1: "apresentar plano e aguardar aprovação" do `CLAUDE.md`, por envolver mais de 3 arquivos; não é
 o ciclo `ADR-010` completo, que é obrigatório só para feature com regra de negócio nova, `ENGINEERING_GUIDE.md`
 §12)
-**Status:** 🟡 Em andamento — PRs 1 (Foundation), 2 (`ChecklistDevice.jsx`) e 3
-(Orders/Kanban/NewOrder/EditOrder) mergeados, PR 4 (Estoque/Unidades Serializadas/Produtos) em
-implementação
+**Status:** 🟡 Em andamento — PRs 1 (Foundation), 2 (`ChecklistDevice.jsx`), 3
+(Orders/Kanban/NewOrder/EditOrder) e 4 (Estoque/Unidades Serializadas/Produtos) mergeados, PR 5 (Vendas +
+VendaDetalhe + Financeiro + Clientes) ainda não iniciado
 
 > Este documento é efêmero, mesmo princípio do `PLAN-design-system-fase1.md`. O que precisar continuar
 > vivo — componentes, convenções — é promovido para `ENGINEERING_GUIDE.md` no Encerramento de cada PR.
@@ -70,7 +70,7 @@ corrigir automaticamente.
 | 1 | **Foundation Fase 2** — `Badge` semântico, `EmptyState`/`ErrorState`/`LoadingState`, padrão visual de filtros, convenção de Motion discreta, documentação. Nenhuma tela redesenhada. | ✅ Mergeado (PR #54) |
 | 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ✅ Mergeado (PR #55) |
 | 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ✅ Mergeado (PR #56) |
-| 4 | Stock + Unidades Serializadas + Produtos | 🟡 Em implementação (aguardando CI/revisão) |
+| 4 | Stock + Unidades Serializadas + Produtos | ✅ Mergeado (PR #57) |
 | 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ⬜ |
 | 6 | Reports + Price Tables + Repair Types + Users | ⬜ |
 | 7 | Garantias + Operational Costs + Backup + Shopping List + Compras | ⬜ |

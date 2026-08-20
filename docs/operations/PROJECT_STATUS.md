@@ -171,7 +171,7 @@ rejeição de promise na carga inicial (`.then()` sem `.catch()`), pré-existent
 
 ---
 
-## 🟡 Fase 2 do Fluxoly Design System — PR 4 (Estoque + Unidades Serializadas + Produtos) em implementação
+## ✅ Fase 2 do Fluxoly Design System — PR 4 (Estoque + Unidades Serializadas + Produtos) mergeado
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 4") para o registro completo.**
 
@@ -207,8 +207,12 @@ por diff isolado byte-a-byte de `handleSubmit`/`handleDelete`/`carregar`/`salvar
 **Achado registrado, não corrigido:** KI-048 estendido — `Stock.jsx::fetchItems` também não trata rejeição
 de promise na carga inicial (mesmo padrão já registrado no PR 3 para NewOrder/EditOrder/Kanban).
 
-**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 5 (Vendas + VendaDetalhe + Financeiro +
-Clientes) — que precisará da decisão pendente sobre `ORIGEM_BADGE` antes de tocar em `Vendas.jsx`.
+**Decisão do CTO:** aprovado. CI 6/6 verde, revisão de diff completo sem alteração de lógica de negócio,
+tokens do Design System verificados, `CATEGORIA_BADGE`/`ORIGEM_BADGE` comprovadamente idênticos ao `main`.
+Mergeado em `main` (squash, `14527ea4`), branch preservada.
+
+**Próximo passo:** PR 5 (Vendas + VendaDetalhe + Financeiro + Clientes) — que precisará da decisão pendente
+sobre `ORIGEM_BADGE` antes de tocar em `Vendas.jsx`. Não iniciado ainda — aguardando autorização do CTO.
 
 ---
 

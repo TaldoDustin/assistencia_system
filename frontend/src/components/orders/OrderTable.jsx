@@ -1,15 +1,18 @@
 import { Link } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { interactiveRowClassName } from "@/lib/interaction";
 import OrderStatusBadge from "./OrderStatusBadge";
 import { formatCurrency, getOrderDisplayNumber } from "@/lib/constants";
 
 export default function OrderTable({ orders = [], onDelete, onEditClick }) {
   if (orders.length === 0) {
     return (
-      <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground text-sm">
-        Nenhuma ordem encontrada.
-      </div>
+      <EmptyState
+        title="Nenhuma ordem encontrada"
+        description="Ajuste os filtros ou crie uma nova ordem de serviço."
+      />
     );
   }
 
@@ -33,7 +36,7 @@ export default function OrderTable({ orders = [], onDelete, onEditClick }) {
             {orders.map((os) => (
               <tr
                 key={os.id}
-                className="hover:bg-accent/30 transition-colors"
+                className={interactiveRowClassName}
                 data-testid={`order-row-${os.id}`}
                 data-context-row={os.id}
               >
@@ -76,7 +79,7 @@ export default function OrderTable({ orders = [], onDelete, onEditClick }) {
                       aria-label={`Excluir ordem ${getOrderDisplayNumber(os)}`}
                       onClick={() => onDelete?.(os.id)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </td>

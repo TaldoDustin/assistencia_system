@@ -41,13 +41,18 @@ export function getOrderDisplayNumber(order) {
   return String(order.id_externo_integracao || "");
 }
 
-export function getStatusColor(status) {
+// Fonte única de verdade da semântica visual de status de OS -- consumida por
+// OrderStatusBadge.jsx (Orders/EditOrder) e Kanban.jsx (cor das colunas), para
+// que as duas telas nunca divirjam na interpretação de cor de um mesmo status
+// (achado da auditoria da Fase 2 do Design System, PLAN-design-system-fase2.md
+// PR 3). Variantes correspondem às do Badge semântico (components/ui/badge.jsx).
+export function getStatusVariant(status) {
   switch (status) {
-    case "Em andamento":   return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    case "Aguardando peca": return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-    case "Finalizado":     return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-    case "Cancelado":      return "bg-red-500/20 text-red-400 border-red-500/30";
-    default:               return "bg-muted text-muted-foreground border-border";
+    case "Em andamento":    return "info";
+    case "Aguardando peca": return "warning";
+    case "Finalizado":      return "success";
+    case "Cancelado":       return "error";
+    default:                return "neutral";
   }
 }
 

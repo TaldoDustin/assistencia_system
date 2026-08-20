@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Plus, Minus, Search } from "lucide-react";
+import { CircleNotch, Plus, Minus, MagnifyingGlass } from "@phosphor-icons/react";
 import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, precos as precosApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Reveal } from "@/components/ui/reveal";
 import { formatCurrency, OS_TYPES_FALLBACK, STATUS_OPTIONS_FALLBACK } from "@/lib/constants";
 
 const EMPTY_FORM = {
@@ -144,7 +145,7 @@ export default function NewOrder() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CircleNotch className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -156,6 +157,7 @@ export default function NewOrder() {
         <p className="text-muted-foreground text-sm">Preencha todos os dados da OS</p>
       </div>
 
+      <Reveal>
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Cliente / Tipo */}
         <section className="bg-card rounded-xl border border-border p-5 space-y-4">
@@ -271,14 +273,13 @@ export default function NewOrder() {
                         className={[
                           "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors",
                           selecionado
-                            ? "border-rose-500/60 bg-rose-500/10"
-                            : "border-border/70 bg-background/50 hover:border-rose-500/40 hover:bg-background",
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border/70 bg-background/50 hover:border-primary/40 hover:bg-background",
                         ].join(" ")}
                       >
                         <Checkbox
                           checked={selecionado}
                           onCheckedChange={() => toggleReparo(r.id)}
-                          className="border-rose-500/80 data-[state=checked]:border-rose-500 data-[state=checked]:bg-rose-500"
                         />
                         <span className="font-medium uppercase tracking-wide text-card-foreground">{r.nome}</span>
                       </label>
@@ -301,7 +302,7 @@ export default function NewOrder() {
             </div>
             <div className="bg-secondary rounded-xl p-4">
               <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Sugestão de serviço</p>
-              <p className="mt-3 text-2xl font-bold text-rose-500">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
+              <p className="mt-3 text-2xl font-bold text-primary">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
               <p className="mt-1 text-xs text-muted-foreground">Baseado na tabela de preços.</p>
             </div>
             <div className="flex items-end justify-end">
@@ -327,7 +328,7 @@ export default function NewOrder() {
         <section className="bg-card rounded-xl border border-border p-5 space-y-4">
           <h2 className="text-sm font-semibold text-card-foreground">Peças do Estoque</h2>
           <div className="relative">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+            <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar peça..."
               value={stockSearch}
@@ -374,7 +375,7 @@ export default function NewOrder() {
 
         <div className="flex gap-3">
             <Button type="submit" disabled={submitting} data-testid="order-create-button">
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
               Criar Ordem
             </Button>
           <Button type="button" variant="outline" onClick={() => navigate("/ordens")}>
@@ -382,6 +383,7 @@ export default function NewOrder() {
           </Button>
         </div>
       </form>
+      </Reveal>
     </div>
   );
 }

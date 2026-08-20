@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Plus, Minus, Search, QrCode, Copy, ExternalLink } from "lucide-react";
+import { CircleNotch, Plus, Minus, MagnifyingGlass, QrCode, Copy, ArrowSquareOut } from "@phosphor-icons/react";
 import ShoppingModal from "@/components/shopping/ShoppingModal";
 import { constantes as constApi, reparos as reparosApi, estoque as estoqueApi, ordens as ordensApi, checklist as checklistApi, precos as precosApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { formatCurrency, getOrderDisplayNumber, OS_TYPES_FALLBACK, STATUS_OPTION
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Reveal } from "@/components/ui/reveal";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
@@ -315,7 +316,7 @@ export default function EditOrder() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CircleNotch className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -330,7 +331,7 @@ export default function EditOrder() {
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => setShoppingModalOpen(true)}>Adicionar à Lista de Compras</Button>
           <Button type="button" variant="outline" onClick={handleChecklistQr} disabled={checklistLoading}>
-            {checklistLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+            {checklistLoading ? <CircleNotch className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
             Checklist QR
           </Button>
           <Button type="button" variant="outline" onClick={handleFinalize}>Finalizar OS</Button>
@@ -338,6 +339,7 @@ export default function EditOrder() {
         </div>
       </div>
 
+      <Reveal className="space-y-5">
       {checklistMeta ? (
         <section className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -482,14 +484,13 @@ export default function EditOrder() {
                         className={[
                           "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors",
                           selecionado
-                            ? "border-rose-500/60 bg-rose-500/10"
-                            : "border-border/70 bg-background/50 hover:border-rose-500/40 hover:bg-background",
+                            ? "border-primary/60 bg-primary/10"
+                            : "border-border/70 bg-background/50 hover:border-primary/40 hover:bg-background",
                         ].join(" ")}
                       >
                         <Checkbox
                           checked={selecionado}
                           onCheckedChange={() => toggleReparo(r.id)}
-                          className="border-rose-500/80 data-[state=checked]:border-rose-500 data-[state=checked]:bg-rose-500"
                         />
                         <span className="font-medium uppercase tracking-wide text-card-foreground">{r.nome}</span>
                       </label>
@@ -512,7 +513,7 @@ export default function EditOrder() {
             </div>
             <div className="bg-secondary rounded-xl p-4">
               <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Sugestão de serviço</p>
-              <p className="mt-3 text-2xl font-bold text-rose-500">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
+              <p className="mt-3 text-2xl font-bold text-primary">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
               <p className="mt-1 text-xs text-muted-foreground">Baseado na tabela de preços.</p>
             </div>
             <div className="flex items-end justify-end">
@@ -538,7 +539,7 @@ export default function EditOrder() {
         <section className="bg-card rounded-xl border border-border p-5 space-y-4">
           <h2 className="text-sm font-semibold text-card-foreground">Peças do Estoque</h2>
           <div className="relative">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+            <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar peça..." value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} className="pl-8" />
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -573,12 +574,13 @@ export default function EditOrder() {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={submitting} data-testid="order-save-button">
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submitting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Alterações
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate("/ordens")}>Voltar</Button>
         </div>
       </form>
+      </Reveal>
 
       <ShoppingModal open={shoppingModalOpen} onOpenChange={setShoppingModalOpen} osId={id} onCreated={() => {/* opcional: atualizar lista local */}} />
 
@@ -608,7 +610,7 @@ export default function EditOrder() {
 
           {checklistMeta?.access_token ? (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-border bg-background p-4 flex justify-center">
+              <div className="rounded-xl border border-border bg-background p-4 flex justify-center">
                 <img src={checklistQr} alt="QR code do checklist" className="h-60 w-60 rounded-lg" />
               </div>
               <div className="space-y-2">
@@ -630,7 +632,7 @@ export default function EditOrder() {
             </Button>
             <Button type="button" asChild disabled={!checklistMeta?.access_token}>
                 <a href={checklistLink} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
+                <ArrowSquareOut className="mr-2 h-4 w-4" />
                 Abrir checklist
               </a>
             </Button>
@@ -679,7 +681,7 @@ export default function EditOrder() {
               Cancelar
             </Button>
             <Button type="button" onClick={confirmarGarantiaDialog} disabled={enviandoGarantiaDialog}>
-              {enviandoGarantiaDialog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {enviandoGarantiaDialog && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
               Confirmar e concluir
             </Button>
           </DialogFooter>

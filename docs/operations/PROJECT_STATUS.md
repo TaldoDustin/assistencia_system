@@ -5,10 +5,10 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-19 — inclui o PR 2 (`ChecklistDevice.jsx`, golden standard) e o PR 1
-(Foundation), ambos da Fase 2 do Fluxoly Design System (ver seção logo abaixo), o PR #53 (aplicação da
-marca — ícone e wordmark), a implementação da Landing Page institucional (PR #49), a Fase 1 do Fluxoly
-Design System e a Fase 1 de LGPD/Compliance
+**Última revisão:** 2026-08-19 — inclui o PR 3 (Orders/Kanban/NewOrder/EditOrder) e os PRs 1/2 (Foundation,
+`ChecklistDevice.jsx`), todos da Fase 2 do Fluxoly Design System (ver seção logo abaixo), o PR #53
+(aplicação da marca — ícone e wordmark), a implementação da Landing Page institucional (PR #49), a Fase 1
+do Fluxoly Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -110,7 +110,7 @@ Foundation, nenhuma tela tocada, marca intocada, testes/CI/lint/build ok). Merge
 
 ---
 
-## 🟡 Fase 2 do Fluxoly Design System — PR 2 (`ChecklistDevice.jsx`, golden standard) implementado
+## ✅ Fase 2 do Fluxoly Design System — PR 2 (`ChecklistDevice.jsx`, golden standard) ENCERRADO (PR #55 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 2") para o registro completo.**
 
@@ -134,8 +134,41 @@ físicos; header com ícone + wordmark Fluxoly (mesmo padrão de `Login.jsx`); `
 confirmado em `/login` (mesmo código reaproveitado). Estado carregado (com OS real) validado via Vitest
 sobre o DOM renderizado — reproduzir ao vivo exigiria backend + token de checklist reais.
 
-**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 3 (Orders + Kanban + NewOrder +
-EditOrder).
+**Decisão do CTO:** aprovado com 1 achado não bloqueante (KI-047, grade de touch sem `aria-label`,
+pré-existente). Mergeado em `main` (squash, `a97515a3`), branch deletada.
+
+---
+
+## 🟡 Fase 2 do Fluxoly Design System — PR 3 (Orders + Kanban + NewOrder + EditOrder) implementado
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 3") para o registro completo.**
+
+2026-08-19, sequência imediata ao PR 2. Escopo: as 4 telas do fluxo central de OS (pilar Serviços) + 3
+componentes de apoio (`OrderStatusBadge`, `OrderTable`, `OrderFilters`). Nenhuma lógica de negócio
+alterada — confirmado por busca no diff completo por toda função de regra de negócio (handlers de submit/
+drag-and-drop/reparo/peça, chamadas `create`/`update`/`delete`/`patchStatus`); nenhuma aparece em linha
+alterada.
+
+**Objetivo principal — unificação de cor de status:** `getStatusColor` (retornava classes Tailwind cruas)
+substituído por `getStatusVariant` em `lib/constants.js`, fonte única de verdade consumida por
+`OrderStatusBadge` (Orders/EditOrder) e pelo mapa de tom do `Kanban.jsx` — que antes redefinia cor por
+coluna sozinho. O card do Kanban ganhou `<OrderStatusBadge status={os.status} />` (import já existia,
+nunca tinha sido usado). `OrderFilters.jsx` reescrito com `FilterBar`/`FilterSelect`/`FilterInput` da
+Foundation — primeira aplicação real desses componentes. `Orders.jsx`/`Kanban.jsx` ganharam `ListSkeleton`/
+`ErrorState` com retry na carga inicial (o polling silencioso de 30s do Orders continua sem toast/banner,
+inalterado). Ícones lucide → Phosphor, `rose-500` (fora da paleta) → `text-primary`, 2 desvios extras de
+radius/shadow corrigidos no Kanban (`hover:shadow-md` removido, `rounded-lg` → `rounded-xl`) — fora do
+escopo original do PR 8 mas no mesmo arquivo já sendo tocado pelo mesmo motivo.
+
+**Testes:** 13 novos (`OrderStatusBadge`/`Orders`/`Kanban` nunca tinham teste antes). Suíte completa
+58/58, lint 0 erros, build ok. `NewOrder.jsx`/`EditOrder.jsx` sem teste novo — mudança puramente de ícone/
+cor/radius, desproporcional escrever teste de formulário completo só para isso.
+
+**Achado registrado, não corrigido:** KI-048 — `NewOrder.jsx`/`EditOrder.jsx`/`Kanban.jsx` não tratam
+rejeição de promise na carga inicial (`.then()` sem `.catch()`), pré-existente, fora do escopo visual.
+
+**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 4 (Estoque + Unidades Serializadas +
+Produtos).
 
 ---
 

@@ -9,6 +9,22 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 3/Orders+Kanban+NewOrder+EditOrder)
+- **Cor de status de OS unificada**: `getStatusVariant` (`lib/constants.js`) substitui `getStatusColor`
+  como fonte única de verdade, consumida por `OrderStatusBadge` (Orders/EditOrder) e pelo `Kanban.jsx` —
+  que antes redefinia cor por coluna de forma independente e divergente.
+- **`OrderFilters.jsx` migrado** para `FilterBar`/`FilterSelect`/`FilterInput` da Foundation — primeira
+  aplicação real desses componentes desde o PR 1.
+- **`Orders.jsx`/`Kanban.jsx`**: `ListSkeleton`/`ErrorState` com retry na carga inicial; card do Kanban
+  ganhou `OrderStatusBadge` (import que já existia, nunca usado).
+- **Ícones lucide → Phosphor**, `rose-500` (fora da paleta) → `text-primary` em `NewOrder.jsx`/
+  `EditOrder.jsx`; 2 desvios de radius/shadow corrigidos no Kanban.
+- **Nenhuma lógica de negócio alterada** — confirmado por busca no diff por toda função de regra de
+  negócio (submit, drag-and-drop, reparo/peça, `create`/`update`/`delete`/`patchStatus`).
+- **Testes:** 13 novos (`OrderStatusBadge`/`Orders`/`Kanban` nunca tinham teste antes). Suíte completa
+  58/58. Lint 0 erros.
+- Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 3") para o registro completo.
+
 ### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 2/ChecklistDevice golden standard)
 - **`ChecklistDevice.jsx` redesenhado** para os tokens Fluxoly — única tela pública do sistema, sem login.
   Paleta própria (gradiente slate/azul) substituída por `bg-background`/`bg-card`/`border-border`; radius

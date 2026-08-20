@@ -5,7 +5,8 @@
 da Fase 1: "apresentar plano e aguardar aprovação" do `CLAUDE.md`, por envolver mais de 3 arquivos; não é
 o ciclo `ADR-010` completo, que é obrigatório só para feature com regra de negócio nova, `ENGINEERING_GUIDE.md`
 §12)
-**Status:** 🟡 Em andamento — PR 1 (Foundation) mergeado, PR 2 (`ChecklistDevice.jsx`) em implementação
+**Status:** 🟡 Em andamento — PR 1 (Foundation) e PR 2 (`ChecklistDevice.jsx`) mergeados, PR 3
+(Orders/Kanban/NewOrder/EditOrder) em implementação
 
 > Este documento é efêmero, mesmo princípio do `PLAN-design-system-fase1.md`. O que precisar continuar
 > vivo — componentes, convenções — é promovido para `ENGINEERING_GUIDE.md` no Encerramento de cada PR.
@@ -66,8 +67,8 @@ corrigir automaticamente.
 | PR | Escopo | Status |
 |----|--------|--------|
 | 1 | **Foundation Fase 2** — `Badge` semântico, `EmptyState`/`ErrorState`/`LoadingState`, padrão visual de filtros, convenção de Motion discreta, documentação. Nenhuma tela redesenhada. | ✅ Mergeado (PR #54) |
-| 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | 🟡 Em implementação |
-| 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ⬜ |
+| 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ✅ Mergeado (PR #55) |
+| 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | 🟡 Em implementação |
 | 4 | Stock + Unidades Serializadas + Produtos | ⬜ |
 | 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ⬜ |
 | 6 | Reports + Price Tables + Repair Types + Users | ⬜ |
@@ -132,6 +133,51 @@ cai no mesmo caminho de `!ordem`); padrão de ícone+wordmark confirmado visualm
 código reaproveitado). Estado carregado (com OS real) validado via Vitest com asserção sobre o DOM
 renderizado, não via captura de tela — reproduzir o estado ao vivo exigiria backend + token de checklist
 reais, fora do custo-benefício desta verificação.
+
+---
+
+## PR 3 — Orders + Kanban + NewOrder + EditOrder (escopo detalhado)
+
+Redesenho visual das 4 telas do pilar Serviços (fluxo central de OS) + 3 componentes de apoio
+(`OrderStatusBadge`, `OrderTable`, `OrderFilters`). Nenhuma lógica de negócio alterada — confirmado por
+busca no diff completo por toda função de regra de negócio (`handleSubmit`, `executarSubmit`,
+`executarFinalize`, `handleDrop`, `toggleReparo`, `adjustPeca`, chamadas `.create`/`.update`/`.delete`/
+`.patchStatus`, etc.): nenhuma aparece em nenhuma linha alterada.
+
+**Unificação de cor de status (objetivo principal do PR, achado da auditoria):** `getStatusColor`
+(`lib/constants.js`, retornava classes Tailwind cruas, usado só por `OrderStatusBadge`) substituído por
+`getStatusVariant`, que retorna a variante semântica do `Badge` (`info`/`warning`/`success`/`error`/
+`neutral`). `OrderStatusBadge` passa a renderizar `<Badge variant={getStatusVariant(status)}>`.
+`Kanban.jsx` — que antes redefinia cor por coluna sozinho (`COLUMNS` hardcoded, hues iguais a Orders mas
+mecanismo duplicado/divergente) — passa a derivar a cor de cada coluna da mesma `getStatusVariant`, via um
+mapa `TONE` local. O card do Kanban ganhou `<OrderStatusBadge status={os.status} />` (import já existia,
+nunca tinha sido usado — código morto silencioso porque o nome em PascalCase escapa do
+`no-unused-vars`/`varsIgnorePattern` do ESLint).
+
+**Demais mudanças, por arquivo:**
+- `OrderFilters.jsx`: reescrito com `FilterBar`/`FilterSelect`/`FilterInput` da Foundation (primeira
+  aplicação real desses componentes desde o PR 1) — puramente visual, nenhum parâmetro/comportamento de
+  filtragem mudou.
+- `OrderTable.jsx`: `EmptyState` no lugar do texto solto; `interactiveRowClassName` (`lib/interaction.js`)
+  no hover da linha; ícones lucide → Phosphor.
+- `Orders.jsx`: `ListSkeleton` no loading; estado `loadError` novo (só para a carga não-silenciosa) +
+  `ErrorState` com retry quando a carga inicial falha e a lista fica vazia — mesmo padrão do Dashboard/
+  ChecklistDevice. O polling silencioso a cada 30s continua exatamente como antes (sem toast, sem banner).
+  Cores do stats bar (`amber-400`/`emerald-400`) → tokens (`text-warning`/`text-success`).
+- `Kanban.jsx`: mesmo padrão de `loadError`/`ErrorState`; `hover:shadow-md` removido do card (violava a
+  regra "sem shadow em superfície estática") e `rounded-lg` → `rounded-xl`; ícones → Phosphor.
+- `NewOrder.jsx`/`EditOrder.jsx`: ícones → Phosphor; `rose-500` (fora da paleta) → `text-primary`/
+  `border-primary` nos destaques de reparo selecionado e sugestão de preço; `rounded-2xl` → `rounded-xl`
+  no container do QR do checklist (`EditOrder.jsx`); conteúdo carregado envolvido em `Reveal` (form
+  continua um `<form>` real — `Reveal` só o envolve, não o substitui, para não quebrar submit via Enter).
+
+**Testes:** 13 novos (`OrderStatusBadge.test.jsx`, `Orders.test.jsx`, `Kanban.test.jsx`) — as 4 páginas
+nunca tinham teste antes deste PR. `NewOrder.jsx`/`EditOrder.jsx` não ganharam teste novo (mudança
+puramente de ícone/cor/radius, sem lógica nova a cobrir; escrever teste de formulário completo para essas
+duas telas ficaria desproporcional ao escopo visual desta fatia).
+
+**Achados registrados, não corrigidos (fora de escopo):** `KI-048` — `NewOrder.jsx`/`EditOrder.jsx`/
+`Kanban.jsx` não tratam rejeição de promise na carga inicial (`.then()` sem `.catch()`), pré-existente.
 
 ---
 

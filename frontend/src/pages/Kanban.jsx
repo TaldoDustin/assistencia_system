@@ -1,31 +1,60 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Pencil } from "lucide-react";
+import { CircleNotch, Pencil } from "@phosphor-icons/react";
 import { ordens as ordensApi } from "@/api/client";
-import { getOrderDisplayNumber } from "@/lib/constants";
+import { getOrderDisplayNumber, getStatusVariant } from "@/lib/constants";
+import { ErrorState } from "@/components/ui/error-state";
+import { Reveal } from "@/components/ui/reveal";
 import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
 
+// Tom visual por variante semântica -- mesma fonte de verdade (getStatusVariant,
+// lib/constants.js) usada pelo OrderStatusBadge em Orders/EditOrder, para que o
+// Kanban nunca reinterprete a cor de um status sozinho (achado da auditoria da
+// Fase 2 do Design System, PLAN-design-system-fase2.md PR 3).
+const TONE = {
+  info:      { color: "text-info",        border: "border-info/30",        bg: "bg-info/5",        dragBg: "bg-info/15" },
+  warning:   { color: "text-warning",      border: "border-warning/30",     bg: "bg-warning/5",     dragBg: "bg-warning/15" },
+  success:   { color: "text-success",      border: "border-success/30",     bg: "bg-success/5",     dragBg: "bg-success/15" },
+  error:     { color: "text-destructive",  border: "border-destructive/30", bg: "bg-destructive/5", dragBg: "bg-destructive/15" },
+  neutral:   { color: "text-muted-foreground", border: "border-border",    bg: "bg-muted/40",       dragBg: "bg-muted" },
+};
+
 const COLUMNS = [
-  { status: "Em andamento",    label: "Em Andamento",     color: "text-blue-400",    border: "border-blue-500/30",    bg: "bg-blue-500/5",    dragBg: "bg-blue-500/15" },
-  { status: "Aguardando peca", label: "Aguardando Peça",  color: "text-amber-400",   border: "border-amber-500/30",   bg: "bg-amber-500/5",   dragBg: "bg-amber-500/15" },
-  { status: "Finalizado",      label: "Finalizado",       color: "text-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/5", dragBg: "bg-emerald-500/15" },
-  { status: "Cancelado",       label: "Cancelado",        color: "text-red-400",     border: "border-red-500/30",     bg: "bg-red-500/5",     dragBg: "bg-red-500/15" },
-];
+  { status: "Em andamento",    label: "Em Andamento" },
+  { status: "Aguardando peca", label: "Aguardando Peça" },
+  { status: "Finalizado",      label: "Finalizado" },
+  { status: "Cancelado",       label: "Cancelado" },
+].map((col) => ({ ...col, ...TONE[getStatusVariant(col.status)] }));
 
 export default function Kanban() {
   const [ordens, setOrdens]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [dragOver, setDragOver] = useState(null); // column status being dragged over
   const dragging = useRef(null); // { id, fromStatus }
 
-  useEffect(() => {
+  const fetchOrdens = () => {
     ordensApi.list().then((res) => {
-      if (res?.ok) setOrdens(res.ordens || []);
-      else toast.error("Erro ao carregar ordens");
+      if (res?.ok) {
+        setOrdens(res.ordens || []);
+        setLoadError(false);
+      } else {
+        toast.error("Erro ao carregar ordens");
+        setLoadError(true);
+      }
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchOrdens();
   }, []);
+
+  const handleRetry = () => {
+    setLoading(true);
+    fetchOrdens();
+  };
 
   const handleDragStart = (e, os) => {
     dragging.current = { id: os.id, fromStatus: os.status };
@@ -65,7 +94,7 @@ export default function Kanban() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CircleNotch className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -77,7 +106,10 @@ export default function Kanban() {
         <p className="text-muted-foreground text-sm">Arraste os cards para mover entre status</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {loadError && ordens.length === 0 ? (
+        <ErrorState title="Não foi possível carregar as ordens." onRetry={handleRetry} />
+      ) : (
+      <Reveal className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {COLUMNS.map((col) => {
           const colOrdens = ordens.filter((o) => o.status === col.status);
           const isOver = dragOver === col.status;
@@ -106,7 +138,7 @@ export default function Kanban() {
                       key={os.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, os)}
-                      className="bg-card border border-border rounded-lg p-3 space-y-2 cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-md transition-all select-none"
+                      className="bg-card border border-border rounded-xl p-3 space-y-2 cursor-grab active:cursor-grabbing hover:border-primary/40 hover:bg-accent/20 transition-colors select-none"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -118,6 +150,7 @@ export default function Kanban() {
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
                         </Link>
                       </div>
+                      <OrderStatusBadge status={os.status} />
                       {os.tecnico && (
                         <p className="text-xs text-muted-foreground">👤 {os.tecnico}</p>
                       )}
@@ -140,7 +173,8 @@ export default function Kanban() {
             </div>
           );
         })}
-      </div>
+      </Reveal>
+      )}
     </div>
   );
 }

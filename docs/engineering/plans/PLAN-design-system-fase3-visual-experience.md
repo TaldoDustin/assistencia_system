@@ -5,8 +5,9 @@
 Toca identidade de marca (só o Product Owner decide, `docs/company/BRAND_IDENTITY.md`) e restrutura como
 componentes compartilhados se encaixam (nova camada de tema, nova hierarquia de superfície) — gate
 arquitetural completo, não o "apresentar plano" simples de 3+ arquivos.
-**Status:** 🟡 Planejado — spec aprovada em conversa, aguardando revisão da CTO antes de virar plano de
-implementação (`writing-plans`). **Nenhum código escrito ainda.**
+**Status:** 🟡 Planejado — spec aprovada em conversa, liberdade criativa total autorizada em 2026-08-20
+(ver seção 0.1). Ainda aguardando virar plano de implementação (`writing-plans`) antes de codificar.
+**Nenhum código escrito ainda.**
 
 > Este documento é efêmero, mesmo princípio de `PLAN-design-system-fase1.md`/`PLAN-design-system-fase2.md`.
 > Local escolhido para manter a mesma convenção dos planos de Design System já existentes neste diretório,
@@ -34,6 +35,63 @@ detalhada de referências visuais (dashboards, um estudo de composição editori
 lado a lado) que o CTO trouxe para a conversa — as imagens em si não foram compartilhadas nesta sessão.
 Os princípios abaixo foram extraídos da descrição, não das imagens. Se as imagens forem compartilhadas
 depois, este documento deve ser revisto contra elas antes da implementação começar.
+
+---
+
+## 0.1. Autorização — Liberdade Criativa Total (2026-08-20)
+
+Em 2026-08-20, o CTO/Product Owner revogou explicitamente o "PRINCÍPIO FUNDAMENTAL" registrado na
+sessão de brainstorming original (seção 13, versão anterior deste documento): **"não altere a identidade
+de marca já definida"**. A nova instrução, na íntegra: *"a partir de agora você tem autoridade total
+para ser livre, essas regras não são mais obrigatórias — apenas transforme tudo em um site com uma
+grande e bela identidade visual surpreendente."*
+
+Escopo confirmado via pergunta direta ao CTO antes de registrar esta seção:
+
+| Eixo | Decisão | Detalhe |
+|---|---|---|
+| **Identidade de marca** | Também está aberta | `#FF0125`, wordmark Onest e ícone deixam de ser fixos — podem ser reinventados como parte da liberdade criativa, não só a composição em cima deles. `docs/company/BRAND_IDENTITY.md` deixa de ser a autoridade travada para esta iniciativa e **precisará ser atualizado** quando uma nova identidade concreta for produzida (o documento continua sendo o registro oficial — muda o conteúdo, não a obrigação de mantê-lo atualizado). |
+| **Processo de engenharia** | Mantido — sem mudança | Plano aprovado, branch de feature, PR, CI 6/6, revisão e testes continuam exatamente como em todas as fases anteriores (protocolo do `CLAUDE.md`). A liberdade é sobre **direção criativa**, não sobre o ritual de entrega. |
+| **Escopo de superfície** | Produto inteiro | As ~24 telas internas autenticadas (Dashboard, Orders, Vendas, Estoque, Financeiro, etc.) — **não** inclui a Landing Page pública (`Landing.jsx`), que fica fora desta autorização por ora. |
+
+**O que isso muda em relação ao resto deste documento:** as seções 1–12 abaixo (diagnóstico, princípios,
+Light/Dark, tipografia, layout, componentes, dashboard, priorização, microinterações, diferenciação,
+faseamento) continuam válidas como **ponto de partida analítico** — o diagnóstico de por que o visual
+parece genérico não mudou. Mas deixam de ser **restrições rígidas**: onde qualquer princípio abaixo
+(ex.: "vermelho como assinatura", paleta de cores específica, manter Onest) conflitar com uma direção
+mais ousada, a liberdade desta seção prevalece. A seção 13 ("o que este documento preserva") foi
+revisada para refletir isso — a marca não é mais parte do que é preservado.
+
+**Por que isso não vira implementação imediata:** a liberdade concedida é sobre *direção artística*, não
+sobre pular o processo (ver tabela acima). O próximo passo continua sendo transformar esta direção em um
+plano de implementação formal (`writing-plans`) antes de qualquer commit de código — nada nesta seção
+dispensa isso.
+
+---
+
+## 0.2. Direção de Identidade Escolhida — Pulse (2026-08-20)
+
+A partir da liberdade concedida em 0.1, três direções concretas de identidade (cor + wordmark + ícone,
+cada uma um sistema fechado) foram exploradas num canvas visual (Claude Design, artifact "Fluxoly Identity
+Directions") e comparadas lado a lado pelo CTO. Escolhida: **B — Pulse**.
+
+| Elemento | Direção escolhida | Substitui |
+|---|---|---|
+| Cor de assinatura | `#FF3D5A` (vermelho-sinal) | `#FF0125` |
+| 2º acento | `#29E0C9` (ciano "fluxo ao vivo" — só indicadores positivos/tempo real) | Não existia como token de marca |
+| Ícone | Traço contínuo tipo pulso/ECG terminando em seta — fluxo como sinal vivo, não uma letra | Monograma abstrato da letra "F" |
+| Wordmark (logotipo) | Space Grotesk Bold 700 | Onest Bold 700 |
+| Fonte de UI/corpo | Onest — **mantida**, não foi abandonada | — |
+
+Registrado formalmente em `docs/company/BRAND_IDENTITY.md` §10 e `docs/company/DECISION_LOG.md`
+(2026-08-20). **Nenhum código mudou ainda** — `frontend/src/index.css`, favicon e materiais continuam com
+os valores antigos até a Fase 3.0 (infraestrutura de tema) ser implementada; os SVGs do ícone no canvas
+são protótipos de direção, não arte vetorial final de produção.
+
+**Efeito nas seções 1–12 abaixo:** onde essas seções (escritas antes da decisão de identidade) mencionam
+`#FF0125` ou "Onest" como wordmark, leia como `#FF3D5A`/`#29E0C9` e Space Grotesk (as seções 3 e 4 já
+foram atualizadas pontualmente nas linhas de "vermelho"; o resto dos princípios de composição — hierarquia
+de superfície, respiro, Light/Dark como sistemas distintos — permanece válido sem mudança).
 
 ---
 
@@ -96,7 +154,7 @@ Cinco regras concretas, testáveis, que substituem "componentes soltos numa pág
 | `surface` (painel dominante) | `#FFFFFF` puro, separado do fundo por sombra sutil, não por borda — sombra é a ferramenta de profundidade no light. |
 | `texto primário` | Quase-preto (ex. `#1A1A1A`), não preto puro. |
 | `borda` | Extremamente sutil (ex. `#EDEDEF`), usada com moderação — preferir sombra a borda pra separar superfícies. |
-| `vermelho` | Mesmo `#FF0125` da marca — fica ainda mais "vivo" por contraste em fundo claro, então a regra de moderação (princípio 2) importa mais aqui, não menos. |
+| `vermelho-sinal` | `#FF3D5A` (direção Pulse, decidida 2026-08-20 — ver seção 0.2) — fica ainda mais "vivo" por contraste em fundo claro, então a regra de moderação (princípio 2) importa mais aqui, não menos. `#29E0C9` (fluxo ao vivo) é o 2º acento, só para indicadores positivos/tempo real. |
 | `estados` (success/warning/error/info) | Precisam de nova calibração de contraste — os tokens atuais em `index.css` foram calibrados só para fundo escuro (comentário explícito no arquivo: "recalibrados para legibilidade sobre `--color-background`/`--color-card`"). WCAG AA mínimo em fundo claro é requisito, não opcional. |
 | `gráficos` | Fundo transparente, grid quase invisível, linha com peso maior que no dark (compensa a ausência do glow que só funciona em fundo escuro). |
 
@@ -114,14 +172,15 @@ sistema de camadas real:
 | `surface-raised` (popover/dropdown/elemento flutuante) | Ligeiramente mais claro que `surface` — dá profundidade real em vez de tudo no mesmo cinza. |
 | `texto` | `#EBEBEB` já calibrado, ok — considerar um segundo nível de branco pra distinguir título de corpo. |
 | `borda` | Sutil mas visível — no dark, borda é a ferramenta de separação principal (sombra não funciona bem em fundo escuro). |
-| `vermelho` | Mesmo `#FF0125`, já tem bom contraste — reforçar como "a única cor saturada da tela", o resto neutro. |
+| `vermelho-sinal` | `#FF3D5A` (direção Pulse, decidida 2026-08-20), já tem bom contraste — reforçar como "a cor de assinatura da tela", com `#29E0C9` reservado para indicadores de fluxo ao vivo/positivo, o resto neutro. |
 | `gráficos` | Glow/opacidade sutil no dado ativo/selecionado — recurso que só funciona bem em fundo escuro, reforça seleção sem precisar de mais uma cor. |
 
 ---
 
 ## 5. Tipografia
 
-Onest (wordmark, já decidido) ganha escala de hierarquia real — hoje quase tudo usa `font-bold`/
+Space Grotesk (wordmark, decidido 2026-08-20 — seção 0.2) e Onest (UI/corpo, mantida) ganham escala de
+hierarquia real — hoje quase tudo usa `font-bold`/
 `font-medium` genérico sem escala documentada:
 
 | Papel | Tratamento |
@@ -246,12 +305,18 @@ por tela dentro da fase, como já é convenção), CI 6/6 + revisão antes do me
 
 ## 13. O que este documento preserva (não muda)
 
-- `docs/company/BRAND_IDENTITY.md` continua sendo autoridade — `#FF0125`, wordmark Onest, ícone, nome
-  Fluxoly permanecem exatamente como estão. Este plano evolui **como** esses elementos são usados, não o
-  que eles são.
+> **Revisado em 2026-08-20** — ver seção 0.1. A identidade de marca (`#FF0125`, wordmark, ícone) **deixou
+> de estar nesta lista** por autorização explícita do CTO/Product Owner; o item abaixo é o que continua
+> valendo mesmo depois da liberdade criativa total.
+
+- O nome **Fluxoly** em si (o produto continua se chamando Fluxoly) — a liberdade concedida é sobre
+  identidade visual (cor/wordmark/ícone/composição), não sobre renomear o produto.
 - Nenhuma lógica de negócio, API, payload ou regra de permissão muda — escopo é 100% apresentação.
 - Acessibilidade (contraste, foco visível, `aria-*`) e performance continuam sendo requisitos não
   negociáveis, não trade-off pela composição nova.
+- O processo de engenharia do `CLAUDE.md` (plano aprovado, branch, PR, CI, testes) — inalterado (seção 0.1).
+- `docs/company/BRAND_IDENTITY.md` continua sendo o registro oficial da identidade — muda o que ele
+  documenta quando a nova identidade for definida, não a obrigação de mantê-lo atualizado.
 
 ---
 

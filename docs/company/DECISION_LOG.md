@@ -251,6 +251,45 @@ OS/Estoque + validação de perfil em `criar_usuario`/`atualizar_usuario`), `irf
 pesquisa de produto.
 **Fonte:** conversa entre usuário (CTO) e Claude, 2026-07-25 — `docs/security/SECURITY_AUDIT_2026-07.md`.
 
+## 2026-08-20 — Liberdade criativa total para o redesign visual (Fase 3), incluindo a identidade de marca
+
+**Decisão:** o CTO/Product Owner revogou o "PRINCÍPIO FUNDAMENTAL" definido na própria sessão de
+brainstorming da Fase 3 ("não altere a identidade de marca já definida") e concedeu autoridade criativa
+total para o redesign visual — incluindo reinventar `#FF0125`, o wordmark Onest e o ícone, não só a
+composição em cima deles. Confirmado via pergunta direta: (1) a marca em si está aberta, não só a
+composição; (2) o processo de engenharia (plano aprovado, branch, PR, CI, testes) permanece inalterado —
+a liberdade é só sobre direção criativa; (3) o escopo é o produto interno inteiro (~24 telas
+autenticadas), não a Landing Page pública.
+**Motivo:** o CTO considerou o resultado da Fase 2 (consistência técnica) insuficiente e, mesmo depois de
+um brainstorming detalhado que definiu uma direção com a marca fixa, decidiu remover essa restrição para
+permitir uma transformação mais ousada.
+**Impacto:** `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 0.1, nova;
+seção 13, revisada); `docs/company/BRAND_IDENTITY.md` deixa de ser autoridade travada para esta
+iniciativa e precisará ser atualizado quando uma nova identidade concreta for produzida e aprovada.
+Nenhum código escrito ainda — a Fase 3 continua exigindo um plano de implementação formal antes de
+qualquer commit.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-08-20 —
+`docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` seção 0.1.
+
+## 2026-08-20 — Direção de identidade "Pulse" escolhida para o redesign visual (Fase 3)
+
+**Decisão:** entre três direções concretas de identidade (cor + wordmark + ícone como sistema fechado)
+exploradas num canvas visual (artifact "Fluxoly Identity Directions", Claude Design) — A "Ember" (evolução
+refinada, mantém `#FF0125`/ícone-F/Onest), B "Pulse" (reinvenção: vermelho-sinal `#FF3D5A` + ciano de
+fluxo ao vivo `#29E0C9`, ícone vira um traço de pulso/seta em vez de letra, wordmark em Space Grotesk) e C
+"Atelier" (editorial: papel + serifada Instrument Serif, vermelho-tinta `#C81E3A`) — o CTO/Product Owner
+escolheu **B — Pulse** como direção formal.
+**Motivo:** direção mais "tech-forward" e diferenciada, e mais alinhada ao próprio nome Fluxoly (fluxo
+como sinal vivo, não uma letra); avaliada como preferida clara depois de comparar as três lado a lado
+(a direção C recebeu avaliação positiva, mas B foi escolhida sem ambiguidade).
+**Impacto:** `docs/company/BRAND_IDENTITY.md` §10 reescrito (ícone, wordmark, paleta, histórico em 10.4);
+`docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` recebeu seção 0.2 e teve as linhas
+de "vermelho" das seções 3/4 atualizadas para a nova cor. Onest **não** foi abandonada — continua como
+fonte de UI/corpo; só o wordmark (logotipo) muda para Space Grotesk. Nenhum código mudou — `index.css`,
+favicon e SVGs finais do ícone continuam pendentes da Fase 3.0/3.1.
+**Fonte:** conversa entre usuário (CTO) e Claude, 2026-08-20 — canvas "Fluxoly Identity Directions"
+(Claude Design); `docs/company/BRAND_IDENTITY.md` §10.4.
+
 ## Documentos relacionados
 
 - `docs/engineering/ARCHITECTURE_DECISIONS.md` — decisões arquiteturais (ADR), complementar a este log

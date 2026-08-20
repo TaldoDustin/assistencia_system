@@ -153,51 +153,66 @@ servida via Render + Vercel — a hospedagem já migrou de Fly.io, mas o nome le
 
 ## 10. Identidade Visual (Logo e Tipografia)
 
-**Status:** Decidido — 2026-08-18.
+**Status:** Revisado — 2026-08-20 (direção "Pulse", ver seção 10.4). Substitui a decisão de 2026-08-18
+registrada anteriormente nesta seção. **Implementação em código ainda pendente** — ver nota de cada
+subseção abaixo e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (Fase 3.0/3.1).
 
 ### 10.1 Ícone
 
-Monograma abstrato inspirado na letra "F" (de Fluxoly): haste vertical, dois braços horizontais,
-um pequeno furo circular decorativo próximo ao topo-esquerdo, e a base termina em uma cauda
-curva/ganchada em vez de um canto reto — reforçando o conceito de fluxo contínuo da marca.
-Desenhado como um único path SVG contínuo.
-
-O ícone tem 5 variações de cor, cada uma para um contexto de uso diferente:
+Traço contínuo que lê como um pulso/sinal de fluxo — um eletrocardiograma estilizado que termina numa
+seta ascendente — em vez de uma letra. Substitui o monograma abstrato da letra "F" da decisão anterior.
+A escolha é deliberada: a marca já se chama Fluxoly (fluxo), então um pulso comunica o conceito sem
+precisar de uma letra como legenda, e é mais distintivo que um monograma — padrão comum entre marcas SaaS.
 
 | Variação | Cor | Uso |
 |---|---|---|
-| Vermelho | `#FF0125` | Uso primário — fundo escuro (`#141414`), aplicação padrão da marca |
+| Vermelho-sinal | `#FF3D5A` | Uso primário — fundo escuro, aplicação padrão da marca |
 | Branco | `#FFFFFF` | Sobre fundos coloridos, fotográficos ou de alto contraste |
-| Preto | `#000000` | Impressão e fundos claros |
-| Cinza | `#8A8A8A` | Uso monocromático discreto — marca d'água, estados desabilitados |
-| Invertido | Ícone branco sobre badge vermelho sólido (`#FF0125`) | Favicon, ícone de app, avatar — contexto que exige um contêiner de fundo sólido |
+| Ciano de fluxo | `#29E0C9` | Variante "ao vivo" — contexto de indicador positivo/tempo real |
+| Cinza | `#5B6178` | Uso monocromático discreto — marca d'água, estados desabilitados |
+| Invertido | Ícone branco sobre badge vermelho-sinal sólido (`#FF3D5A`) | Favicon, ícone de app, avatar |
 
-Arquivos-fonte: `frontend/public/brand/fluxoly-icon-{red,white,black,gray,inverted}.svg`
-(versionados no repositório). **Pendente:** os arquivos ainda não estão referenciados em
-nenhum componente do produto — aplicá-los de fato (favicon, header, materiais institucionais)
-é um passo separado, ainda não feito.
+**Pendente:** o traço acima existe hoje como protótipo de direção num canvas de exploração (artifact
+"Fluxoly Identity Directions", Claude Design) — ainda não é arte vetorial final de produção. Desenhar o
+SVG definitivo, gerar as 5 variações de cor como arquivos (`frontend/public/brand/fluxoly-icon-*.svg`) e
+aplicá-las (favicon, header, materiais) é trabalho da Fase 3.0/3.1, ainda não feito.
 
-### 10.2 Tipografia (Wordmark)
+### 10.2 Tipografia
 
-**Fonte:** Onest, peso **Bold (700)** — geométrica/arredondada, licença aberta (Google Fonts),
-combina com o ícone e com o restante da paleta tech/premium da marca.
+**Wordmark (logotipo):** Space Grotesk, peso **Bold (700)** — geométrica, mais técnica que a Onest,
+alinhada à direção "Pulse" (fluxo como sinal vivo, não composição arredondada/amigável).
 
-Decisão tomada após comparativo entre ~15 fontes candidatas (Cabinet Grotesk, Sora, General
-Sans, Clash Display, Satoshi, Switzer, Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist,
-Inter, entre outras) — Onest se destacou desde a primeira rodada e foi confirmada após teste de
-todos os pesos (400–900) lado a lado com o ícone. Fontes personalizadas testadas e descartadas
-antes desta decisão: "Surgena" (uso pessoal) e "Goodly" (todas as 5 variantes).
+**UI e corpo de texto:** Onest — **mantida**, não foi abandonada. A mudança de wordmark não troca a
+fonte usada em botões, tabelas, formulários e texto de produto; troca apenas a fonte do logotipo
+"Fluxoly" em si.
+
+Onest continua sendo o resultado do comparativo entre ~15 fontes candidatas (Cabinet Grotesk, Sora,
+General Sans, Clash Display, Satoshi, Switzer, Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist,
+Inter, entre outras, além de "Surgena" e "Goodly" testadas e descartadas) — decisão de 2026-08-18,
+válida para UI. Space Grotesk é uma decisão nova, específica do logotipo, de 2026-08-20.
 
 ### 10.3 Paleta de cores da marca
 
-Fonte de verdade: `frontend/src/index.css` (tokens `@theme`).
-
-| Token | Valor | Papel |
+| Token | Valor decidido | Papel |
 |---|---|---|
-| `--color-primary` | `#FF0125` (`hsl(351 100% 50%)`) | Vermelho de marca — ação primária, ícone padrão |
-| `--color-background` | `#141414` (`hsl(0 0% 8%)`) | Fundo padrão da aplicação |
-| `--color-foreground` | `#EBEBEB` | Texto sobre fundo escuro |
-| `--color-destructive`, `--color-success`, `--color-warning`, `--color-info` | — | Tokens semânticos de estado, independentes do vermelho de marca |
+| Cor de assinatura | `#FF3D5A` | Vermelho-sinal — ação primária, ícone padrão. Substitui `#FF0125`. |
+| 2º acento | `#29E0C9` | Ciano "fluxo ao vivo" — só indicadores positivos/tempo real. Token novo, não existia antes. |
+
+**Pendente:** `frontend/src/index.css` (`--color-primary` e demais tokens `@theme`) ainda está com os
+valores antigos (`#FF0125`, sem token de 2º acento) — atualizar o CSS é trabalho de código da Fase 3.0,
+não feito nesta revisão de documentação. Até lá, `index.css` não é a fonte de verdade para a cor de
+marca; esta tabela é.
+
+### 10.4 Histórico da decisão (2026-08-20)
+
+Em 2026-08-20 o CTO/Product Owner concedeu liberdade criativa total para o redesign visual da Fase 3,
+incluindo reinventar a identidade em si (não só a composição em cima dela) — ver
+`docs/company/DECISION_LOG.md` entrada 2026-08-20 "Liberdade criativa total...". A partir disso, três
+direções concretas (cor + wordmark + ícone como sistema fechado) foram exploradas visualmente e
+comparadas lado a lado; **Pulse** foi a escolhida. As duas alternativas descartadas foram: "Ember"
+(evolução refinada mantendo `#FF0125`/ícone-F/Onest) e "Atelier" (composição editorial, papel + serifada
+Instrument Serif, vermelho-tinta `#C81E3A`) — preservadas apenas no artifact de exploração, não neste
+documento.
 
 ---
 

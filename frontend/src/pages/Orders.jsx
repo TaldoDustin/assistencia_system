@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "@phosphor-icons/react";
 import { ordens as ordensApi, constantes as constApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { ListSkeleton } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Reveal } from "@/components/ui/reveal";
 import OrderFilters from "@/components/orders/OrderFilters";
 import OrderTable from "@/components/orders/OrderTable";
 import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
@@ -45,16 +48,25 @@ export default function Orders() {
   const [filters, setFilters] = useState(() => readListContext(NAV_CONTEXT_KEY)?.filters || {});
   const [deleteId, setDeleteId] = useState(null);
   const [constants, setConstants] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
   const fetchOrdens = async (opts = {}) => {
     const { silent = false } = opts;
     if (!silent) setLoading(true);
     try {
       const res = await ordensApi.list();
-      if (res?.ok) setOrdens(res.ordens || []);
-      else if (!silent) toast.error("Erro ao carregar ordens");
+      if (res?.ok) {
+        setOrdens(res.ordens || []);
+        if (!silent) setLoadError(false);
+      } else if (!silent) {
+        toast.error("Erro ao carregar ordens");
+        setLoadError(true);
+      }
     } catch {
-      if (!silent) toast.error("Erro ao carregar ordens");
+      if (!silent) {
+        toast.error("Erro ao carregar ordens");
+        setLoadError(true);
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -115,28 +127,33 @@ export default function Orders() {
         </Link>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Total", value: ordens.length, color: "text-foreground" },
-          { label: "Em aberto", value: abertas, color: "text-amber-400" },
-          { label: "Finalizadas", value: finalizadas, color: "text-emerald-400" },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <OrderFilters filters={filters} setFilters={setFilters} tecnicos={tecnicos} vendedores={vendedores} constants={constants} />
-
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
+        <ListSkeleton rows={6} />
+      ) : loadError && ordens.length === 0 ? (
+        <ErrorState
+          title="Não foi possível carregar as ordens."
+          onRetry={() => fetchOrdens()}
+        />
       ) : (
-        <OrderTable orders={filtered} onDelete={setDeleteId} onEditClick={handleEditClick} />
+        <Reveal className="space-y-5">
+          {/* Stats bar */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Total", value: ordens.length, color: "text-foreground" },
+              { label: "Em aberto", value: abertas, color: "text-warning" },
+              { label: "Finalizadas", value: finalizadas, color: "text-success" },
+            ].map((s) => (
+              <div key={s.label} className="bg-card border border-border rounded-xl p-4 text-center">
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <OrderFilters filters={filters} setFilters={setFilters} tecnicos={tecnicos} vendedores={vendedores} constants={constants} />
+
+          <OrderTable orders={filtered} onDelete={setDeleteId} onEditClick={handleEditClick} />
+        </Reveal>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

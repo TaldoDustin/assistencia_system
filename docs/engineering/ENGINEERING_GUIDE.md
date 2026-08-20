@@ -315,6 +315,64 @@ Regra fixada durante o PR 3 da Fase 1 (Tooltip/Sheet/Sidebar), para não decidir
 
 ---
 
+## 3.3 Fluxoly Design System (Fase 2 — Foundation)
+
+Formalizado em `docs/engineering/plans/PLAN-design-system-fase2.md`. A Fase 1 (seção 3.2) validou o Design
+System em 3 áreas (Shell, Dashboard, Landing); a Fase 2 estende esses padrões às outras 21 páginas do
+sistema. O PR 1 dessa fase ("Foundation") criou o vocabulário compartilhado abaixo **sem redesenhar
+nenhuma tela** — as fatias seguintes consomem esses componentes conforme cada página é migrada.
+
+**Regra de ouro de toda a Fase 2 (inegociável):** `docs/company/BRAND_IDENTITY.md` é autoridade sobre a
+marca. Nenhuma fatia pode alterar `#FF0125`, a fonte Onest, o wordmark, criar paleta/gradiente novo, ou
+token de spacing/radius/shadow fora da escala já formalizada na seção 3.2. O trabalho é aplicar a
+identidade existente de forma consistente, não redefini-la.
+
+### Badge semântico (`components/ui/badge.jsx`)
+
+Variantes de status — `success`/`warning`/`error`/`info`/`neutral` — estilo "soft" (`bg-X/10 text-X
+border-X/30`), mapeadas aos tokens de `index.css` (`--color-success`/`warning`/`destructive`/`info`).
+Substituem a prática anterior de sobrescrever `variant="outline"` com `className` de cor Tailwind crua
+(`bg-emerald-500/10 text-emerald-300 border-emerald-500/30`, reimplementada em ~13 páginas antes da Fase
+2). Cada módulo continua dono do mapeamento status→variante (o Design System não impõe vocabulário de
+negócio, só a renderização): `<Badge variant="success">{label}</Badge>` em vez de recriar a cor à mão.
+Variantes pré-existentes (`default`/`secondary`/`destructive`/`outline`) preservadas sem mudança.
+
+### Estados de página (`components/ui/empty-state.jsx`, `error-state.jsx`, `loading-state.jsx`)
+
+Generalização do padrão de 4 estados validado em `Dashboard.jsx` (Fase 1, PR #46) para uso em qualquer
+página: `EmptyState` (título + descrição + ação opcional), `ErrorState` (bloqueante, tela cheia) e
+`ErrorBanner` (não bloqueante, para erro de atualização com dado já carregado na tela), `ListSkeleton`
+(linhas — a forma mais comum nas páginas legadas, predominantemente tabela/lista) e `CardGridSkeleton`
+(grid de cards, mesma forma já usada no Dashboard).
+
+### Padrão visual de filtros (`components/ui/filter-bar.jsx`)
+
+`FilterBar`/`FilterSelect`/`FilterInput`/`DateRangeFilter`/`ClearFiltersButton` — padronizam a composição
+visual de filtros já repetida quase igual em Orders/Vendas/Stock/Dashboard. **Não** encapsulam lógica de
+filtragem nem parâmetros de API — o chamador continua responsável pelo estado e pelo mapeamento de valor
+(ex.: opção "Todos" → filtro vazio). Migrar a visual de uma tela para esses componentes nunca deve, por si
+só, mudar o comportamento de negócio do filtro.
+
+### Motion discreto (`components/ui/reveal.jsx`, `lib/interaction.js`)
+
+- `Reveal`: entrada suave (`opacity`/`y`) para conteúdo que aparece após carregar via fetch (linhas,
+  cards, estados vazio/erro), acionada na montagem (`animate`) — distinto de
+  `components/landing/FadeInSection.jsx` (`whileInView`, scroll-triggered, exclusivo da Landing). Sempre
+  respeita `useReducedMotion()`, mesma regra da seção 3.2. Componente React puro sem `Portal` do Radix por
+  trás — a mesma seção 3.2 já autoriza Motion nesse caso.
+- `interactiveRowClassName`/`interactiveCardClassName` (`lib/interaction.js`): convenção de hover/foco via
+  transição CSS (não Motion) para linha de tabela e card clicável — reutilizar em vez de reescrever a
+  combinação a cada página migrada.
+
+### Convenção de ícones para a Fase 2
+
+Phosphor Icons é o padrão para qualquer componente novo desta fase e para qualquer página migrada.
+`lucide-react` continua nas páginas ainda não tocadas — **a migração de ícones acontece junto da migração
+da tela, nunca como PR isolado de substituição mecânica** (evita PRs grandes só de troca de import, sem
+nenhum ganho visual por si só).
+
+---
+
 ## 4. Padrões Frontend (React / Vite)
 
 ### 4.0 Princípio de UX: interface por perfil

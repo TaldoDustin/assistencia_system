@@ -5,9 +5,10 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-19 — inclui o PR 1 (Foundation) da Fase 2 do Fluxoly Design System (ver seção
-logo abaixo), a implementação da Landing Page institucional (PR #49, mergeado em `main`), a Fase 1 do
-Fluxoly Design System e a Fase 1 de LGPD/Compliance
+**Última revisão:** 2026-08-19 — inclui o PR 2 (`ChecklistDevice.jsx`, golden standard) e o PR 1
+(Foundation), ambos da Fase 2 do Fluxoly Design System (ver seção logo abaixo), o PR #53 (aplicação da
+marca — ícone e wordmark), a implementação da Landing Page institucional (PR #49), a Fase 1 do Fluxoly
+Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -79,7 +80,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 2 do Fluxoly Design System — PR 1 (Foundation) implementado, aguardando CI/revisão
+## ✅ Fase 2 do Fluxoly Design System — PR 1 (Foundation) ENCERRADO (PR #54 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase2.md` para o registro completo (auditoria das 24
 páginas, plano de 8 PRs aprovado pelo CTO) e `docs/engineering/ENGINEERING_GUIDE.md` §3.3 para as
@@ -103,8 +104,38 @@ hover/foco). Nenhuma página em `pages/` foi tocada — só `components/ui/` e `
 (Vitest), suíte completa 40/40, lint 0 erros (2 warnings pré-existentes em `ShoppingList.jsx`/`Stock.jsx`,
 fora de escopo), build de produção confirmado sem erro.
 
-**Próximo passo:** CI + revisão do CTO antes do merge (mesmo gate leve da Fase 1). Depois: PR 2
-(`ChecklistDevice.jsx` como golden standard da fase).
+**Decisão do CTO:** aprovado exatamente no escopo entregue (revisão critério a critério confirmando
+Foundation, nenhuma tela tocada, marca intocada, testes/CI/lint/build ok). Mergeado em `main` (squash,
+`567ad47b`), branch deletada.
+
+---
+
+## 🟡 Fase 2 do Fluxoly Design System — PR 2 (`ChecklistDevice.jsx`, golden standard) implementado
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 2") para o registro completo.**
+
+2026-08-19, sequência imediata ao PR 1. Antes de iniciar, achado de dependência: o PR #53 (aplicação da
+marca — ícone e wordmark) ainda estava aberto/não mergeado, e sem ele `main` não tinha a fonte Onest
+carregada nem o `viewBox` corrigido dos SVGs do ícone — inviabilizaria o `ChecklistDevice` demonstrar
+"Marca"/"Tipografia" de verdade como golden standard. CTO decidiu mergear o PR #53 primeiro (branch
+atualizada a partir do `main` pós-PR-#54, CI 6/6 revalidado, sem conflitos) antes de abrir a branch do PR
+2 — `main` agora tem os dois PRs (`843c33fd` PR #53, `567ad47b` PR #54).
+
+**Entregue (branch `feat/design-system-fase2-checklistdevice`):** redesenho puramente visual de
+`ChecklistDevice.jsx` — nenhuma lógica de negócio, handler de dispositivo (áudio/microfone/câmera) ou
+payload de `saveChecklist` alterado. Paleta própria (gradiente slate/azul) substituída pelos tokens
+Fluxoly; `rounded-3xl`/`rounded-2xl` (fora da escala) → `rounded-xl` via `Card`; ícones lucide → Phosphor;
+cor decorativa `cyan-300` (fora da paleta) → `text-primary`; estado de erro migrado para `ErrorState` da
+Foundation; `Badge` semântico nos indicadores de status sugerido; `Checkbox` do design system nos botões
+físicos; header com ícone + wordmark Fluxoly (mesmo padrão de `Login.jsx`); `Reveal` no conteúdo carregado.
+5 testes novos, suíte completa 45/45, lint 0 erros, build ok.
+
+**QA visual:** estado de erro confirmado ao vivo no navegador (Vite dev server); padrão de ícone+wordmark
+confirmado em `/login` (mesmo código reaproveitado). Estado carregado (com OS real) validado via Vitest
+sobre o DOM renderizado — reproduzir ao vivo exigiria backend + token de checklist reais.
+
+**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 3 (Orders + Kanban + NewOrder +
+EditOrder).
 
 ---
 

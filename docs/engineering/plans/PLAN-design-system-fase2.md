@@ -5,7 +5,7 @@
 da Fase 1: "apresentar plano e aguardar aprovação" do `CLAUDE.md`, por envolver mais de 3 arquivos; não é
 o ciclo `ADR-010` completo, que é obrigatório só para feature com regra de negócio nova, `ENGINEERING_GUIDE.md`
 §12)
-**Status:** 🟡 Em andamento — PR 1 (Foundation) em implementação
+**Status:** 🟡 Em andamento — PR 1 (Foundation) mergeado, PR 2 (`ChecklistDevice.jsx`) em implementação
 
 > Este documento é efêmero, mesmo princípio do `PLAN-design-system-fase1.md`. O que precisar continuar
 > vivo — componentes, convenções — é promovido para `ENGINEERING_GUIDE.md` no Encerramento de cada PR.
@@ -65,8 +65,8 @@ corrigir automaticamente.
 
 | PR | Escopo | Status |
 |----|--------|--------|
-| 1 | **Foundation Fase 2** — `Badge` semântico, `EmptyState`/`ErrorState`/`LoadingState`, padrão visual de filtros, convenção de Motion discreta, documentação. Nenhuma tela redesenhada. | 🟡 Em implementação |
-| 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ⬜ |
+| 1 | **Foundation Fase 2** — `Badge` semântico, `EmptyState`/`ErrorState`/`LoadingState`, padrão visual de filtros, convenção de Motion discreta, documentação. Nenhuma tela redesenhada. | ✅ Mergeado (PR #54) |
+| 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | 🟡 Em implementação |
 | 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ⬜ |
 | 4 | Stock + Unidades Serializadas + Produtos | ⬜ |
 | 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ⬜ |
@@ -106,6 +106,32 @@ Gate por PR: implementação → testes locais → CI 6/6 → revisão → autor
 
 **Fora:** qualquer página em `pages/` ou `components/dashboard|orders|shopping/` — nenhuma tela é tocada
 neste PR.
+
+---
+
+## PR 2 — ChecklistDevice.jsx (golden standard, escopo detalhado)
+
+Redesenho puramente visual — nenhuma linha de lógica de negócio, estado, handler de API de dispositivo
+(áudio/microfone/câmera) ou payload de `saveChecklist` foi alterada. Mudanças:
+
+- Paleta própria (gradiente slate/azul, `bg-white/8`, `backdrop-blur`) substituída pelos tokens Fluxoly
+  (`bg-background`/`bg-card`/`border-border`/`bg-muted`/`text-foreground`/`text-muted-foreground`).
+- `rounded-3xl`/`rounded-2xl` (fora da escala) substituídos por `rounded-xl` (containers) via componente
+  `Card`/`CardContent` da Foundation.
+- Ícones `lucide-react` → Phosphor (`CircleNotch`, `Microphone`, `QrCode`, `DeviceMobile`, `SpeakerHigh`,
+  `Camera`, `CheckCircle`), cor decorativa `cyan-300` (fora da paleta) → `text-primary`.
+- Estado de "checklist indisponível" migrado para o `ErrorState` da Foundation.
+- `Badge` semântico aplicado aos indicadores de status sugerido (cobertura de touch, sugestão de botões).
+- `Checkbox` do design system substitui `<input type="checkbox">` cru nos botões físicos.
+- Header com ícone + wordmark Fluxoly (mesmo padrão já em produção em `Login.jsx`), `Reveal` envolvendo o
+  conteúdo carregado.
+- 5 testes novos (Vitest) cobrindo loading/erro/sucesso/interação da grade de touch/salvar.
+
+**QA visual:** estado de erro confirmado no navegador real (Vite dev server, sem backend — falha de rede
+cai no mesmo caminho de `!ordem`); padrão de ícone+wordmark confirmado visualmente em `/login` (mesmo
+código reaproveitado). Estado carregado (com OS real) validado via Vitest com asserção sobre o DOM
+renderizado, não via captura de tela — reproduzir o estado ao vivo exigiria backend + token de checklist
+reais, fora do custo-benefício desta verificação.
 
 ---
 

@@ -9,6 +9,19 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 2/ChecklistDevice golden standard)
+- **`ChecklistDevice.jsx` redesenhado** para os tokens Fluxoly — única tela pública do sistema, sem login.
+  Paleta própria (gradiente slate/azul) substituída por `bg-background`/`bg-card`/`border-border`; radius
+  fora da escala (`rounded-3xl`/`rounded-2xl`) substituído por `rounded-xl`; ícones lucide → Phosphor; cor
+  decorativa fora da paleta (`cyan-300`) → `text-primary`; `ErrorState`/`Badge`/`Checkbox` da Foundation
+  aplicados; header com ícone + wordmark Fluxoly (mesmo padrão de `Login.jsx`); `Reveal` no conteúdo.
+- **Nenhuma lógica de negócio alterada** — handlers de áudio/microfone/câmera e payload de
+  `saveChecklist` idênticos ao original.
+- **Dependência resolvida antes deste PR:** PR #53 (aplicação da marca — Onest + ícone corrigido) foi
+  mergeado primeiro, por decisão do CTO, já que o golden standard depende da marca estar de fato aplicada.
+- **Testes:** 5 novos (Vitest), suíte completa 45/45. Lint 0 erros.
+- Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 2") para o registro completo.
+
 ### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 1/Foundation)
 - **Vocabulário visual compartilhado** para migrar as 21 páginas operacionais ainda fora do Design System
   (auditoria completa em `docs/engineering/plans/PLAN-design-system-fase2.md`): `Badge` com variantes

@@ -1781,24 +1781,25 @@ Responsável:
 ## KI-048
 
 Descrição:
-`NewOrder.jsx`, `EditOrder.jsx` e `Kanban.jsx` (`frontend/src/pages/`) buscam os dados iniciais da tela
-via `Promise.all([...]).then(...)` (os dois primeiros) ou `ordensApi.list().then(...)` (o terceiro), sem
-nenhum `.catch()`. Se qualquer uma das chamadas rejeitar (erro de rede, não apenas `{ok: false}` — que já
-é tratado), a `Promise` encadeada nunca chega ao `.then()`, `setLoading(false)` nunca é chamado, e a tela
-fica presa no spinner de carregamento indefinidamente, sem nenhum aviso ao usuário. Achado durante a
-Revisão Arquitetural do PR 3 da Fase 2 do Design System (`docs/engineering/plans/PLAN-design-system-fase2.md`)
-— confirmado pré-existente nos três arquivos (o PR 3 só trocou classes/ícones/estrutura visual, nunca
-tocou a cadeia de promises).
+`NewOrder.jsx`, `EditOrder.jsx`, `Kanban.jsx` e `Stock.jsx::fetchItems` (`frontend/src/pages/`) buscam os
+dados iniciais da tela via `Promise.all([...]).then(...)` ou `<api>.list().then(...)`, sem nenhum
+`.catch()`. Se a chamada rejeitar (erro de rede, não apenas `{ok: false}` — que já é tratado), a `Promise`
+nunca chega ao `.then()`, `setLoading(false)` nunca é chamado, e a tela fica presa no spinner de
+carregamento indefinidamente, sem nenhum aviso ao usuário. Achado durante a Revisão Arquitetural do PR 3
+da Fase 2 do Design System (`docs/engineering/plans/PLAN-design-system-fase2.md`), estendido no PR 4 ao
+achar o mesmo padrão em `Stock.jsx` — confirmado pré-existente em todos os quatro arquivos (os PRs 3/4 só
+trocaram classes/ícones/estrutura visual, nunca tocaram a cadeia de promises).
 
 Impacto:
-Baixo/Médio — exige falha de rede real (não `{ok: false}` do backend, que já tem tratamento), mas afeta 3
-das telas mais usadas do fluxo de OS (criar, editar, Kanban). Sem crash, sem perda de dado — só a UX de
+Baixo/Médio — exige falha de rede real (não `{ok: false}` do backend, que já tem tratamento), mas afeta 4
+telas de uso frequente (criar/editar OS, Kanban, Estoque). Sem crash, sem perda de dado — só a UX de
 "tela travada sem explicação".
 
 Status:
-Aberto — identificado em 2026-08-19. Correção candidata: `.catch(() => { toast.error(...); setLoading(false); })`
-em cada um dos três pontos, mesmo padrão já usado em `Orders.jsx::fetchOrdens` (que já tem `try/catch`).
-Não corrigido nesta Revisão Arquitetural por estar fora do escopo puramente visual do PR 3.
+Aberto — identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4). Correção candidata:
+`.catch(() => { toast.error(...); setLoading(false); })` em cada ponto, mesmo padrão já usado em
+`Orders.jsx::fetchOrdens`/`Produtos.jsx::fetchItems`/`UnidadesSerializadas.jsx::buscar` (que já têm
+`try/catch`). Não corrigido nas Revisões Arquiteturais por estar fora do escopo puramente visual dos PRs.
 
 Sprint prevista:
 Não definida — candidato a qualquer sprint futura que toque essas telas novamente, ou a uma correção

@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Search, ScanBarcode, Smartphone, MapPin, BatteryMedium, History, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { CircleNotch, MagnifyingGlass, Barcode, DeviceMobile, MapPin, BatteryMedium, ClockCounterClockwise, CaretLeft, CaretRight, Pencil } from "@phosphor-icons/react";
 import { unidadesSerializadas as unidadesApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton } from "@/components/ui/loading-state";
+import { Reveal } from "@/components/ui/reveal";
+import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
+import { interactiveRowClassName } from "@/lib/interaction";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -20,17 +27,38 @@ const TRANSICOES_VALIDAS = {
   devolvido: ["disponivel"],
 };
 
-// Estados alcançáveis nesta sprint — mesmo domínio de `TRANSICOES_VALIDAS`
-// em fluxoly_unidades_serializadas_service.py. 'reservado'/'vendido' existem
-// no schema mas não são produzidos por nenhum fluxo ainda (aguardam Vendas).
-const STATUS_BADGE = {
-  disponivel: { label: "Disponível", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
-  em_reparo: { label: "Em Reparo", className: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
-  devolvido: { label: "Devolvido", className: "bg-sky-500/10 text-sky-300 border-sky-500/30" },
-  reservado: { label: "Reservado", className: "bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/30" },
-  vendido: { label: "Vendido", className: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30" },
+// Status -- vocabulário próprio desta tela, migrado para o Badge semântico.
+// 'reservado' e 'vendido' existem no schema mas não são produzidos por
+// nenhum fluxo ainda (aguardam Vendas) -- 'reservado' reaproveita 'warning'
+// (mesmo tom de 'em_reparo': ambos "pendente de ação", e reservado não
+// renderiza em nenhum fluxo real hoje).
+const STATUS_LABEL = {
+  disponivel: "Disponível",
+  em_reparo: "Em Reparo",
+  devolvido: "Devolvido",
+  reservado: "Reservado",
+  vendido: "Vendido",
 };
 
+function statusVariant(status) {
+  if (status === "disponivel") return "success";
+  if (status === "em_reparo") return "warning";
+  if (status === "reservado") return "warning";
+  if (status === "devolvido") return "info";
+  if (status === "vendido") return "neutral";
+  return "neutral";
+}
+
+function statusLabel(status) {
+  return STATUS_LABEL[status] || status || "—";
+}
+
+// ORIGEM_BADGE — badge categórico (de onde veio a unidade: estoque ou
+// produto), não de status. Deliberadamente NÃO migrado para o Badge
+// semântico nesta fase — mesmo motivo do CATEGORIA_BADGE em Produtos.jsx
+// (não há variante de severidade para "categoria"). Decisão do CTO
+// (checkpoint do PR 4, PLAN-design-system-fase2.md). Objeto idêntico também
+// existe em Vendas.jsx (PR 5) — candidato a resolver os dois de uma vez.
 const ORIGEM_BADGE = {
   estoque: { label: "Estoque", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
   produto: { label: "Produto", className: "bg-purple-500/10 text-purple-300 border-purple-500/30" },
@@ -55,10 +83,6 @@ const SORT_OPTIONS = [
 ];
 
 const PER_PAGE = 20;
-
-function statusBadge(status) {
-  return STATUS_BADGE[status] || { label: status || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
-}
 
 function origemBadge(tipo) {
   return ORIGEM_BADGE[tipo] || { label: "—", className: "bg-secondary/70 text-muted-foreground border-border" };
@@ -88,8 +112,8 @@ const ACAO_LABEL = {
 
 function eventoDescricao(evento) {
   if (evento.acao === "status_change") {
-    const de = STATUS_BADGE[evento.valor_anterior]?.label || evento.valor_anterior || "—";
-    const para = STATUS_BADGE[evento.valor_novo]?.label || evento.valor_novo || "—";
+    const de = statusLabel(evento.valor_anterior);
+    const para = statusLabel(evento.valor_novo);
     return `${de} → ${para}`;
   }
   if (evento.acao === "update") {
@@ -135,7 +159,6 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
   }, [unidadeId]);
 
   const origem = origemBadge(unidade?.origem_tipo);
-  const status = statusBadge(unidade?.status);
   const transicoesDisponiveis = unidade ? (TRANSICOES_VALIDAS[unidade.status] || []) : [];
 
   const abrirEdicao = () => {
@@ -181,7 +204,7 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-primary" />
+            <DeviceMobile className="h-5 w-5 text-primary" />
             {loading ? "Carregando..." : (unidade?.origem_label || "Unidade")}
           </DialogTitle>
           <DialogDescription>
@@ -191,13 +214,13 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
 
         {loading ? (
           <div className="flex items-center justify-center h-24">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <CircleNotch className="h-5 w-5 animate-spin text-primary" />
           </div>
         ) : !unidade ? (
           <p className="text-sm text-muted-foreground">Unidade não encontrada.</p>
         ) : (
           <div className="space-y-5 mt-2">
-            <div className="grid grid-cols-2 gap-3 bg-secondary/40 rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-3 bg-secondary/40 rounded-xl p-4">
               <div className="col-span-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">IMEI / Serial</p>
                 <p className="font-mono text-card-foreground">{unidade.imei || "—"}</p>
@@ -216,9 +239,9 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
                   <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}>
                     <SelectTrigger id="unidade-status" className="w-full" aria-label="Status"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={unidade.status}>{statusBadge(unidade.status).label} (atual)</SelectItem>
+                      <SelectItem value={unidade.status}>{statusLabel(unidade.status)} (atual)</SelectItem>
                       {transicoesDisponiveis.map((s) => (
-                        <SelectItem key={s} value={s}>{statusBadge(s).label}</SelectItem>
+                        <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -226,9 +249,9 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
               ) : (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
-                  <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium mt-0.5", status.className].join(" ")}>
-                    {status.label}
-                  </span>
+                  <div className="mt-0.5">
+                    <Badge variant={statusVariant(unidade.status)}>{statusLabel(unidade.status)}</Badge>
+                  </div>
                 </div>
               )}
 
@@ -277,24 +300,24 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Cliente atual</p>
-                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Sem venda registrada — módulo de Vendas em construção.</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-xl p-3">Sem venda registrada — módulo de Vendas em construção.</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Garantia</p>
-                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Não aplicável ainda — depende da venda.</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-xl p-3">Não aplicável ainda — depende da venda.</p>
               </div>
             </div>
 
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <History className="h-3.5 w-3.5" /> Histórico {historico.length > 0 && `(${historico.length})`}
+                <ClockCounterClockwise className="h-3.5 w-3.5" /> Histórico {historico.length > 0 && `(${historico.length})`}
               </p>
               {historico.length === 0 ? (
-                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-lg p-3">Nenhum evento registrado.</p>
+                <p className="text-sm text-muted-foreground bg-secondary/40 rounded-xl p-3">Nenhum evento registrado.</p>
               ) : (
                 <div className="space-y-1.5">
                   {historico.map((evento) => (
-                    <div key={evento.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-lg px-3 py-2">
+                    <div key={evento.id} className="flex items-center justify-between text-sm bg-secondary/40 rounded-xl px-3 py-2">
                       <div>
                         <span className="text-card-foreground font-medium">{ACAO_LABEL[evento.acao] || evento.acao}</span>
                         {eventoDescricao(evento) && (
@@ -318,7 +341,7 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
             <>
               <Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={submitting}>Cancelar</Button>
               <Button type="button" onClick={salvar} disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {submitting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                 {submitting ? "Salvando..." : "Salvar"}
               </Button>
             </>
@@ -344,6 +367,7 @@ export default function UnidadesSerializadas() {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [detalheId, setDetalheId] = useState(null);
 
   // Campo de busca com debounce: o valor digitado (searchInput) só vira o
@@ -359,6 +383,7 @@ export default function UnidadesSerializadas() {
   const [localizacao, setLocalizacao] = useState("");
   const [sort, setSort] = useState("recente");
   const [page, setPage] = useState(1);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Debounce da busca/localização: volta para a página 1 junto (dentro do
   // callback assíncrono do setTimeout, não sincronamente no corpo do efeito).
@@ -398,11 +423,16 @@ export default function UnidadesSerializadas() {
         if (res?.ok) {
           setItems(res.items || []);
           setTotal(res.total || 0);
+          setLoadError(false);
         } else {
           toast.error(res?.erro || "Erro ao carregar unidades");
+          setLoadError(true);
         }
       } catch {
-        if (ativo) toast.error("Erro ao carregar unidades");
+        if (ativo) {
+          toast.error("Erro ao carregar unidades");
+          setLoadError(true);
+        }
       } finally {
         if (ativo) setLoading(false);
       }
@@ -410,7 +440,7 @@ export default function UnidadesSerializadas() {
 
     buscar();
     return () => { ativo = false; };
-  }, [page, search, origemFilter, statusFilter, saudeBateriaFaixa, localizacao, sort]);
+  }, [page, search, origemFilter, statusFilter, saudeBateriaFaixa, localizacao, sort, reloadToken]);
 
   const totalPaginas = Math.max(1, Math.ceil(total / PER_PAGE));
   const filtrosAtivos = Boolean(search || origemFilter || statusFilter || saudeBateriaFaixa || localizacao);
@@ -426,158 +456,151 @@ export default function UnidadesSerializadas() {
         </div>
       </div>
 
-      {/* Card de resumo — reflete o resultado filtrado atual, não o total global
-          (calcular Disponíveis/Em Reparo globais exigiria consultas extras a
-          cada filtro, contra o critério de manter a busca rápida). */}
-      <div className="bg-card border border-border rounded-xl p-4 w-fit min-w-[160px]">
-        <p className="text-2xl font-bold text-foreground">{total}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {filtrosAtivos ? "unidades encontradas" : "unidades no total"}
-        </p>
-      </div>
-
-      {/* Busca */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por IMEI, serial, modelo, marca ou localização..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
-        <Select value={origemFilter || "all"} onValueChange={handleOrigemChange}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Origem" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as origens</SelectItem>
-            <SelectItem value="estoque">Estoque</SelectItem>
-            <SelectItem value="produto">Produto</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {Object.entries(STATUS_BADGE).map(([value, { label }]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={saudeBateriaFaixa || "all"} onValueChange={handleSaudeBateriaChange}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Saúde da bateria" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Qualquer saúde de bateria</SelectItem>
-            {SAUDE_BATERIA_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative w-48">
-          <MapPin className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Localização..."
-            value={localizacaoInput}
-            onChange={(e) => setLocalizacaoInput(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-
-        <Select value={sort} onValueChange={handleSortChange}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : items.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {filtrosAtivos ? (
-            "Nenhuma unidade corresponde à busca/filtros atuais."
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <ScanBarcode className="h-8 w-8 text-muted-foreground/50" />
-              Nenhuma unidade serializada cadastrada ainda.
-            </div>
-          )}
-        </div>
+        <ListSkeleton rows={6} />
+      ) : loadError && items.length === 0 ? (
+        <ErrorState title="Não foi possível carregar as unidades." onRetry={() => setReloadToken((t) => t + 1)} />
       ) : (
-        <>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    {["IMEI", "Origem", "Status", "Localização", "Cadastrado em"].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {items.map((item) => {
-                    const origem = origemBadge(item.origem_tipo);
-                    const status = statusBadge(item.status);
-                    return (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-accent/30 transition-colors cursor-pointer"
-                        data-testid={`unidade-row-${item.id}`}
-                        onClick={() => setDetalheId(item.id)}
-                      >
-                        <td className="px-4 py-3">
-                          <span className="font-medium text-card-foreground font-mono">{item.imei || "—"}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", origem.className].join(" ")}>
-                              {origem.label}
-                            </span>
-                            <span className="text-muted-foreground text-xs">{item.origem_label || "—"}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", status.className].join(" ")}>
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.localizacao || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{formatDate(item.criado_em)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <Reveal className="space-y-5">
+          {/* Card de resumo — reflete o resultado filtrado atual, não o total global
+              (calcular Disponíveis/Em Reparo globais exigiria consultas extras a
+              cada filtro, contra o critério de manter a busca rápida). */}
+          <div className="bg-card border border-border rounded-xl p-4 w-fit min-w-[160px]">
+            <p className="text-2xl font-bold text-foreground">{total}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {filtrosAtivos ? "unidades encontradas" : "unidades no total"}
+            </p>
+          </div>
+
+          {/* Busca */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="relative">
+              <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por IMEI, serial, modelo, marca ou localização..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-8"
+              />
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "unidade" : "unidades"}</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
-              </Button>
-              <Button variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => p + 1)}>
-                Próxima <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+          {/* Filtros */}
+          <FilterBar className="bg-card border border-border rounded-xl p-4">
+            <FilterSelect
+              value={origemFilter || "all"}
+              onValueChange={handleOrigemChange}
+              placeholder="Origem"
+              className="w-40"
+              options={[
+                { value: "all", label: "Todas as origens" },
+                { value: "estoque", label: "Estoque" },
+                { value: "produto", label: "Produto" },
+              ]}
+            />
+
+            <FilterSelect
+              value={statusFilter || "all"}
+              onValueChange={handleStatusChange}
+              placeholder="Status"
+              className="w-44"
+              options={[{ value: "all", label: "Todos os status" }, ...Object.keys(STATUS_LABEL).map((value) => ({ value, label: STATUS_LABEL[value] }))]}
+            />
+
+            <FilterSelect
+              value={saudeBateriaFaixa || "all"}
+              onValueChange={handleSaudeBateriaChange}
+              placeholder="Saúde da bateria"
+              className="w-48"
+              options={[{ value: "all", label: "Qualquer saúde de bateria" }, ...SAUDE_BATERIA_OPTIONS]}
+            />
+
+            <div className="relative w-48">
+              <MapPin className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <FilterInput
+                placeholder="Localização..."
+                value={localizacaoInput}
+                onChange={(e) => setLocalizacaoInput(e.target.value)}
+                className="w-full pl-8"
+              />
             </div>
-          </div>
-        </>
+
+            <FilterSelect
+              value={sort}
+              onValueChange={handleSortChange}
+              placeholder="Ordenar por"
+              className="w-44"
+              options={SORT_OPTIONS}
+            />
+          </FilterBar>
+
+          {items.length === 0 ? (
+            <EmptyState
+              icon={filtrosAtivos ? undefined : Barcode}
+              title={filtrosAtivos ? "Nenhuma unidade corresponde à busca/filtros atuais." : "Nenhuma unidade serializada cadastrada ainda."}
+            />
+          ) : (
+            <>
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["IMEI", "Origem", "Status", "Localização", "Cadastrado em"].map((h) => (
+                          <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {items.map((item) => {
+                        const origem = origemBadge(item.origem_tipo);
+                        return (
+                          <tr
+                            key={item.id}
+                            className={`${interactiveRowClassName} cursor-pointer`}
+                            data-testid={`unidade-row-${item.id}`}
+                            onClick={() => setDetalheId(item.id)}
+                          >
+                            <td className="px-4 py-3">
+                              <span className="font-medium text-card-foreground font-mono">{item.imei || "—"}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", origem.className].join(" ")}>
+                                  {origem.label}
+                                </span>
+                                <span className="text-muted-foreground text-xs">{item.origem_label || "—"}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant={statusVariant(item.status)}>{statusLabel(item.status)}</Badge>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{item.localizacao || "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{formatDate(item.criado_em)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "unidade" : "unidades"}</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    <CaretLeft className="h-4 w-4 mr-1" /> Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => p + 1)}>
+                    Próxima <CaretRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Reveal>
       )}
 
       {detalheId && <DetalheUnidade unidadeId={detalheId} onClose={() => setDetalheId(null)} canEdit={canEdit} />}

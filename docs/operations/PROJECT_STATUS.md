@@ -5,10 +5,10 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-19 — inclui o PR 3 (Orders/Kanban/NewOrder/EditOrder) e os PRs 1/2 (Foundation,
-`ChecklistDevice.jsx`), todos da Fase 2 do Fluxoly Design System (ver seção logo abaixo), o PR #53
-(aplicação da marca — ícone e wordmark), a implementação da Landing Page institucional (PR #49), a Fase 1
-do Fluxoly Design System e a Fase 1 de LGPD/Compliance
+**Última revisão:** 2026-08-20 — inclui o PR 4 (Estoque/Unidades Serializadas/Produtos) e os PRs 1-3
+(Foundation, `ChecklistDevice.jsx`, Orders/Kanban/NewOrder/EditOrder), todos da Fase 2 do Fluxoly Design
+System (ver seção logo abaixo), o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
+Landing Page institucional (PR #49), a Fase 1 do Fluxoly Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
 → QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
@@ -139,7 +139,7 @@ pré-existente). Mergeado em `main` (squash, `a97515a3`), branch deletada.
 
 ---
 
-## 🟡 Fase 2 do Fluxoly Design System — PR 3 (Orders + Kanban + NewOrder + EditOrder) implementado
+## ✅ Fase 2 do Fluxoly Design System — PR 3 (Orders + Kanban + NewOrder + EditOrder) ENCERRADO (PR #56 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 3") para o registro completo.**
 
@@ -167,8 +167,48 @@ cor/radius, desproporcional escrever teste de formulário completo só para isso
 **Achado registrado, não corrigido:** KI-048 — `NewOrder.jsx`/`EditOrder.jsx`/`Kanban.jsx` não tratam
 rejeição de promise na carga inicial (`.then()` sem `.catch()`), pré-existente, fora do escopo visual.
 
-**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 4 (Estoque + Unidades Serializadas +
-Produtos).
+**Decisão do CTO:** aprovado. Mergeado em `main` (squash, `dedd2e2a`), branch deletada.
+
+---
+
+## 🟡 Fase 2 do Fluxoly Design System — PR 4 (Estoque + Unidades Serializadas + Produtos) em implementação
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 4") para o registro completo.**
+
+2026-08-20, sequência imediata ao PR 3, com um checkpoint arquitetural somente-leitura do CTO antes de
+autorizar o início (confirmação de `main` sincronizada, PRs #53-#56 mergeados, ausência de KI aberto
+afetando essas 3 telas, mapeamento de escopo/dependências/riscos — sem alterar código).
+
+**Achado do checkpoint, resolvido antes da implementação:** `Produtos.jsx` (`CATEGORIA_BADGE`) e
+`UnidadesSerializadas.jsx`/`Vendas.jsx` (`ORIGEM_BADGE`, duplicado literalmente entre os dois arquivos)
+usam badges **categóricos** (que tipo de coisa é isso — categoria/origem), não badges de **status**
+(como está indo isso) — `purple`/`fuchsia`/`zinc` não têm variante semântica correspondente no `Badge` da
+Foundation, que foi desenhado só para severidade. CTO decidiu **não** criar variante nova nem forçar esses
+badges nos 5 variants de status existentes neste PR — ficam intocados, decisão de Design System (tag vs.
+status) fica pendente para antes do PR 5 (que repete o mesmo `ORIGEM_BADGE`).
+
+**Entregue:** status genuíno migrado normalmente onde existia — `Stock.jsx` (disponibilidade de estoque +
+prioridade de reposição sugerida), `Produtos.jsx` (disponibilidade + condição Novo/Seminovo/Vitrine, as 3
+cores já usadas mapearam 1:1 nos variants sem forçar nada), `UnidadesSerializadas.jsx` (5 estados —
+`reservado`, que não é produzido por nenhum fluxo real ainda, reaproveita o tom de `em_reparo`). Cada
+domínio manteve sua própria função de mapeamento local (não centralizada em `lib/constants.js`, já que
+cada uma serve só o próprio arquivo). Ícones lucide → Phosphor, `FilterBar`/`FilterSelect`/`FilterInput`
+nas 3 barras de filtro, `EmptyState`/`ErrorState`/`ListSkeleton`, `Checkbox` do design system no lugar de
+`<input type="checkbox">` cru, `interactiveRowClassName`, `rounded-lg`→`rounded-xl` em 3 painéis do modal
+de detalhe de unidades. Bug introduzido e corrigido durante a implementação: `onRetry` do `ErrorState` em
+`UnidadesSerializadas.jsx` usava `setPage((p) => p)`, que não muda estado — corrigido com um `reloadToken`
+dedicado antes de rodar os testes.
+
+**Nenhuma lógica de negócio alterada** — confirmado por busca no diff completo por handler de negócio e
+por diff isolado byte-a-byte de `handleSubmit`/`handleDelete`/`carregar`/`salvar` contra `main`.
+
+**Testes:** 12 novos (as 3 páginas nunca tinham teste antes). Suíte completa 70/70, lint 0 erros, build ok.
+
+**Achado registrado, não corrigido:** KI-048 estendido — `Stock.jsx::fetchItems` também não trata rejeição
+de promise na carga inicial (mesmo padrão já registrado no PR 3 para NewOrder/EditOrder/Kanban).
+
+**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 5 (Vendas + VendaDetalhe + Financeiro +
+Clientes) — que precisará da decisão pendente sobre `ORIGEM_BADGE` antes de tocar em `Vendas.jsx`.
 
 ---
 

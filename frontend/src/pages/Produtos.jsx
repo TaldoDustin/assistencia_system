@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Search, Lock } from "lucide-react";
+import { CircleNotch, Plus, Pencil, Trash, MagnifyingGlass, Lock } from "@phosphor-icons/react";
 import { produtos as produtosApi, constantes as constApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton } from "@/components/ui/loading-state";
+import { Reveal } from "@/components/ui/reveal";
+import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
+import { interactiveRowClassName } from "@/lib/interaction";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -22,6 +30,13 @@ import { formatCurrency } from "@/lib/constants";
 const CATEGORIA_OPTIONS_FALLBACK = ["iPhone", "Apple Watch", "AirPods", "Acessorio"];
 const CONDICAO_OPTIONS_FALLBACK = ["Novo", "Seminovo", "Vitrine"];
 
+// CATEGORIA_BADGE — badge categórico (que tipo de produto é este), não de
+// status. Deliberadamente NÃO migrado para o Badge semântico da Foundation
+// nesta fase: `zinc`/`fuchsia` não têm variante de severidade correspondente
+// (não existe "categoria em alerta"). Decisão do CTO (checkpoint do PR 4,
+// PLAN-design-system-fase2.md) — fica como está até uma decisão própria de
+// Design System para badges de categoria/tag (candidata a resolver antes do
+// PR 5, que repete o mesmo padrão em Vendas.jsx/ORIGEM_BADGE).
 const CATEGORIA_BADGE = {
   "iPhone": { emoji: "🟦", label: "iPhone", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
   "Apple Watch": { emoji: "⌚", label: "Apple Watch", className: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30" },
@@ -56,16 +71,27 @@ function categoriaBadge(categoria) {
   return CATEGORIA_BADGE[categoria] || { emoji: "📦", label: categoria || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
 }
 
-function statusInfo(item) {
-  if (!item.ativo) return { label: "Inativo", className: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30" };
-  if ((item.quantidade || 0) <= 0) return { label: "Esgotado", className: "bg-red-500/10 text-red-300 border-red-500/30" };
-  return { label: "Disponível", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" };
+// Disponibilidade -- status genuíno (não categórico), migrado para o Badge
+// semântico normalmente.
+function statusVariant(item) {
+  if (!item.ativo) return "neutral";
+  if ((item.quantidade || 0) <= 0) return "error";
+  return "success";
 }
 
-function condicaoBadge(condicao) {
-  if (condicao === "Seminovo") return "bg-amber-500/10 text-amber-300 border-amber-500/30";
-  if (condicao === "Vitrine") return "bg-sky-500/10 text-sky-300 border-sky-500/30";
-  return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+function statusLabel(item) {
+  if (!item.ativo) return "Inativo";
+  if ((item.quantidade || 0) <= 0) return "Esgotado";
+  return "Disponível";
+}
+
+// Condição -- também status genuíno (gradação Novo > Seminovo > Vitrine), as
+// 3 cores já usadas (emerald/amber/sky) mapeiam 1:1 nos variants existentes,
+// sem precisar de nenhuma cor fora da escala -- diferente do CATEGORIA_BADGE.
+function condicaoVariant(condicao) {
+  if (condicao === "Seminovo") return "warning";
+  if (condicao === "Vitrine") return "info";
+  return "success";
 }
 
 export default function Produtos() {
@@ -74,6 +100,7 @@ export default function Produtos() {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [categoriaFilter, setCategoriaFilter] = useState("");
   const [condicaoFilter, setCondicaoFilter] = useState("");
@@ -92,10 +119,16 @@ export default function Produtos() {
       // per_page alto: catálogo ainda pequeno, filtros/busca abaixo são client-side
       // (server só busca em descricao/modelo/sku, não em marca/cor/capacidade).
       const res = await produtosApi.list({ per_page: 500 });
-      if (res?.ok) setItems(res.items || []);
-      else toast.error(res?.erro || "Erro ao carregar produtos");
+      if (res?.ok) {
+        setItems(res.items || []);
+        setLoadError(false);
+      } else {
+        toast.error(res?.erro || "Erro ao carregar produtos");
+        setLoadError(true);
+      }
     } catch {
       toast.error("Erro ao carregar produtos");
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -220,128 +253,132 @@ export default function Produtos() {
         )}
       </div>
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {[
-          { label: "Produtos", value: totalProdutos, color: "text-foreground" },
-          { label: "Seminovos", value: totalSeminovos, color: "text-amber-400" },
-          { label: "Vitrine", value: totalVitrine, color: "text-sky-400" },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Busca e filtros */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por modelo, cor, capacidade, marca..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
-        </div>
-        <Select value={categoriaFilter || ""} onValueChange={(v) => setCategoriaFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Categoria" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {categoriaOptions.map((c) => <SelectItem key={c} value={c}>{categoriaBadge(c).label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={condicaoFilter || ""} onValueChange={(v) => setCondicaoFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Condição" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as condições</SelectItem>
-            {condicaoOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={ativoFilter || ""} onValueChange={(v) => setAtivoFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="inativo">Inativos</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="ml-auto flex items-center text-xs text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "produto" : "produtos"} exibidos
-        </div>
-      </div>
-
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {search || categoriaFilter || condicaoFilter || ativoFilter
-            ? "Nenhum produto corresponde à busca/filtros atuais."
-            : "Nenhum produto cadastrado ainda."}
-        </div>
+        <ListSkeleton rows={6} />
+      ) : loadError && items.length === 0 ? (
+        <ErrorState title="Não foi possível carregar os produtos." onRetry={fetchItems} />
       ) : (
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Produto", "Categoria", "Condição", "Venda", "Margem", "Unidades", "Status", ""].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map((item) => {
-                  const badge = categoriaBadge(item.categoria);
-                  const status = statusInfo(item);
-                  return (
-                    <tr key={item.id} className="hover:bg-accent/30 transition-colors" data-testid={`produto-row-${item.id}`}>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-card-foreground">{nomeProduto(item)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={["inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", badge.className].join(" ")}>
-                          <span>{badge.emoji}</span>{badge.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", condicaoBadge(item.condicao)].join(" ")}>
-                          {item.condicao}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-card-foreground font-semibold">{formatCurrency(item.preco_venda)}</td>
-                      <td className="px-4 py-3">
-                        {item.margem == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <span className={item.margem >= 0 ? "text-emerald-400 font-medium" : "text-red-400 font-medium"}>
-                            {formatCurrency(item.margem)}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground italic" title="Rastreamento por unidade/IMEI chega em uma próxima sprint">—</td>
-                      <td className="px-4 py-3">
-                        <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", status.className].join(" ")}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {isAdmin && (
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar produto ${item.id}`} onClick={() => openEdit(item)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir produto ${item.id}`} onClick={() => setDeleteId(item.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <Reveal className="space-y-5">
+          {/* Cards de resumo */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { label: "Produtos", value: totalProdutos, color: "text-foreground" },
+              { label: "Seminovos", value: totalSeminovos, color: "text-warning" },
+              { label: "Vitrine", value: totalVitrine, color: "text-info" },
+            ].map((s) => (
+              <div key={s.label} className="bg-card border border-border rounded-xl p-4">
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Busca e filtros */}
+          <FilterBar className="bg-card border border-border rounded-xl p-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <FilterInput placeholder="Buscar por modelo, cor, capacidade, marca..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-8" />
+            </div>
+            <FilterSelect
+              value={categoriaFilter || "all"}
+              onValueChange={(v) => setCategoriaFilter(v === "all" ? "" : v)}
+              placeholder="Categoria"
+              className="w-44"
+              options={[{ value: "all", label: "Todas as categorias" }, ...categoriaOptions.map((c) => ({ value: c, label: categoriaBadge(c).label }))]}
+            />
+            <FilterSelect
+              value={condicaoFilter || "all"}
+              onValueChange={(v) => setCondicaoFilter(v === "all" ? "" : v)}
+              placeholder="Condição"
+              className="w-40"
+              options={[{ value: "all", label: "Todas as condições" }, ...condicaoOptions.map((c) => ({ value: c, label: c }))]}
+            />
+            <FilterSelect
+              value={ativoFilter || "all"}
+              onValueChange={(v) => setAtivoFilter(v === "all" ? "" : v)}
+              placeholder="Status"
+              className="w-40"
+              options={[
+                { value: "all", label: "Todos os status" },
+                { value: "ativo", label: "Ativos" },
+                { value: "inativo", label: "Inativos" },
+              ]}
+            />
+            <div className="ml-auto flex items-center text-xs text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "produto" : "produtos"} exibidos
+            </div>
+          </FilterBar>
+
+          {filtered.length === 0 ? (
+            <EmptyState
+              title={
+                search || categoriaFilter || condicaoFilter || ativoFilter
+                  ? "Nenhum produto corresponde à busca/filtros atuais."
+                  : "Nenhum produto cadastrado ainda."
+              }
+            />
+          ) : (
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Produto", "Categoria", "Condição", "Venda", "Margem", "Unidades", "Status", ""].map((h) => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filtered.map((item) => {
+                      const badge = categoriaBadge(item.categoria);
+                      return (
+                        <tr key={item.id} className={interactiveRowClassName} data-testid={`produto-row-${item.id}`}>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-card-foreground">{nomeProduto(item)}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={["inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", badge.className].join(" ")}>
+                              <span>{badge.emoji}</span>{badge.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant={condicaoVariant(item.condicao)}>{item.condicao}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-card-foreground font-semibold">{formatCurrency(item.preco_venda)}</td>
+                          <td className="px-4 py-3">
+                            {item.margem == null ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <span className={item.margem >= 0 ? "text-success font-medium" : "text-destructive font-medium"}>
+                                {formatCurrency(item.margem)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground italic" title="Rastreamento por unidade/IMEI chega em uma próxima sprint">—</td>
+                          <td className="px-4 py-3">
+                            <Badge variant={statusVariant(item)}>{statusLabel(item)}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar produto ${item.id}`} onClick={() => openEdit(item)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir produto ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                                  <Trash className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </Reveal>
       )}
 
       {/* Create/Edit Dialog */}
@@ -415,22 +452,18 @@ export default function Produtos() {
                   <Input id="produto-quantidade" type="number" min="0" value={form.quantidade} onChange={(e) => setForm((p) => ({ ...p, quantidade: e.target.value }))} />
                 </div>
                 <div className="flex items-center gap-2 pt-6">
-                  <input
+                  <Checkbox
                     id="produto-ativo"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border"
                     checked={form.ativo}
-                    onChange={(e) => setForm((p) => ({ ...p, ativo: e.target.checked }))}
+                    onCheckedChange={(checked) => setForm((p) => ({ ...p, ativo: Boolean(checked) }))}
                   />
                   <Label htmlFor="produto-ativo" className="cursor-pointer">Produto ativo (visível no catálogo)</Label>
                 </div>
                 <div className="col-span-2 flex items-center gap-2">
-                  <input
+                  <Checkbox
                     id="produto-rastreio"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border"
                     checked={form.requer_rastreio_unidade}
-                    onChange={(e) => setForm((p) => ({ ...p, requer_rastreio_unidade: e.target.checked }))}
+                    onCheckedChange={(checked) => setForm((p) => ({ ...p, requer_rastreio_unidade: Boolean(checked) }))}
                   />
                   <Label htmlFor="produto-rastreio" className="cursor-pointer text-muted-foreground">
                     Rastrear por unidade/IMEI (usado em sprint futura)
@@ -440,7 +473,7 @@ export default function Produtos() {
               <DialogFooter className="mt-4">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>
                 <Button type="submit" disabled={submitting} data-testid="produtos-save-button">
-                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {submitting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                   {submitting ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
@@ -459,7 +492,7 @@ export default function Produtos() {
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {deleting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                 {deleting ? "Excluindo..." : "Excluir"}
               </AlertDialogAction>
             </AlertDialogFooter>

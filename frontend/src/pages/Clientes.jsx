@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Search, User, Phone, Mail, FileText, UserX } from "lucide-react";
+import { CircleNotch, Plus, Pencil, Trash, MagnifyingGlass, User, Phone, EnvelopeSimple, FileText, UserMinus } from "@phosphor-icons/react";
 import { clientes as clientesApi, ordens as ordensApi, garantias as garantiasApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -13,21 +14,25 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton } from "@/components/ui/loading-state";
+import { Reveal } from "@/components/ui/reveal";
+import { FilterBar, FilterInput } from "@/components/ui/filter-bar";
+import { interactiveRowClassName } from "@/lib/interaction";
 
 const EMPTY_FORM = { nome: "", telefone: "", email: "", cpf_cnpj: "", observacoes: "" };
 
+// GarantiaBadge -- status genuíno (vencida/vencendo/ativa), migrado para o
+// Badge semântico da Foundation no PR 5.
+function garantiaVariant(status) {
+  if (status === "vencida") return "error";
+  if (status === "vencendo") return "warning";
+  return "success";
+}
+
 function GarantiaBadge({ status, dias }) {
-  const map = {
-    vencida:  "bg-red-500/10 text-red-300 border-red-500/30",
-    vencendo: "bg-amber-500/10 text-amber-300 border-amber-500/30",
-    ativa:    "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
-  };
   const label = status === "vencida" ? "Vencida" : status === "vencendo" ? `Vencendo (${dias}d)` : `${dias}d restantes`;
-  return (
-    <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", map[status] || "bg-secondary/70 text-muted-foreground border-border"].join(" ")}>
-      {label}
-    </span>
-  );
+  return <Badge variant={garantiaVariant(status)}>{label}</Badge>;
 }
 
 function PerfilCliente({ cliente, onClose }) {
@@ -66,7 +71,7 @@ function PerfilCliente({ cliente, onClose }) {
               <span className="text-card-foreground">{cliente.telefone || "—"}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <EnvelopeSimple className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="text-card-foreground">{cliente.email || "—"}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
@@ -84,7 +89,7 @@ function PerfilCliente({ cliente, onClose }) {
 
           {loading ? (
             <div className="flex items-center justify-center h-24">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <CircleNotch className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : (
             <>
@@ -287,8 +292,8 @@ export default function Clientes() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Clientes", value: totalClientes, color: "text-foreground" },
-          { label: "Com telefone", value: comTelefone, color: "text-emerald-400" },
-          { label: "Com e-mail", value: comEmail, color: "text-sky-400" },
+          { label: "Com telefone", value: comTelefone, color: "text-success" },
+          { label: "Com e-mail", value: comEmail, color: "text-info" },
         ].map((s) => (
           <div key={s.label} className="bg-card border border-border rounded-xl p-4">
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -297,65 +302,65 @@ export default function Clientes() {
         ))}
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, telefone, e-mail, CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
-        </div>
-        <div className="ml-auto flex items-center text-xs text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"} exibidos
-        </div>
-      </div>
-
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {search ? "Nenhum cliente corresponde à busca atual." : "Nenhum cliente cadastrado ainda."}
-        </div>
+        <ListSkeleton rows={6} />
       ) : (
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {["Nome", "Telefone", "E-mail", "CPF/CNPJ", ""].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-accent/30 transition-colors cursor-pointer" data-testid={`cliente-row-${item.id}`} onClick={() => setPerfilCliente(item)}>
-                    <td className="px-4 py-3 font-medium text-card-foreground">{item.nome}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.telefone || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.email || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.cpf_cnpj || "—"}</td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar cliente ${item.id}`} onClick={() => openEdit(item)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        {isAdmin && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label={`Anonimizar cliente ${item.id}`} title="Anonimizar (LGPD)" onClick={() => setAnonymizeId(item.id)}>
-                            <UserX className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Reveal className="space-y-5">
+          <FilterBar className="bg-card border border-border rounded-xl p-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <FilterInput placeholder="Buscar por nome, telefone, e-mail, CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-8" />
+            </div>
+            <div className="ml-auto flex items-center text-xs text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"} exibidos
+            </div>
+          </FilterBar>
+
+          {filtered.length === 0 ? (
+            <EmptyState title={search ? "Nenhum cliente corresponde à busca atual." : "Nenhum cliente cadastrado ainda."} />
+          ) : (
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Nome", "Telefone", "E-mail", "CPF/CNPJ", ""].map((h) => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filtered.map((item) => (
+                      <tr key={item.id} className={`${interactiveRowClassName} cursor-pointer`} data-testid={`cliente-row-${item.id}`} onClick={() => setPerfilCliente(item)}>
+                        <td className="px-4 py-3 font-medium text-card-foreground">{item.nome}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{item.telefone || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{item.email || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{item.cpf_cnpj || "—"}</td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar cliente ${item.id}`} onClick={() => openEdit(item)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            {isAdmin && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label={`Anonimizar cliente ${item.id}`} title="Anonimizar (LGPD)" onClick={() => setAnonymizeId(item.id)}>
+                                <UserMinus className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                                <Trash className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </Reveal>
       )}
 
       {/* Create/Edit Dialog */}
@@ -397,7 +402,7 @@ export default function Clientes() {
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancelar</Button>
               <Button type="submit" disabled={submitting} data-testid="clientes-save-button">
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {submitting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                 {submitting ? "Salvando..." : "Salvar"}
               </Button>
             </DialogFooter>
@@ -417,7 +422,7 @@ export default function Clientes() {
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {deleting && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                 {deleting ? "Excluindo..." : "Excluir"}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -438,7 +443,7 @@ export default function Clientes() {
             <AlertDialogFooter>
               <AlertDialogCancel disabled={anonymizing}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleAnonymize} disabled={anonymizing}>
-                {anonymizing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {anonymizing && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                 {anonymizing ? "Anonimizando..." : "Anonimizar"}
               </AlertDialogAction>
             </AlertDialogFooter>

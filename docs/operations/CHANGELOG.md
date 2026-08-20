@@ -9,6 +9,24 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-20 — Fase 2 do Fluxoly Design System, PR 5/Vendas+VendaDetalhe+Financeiro+Clientes)
+- **Variante taxonômica `variant="tag"` no `Badge` da Foundation** — distinta das 5 variantes de
+  severidade (`success`/`warning`/`error`/`info`/`neutral` = "como está indo"; `tag` = "que tipo de coisa é
+  isso"). Cor neutra única, sem tom por valor (perda intencional da diferenciação cromática que existia
+  antes). Resolve a pendência do PR 4: `ORIGEM_BADGE` (duplicado em `Vendas.jsx`/`UnidadesSerializadas.jsx`,
+  centralizado em `lib/constants.js`) e `CATEGORIA_BADGE` (`Produtos.jsx`) migrados.
+- **Status genuíno migrado para o Badge semântico** em `Vendas.jsx`/`VendaDetalhe.jsx`
+  (`vendaStatusVariant`, compartilhado via `lib/constants.js`), `Financeiro.jsx` (`tipoVariant`/
+  `statusContaVariant`, local) e `Clientes.jsx` (`GarantiaBadge`, antes nem usava o componente `Badge`).
+- **`FilterBar`/`FilterSelect`/`FilterInput`** nas 3 listas; `EmptyState`/`ErrorState`/`ListSkeleton` nos
+  fluxos de carga; `interactiveRowClassName`; ícones lucide → Phosphor nos 4 arquivos.
+- **Nenhuma lógica de negócio alterada** — confirmado por diff isolado de todos os handlers de cada
+  arquivo contra `main`.
+- **Testes:** 18 novos (`Vendas`/`Financeiro`/`Clientes` nunca tinham teste antes). Suíte completa 89/89,
+  lint 0 erros, build ok. `VendaDetalhe.jsx` sem teste novo — mudança puramente visual, mesmo critério do
+  PR 3.
+- Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 5") para o registro completo.
+
 ### Adicionado (2026-08-20 — Fase 2 do Fluxoly Design System, PR 4/Estoque+Unidades+Produtos)
 - **Status genuíno migrado para o Badge semântico** em `Stock.jsx` (disponibilidade de estoque + prioridade
   de reposição), `Produtos.jsx` (disponibilidade + condição) e `UnidadesSerializadas.jsx` (5 estados) —

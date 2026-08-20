@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText, Ban } from "lucide-react";
+import { CircleNotch, ArrowLeft, Printer, UserCircle, CreditCard, Calendar, FileText, Prohibit } from "@phosphor-icons/react";
 import { vendas as vendasApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
+import { ErrorState } from "@/components/ui/error-state";
+import { formatCurrency, vendaStatusVariant, vendaStatusLabel } from "@/lib/constants";
 
 const FORMA_PAGAMENTO_LABEL = {
   pix: "Pix",
@@ -274,7 +276,7 @@ export default function VendaDetalhe() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <CircleNotch className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -285,14 +287,10 @@ export default function VendaDetalhe() {
         <Button variant="outline" size="sm" onClick={() => navigate("/vendas")}>
           <ArrowLeft className="h-4 w-4 mr-2" />Voltar
         </Button>
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {erro || "Venda não encontrada."}
-        </div>
+        <ErrorState title={erro || "Venda não encontrada."} description={null} />
       </div>
     );
   }
-
-  const status = vendaStatusBadge(venda.status);
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -303,7 +301,7 @@ export default function VendaDetalhe() {
         <div className="flex items-center gap-2">
           {podeCancelar && !cancelando && (
             <Button variant="outline" size="sm" onClick={() => setCancelando(true)}>
-              <Ban className="h-4 w-4 mr-2" />Cancelar venda
+              <Prohibit className="h-4 w-4 mr-2" />Cancelar venda
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
@@ -337,7 +335,7 @@ export default function VendaDetalhe() {
           )}
           <div className="flex items-center gap-2 pt-1">
             <Button variant="destructive" size="sm" onClick={confirmarCancelamento} disabled={enviandoCancelamento}>
-              {enviandoCancelamento && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {enviandoCancelamento && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
               Confirmar cancelamento
             </Button>
             <Button
@@ -373,9 +371,7 @@ export default function VendaDetalhe() {
               <Calendar className="h-3.5 w-3.5" />{formatDateTime(venda.criado_em)}
             </p>
           </div>
-          <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", status.className].join(" ")}>
-            {status.label}
-          </span>
+          <Badge variant={vendaStatusVariant(venda.status)}>{vendaStatusLabel(venda.status)}</Badge>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-secondary/40 rounded-lg p-4">
@@ -499,7 +495,7 @@ export default function VendaDetalhe() {
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={confirmarAjuste} disabled={enviandoAjuste}>
-                  {enviandoAjuste && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {enviandoAjuste && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
                   Confirmar ajuste
                 </Button>
                 <Button
@@ -560,7 +556,7 @@ export default function VendaDetalhe() {
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={confirmarComissao} disabled={enviandoComissao}>
-                  {enviandoComissao && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {enviandoComissao && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
                   Confirmar
                 </Button>
                 <Button
@@ -626,7 +622,7 @@ export default function VendaDetalhe() {
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={confirmarGarantia} disabled={enviandoGarantia}>
-                  {enviandoGarantia && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {enviandoGarantia && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
                   Confirmar
                 </Button>
                 <Button

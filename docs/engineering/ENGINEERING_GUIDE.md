@@ -337,6 +337,14 @@ Substituem a prática anterior de sobrescrever `variant="outline"` com `classNam
 negócio, só a renderização): `<Badge variant="success">{label}</Badge>` em vez de recriar a cor à mão.
 Variantes pré-existentes (`default`/`secondary`/`destructive`/`outline`) preservadas sem mudança.
 
+**Severidade vs. taxonomia (Fase 2, PR 5):** `success`/`warning`/`error`/`info`/`neutral` respondem "como
+está indo isso" — carregam significado de estado. `tag` (`border-border bg-secondary/60
+text-secondary-foreground`) é uma variante à parte, para "que tipo de coisa é isso" — categoria, origem,
+qualquer rótulo taxonômico. Deliberadamente uma única cor neutra sem tom por valor: cor não deve carregar
+significado de taxonomia arbitrária (diferente de severidade, onde a cor É o significado). Nunca usar as 5
+variantes de severidade para taxonomia, nem `tag` para estado — ver decisão completa em
+`PLAN-design-system-fase2.md` (fechamento do achado do PR 4).
+
 ### Estados de página (`components/ui/empty-state.jsx`, `error-state.jsx`, `loading-state.jsx`)
 
 Generalização do padrão de 4 estados validado em `Dashboard.jsx` (Fase 1, PR #46) para uso em qualquer

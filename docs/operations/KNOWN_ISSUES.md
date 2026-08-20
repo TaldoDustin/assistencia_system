@@ -1781,29 +1781,64 @@ Responsável:
 ## KI-048
 
 Descrição:
-`NewOrder.jsx`, `EditOrder.jsx`, `Kanban.jsx` e `Stock.jsx::fetchItems` (`frontend/src/pages/`) buscam os
-dados iniciais da tela via `Promise.all([...]).then(...)` ou `<api>.list().then(...)`, sem nenhum
-`.catch()`. Se a chamada rejeitar (erro de rede, não apenas `{ok: false}` — que já é tratado), a `Promise`
-nunca chega ao `.then()`, `setLoading(false)` nunca é chamado, e a tela fica presa no spinner de
-carregamento indefinidamente, sem nenhum aviso ao usuário. Achado durante a Revisão Arquitetural do PR 3
-da Fase 2 do Design System (`docs/engineering/plans/PLAN-design-system-fase2.md`), estendido no PR 4 ao
-achar o mesmo padrão em `Stock.jsx` — confirmado pré-existente em todos os quatro arquivos (os PRs 3/4 só
-trocaram classes/ícones/estrutura visual, nunca tocaram a cadeia de promises).
+`NewOrder.jsx`, `EditOrder.jsx`, `Kanban.jsx`, `Stock.jsx::fetchItems`, `Vendas.jsx::NovaVenda` (3 pontos —
+`tiposGarantiaApi`/`clientesApi`/`unidadesApi`), `VendaDetalhe.jsx` (`tiposGarantiaApi`) e
+`Clientes.jsx::PerfilCliente` (`Promise.all`) (`frontend/src/pages/`) buscam dados iniciais via
+`Promise.all([...]).then(...)` ou `<api>.list().then(...)`, sem nenhum `.catch()`. Se a chamada rejeitar
+(erro de rede, não apenas `{ok: false}` — que já é tratado), a `Promise` nunca chega ao `.then()`,
+`setLoading(false)` nunca é chamado, e a tela fica presa no spinner de carregamento indefinidamente, sem
+nenhum aviso ao usuário. Achado durante a Revisão Arquitetural do PR 3 da Fase 2 do Design System
+(`docs/engineering/plans/PLAN-design-system-fase2.md`), estendido no PR 4 (`Stock.jsx`) e no PR 5 (`Vendas.jsx`,
+`VendaDetalhe.jsx`, `Clientes.jsx`) — confirmado pré-existente em todos os pontos (os PRs 3/4/5 só trocaram
+classes/ícones/estrutura visual, nunca tocaram a cadeia de promises). `Financeiro.jsx` foi auditado no PR 5
+e está limpo — os dois `buscar()` já tinham `.catch()` explícito antes da migração.
 
 Impacto:
-Baixo/Médio — exige falha de rede real (não `{ok: false}` do backend, que já tem tratamento), mas afeta 4
-telas de uso frequente (criar/editar OS, Kanban, Estoque). Sem crash, sem perda de dado — só a UX de
-"tela travada sem explicação".
+Baixo/Médio — exige falha de rede real (não `{ok: false}` do backend, que já tem tratamento), mas afeta
+telas de uso frequente (criar/editar OS, Kanban, Estoque, Nova Venda, Detalhe de Venda, Perfil de Cliente).
+Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
-Aberto — identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4). Correção candidata:
+Aberto — identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5). Correção candidata:
 `.catch(() => { toast.error(...); setLoading(false); })` em cada ponto, mesmo padrão já usado em
-`Orders.jsx::fetchOrdens`/`Produtos.jsx::fetchItems`/`UnidadesSerializadas.jsx::buscar` (que já têm
-`try/catch`). Não corrigido nas Revisões Arquiteturais por estar fora do escopo puramente visual dos PRs.
+`Orders.jsx::fetchOrdens`/`Produtos.jsx::fetchItems`/`UnidadesSerializadas.jsx::buscar`/
+`Financeiro.jsx::buscar` (que já têm `try/catch` ou `.catch()`). Não corrigido nas Revisões Arquiteturais
+por estar fora do escopo puramente visual dos PRs.
 
 Sprint prevista:
 Não definida — candidato a qualquer sprint futura que toque essas telas novamente, ou a uma correção
 isolada de baixo risco (`fix:`, um arquivo por vez).
+
+Responsável:
+—
+
+---
+
+## KI-049
+
+Descrição:
+`Clientes.jsx::fetchItems` (`frontend/src/pages/Clientes.jsx`) usa `try/catch` corretamente (não tem o
+padrão do KI-048), mas não tem um estado de erro dedicado — no `catch`, só dispara `toast.error(...)`. Se a
+chamada rejeitar, `items` permanece com o valor anterior (vazio, na carga inicial), e a tela renderiza o
+`EmptyState` "Nenhum cliente cadastrado ainda." — indistinguível de uma lista genuinamente vazia. O toast
+desaparece sozinho; se o usuário não estava olhando a tela nesse instante, não há como saber que a lista
+vazia é resultado de uma falha, não do estado real dos dados.
+
+Impacto:
+Baixo — exige falha de rede real na carga inicial de Clientes, tela de uso frequente mas não crítica
+(diferente de criar/editar OS). Sem crash, sem perda de dado — só ambiguidade de UX entre "vazio de
+verdade" e "falhou ao carregar".
+
+Status:
+Aberto — identificado em 2026-08-20 durante a migração de `Clientes.jsx` para o Design System (PR 5,
+`docs/engineering/plans/PLAN-design-system-fase2.md`). Correção candidata: estado `erro` dedicado +
+`ErrorState` com retry, mesmo padrão já usado em `Vendas.jsx`/`Produtos.jsx`/`Stock.jsx`/
+`UnidadesSerializadas.jsx`. Não corrigido no PR 5 por estar fora do escopo puramente visual da migração
+(adicionar um estado de erro novo é comportamento novo, não migração de apresentação existente).
+
+Sprint prevista:
+Não definida — candidato a qualquer sprint futura que toque `Clientes.jsx` novamente, ou a uma correção
+isolada de baixo risco (`fix:`, um arquivo).
 
 Responsável:
 —

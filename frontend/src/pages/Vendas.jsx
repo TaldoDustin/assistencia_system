@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Search, UserCircle, Smartphone, Check, Plus, Eye, Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import { CircleNotch, MagnifyingGlass, UserCircle, DeviceMobile, Check, Plus, Eye, Printer, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { clientes as clientesApi, unidadesSerializadas as unidadesApi, vendas as vendasApi, tiposGarantia as tiposGarantiaApi } from "@/api/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { ListSkeleton } from "@/components/ui/loading-state";
+import { Reveal } from "@/components/ui/reveal";
+import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
+import { interactiveRowClassName } from "@/lib/interaction";
+import { formatCurrency, vendaStatusVariant, vendaStatusLabel, origemUnidadeLabel } from "@/lib/constants";
 import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
 
 const NAV_CONTEXT_KEY = "vendas-historico";
@@ -25,11 +31,6 @@ const STATUS_VENDA_OPCOES = [
   { value: "concluida", label: "Concluída" },
   { value: "cancelada", label: "Cancelada" },
 ];
-
-const ORIGEM_BADGE = {
-  estoque: { label: "Estoque", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
-  produto: { label: "Produto", className: "bg-purple-500/10 text-purple-300 border-purple-500/30" },
-};
 
 const SORT_OPTIONS = [
   { value: "recente", label: "Mais recente" },
@@ -52,6 +53,7 @@ function Historico() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // UX-001 -- restaura filtros/paginação salvos ao voltar do detalhe de uma venda.
   const [ctxInicial] = useState(() => readListContext(NAV_CONTEXT_KEY) || {});
@@ -110,7 +112,7 @@ function Historico() {
 
     buscar();
     return () => { ativo = false; };
-  }, [page, search, formaPagamentoFilter, statusFilter, dataInicio, dataFim, sort]);
+  }, [page, search, formaPagamentoFilter, statusFilter, dataInicio, dataFim, sort, reloadToken]);
 
   // UX-001 -- rola de volta para a venda em foco (ou posição salva) assim
   // que a listagem carrega.
@@ -128,126 +130,117 @@ function Historico() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-card border border-border rounded-xl p-4">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente, IMEI ou produto..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-wrap gap-3">
-        <Select value={formaPagamentoFilter || "all"} onValueChange={handleFormaPagamentoChange}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Pagamento" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as formas</SelectItem>
-            {FORMAS_PAGAMENTO.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {STATUS_VENDA_OPCOES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Input type="date" value={dataInicio} onChange={(e) => handleDataInicioChange(e.target.value)} className="w-40" aria-label="Data inicial" />
-        <Input type="date" value={dataFim} onChange={(e) => handleDataFimChange(e.target.value)} className="w-40" aria-label="Data final" />
-
-        <Select value={sort} onValueChange={handleSortChange}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <div className="ml-auto flex items-center text-xs text-muted-foreground">
-          {total} {total === 1 ? "venda" : "vendas"} {filtrosAtivos ? "encontradas" : "no total"}
-        </div>
-      </div>
-
       {loading ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
+        <ListSkeleton rows={6} />
       ) : erro ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          Não foi possível carregar o histórico de vendas.
-        </div>
-      ) : items.length === 0 ? (
-        <div className="bg-card border border-border rounded-xl p-10 text-center text-muted-foreground text-sm">
-          {filtrosAtivos ? "Nenhuma venda corresponde à busca/filtros atuais." : "Nenhuma venda registrada ainda."}
-        </div>
+        <ErrorState title="Não foi possível carregar o histórico de vendas." onRetry={() => setReloadToken((t) => t + 1)} />
       ) : (
-        <>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor", "Status"].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {items.map((item) => {
-                    const primeiroItem = item.itens_resumo?.[0];
-                    const status = vendaStatusBadge(item.status);
-                    return (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-accent/30 transition-colors cursor-pointer"
-                        data-testid={`venda-row-${item.id}`}
-                        data-context-row={item.id}
-                        onClick={() => handleRowClick(item.id)}
-                      >
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(item.criado_em)}</td>
-                        <td className="px-4 py-3 font-medium text-card-foreground">{item.cliente_nome || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {primeiroItem ? (
-                            <>
-                              <p className="text-card-foreground">{primeiroItem.produto_nome}</p>
-                              <p className="text-xs font-mono">{primeiroItem.imei || "—"}</p>
-                            </>
-                          ) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.vendedor_nome || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—"}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(item.valor_total)}</td>
-                        <td className="px-4 py-3">
-                          <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", status.className].join(" ")}>
-                            {status.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <Reveal className="space-y-5">
+          <FilterBar className="bg-card border border-border rounded-xl p-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <FilterInput
+                placeholder="Buscar por cliente, IMEI ou produto..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-8"
+              />
             </div>
-          </div>
+            <FilterSelect
+              value={formaPagamentoFilter || "all"}
+              onValueChange={handleFormaPagamentoChange}
+              placeholder="Pagamento"
+              className="w-44"
+              options={[{ value: "all", label: "Todas as formas" }, ...FORMAS_PAGAMENTO]}
+            />
+            <FilterSelect
+              value={statusFilter || "all"}
+              onValueChange={handleStatusChange}
+              placeholder="Status"
+              className="w-44"
+              options={[{ value: "all", label: "Todas" }, ...STATUS_VENDA_OPCOES]}
+            />
+            <FilterInput type="date" value={dataInicio} onChange={(e) => handleDataInicioChange(e.target.value)} className="w-40" aria-label="Data inicial" />
+            <FilterInput type="date" value={dataFim} onChange={(e) => handleDataFimChange(e.target.value)} className="w-40" aria-label="Data final" />
+            <FilterSelect
+              value={sort}
+              onValueChange={handleSortChange}
+              placeholder="Ordenar por"
+              className="w-44"
+              options={SORT_OPTIONS}
+            />
+            <div className="ml-auto flex items-center text-xs text-muted-foreground">
+              {total} {total === 1 ? "venda" : "vendas"} {filtrosAtivos ? "encontradas" : "no total"}
+            </div>
+          </FilterBar>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "venda" : "vendas"}</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
-              </Button>
-              <Button variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => p + 1)}>
-                Próxima <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        </>
+          {items.length === 0 ? (
+            <EmptyState
+              title={filtrosAtivos ? "Nenhuma venda corresponde à busca/filtros atuais." : "Nenhuma venda registrada ainda."}
+            />
+          ) : (
+            <>
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor", "Status"].map((h) => (
+                          <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {items.map((item) => {
+                        const primeiroItem = item.itens_resumo?.[0];
+                        return (
+                          <tr
+                            key={item.id}
+                            className={`${interactiveRowClassName} cursor-pointer`}
+                            data-testid={`venda-row-${item.id}`}
+                            data-context-row={item.id}
+                            onClick={() => handleRowClick(item.id)}
+                          >
+                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(item.criado_em)}</td>
+                            <td className="px-4 py-3 font-medium text-card-foreground">{item.cliente_nome || "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {primeiroItem ? (
+                                <>
+                                  <p className="text-card-foreground">{primeiroItem.produto_nome}</p>
+                                  <p className="text-xs font-mono">{primeiroItem.imei || "—"}</p>
+                                </>
+                              ) : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{item.vendedor_nome || "—"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—"}
+                            </td>
+                            <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(item.valor_total)}</td>
+                            <td className="px-4 py-3">
+                              <Badge variant={vendaStatusVariant(item.status)}>{vendaStatusLabel(item.status)}</Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "venda" : "vendas"}</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    <CaretLeft className="h-4 w-4 mr-1" /> Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={page >= totalPaginas} onClick={() => setPage((p) => p + 1)}>
+                    Próxima <CaretRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Reveal>
       )}
     </div>
   );
@@ -470,14 +463,14 @@ function NovaVenda() {
             </div>
           ) : (
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <MagnifyingGlass className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar cliente por nome, telefone ou e-mail..."
                 className="pl-8"
                 value={form.clienteQuery}
                 onChange={(e) => setForm((p) => ({ ...p, clienteQuery: e.target.value }))}
               />
-              {buscandoCliente && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+              {buscandoCliente && <CircleNotch className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
               {clienteResultados.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
                   {clienteResultados.map((c) => (
@@ -503,30 +496,28 @@ function NovaVenda() {
         {/* Aparelho */}
         {form.clienteSelecionado && (
           <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-            <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" />Aparelho</Label>
+            <Label className="flex items-center gap-2"><DeviceMobile className="h-4 w-4" />Aparelho</Label>
             {form.aparelhoSelecionado ? (
               <div className="flex items-center justify-between bg-secondary/40 rounded-lg px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-card-foreground">{aparelhoDetalhes(form.aparelhoSelecionado)}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">IMEI {form.aparelhoSelecionado.imei}</span>
-                    <Badge variant="outline" className={ORIGEM_BADGE[form.aparelhoSelecionado.origem_tipo]?.className}>
-                      {ORIGEM_BADGE[form.aparelhoSelecionado.origem_tipo]?.label || "—"}
-                    </Badge>
+                    <Badge variant="tag">{origemUnidadeLabel(form.aparelhoSelecionado.origem_tipo)}</Badge>
                   </div>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={trocarAparelho}>Trocar</Button>
               </div>
             ) : (
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <MagnifyingGlass className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por IMEI, modelo ou SKU..."
                   className="pl-8"
                   value={form.aparelhoQuery}
                   onChange={(e) => setForm((p) => ({ ...p, aparelhoQuery: e.target.value }))}
                 />
-                {buscandoAparelho && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                {buscandoAparelho && <CircleNotch className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                 {aparelhoResultados.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
                     {aparelhoResultados.map((u) => (
@@ -636,7 +627,7 @@ function NovaVenda() {
             </div>
 
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {submitting && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
               {submitting ? "Confirmando..." : "Confirmar Venda"}
             </Button>
           </div>

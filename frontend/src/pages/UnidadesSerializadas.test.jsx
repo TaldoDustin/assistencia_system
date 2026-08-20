@@ -38,9 +38,9 @@ describe("UnidadesSerializadas — estados e status semântico", () => {
 
     await waitFor(() => expect(screen.getByText("123456789012345")).toBeInTheDocument());
     expect(screen.getByText("Disponível").className).toContain("bg-success/10");
-    // ORIGEM_BADGE (estoque/produto) deliberadamente não migrado nesta fase --
-    // continua usando a classe própria, não o Badge semântico.
-    expect(screen.getByText("Estoque").className).toContain("bg-blue-500/10");
+    // ORIGEM_BADGE migrado para o Badge taxonômico variant="tag" no PR 5
+    // (PLAN-design-system-fase2.md) -- cor neutra única, sem tom por valor.
+    expect(screen.getByText("Estoque").className).toContain("bg-secondary/60");
   });
 
   it("mostra EmptyState quando não há unidades", async () => {

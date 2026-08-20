@@ -7,7 +7,9 @@ o ciclo `ADR-010` completo, que é obrigatório só para feature com regra de ne
 §12)
 **Status:** 🟡 Em andamento — PRs 1 (Foundation), 2 (`ChecklistDevice.jsx`), 3
 (Orders/Kanban/NewOrder/EditOrder) e 4 (Estoque/Unidades Serializadas/Produtos) mergeados, PR 5 (Vendas +
-VendaDetalhe + Financeiro + Clientes) ainda não iniciado
+VendaDetalhe + Financeiro + Clientes) implementado (6 commits em
+`feat/design-system-fase2-vendas-financeiro-clientes`), aguardando checkpoint arquitetural + CI antes do
+merge
 
 > Este documento é efêmero, mesmo princípio do `PLAN-design-system-fase1.md`. O que precisar continuar
 > vivo — componentes, convenções — é promovido para `ENGINEERING_GUIDE.md` no Encerramento de cada PR.
@@ -71,7 +73,7 @@ corrigir automaticamente.
 | 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ✅ Mergeado (PR #55) |
 | 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ✅ Mergeado (PR #56) |
 | 4 | Stock + Unidades Serializadas + Produtos | ✅ Mergeado (PR #57) |
-| 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ⬜ |
+| 5 | Vendas + VendaDetalhe + Financeiro + Clientes | 🟡 Implementado (aguardando CI/revisão) |
 | 6 | Reports + Price Tables + Repair Types + Users | ⬜ |
 | 7 | Garantias + Operational Costs + Backup + Shopping List + Compras | ⬜ |
 | 8 | QA visual global + correção dos 2 desvios de radius/shadow + documentação final | ⬜ |
@@ -232,6 +234,87 @@ completa 70/70, lint 0 erros, build ok.
 
 **Achado registrado, não corrigido:** `KI-048` estendido — `Stock.jsx::fetchItems` também não trata
 rejeição de promise na carga inicial (mesmo padrão já registrado para NewOrder/EditOrder/Kanban no PR 3).
+
+---
+
+## PR 5 — Foundation: `variant="tag"` (escopo detalhado)
+
+Fecha o achado deixado aberto no PR 4 (linha acima): decisão de Design System sobre badges categóricos
+(`ORIGEM_BADGE` duplicado em `Vendas.jsx`/`UnidadesSerializadas.jsx`, `CATEGORIA_BADGE` em `Produtos.jsx`).
+Checkpoint arquitetural do CTO antes de abrir a branch (escopo de `Vendas.jsx`/`VendaDetalhe.jsx`/
+`Financeiro.jsx`/`Clientes.jsx` mapeado, `.then()` sem `.catch()` confirmado presente nos 4 arquivos —
+mesmo padrão do `KI-048`, candidato a estender de novo na Revisão Arquitetural). Apresentei proposta técnica
+somente-leitura (implementação atual do `Badge`, tokens disponíveis, aparência recomendada, impacto em
+testes/documentação, aplicação futura aos 3 usos) antes de tocar em qualquer código — decisão do CTO:
+aprovada, com a mudança de processo de isolar a criação da variante da migração dos 3 usos em commits
+separados.
+
+**Decisão:** nova variante taxonômica `tag` (`border-border bg-secondary/60 text-secondary-foreground`),
+distinta das 5 variantes de severidade (`success`/`warning`/`error`/`info`/`neutral` respondem "como está
+indo"; `tag` responde "que tipo de coisa é isso"). Deliberadamente uma única cor neutra sem tom por valor —
+**perda intencional** da diferenciação cromática por categoria que existe hoje em `CATEGORIA_BADGE` (4
+cores: iPhone/Apple Watch/AirPods/Acessório) e `ORIGEM_BADGE` (2 cores: estoque/produto), confirmada pelo
+CTO como consequência explícita da decisão, não um efeito colateral não avaliado. Nenhum token novo — reusa
+`--color-secondary`/`--color-border` já existentes em `index.css`, respeitando a regra de ouro da Fase 2
+(nenhuma paleta nova).
+
+**Este commit:** só a variante na Foundation (`badge.jsx` + `badge.test.jsx` + documentação). Migração dos
+3 usos (`ORIGEM_BADGE` × 2, `CATEGORIA_BADGE`) fica para um commit separado, aguardando autorização do CTO
+sobre o diff/teste/documentação deste commit primeiro.
+
+---
+
+## PR 5 — Vendas + VendaDetalhe + Financeiro + Clientes (escopo detalhado)
+
+Checkpoint arquitetural somente-leitura do CTO antes de autorizar o início, como nos PRs anteriores. Migração
+dos 3 usos de `variant="tag"` (commit `2fa03d70`, fecha o achado do PR 4) seguida da aplicação da Foundation
+aos 4 arquivos, um commit por arquivo (mesma granularidade dos PRs 3/4):
+
+- `d9216b8e` — `Vendas.jsx` (Nova Venda + Histórico) + `lib/constants.js` (`vendaStatusVariant`/
+  `vendaStatusLabel`, substitui `vendaStatusBadge`) + 6 testes novos.
+- `8012bb9c` — `VendaDetalhe.jsx`. Sem teste novo — tela de formulário/detalhe com mudança puramente visual,
+  mesmo critério do `NewOrder.jsx`/`EditOrder.jsx` no PR 3.
+- `4a3c893b` — `Financeiro.jsx` (Movimentações + Contas a Pagar/Receber) + 7 testes novos.
+- `3438a552` — `Clientes.jsx` + 5 testes novos.
+
+**Status genuíno migrado normalmente:** `vendaStatusVariant` (concluída=success/cancelada=error,
+compartilhado entre `Vendas.jsx`/`VendaDetalhe.jsx` via `lib/constants.js`, mesmo padrão de
+`getStatusVariant`/`OrderStatusBadge`); `tipoVariant`/`statusContaVariant` em `Financeiro.jsx` (local ao
+arquivo, entrada=success/saída=error, pendente=warning, pago·recebido=success, cancelado=neutral);
+`GarantiaBadge` em `Clientes.jsx` (vencida=error/vencendo=warning/ativa=success — antes nem usava o
+componente `Badge`, era um `<span>` cru).
+
+**`FilterBar`/`FilterSelect`/`FilterInput`** nas 3 listas; `EmptyState`/`ListSkeleton` nas 3;
+`ErrorState` em `Vendas.jsx` (`reloadToken` dedicado, mesmo padrão do PR 4), `Financeiro.jsx` (`onRetry`
+direto na função `buscar()`, já era `useCallback` estável) e `VendaDetalhe.jsx` (sem retry — carga única,
+mesmo padrão do `ChecklistDevice.jsx` no PR 2); `interactiveRowClassName` nas 3 tabelas; ícones lucide →
+Phosphor nos 4 arquivos.
+
+**Ajuste incidental, mesma classe do já aceito no PR 3** ("fora do escopo original mas no mesmo arquivo já
+sendo tocado pelo mesmo motivo"): cores cruas alinhadas aos tokens semânticos — `text-red-400`→
+`text-destructive` e `text-emerald-300`→`text-success` em `Financeiro.jsx`; `text-emerald-400`→
+`text-success` e `text-sky-400`→`text-info` em `Clientes.jsx`.
+
+**Bug pego e corrigido durante a própria implementação:** import de `Badge` esquecido na primeira edição de
+`VendaDetalhe.jsx` — pego pelo lint do arquivo antes de rodar qualquer teste, não chegou a ser commitado
+quebrado.
+
+**Nenhuma lógica de negócio alterada** — confirmado por diff isolado dos handlers de cada arquivo
+(`handleSubmit`/`confirmarAjuste`/`confirmarComissao`/`confirmarGarantia`/`confirmarCancelamento`/
+`handleDelete`/`handleAnonymize`/`handleEstornar`/`handleAcao`/`handleCancelar`) contra `main` — só
+presentação (className/JSX/ícones/imports) e as novas funções locais de variant/label.
+
+**Testes:** 18 novos nas 3 listas (Vendas Histórico, Financeiro Movimentações+Contas, Clientes — nenhuma
+tinha teste antes), seguindo o mesmo critério do PR 4 (status badge + `EmptyState`/`ErrorState`). Cobrem
+variante semântica do Badge, presença de estado e elementos estruturais — nenhum testa regra de negócio.
+`VendaDetalhe.jsx` ficou sem teste, mesmo critério do PR 3. Suíte completa 89/89 (71 + 18), lint 0 erros,
+build ok.
+
+**Achados registrados, não corrigidos:** `KI-048` estendido — `Vendas.jsx::NovaVenda` (3 pontos),
+`VendaDetalhe.jsx` (1 ponto) e `Clientes.jsx::PerfilCliente` (1 ponto) têm o mesmo padrão de `.then()` sem
+`.catch()`; `Financeiro.jsx` foi auditado e está limpo (já tinha `.catch()` explícito). `KI-049` novo —
+`Clientes.jsx::fetchItems` já usa `try/catch` (sem o bug do KI-048), mas não tem estado de erro dedicado —
+falha de rede fica indistinguível de lista vazia.
 
 ---
 

@@ -23,6 +23,14 @@ describe("Badge — variantes semânticas (Fase 2)", () => {
     expect(badge.className).toContain("custom");
   });
 
+  it("aplica a classe neutra da variante taxonômica tag, distinta das variantes de severidade", () => {
+    render(<Badge variant="tag">Categoria</Badge>);
+    const badge = screen.getByText("Categoria");
+    expect(badge.className).toContain("bg-secondary/60");
+    expect(badge.className).toContain("text-secondary-foreground");
+    expect(badge.className).toContain("border-border");
+  });
+
   it("usa a variante default quando nenhuma é informada", () => {
     render(<Badge>Default</Badge>);
     expect(screen.getByText("Default").className).toContain("bg-primary");

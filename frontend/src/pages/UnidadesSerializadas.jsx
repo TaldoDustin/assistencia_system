@@ -14,6 +14,7 @@ import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
 import { interactiveRowClassName } from "@/lib/interaction";
+import { origemUnidadeLabel } from "@/lib/constants";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -53,17 +54,6 @@ function statusLabel(status) {
   return STATUS_LABEL[status] || status || "—";
 }
 
-// ORIGEM_BADGE — badge categórico (de onde veio a unidade: estoque ou
-// produto), não de status. Deliberadamente NÃO migrado para o Badge
-// semântico nesta fase — mesmo motivo do CATEGORIA_BADGE em Produtos.jsx
-// (não há variante de severidade para "categoria"). Decisão do CTO
-// (checkpoint do PR 4, PLAN-design-system-fase2.md). Objeto idêntico também
-// existe em Vendas.jsx (PR 5) — candidato a resolver os dois de uma vez.
-const ORIGEM_BADGE = {
-  estoque: { label: "Estoque", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
-  produto: { label: "Produto", className: "bg-purple-500/10 text-purple-300 border-purple-500/30" },
-};
-
 // Faixas de saúde da bateria e ordenação (C1.3.3) — espelham
 // FAIXAS_SAUDE_BATERIA/_ORDENACOES do backend, só os rótulos são daqui.
 const SAUDE_BATERIA_OPTIONS = [
@@ -83,10 +73,6 @@ const SORT_OPTIONS = [
 ];
 
 const PER_PAGE = 20;
-
-function origemBadge(tipo) {
-  return ORIGEM_BADGE[tipo] || { label: "—", className: "bg-secondary/70 text-muted-foreground border-border" };
-}
 
 function formatDate(value) {
   if (!value) return "—";
@@ -158,7 +144,7 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidadeId]);
 
-  const origem = origemBadge(unidade?.origem_tipo);
+  const origem = origemUnidadeLabel(unidade?.origem_tipo);
   const transicoesDisponiveis = unidade ? (TRANSICOES_VALIDAS[unidade.status] || []) : [];
 
   const abrirEdicao = () => {
@@ -228,9 +214,7 @@ function DetalheUnidade({ unidadeId, onClose, canEdit }) {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Origem</p>
-                <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium mt-0.5", origem.className].join(" ")}>
-                  {origem.label}
-                </span>
+                <Badge variant="tag" className="mt-0.5">{origem}</Badge>
               </div>
 
               {editing ? (
@@ -555,7 +539,7 @@ export default function UnidadesSerializadas() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {items.map((item) => {
-                        const origem = origemBadge(item.origem_tipo);
+                        const origem = origemUnidadeLabel(item.origem_tipo);
                         return (
                           <tr
                             key={item.id}
@@ -568,9 +552,7 @@ export default function UnidadesSerializadas() {
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <span className={["inline-flex rounded-full border px-2 py-0.5 text-xs font-medium", origem.className].join(" ")}>
-                                  {origem.label}
-                                </span>
+                                <Badge variant="tag">{origem}</Badge>
                                 <span className="text-muted-foreground text-xs">{item.origem_label || "—"}</span>
                               </div>
                             </td>

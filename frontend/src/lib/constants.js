@@ -8,16 +8,35 @@ export function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
 }
 
-// Compartilhado entre VendaDetalhe.jsx e Vendas.jsx (Historico) -- badge de
-// status de venda, mesmo padrão visual dos badges de origem/status já usados
-// em UnidadesSerializadas.jsx.
-export const VENDA_STATUS_BADGE = {
-  concluida: { label: "Concluída", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
-  cancelada: { label: "Cancelada", className: "bg-red-500/10 text-red-300 border-red-500/30" },
+// Compartilhado entre VendaDetalhe.jsx e Vendas.jsx (Historico) -- status de
+// venda, migrado para o Badge semântico da Foundation no PR 5 (mesmo padrão
+// de getStatusVariant/OrderStatusBadge).
+export const VENDA_STATUS_LABEL = {
+  concluida: "Concluída",
+  cancelada: "Cancelada",
 };
 
-export function vendaStatusBadge(status) {
-  return VENDA_STATUS_BADGE[status] || { label: status || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
+export function vendaStatusVariant(status) {
+  if (status === "concluida") return "success";
+  if (status === "cancelada") return "error";
+  return "neutral";
+}
+
+export function vendaStatusLabel(status) {
+  return VENDA_STATUS_LABEL[status] || status || "—";
+}
+
+// Compartilhado entre Vendas.jsx e UnidadesSerializadas.jsx -- de onde veio a
+// unidade vendida (estoque ou produto). Badge taxonômico (Badge
+// variant="tag"), não de status -- por isso só rótulo, sem variante/cor por
+// valor (PLAN-design-system-fase2.md, seção "PR 5 -- Foundation").
+export const ORIGEM_UNIDADE_LABEL = {
+  estoque: "Estoque",
+  produto: "Produto",
+};
+
+export function origemUnidadeLabel(tipo) {
+  return ORIGEM_UNIDADE_LABEL[tipo] || tipo || "—";
 }
 
 export function getOrderDisplayNumber(order) {

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { formatCurrency, vendaStatusBadge } from "@/lib/constants";
+import { formatCurrency, vendaStatusBadge, origemUnidadeLabel } from "@/lib/constants";
 import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
 
 const NAV_CONTEXT_KEY = "vendas-historico";
@@ -25,11 +25,6 @@ const STATUS_VENDA_OPCOES = [
   { value: "concluida", label: "Concluída" },
   { value: "cancelada", label: "Cancelada" },
 ];
-
-const ORIGEM_BADGE = {
-  estoque: { label: "Estoque", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
-  produto: { label: "Produto", className: "bg-purple-500/10 text-purple-300 border-purple-500/30" },
-};
 
 const SORT_OPTIONS = [
   { value: "recente", label: "Mais recente" },
@@ -510,9 +505,7 @@ function NovaVenda() {
                   <p className="text-sm font-medium text-card-foreground">{aparelhoDetalhes(form.aparelhoSelecionado)}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">IMEI {form.aparelhoSelecionado.imei}</span>
-                    <Badge variant="outline" className={ORIGEM_BADGE[form.aparelhoSelecionado.origem_tipo]?.className}>
-                      {ORIGEM_BADGE[form.aparelhoSelecionado.origem_tipo]?.label || "—"}
-                    </Badge>
+                    <Badge variant="tag">{origemUnidadeLabel(form.aparelhoSelecionado.origem_tipo)}</Badge>
                   </div>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={trocarAparelho}>Trocar</Button>

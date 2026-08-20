@@ -31,17 +31,15 @@ const CATEGORIA_OPTIONS_FALLBACK = ["iPhone", "Apple Watch", "AirPods", "Acessor
 const CONDICAO_OPTIONS_FALLBACK = ["Novo", "Seminovo", "Vitrine"];
 
 // CATEGORIA_BADGE — badge categórico (que tipo de produto é este), não de
-// status. Deliberadamente NÃO migrado para o Badge semântico da Foundation
-// nesta fase: `zinc`/`fuchsia` não têm variante de severidade correspondente
-// (não existe "categoria em alerta"). Decisão do CTO (checkpoint do PR 4,
-// PLAN-design-system-fase2.md) — fica como está até uma decisão própria de
-// Design System para badges de categoria/tag (candidata a resolver antes do
-// PR 5, que repete o mesmo padrão em Vendas.jsx/ORIGEM_BADGE).
+// status. Migrado para o Badge taxonômico (variant="tag") no PR 5 --
+// PLAN-design-system-fase2.md, seção "PR 5 -- Foundation". Cor neutra única,
+// sem tom por valor -- perda intencional da diferenciação cromática por
+// categoria que existia antes (decisão do CTO).
 const CATEGORIA_BADGE = {
-  "iPhone": { emoji: "🟦", label: "iPhone", className: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
-  "Apple Watch": { emoji: "⌚", label: "Apple Watch", className: "bg-zinc-500/10 text-zinc-300 border-zinc-500/30" },
-  "AirPods": { emoji: "🎧", label: "AirPods", className: "bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/30" },
-  "Acessorio": { emoji: "🔌", label: "Acessório", className: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
+  "iPhone": { emoji: "🟦", label: "iPhone" },
+  "Apple Watch": { emoji: "⌚", label: "Apple Watch" },
+  "AirPods": { emoji: "🎧", label: "AirPods" },
+  "Acessorio": { emoji: "🔌", label: "Acessório" },
 };
 
 const EMPTY_FORM = {
@@ -68,7 +66,7 @@ function nomeProduto(item) {
 }
 
 function categoriaBadge(categoria) {
-  return CATEGORIA_BADGE[categoria] || { emoji: "📦", label: categoria || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
+  return CATEGORIA_BADGE[categoria] || { emoji: "📦", label: categoria || "—" };
 }
 
 // Disponibilidade -- status genuíno (não categórico), migrado para o Badge
@@ -337,9 +335,9 @@ export default function Produtos() {
                             <span className="font-medium text-card-foreground">{nomeProduto(item)}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={["inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", badge.className].join(" ")}>
+                            <Badge variant="tag" className="gap-1">
                               <span>{badge.emoji}</span>{badge.label}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="px-4 py-3">
                             <Badge variant={condicaoVariant(item.condicao)}>{item.condicao}</Badge>

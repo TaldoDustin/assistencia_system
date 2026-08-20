@@ -20,6 +20,19 @@ export function vendaStatusBadge(status) {
   return VENDA_STATUS_BADGE[status] || { label: status || "—", className: "bg-secondary/70 text-muted-foreground border-border" };
 }
 
+// Compartilhado entre Vendas.jsx e UnidadesSerializadas.jsx -- de onde veio a
+// unidade vendida (estoque ou produto). Badge taxonômico (Badge
+// variant="tag"), não de status -- por isso só rótulo, sem variante/cor por
+// valor (PLAN-design-system-fase2.md, seção "PR 5 -- Foundation").
+export const ORIGEM_UNIDADE_LABEL = {
+  estoque: "Estoque",
+  produto: "Produto",
+};
+
+export function origemUnidadeLabel(tipo) {
+  return ORIGEM_UNIDADE_LABEL[tipo] || tipo || "—";
+}
+
 export function getOrderDisplayNumber(order) {
   if (!order) {
     return "";

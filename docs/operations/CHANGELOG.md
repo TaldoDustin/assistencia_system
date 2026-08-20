@@ -9,6 +9,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 1/Foundation)
+- **Vocabulário visual compartilhado** para migrar as 21 páginas operacionais ainda fora do Design System
+  (auditoria completa em `docs/engineering/plans/PLAN-design-system-fase2.md`): `Badge` com variantes
+  semânticas (`success`/`warning`/`error`/`info`/`neutral`), `EmptyState`/`ErrorState`/`ErrorBanner`/
+  `ListSkeleton`/`CardGridSkeleton`, `FilterBar`/`FilterSelect`/`FilterInput`/`DateRangeFilter`/
+  `ClearFiltersButton`, `Reveal` (Motion discreto) e `lib/interaction.js`.
+- **Nenhuma tela redesenhada neste PR** — só `components/ui/` e `lib/`. Migração real das 24 páginas fica
+  para os PRs 2-8, um de cada vez, conforme o plano aprovado pelo CTO.
+- **Testes:** 26 novos (Vitest), suíte completa 40/40. Lint 0 erros.
+- Ver `docs/engineering/ENGINEERING_GUIDE.md` §3.3 para as convenções e
+  `docs/engineering/plans/PLAN-design-system-fase2.md` para o plano completo de 8 PRs.
+
 ### Adicionado (2026-08-17 — Landing Page institucional, PR #49)
 - **Implementação em código das 14 seções** especificadas em `docs/product/features/LANDING_PAGE.md`
   (PR #44, doc-only): `Landing.jsx` + `components/landing/` (mapeamento 1:1 com a spec), copy centralizada

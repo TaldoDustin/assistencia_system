@@ -5,8 +5,9 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-20 — inclui o PR 4 (Estoque/Unidades Serializadas/Produtos) e os PRs 1-3
-(Foundation, `ChecklistDevice.jsx`, Orders/Kanban/NewOrder/EditOrder), todos da Fase 2 do Fluxoly Design
+**Última revisão:** 2026-08-20 — inclui o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
+aguardando checkpoint final + CI antes do merge) e os PRs 1-4 (Foundation, `ChecklistDevice.jsx`,
+Orders/Kanban/NewOrder/EditOrder, Estoque/Unidades Serializadas/Produtos), todos da Fase 2 do Fluxoly Design
 System (ver seção logo abaixo), o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
 Landing Page institucional (PR #49), a Fase 1 do Fluxoly Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
@@ -211,8 +212,41 @@ de promise na carga inicial (mesmo padrão já registrado no PR 3 para NewOrder/
 tokens do Design System verificados, `CATEGORIA_BADGE`/`ORIGEM_BADGE` comprovadamente idênticos ao `main`.
 Mergeado em `main` (squash, `14527ea4`), branch preservada.
 
-**Próximo passo:** PR 5 (Vendas + VendaDetalhe + Financeiro + Clientes) — que precisará da decisão pendente
-sobre `ORIGEM_BADGE` antes de tocar em `Vendas.jsx`. Não iniciado ainda — aguardando autorização do CTO.
+**Próximo passo:** ver seção do PR 5 logo abaixo.
+
+---
+
+## 🟡 Fase 2 do Fluxoly Design System — PR 5 (Vendas + VendaDetalhe + Financeiro + Clientes) implementado
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 5") para o registro completo.**
+
+2026-08-20, sequência imediata ao PR 4, com checkpoint arquitetural somente-leitura do CTO antes de
+autorizar o início. Achado do checkpoint (`ORIGEM_BADGE` duplicado em `Vendas.jsx`/`UnidadesSerializadas.jsx`,
+`CATEGORIA_BADGE` em `Produtos.jsx`) resolvido antes do restante do escopo: proposta técnica somente-leitura
+apresentada e aprovada, nova variante taxonômica `variant="tag"` no `Badge` da Foundation (commit `e2b7dde9`,
+isolado da migração dos 3 usos por decisão explícita do CTO — infraestrutura separada de aplicação), migração
+dos 3 badges (commit `2fa03d70`), depois a aplicação da Foundation aos 4 arquivos do PR 5, um commit por
+arquivo (`d9216b8e`/`8012bb9c`/`4a3c893b`/`3438a552`) — 6 commits no total na branch
+`feat/design-system-fase2-vendas-financeiro-clientes`.
+
+**Entregue:** status genuíno migrado — `vendaStatusVariant` (compartilhado `Vendas.jsx`/`VendaDetalhe.jsx`
+via `lib/constants.js`), `tipoVariant`/`statusContaVariant` (`Financeiro.jsx`, local), `GarantiaBadge`
+(`Clientes.jsx`, antes nem usava o componente `Badge`). `FilterBar`/`FilterSelect`/`FilterInput`,
+`EmptyState`/`ErrorState`/`ListSkeleton`, `interactiveRowClassName`, ícones lucide → Phosphor nos 4
+arquivos. Ajuste incidental de cores cruas para tokens semânticos (mesma classe já aceita no PR 3).
+
+**Nenhuma lógica de negócio alterada** — confirmado por diff isolado de todos os handlers de cada arquivo
+contra `main`.
+
+**Testes:** 18 novos nas 3 listas que nunca tinham teste (`Vendas` Histórico, `Financeiro`
+Movimentações+Contas, `Clientes`), mesmo critério do PR 4. `VendaDetalhe.jsx` sem teste novo, mesmo
+critério do PR 3 (NewOrder/EditOrder). Suíte completa 89/89, lint 0 erros, build ok.
+
+**Achados registrados, não corrigidos:** `KI-048` estendido (`Vendas.jsx::NovaVenda` 3×, `VendaDetalhe.jsx`
+1×, `Clientes.jsx::PerfilCliente` 1×; `Financeiro.jsx` auditado e limpo). `KI-049` novo —
+`Clientes.jsx::fetchItems` sem estado de erro dedicado, distinto do KI-048.
+
+**Próximo passo:** checkpoint arquitetural final + CI 6/6 antes de abrir o PR e mergear.
 
 ---
 

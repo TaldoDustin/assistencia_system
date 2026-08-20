@@ -70,7 +70,7 @@ corrigir automaticamente.
 | 1 | **Foundation Fase 2** — `Badge` semântico, `EmptyState`/`ErrorState`/`LoadingState`, padrão visual de filtros, convenção de Motion discreta, documentação. Nenhuma tela redesenhada. | ✅ Mergeado (PR #54) |
 | 2 | `ChecklistDevice.jsx` — golden standard, primeira aplicação real da Foundation | ✅ Mergeado (PR #55) |
 | 3 | Orders + Kanban + NewOrder + EditOrder (corrige divergência de cor de status do Kanban) | ✅ Mergeado (PR #56) |
-| 4 | Stock + Unidades Serializadas + Produtos | 🟡 Em implementação |
+| 4 | Stock + Unidades Serializadas + Produtos | 🟡 Em implementação (aguardando CI/revisão) |
 | 5 | Vendas + VendaDetalhe + Financeiro + Clientes | ⬜ |
 | 6 | Reports + Price Tables + Repair Types + Users | ⬜ |
 | 7 | Garantias + Operational Costs + Backup + Shopping List + Compras | ⬜ |
@@ -179,6 +179,59 @@ duas telas ficaria desproporcional ao escopo visual desta fatia).
 
 **Achados registrados, não corrigidos (fora de escopo):** `KI-048` — `NewOrder.jsx`/`EditOrder.jsx`/
 `Kanban.jsx` não tratam rejeição de promise na carga inicial (`.then()` sem `.catch()`), pré-existente.
+
+---
+
+## PR 4 — Estoque + Unidades Serializadas + Produtos (escopo detalhado)
+
+Checkpoint arquitetural somente-leitura do CTO antes de autorizar o início (git/PRs mergeados/docs/escopo/
+dependências/riscos/KIs — sem alterar código), como já registrado em `PROJECT_STATUS.md`.
+
+**Achado do checkpoint, resolvido antes de implementar:** `Produtos.jsx` (`CATEGORIA_BADGE`, 4 categorias)
+e `UnidadesSerializadas.jsx`/`Vendas.jsx` (`ORIGEM_BADGE`, 2 valores, **duplicado literalmente entre os
+dois arquivos**) usam badges categóricos — respondem "que tipo de coisa é isso", não "como está indo
+isso". As cores usadas (`zinc`/`fuchsia`/`purple`) não têm variante de severidade correspondente no
+`Badge` da Foundation. Apresentei 3 opções ao CTO (forçar nos 5 variants existentes / criar variante nova
+não-semântica / não tocar agora) — decisão: **não tocar neste PR**, decisão de Design System sobre badge
+de categoria/tag fica pendente, candidata a resolver antes do PR 5 (que repete o `ORIGEM_BADGE`).
+
+**Unificação de status genuíno (onde havia, migrado normalmente):**
+- `Stock.jsx`: `estoqueStatusVariant` local (disponível=`success`, esgotado ativo=`error`, esgotado=
+  `warning`, inativo=`neutral`) + prioridade de reposição sugerida (`alta`=`error`/`media`=`warning`/
+  `baixa`=`neutral`).
+- `Produtos.jsx`: disponibilidade (`statusVariant`/`statusLabel`, calculada de `ativo`+`quantidade`) e
+  condição (`condicaoVariant` — Novo/Seminovo/Vitrine mapeiam 1:1 em `success`/`warning`/`info`, as 3
+  cores já usadas — `emerald`/`amber`/`sky` — cabiam sem forçar nada, diferente do `CATEGORIA_BADGE`).
+- `UnidadesSerializadas.jsx`: `statusVariant`/`STATUS_LABEL` (5 estados — `disponivel`=`success`,
+  `em_reparo`=`warning`, `devolvido`=`info`, `vendido`=`neutral`, `reservado`=`warning` reaproveitado —
+  `reservado` não é produzido por nenhum fluxo real ainda, aguarda Vendas).
+
+Cada domínio manteve sua própria função de mapeamento (local ao arquivo, não centralizada em
+`lib/constants.js` como `getStatusVariant` de OS) — usado só naquele arquivo, sem necessidade real de
+compartilhar entre páginas, mesmo critério já aplicado ao `TONE` do `Kanban.jsx` no PR 3.
+
+**Demais mudanças:** ícones lucide → Phosphor nos 3 arquivos; `FilterBar`/`FilterSelect`/`FilterInput` nas
+3 barras de filtro; `EmptyState`/`ErrorState`/`ListSkeleton` nos 3 fluxos de carga (preservando o texto
+exato das mensagens de vazio originais); `Checkbox` do design system substitui `<input type="checkbox">`
+cru (`Stock.jsx`/`Produtos.jsx`); `interactiveRowClassName` nas linhas de tabela; `rounded-lg`→`rounded-xl`
+nos 3 painéis internos do modal de detalhe de `UnidadesSerializadas.jsx` (mesma classe de ajuste do PR 3).
+
+**Bug introduzido e corrigido durante a própria implementação:** o primeiro `onRetry` do `ErrorState` em
+`UnidadesSerializadas.jsx` chamava `setPage((p) => p)` — não muda o estado (`Object.is` no mesmo valor),
+então o retry nunca disparava nova busca. Corrigido com um `reloadToken` dedicado no array de dependências
+do efeito, antes de rodar os testes.
+
+**Nenhuma lógica de negócio alterada** — confirmado por busca no diff completo por toda função de handler
+(`handleSubmit`, `handleDelete`, `carregar`, `salvar`, `abrirEdicao`, chamadas `create`/`update`/`delete`/
+`updateStatus`) e por diff isolado byte-a-byte de `handleSubmit`/`handleDelete` (Stock/Produtos) e
+`carregar`/`salvar` (UnidadesSerializadas) contra `main` — idênticos. `buscar()` (UnidadesSerializadas) e
+`fetchItems` (Stock/Produtos) só ganharam as chamadas `setLoadError` aditivas.
+
+**Testes:** 12 novos (`Stock`/`Produtos`/`UnidadesSerializadas`, nenhuma das 3 tinha teste antes). Suíte
+completa 70/70, lint 0 erros, build ok.
+
+**Achado registrado, não corrigido:** `KI-048` estendido — `Stock.jsx::fetchItems` também não trata
+rejeição de promise na carga inicial (mesmo padrão já registrado para NewOrder/EditOrder/Kanban no PR 3).
 
 ---
 

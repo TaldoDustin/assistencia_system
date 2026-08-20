@@ -9,6 +9,20 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-20 — Fase 2 do Fluxoly Design System, PR 4/Estoque+Unidades+Produtos)
+- **Status genuíno migrado para o Badge semântico** em `Stock.jsx` (disponibilidade de estoque + prioridade
+  de reposição), `Produtos.jsx` (disponibilidade + condição) e `UnidadesSerializadas.jsx` (5 estados) —
+  cada domínio com sua própria função de mapeamento local, mesma disciplina do `getStatusVariant` de OS.
+- **Badges categóricos (`CATEGORIA_BADGE` em `Produtos.jsx`, `ORIGEM_BADGE` em `UnidadesSerializadas.jsx`,
+  duplicado em `Vendas.jsx`) deliberadamente não migrados** — não têm variante de severidade
+  correspondente no `Badge`. Decisão do CTO após checkpoint arquitetural: fica pendente para antes do PR 5.
+- **`FilterBar`/`FilterSelect`/`FilterInput`** nas 3 barras de filtro; `EmptyState`/`ErrorState`/
+  `ListSkeleton` nos 3 fluxos de carga; `Checkbox` do design system; ícones lucide → Phosphor.
+- **Nenhuma lógica de negócio alterada** — confirmado por busca no diff completo por handler de negócio e
+  diff isolado byte-a-byte de `handleSubmit`/`handleDelete`/`carregar`/`salvar` contra `main`.
+- **Testes:** 12 novos (as 3 páginas nunca tinham teste antes). Suíte completa 70/70. Lint 0 erros.
+- Ver `docs/engineering/plans/PLAN-design-system-fase2.md` (seção "PR 4") para o registro completo.
+
 ### Adicionado (2026-08-19 — Fase 2 do Fluxoly Design System, PR 3/Orders+Kanban+NewOrder+EditOrder)
 - **Cor de status de OS unificada**: `getStatusVariant` (`lib/constants.js`) substitui `getStatusColor`
   como fonte única de verdade, consumida por `OrderStatusBadge` (Orders/EditOrder) e pelo `Kanban.jsx` —

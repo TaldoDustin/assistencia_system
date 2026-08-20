@@ -187,6 +187,29 @@ Foundation, que foi desenhado só para severidade. CTO decidiu **não** criar va
 badges nos 5 variants de status existentes neste PR — ficam intocados, decisão de Design System (tag vs.
 status) fica pendente para antes do PR 5 (que repete o mesmo `ORIGEM_BADGE`).
 
+**Entregue:** status genuíno migrado normalmente onde existia — `Stock.jsx` (disponibilidade de estoque +
+prioridade de reposição sugerida), `Produtos.jsx` (disponibilidade + condição Novo/Seminovo/Vitrine, as 3
+cores já usadas mapearam 1:1 nos variants sem forçar nada), `UnidadesSerializadas.jsx` (5 estados —
+`reservado`, que não é produzido por nenhum fluxo real ainda, reaproveita o tom de `em_reparo`). Cada
+domínio manteve sua própria função de mapeamento local (não centralizada em `lib/constants.js`, já que
+cada uma serve só o próprio arquivo). Ícones lucide → Phosphor, `FilterBar`/`FilterSelect`/`FilterInput`
+nas 3 barras de filtro, `EmptyState`/`ErrorState`/`ListSkeleton`, `Checkbox` do design system no lugar de
+`<input type="checkbox">` cru, `interactiveRowClassName`, `rounded-lg`→`rounded-xl` em 3 painéis do modal
+de detalhe de unidades. Bug introduzido e corrigido durante a implementação: `onRetry` do `ErrorState` em
+`UnidadesSerializadas.jsx` usava `setPage((p) => p)`, que não muda estado — corrigido com um `reloadToken`
+dedicado antes de rodar os testes.
+
+**Nenhuma lógica de negócio alterada** — confirmado por busca no diff completo por handler de negócio e
+por diff isolado byte-a-byte de `handleSubmit`/`handleDelete`/`carregar`/`salvar` contra `main`.
+
+**Testes:** 12 novos (as 3 páginas nunca tinham teste antes). Suíte completa 70/70, lint 0 erros, build ok.
+
+**Achado registrado, não corrigido:** KI-048 estendido — `Stock.jsx::fetchItems` também não trata rejeição
+de promise na carga inicial (mesmo padrão já registrado no PR 3 para NewOrder/EditOrder/Kanban).
+
+**Próximo passo:** CI + revisão do CTO antes do merge. Depois: PR 5 (Vendas + VendaDetalhe + Financeiro +
+Clientes) — que precisará da decisão pendente sobre `ORIGEM_BADGE` antes de tocar em `Vendas.jsx`.
+
 ---
 
 ## ✅ Landing Page Institucional — Implementação ENCERRADA (PR #49 mergeado)

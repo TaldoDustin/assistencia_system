@@ -9,6 +9,25 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-20 — Fase 3.0 do Fluxoly Design System, infraestrutura de tema)
+- **feat(design-system): infraestrutura de tema (Fase 3.0)** — Light Mode e Dark Mode, toggle
+  automático/claro/escuro, persistência de preferência.
+- **`ThemeContext`/`useTheme()`** com persistência em `localStorage` (chave `fluxoly-theme`) e sincronia
+  com a preferência do sistema (`prefers-color-scheme`).
+- **`index.css` restruturado em duas camadas** — tokens de Light Mode como base, overrides de Dark Mode via
+  `@media (prefers-color-scheme)` + `data-theme` manual. Identidade Pulse (`#FF3D5A` vermelho-sinal,
+  `#29E0C9` ciano de fluxo) aplicada aos tokens de cor; cores semânticas de estado recalibradas para WCAG
+  AA em fundo claro.
+- **Script anti-FOUC** em `index.html`, evitando flash da cor errada no primeiro paint ao recarregar com
+  tema fixado.
+- **Toggle de 3 estados** (automático/claro/escuro) na Sidebar.
+- **Nenhum componente redesenhado** — só infraestrutura de tema; Fase 3.1 (Foundation v2) trata a
+  composição visual dos componentes.
+- **Decisão do CTO (revisão final, 2026-08-20):** o tema padrão para quem não tem preferência salva
+  permanece Dark (não segue o SO) até a Fase 3.1 migrar as 9 telas com classes Tailwind hardcoded
+  listadas em KI-050.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md` para o registro completo.
+
 ### Adicionado (2026-08-20 — Fase 2 do Fluxoly Design System, PR 5/Vendas+VendaDetalhe+Financeiro+Clientes)
 - **Variante taxonômica `variant="tag"` no `Badge` da Foundation** — distinta das 5 variantes de
   severidade (`success`/`warning`/`error`/`info`/`neutral` = "como está indo"; `tag` = "que tipo de coisa é

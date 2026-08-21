@@ -1842,3 +1842,35 @@ isolada de baixo risco (`fix:`, um arquivo).
 
 Responsável:
 —
+
+---
+
+## KI-050
+
+Descrição:
+9 telas ainda usam classes Tailwind hardcoded calibradas só para Dark Mode, em vez dos tokens de tema
+(`text-success`, `text-warning`, etc.) introduzidos na Fase 3.0 do Fluxoly Design System
+(`docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md`): `KpiCard.jsx` (10 ocorrências),
+`Reports.jsx` (7), `Dashboard.jsx` (4), `OperationalCosts.jsx` (3), `Garantias.jsx` (3), `Vendas.jsx` (2),
+`Users.jsx` (2), `VendaDetalhe.jsx` (1), `TiposGarantia.jsx` (1) — ex.: `text-emerald-300`,
+`text-amber-400`. Achado na revisão final (whole-branch) da Fase 3.0, 2026-08-20 — só visível a partir de
+uma visão cruzada de todas as 6 tasks da fase, não de nenhuma revisão isolada por task. Em Light Mode,
+essas cores caem para contraste tão baixo quanto ~1,5:1 contra o fundo claro.
+
+Impacto:
+Mitigado por decisão do CTO (2026-08-20, revisão final da Fase 3.0) — o tema padrão para quem não tem
+preferência salva continua Dark, idêntico a hoje (`frontend/src/contexts/ThemeContext.jsx`,
+`readStoredTheme()`), então nenhum usuário é afetado até que ele mesmo escolha Light/Automático
+explicitamente no toggle. Ainda assim é dívida real: quem escolher Light Mode manualmente vai ver essas 9
+telas com contraste ruim.
+
+Status:
+Aberto — identificado em 2026-08-20 durante a revisão final (whole-branch) da Fase 3.0. Correção: migrar
+essas telas para os tokens de tema é escopo da Fase 3.1+ (Foundation v2 / composição), não desta fase.
+
+Sprint prevista:
+Fase 3.1 (Foundation v2) — ver `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md`
+seção 12.
+
+Responsável:
+—

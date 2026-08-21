@@ -5,10 +5,12 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-20 — inclui o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
+**Última revisão:** 2026-08-20 — inclui a Fase 3.0 do Fluxoly Design System (infraestrutura de tema —
+Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; implementada, aguardando PR, ver
+seção logo abaixo), o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
 aguardando checkpoint final + CI antes do merge) e os PRs 1-4 (Foundation, `ChecklistDevice.jsx`,
 Orders/Kanban/NewOrder/EditOrder, Estoque/Unidades Serializadas/Produtos), todos da Fase 2 do Fluxoly Design
-System (ver seção logo abaixo), o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
+System, o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
 Landing Page institucional (PR #49), a Fase 1 do Fluxoly Design System e a Fase 1 de LGPD/Compliance
 **Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
 completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
@@ -78,6 +80,52 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Fase 3.0 do Fluxoly Design System — Infraestrutura de Tema (implementada, aguardando PR)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md` para o registro completo e
+`docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
+completo da Fase 3.**
+
+2026-08-20. Primeira fatia da Fase 3 (Fluxoly Visual Experience Redesign), aberta na sequência da Fase 2
+(PRs 1-5, Vendas+VendaDetalhe+Financeiro+Clientes até `Estoque`/`Produtos`/`Unidades Serializadas`).
+Escopo puramente de infraestrutura — nenhum componente visual muda ainda, migração de composição fica para
+a Fase 3.1 (Foundation v2).
+
+**Entregue** (branch `feat/design-system-fase3.0-theme-infra`, tasks 1-5 mergeadas nesta branch, Task 6
+de validação final em andamento):
+- **`ThemeContext`/`useTheme()`** com estado persistente (`localStorage`, chave `fluxoly-theme`) e
+  sincronia com a preferência do sistema operacional (`prefers-color-scheme`).
+- **Tokens de cor recalibrados para WCAG AA** — cores semânticas de estado (sucesso/aviso/erro/info)
+  ajustadas para contraste correto em fundo claro.
+- **`index.css` restruturado em duas camadas** (Light Mode como base, overrides de Dark Mode via
+  `@media (prefers-color-scheme)` + `data-theme` manual) com a identidade Pulse aplicada aos tokens
+  (`#FF3D5A` vermelho-sinal, `#29E0C9` ciano de fluxo).
+- **`ThemeProvider`** conectado no ponto de entrada do app, com script anti-FOUC em `index.html` evitando
+  flash da cor errada no primeiro paint ao recarregar com um tema fixado.
+- **`ThemeToggle`** — botão de 3 estados (automático/claro/escuro) na Sidebar.
+- **Nenhum componente redesenhado ainda** — Fase 3.1 (Foundation v2) é o próximo passo, evoluindo
+  `Badge`/`Card`/`EmptyState`/etc. para os dois modos.
+- **Decisão do CTO (revisão final, 2026-08-20):** o tema padrão para quem não tem preferência salva
+  permanece Dark (não segue o SO) até a Fase 3.1 migrar as 9 telas com classes Tailwind hardcoded
+  listadas em KI-050 — o toggle automático/claro/escuro continua totalmente funcional para quem
+  escolhe explicitamente.
+
+**Validação (Task 6):** suíte completa 106/106, lint 0 erros (2 warnings pré-existentes em arquivos não
+relacionados — `ShoppingList.jsx`/`Stock.jsx` — fora do escopo desta fase). Checklist manual em navegador
+real (Chrome, via automação, página `/login` que não exige autenticação): Dark Mode padrão confirmado
+(fundo quase-preto, card claro, botão primário no vermelho-sinal correto) e Light Mode forçado via
+`localStorage` confirmado (fundo quase-branco, card branco, texto legível, mesmo vermelho-sinal, bordas
+sutis, sem extremos puro-branco/puro-preto) — validando em navegador real a reestruturação de tokens da
+Task 3. Toggle na Sidebar autenticada e o dashboard completo não foram verificados ao vivo nesta rodada
+(sem backend rodando para sessão autenticada) — gap residual, não bloqueante. Nenhuma captura
+frame-a-frame do anti-FOUC foi feita (não prático com a ferramenta de screenshot disponível); a
+correção do script foi validada por revisão de código na Task 4.
+
+**Próximo passo:** abrir o PR desta branch (Task 6, Step 7) e, após aprovação do CTO, iniciar a Fase 3.1
+(Foundation v2).
 
 ---
 

@@ -1,70 +1,74 @@
 @import "tailwindcss";
 
+/* Fluxoly brand palette -- direção "Pulse" (docs/company/BRAND_IDENTITY.md #10, decidida
+   2026-08-20). Light Mode é a base deste bloco @theme; Dark Mode sobrescreve mais abaixo.
+   Valores em hex (não hsl como antes desta fase) para rastreabilidade direta com os
+   artboards de identidade decididos -- ver canvas "Fluxoly Identity Directions" e
+   docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md secoes 0.2/3/4. */
 @theme {
-  /* Fluxoly brand palette — dark background + red accent (#FF0125) + black sidebar */
-  --color-background: hsl(0 0% 8%);         /* #141414 */
-  --color-foreground: hsl(0 0% 92%);         /* #EBEBEB */
+  --color-background: #F5F6FA;
+  --color-foreground: #10121A;
 
-  --color-card: hsl(0 0% 12%);              /* #1F1F1F */
-  --color-card-foreground: hsl(0 0% 96%);
+  --color-card: #FFFFFF;
+  --color-card-foreground: #10121A;
 
-  --color-popover: hsl(0 0% 14%);
-  --color-popover-foreground: hsl(0 0% 96%);
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #10121A;
 
-  /* IR brand red — #FF0125 */
-  --color-primary: hsl(351 100% 50%);
-  --color-primary-foreground: hsl(0 0% 100%);
+  /* Fluxoly Pulse -- vermelho-sinal (substitui #FF0125 da identidade anterior) */
+  --color-primary: #FF3D5A;
+  --color-primary-foreground: #FFFFFF;
 
-  --color-secondary: hsl(0 0% 16%);
-  --color-secondary-foreground: hsl(0 0% 96%);
+  --color-secondary: #ECEEF3;
+  --color-secondary-foreground: #10121A;
 
-  --color-muted: hsl(0 0% 16%);
-  --color-muted-foreground: hsl(0 0% 50%);
+  --color-muted: #ECEEF3;
+  --color-muted-foreground: #5B6178;
 
-  --color-accent: hsl(0 0% 18%);
-  --color-accent-foreground: hsl(0 0% 96%);
+  --color-accent: #ECEEF3;
+  --color-accent-foreground: #10121A;
 
-  /* Destructive — coral, deliberadamente distinto do primary (hue 9° vs 351°). Antes desta
-     mudança era hsl(351 100% 50%), idêntico ao primary — CTA principal e ação destrutiva
-     ficavam visualmente indistinguíveis. Ver exploração "Cores Semânticas" (Opção B). */
-  --color-destructive: hsl(9 90% 58%);      /* #F9502C */
-  --color-destructive-foreground: hsl(0 0% 100%);
+  /* Recalibrado para WCAG AA (>= 4.5:1) contra fundo claro -- ver
+     frontend/src/lib/theme-tokens.js (fonte de verdade do cálculo, testada) e
+     PLAN-design-system-fase3.0-theme-infra.md Task 2. Mesmo matiz das versões de Dark
+     Mode abaixo, luminosidade reduzida. */
+  --color-destructive: #BD290F;
+  --color-destructive-foreground: #FFFFFF;
 
-  /* Estados semânticos — sucesso/aviso/informativo. Tokens novos: nenhum componente usava
-     essas cores antes (toasts usam o preset embutido do sonner via `richColors`, não estes
-     tokens). Recalibrados para legibilidade sobre --color-background/--color-card. */
-  --color-success: hsl(152 55% 48%);        /* #33B884 */
-  --color-success-foreground: hsl(0 0% 100%);
+  --color-success: #1F7A50;
+  --color-success-foreground: #FFFFFF;
 
-  --color-warning: hsl(43 96% 56%);         /* #F7B312 */
-  --color-warning-foreground: hsl(30 15% 10%); /* âmbar não sustenta texto claro — tinta quente, não preto puro */
+  --color-warning: #9B6508;
+  --color-warning-foreground: #FFFFFF;
 
-  --color-info: hsl(210 90% 60%);           /* #3D8FF5 */
-  --color-info-foreground: hsl(0 0% 100%);
+  --color-info: #0F61B3;
+  --color-info-foreground: #FFFFFF;
 
-  --color-border: hsl(0 0% 20%);
-  --color-input: hsl(0 0% 18%);
-  --color-ring: hsl(351 100% 50%);
+  --color-border: #E4E7EF;
+  --color-input: #ECEEF3;
+  --color-ring: #FF3D5A;
 
-  /* Sidebar — near-black (#0A0A0A) */
-  --color-sidebar: hsl(0 0% 4%);            /* #0A0A0A */
-  --color-sidebar-foreground: hsl(0 0% 92%);
-  --color-sidebar-primary: hsl(351 100% 50%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(0 0% 10%);
-  --color-sidebar-accent-foreground: hsl(0 0% 96%);
-  --color-sidebar-border: hsl(0 0% 14%);
-  --color-sidebar-ring: hsl(351 100% 50%);
+  /* Sidebar é intencionalmente invariante entre temas (sempre escura) -- decisão de escopo
+     desta fase (3.0 é só infraestrutura), não um princípio permanente: a composição do
+     Shell/Sidebar é Fase 3.2 (Vitrine), que pode revisitar isso. */
+  --color-sidebar: #0A0A0A;
+  --color-sidebar-foreground: #EBEBEB;
+  --color-sidebar-primary: #FF3D5A;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #1A1A1A;
+  --color-sidebar-accent-foreground: #F5F5F5;
+  --color-sidebar-border: #242424;
+  --color-sidebar-ring: #FF3D5A;
 
-  /* Charts */
-  --color-chart-1: hsl(351 100% 50%);       /* IR red */
-  --color-chart-2: hsl(160 60% 45%);        /* green */
-  --color-chart-3: hsl(38 92% 50%);         /* amber */
-  --color-chart-4: hsl(280 65% 60%);        /* purple */
-  --color-chart-5: hsl(200 80% 55%);        /* cyan */
+  /* Gráficos também invariantes por enquanto -- tema único de gráfico (Recharts) é Fase
+     3.1 (Foundation v2), não infraestrutura de tema. chart-1 e chart-5 atualizados só para
+     sincronizar com a identidade Pulse já decidida; chart-2/3/4 sem mudança. */
+  --color-chart-1: #FF3D5A;
+  --color-chart-2: hsl(160 60% 45%);
+  --color-chart-3: hsl(38 92% 50%);
+  --color-chart-4: hsl(280 65% 60%);
+  --color-chart-5: #29E0C9;
 
-  /* Accordion (ui/accordion.jsx) — usa --radix-accordion-content-height,
-     exposta pelo Radix em runtime, para animar a altura real do conteúdo. */
   --animate-accordion-down: accordion-down 200ms ease-out;
   --animate-accordion-up: accordion-up 200ms ease-out;
 }
@@ -79,11 +83,66 @@
   to { height: 0; }
 }
 
+/* Dark Mode -- segue a preferência do sistema por padrão; [data-theme="dark"] força
+   independente do SO; [data-theme="light"] força claro mesmo com SO escuro (por isso o
+   :not() abaixo). Ver PLAN-design-system-fase3-visual-experience.md secao 0.2/4. As duas
+   camadas repetem as mesmas declarações de propósito -- gatilhos independentes (preferência
+   do sistema vs. override explícito), não um copy-paste para "DRY-ficar". */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-background: #0B0D12;
+    --color-foreground: #EDEFF5;
+    --color-card: #14171F;
+    --color-card-foreground: #EDEFF5;
+    --color-popover: #1C202B;
+    --color-popover-foreground: #EDEFF5;
+    --color-secondary: #1C202B;
+    --color-secondary-foreground: #EDEFF5;
+    --color-muted: #1C202B;
+    --color-muted-foreground: #8B90A3;
+    --color-accent: #1C202B;
+    --color-accent-foreground: #EDEFF5;
+    --color-destructive: #F9502C;
+    --color-success: #33B884;
+    --color-warning: #F7B312;
+    --color-warning-foreground: hsl(30 15% 10%);
+    --color-info: #3D8FF5;
+    --color-border: #232733;
+    --color-input: #1C202B;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-background: #0B0D12;
+  --color-foreground: #EDEFF5;
+  --color-card: #14171F;
+  --color-card-foreground: #EDEFF5;
+  --color-popover: #1C202B;
+  --color-popover-foreground: #EDEFF5;
+  --color-secondary: #1C202B;
+  --color-secondary-foreground: #EDEFF5;
+  --color-muted: #1C202B;
+  --color-muted-foreground: #8B90A3;
+  --color-accent: #1C202B;
+  --color-accent-foreground: #EDEFF5;
+  --color-destructive: #F9502C;
+  --color-success: #33B884;
+  --color-warning: #F7B312;
+  --color-warning-foreground: hsl(30 15% 10%);
+  --color-info: #3D8FF5;
+  --color-border: #232733;
+  --color-input: #1C202B;
+}
+
 @layer base {
   *,
   ::before,
   ::after {
-    border-color: hsl(222 47% 19%);
+    /* Antes desta fase: hsl(222 47% 19%) hardcoded -- um azul-marinho que não correspondia
+       a nenhum token da marca (nem ao --color-border antigo, hsl(0 0% 20%)). Corrigido para
+       reagir ao tema junto com o resto -- já estava errado antes desta fase, exposto ao
+       tornar todo o resto deste bloco theme-aware. */
+    border-color: var(--color-border);
     box-sizing: border-box;
   }
 
@@ -92,8 +151,8 @@
   }
 
   body {
-    background-color: hsl(0 0% 8%);
-    color: hsl(0 0% 92%);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -126,13 +185,14 @@
 }
 
 /* UX-001 -- Preservação de Contexto da Navegação: destaque temporário do
-   registro restaurado ao voltar de uma edição/detalhe (ver useListContext.js). */
+   registro restaurado ao voltar de uma edição/detalhe (ver useListContext.js).
+   Cor sincronizada com --color-primary (Pulse, #FF3D5A) -- antes desta fase usava o
+   vermelho antigo (#FF0125) hardcoded. */
 @keyframes nav-context-pulse {
-  from { background-color: hsl(351 100% 50% / 0.18); }
+  from { background-color: rgb(255 61 90 / 18%); }
   to { background-color: transparent; }
 }
 
 .nav-context-highlight {
   animation: nav-context-pulse 2s ease-out;
 }
-

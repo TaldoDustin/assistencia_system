@@ -19,11 +19,18 @@ describe("ThemeToggle", () => {
   });
 
   it("começa no modo automático (segue o sistema)", () => {
+    localStorage.setItem("fluxoly-theme", "system");
     renderToggle();
     expect(screen.getByRole("button")).toHaveAccessibleName(/tema: automático/i);
   });
 
+  it("sem preferência salva, começa no modo escuro (não automático) -- telas ainda não migradas para Light Mode", () => {
+    renderToggle();
+    expect(screen.getByRole("button")).toHaveAccessibleName(/tema: escuro/i);
+  });
+
   it("um clique alterna para claro, o próximo para escuro, o próximo de volta para automático", async () => {
+    localStorage.setItem("fluxoly-theme", "system");
     renderToggle();
     const user = userEvent.setup();
     const button = screen.getByRole("button");

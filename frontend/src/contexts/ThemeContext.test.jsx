@@ -35,12 +35,13 @@ describe("ThemeContext", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("usa 'system' como padrão quando não há preferência salva", () => {
+  it("usa 'dark' como padrão quando não há preferência salva (Fase 3.0: nem todas as telas migraram para Light Mode ainda)", () => {
     renderProbe();
-    expect(screen.getByTestId("theme")).toHaveTextContent("system");
+    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
   });
 
-  it("resolve para 'light' quando o sistema não prefere dark (stub padrão do jsdom)", () => {
+  it("resolve para 'light' quando theme='system' e o SO não prefere dark (stub padrão do jsdom)", () => {
+    localStorage.setItem("fluxoly-theme", "system");
     renderProbe();
     expect(screen.getByTestId("resolved")).toHaveTextContent("light");
   });
@@ -52,13 +53,16 @@ describe("ThemeContext", () => {
     expect(screen.getByTestId("resolved")).toHaveTextContent("dark");
   });
 
-  it("ignora um valor inválido salvo no localStorage e usa 'system'", () => {
+  it("ignora um valor inválido salvo no localStorage e usa 'dark'", () => {
     localStorage.setItem("fluxoly-theme", "roxo");
     renderProbe();
-    expect(screen.getByTestId("theme")).toHaveTextContent("system");
+    expect(screen.getByTestId("theme")).toHaveTextContent("dark");
   });
 
   it("setTheme('dark') persiste no localStorage e aplica data-theme='dark' no <html>", async () => {
+    // Semeia 'light' para não colidir com o texto do botão "dark" -- 'dark' já é o padrão sem
+    // preferência salva (Fase 3.0, revisão final), então o span "theme" já diria "dark" antes do clique.
+    localStorage.setItem("fluxoly-theme", "light");
     renderProbe();
     const user = userEvent.setup();
     await user.click(screen.getByText("dark"));
@@ -70,6 +74,9 @@ describe("ThemeContext", () => {
   });
 
   it("setTheme('system') remove o atributo data-theme do <html>", async () => {
+    // Semeia 'light' para não colidir com o texto do botão "dark" -- 'dark' já é o padrão sem
+    // preferência salva (Fase 3.0, revisão final), então o span "theme" já diria "dark" antes do clique.
+    localStorage.setItem("fluxoly-theme", "light");
     renderProbe();
     const user = userEvent.setup();
     await user.click(screen.getByText("dark"));
@@ -81,6 +88,7 @@ describe("ThemeContext", () => {
   });
 
   it("reage a uma mudança de preferência do sistema quando theme='system'", () => {
+    localStorage.setItem("fluxoly-theme", "system");
     let changeHandler;
     const mql = {
       matches: false,

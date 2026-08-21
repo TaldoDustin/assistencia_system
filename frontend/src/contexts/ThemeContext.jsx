@@ -8,10 +8,10 @@ const ThemeContext = createContext(null);
 function readStoredTheme() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return VALID_THEMES.includes(stored) ? stored : "system";
+    return VALID_THEMES.includes(stored) ? stored : "dark";
   } catch {
     // localStorage indisponível (modo privado, quota, etc.) -- preferência só dura a sessão atual.
-    return "system";
+    return "dark";
   }
 }
 

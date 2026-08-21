@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import GlobalAlerts from "./GlobalAlerts";
+import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   SidebarProvider,
@@ -88,6 +89,7 @@ function SidebarUserFooter({ user, onLogout }) {
         <span className="text-xs text-sidebar-foreground/60">v1.0.0</span>
         <div className="flex items-center gap-1">
           <GlobalAlerts />
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"

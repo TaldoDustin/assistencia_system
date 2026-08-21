@@ -21,6 +21,10 @@ vi.mock("@/api/client", () => ({
   alertas: { list: vi.fn().mockResolvedValue({ ok: true, alertas: [] }) },
 }));
 
+vi.mock("@/contexts/ThemeContext", () => ({
+  useTheme: () => ({ theme: "system", resolvedTheme: "light", setTheme: vi.fn() }),
+}));
+
 function renderLayout(initialPath = "/") {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>

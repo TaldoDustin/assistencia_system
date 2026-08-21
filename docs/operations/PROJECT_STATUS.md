@@ -108,6 +108,10 @@ de validação final em andamento):
 - **`ThemeToggle`** — botão de 3 estados (automático/claro/escuro) na Sidebar.
 - **Nenhum componente redesenhado ainda** — Fase 3.1 (Foundation v2) é o próximo passo, evoluindo
   `Badge`/`Card`/`EmptyState`/etc. para os dois modos.
+- **Decisão do CTO (revisão final, 2026-08-20):** o tema padrão para quem não tem preferência salva
+  permanece Dark (não segue o SO) até a Fase 3.1 migrar as 9 telas com classes Tailwind hardcoded
+  listadas em KI-050 — o toggle automático/claro/escuro continua totalmente funcional para quem
+  escolhe explicitamente.
 
 **Validação (Task 6):** suíte completa 106/106, lint 0 erros (2 warnings pré-existentes em arquivos não
 relacionados — `ShoppingList.jsx`/`Stock.jsx` — fora do escopo desta fase). Checklist manual em navegador

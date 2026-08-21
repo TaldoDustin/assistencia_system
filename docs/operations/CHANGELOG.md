@@ -23,6 +23,9 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **Toggle de 3 estados** (automático/claro/escuro) na Sidebar.
 - **Nenhum componente redesenhado** — só infraestrutura de tema; Fase 3.1 (Foundation v2) trata a
   composição visual dos componentes.
+- **Decisão do CTO (revisão final, 2026-08-20):** o tema padrão para quem não tem preferência salva
+  permanece Dark (não segue o SO) até a Fase 3.1 migrar as 9 telas com classes Tailwind hardcoded
+  listadas em KI-050.
 - Ver `docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md` para o registro completo.
 
 ### Adicionado (2026-08-20 — Fase 2 do Fluxoly Design System, PR 5/Vendas+VendaDetalhe+Financeiro+Clientes)

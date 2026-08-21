@@ -293,7 +293,7 @@ por tela dentro da fase, como já é convenção), CI 6/6 + revisão antes do me
 
 | Fase | Escopo | Depende de |
 |---|---|---|
-| 3.0 | **Infraestrutura de tema** — tokens de Light Mode em `index.css` (`@media (prefers-color-scheme)` + override manual via `data-theme`), `ThemeProvider`/toggle, persistência da preferência. Nenhum componente visual muda ainda — só a infraestrutura, testável isolada. | — |
+| 3.0 | ✅ Concluído — implementação em docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md (branch feat/design-system-fase3.0-theme-infra, aguardando PR) | — |
 | 3.1 | **Foundation v2** — evoluir `Badge`/`Card`/`EmptyState`/etc. pros 2 modos + novos recipientes (Painel/Bloco/Métrica solta) + `DataTable` real + tema único de gráfico. Nenhuma tela redesenhada ainda (mesmo princípio da Foundation da Fase 2). | 3.0 |
 | 3.2 | **Vitrine (Tier 1)** — Dashboard + Login + Shell/Sidebar + harmonização da Landing. Prova de conceito da direção antes de escalar pro resto. | 3.1 |
 | 3.3 | **Operação (Tier 2)** — Orders/Kanban/Vendas/Stock/Financeiro/Clientes. | 3.2 |

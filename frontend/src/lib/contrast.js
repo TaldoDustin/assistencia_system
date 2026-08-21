@@ -29,3 +29,20 @@ export function contrastRatio(hexA, hexB) {
   const darker = Math.min(lumA, lumB);
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+/**
+ * Achata uma cor semi-transparente sobre um fundo opaco (alpha compositing padrão),
+ * simulando o efeito real de `bg-<cor>/10` do Tailwind renderizado sobre uma superfície
+ * clara sólida. Usado para testar contraste no cenário real (ex.: badge.jsx), não contra
+ * a cor pura.
+ */
+export function compositeOverBackground(foregroundHex, backgroundHex, opacity) {
+  const fg = hexToRgb(foregroundHex);
+  const bg = hexToRgb(backgroundHex);
+  const mix = (fgChannel, bgChannel) => Math.round(bgChannel * (1 - opacity) + fgChannel * opacity);
+  const toHex = (value) => value.toString(16).padStart(2, "0");
+  const r = mix(fg.r, bg.r);
+  const g = mix(fg.g, bg.g);
+  const b = mix(fg.b, bg.b);
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}

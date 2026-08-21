@@ -28,17 +28,20 @@
   --color-accent: #ECEEF3;
   --color-accent-foreground: #10121A;
 
-  /* Recalibrado para WCAG AA (>= 4.5:1) contra fundo claro -- ver
+  /* Recalibrado para WCAG AA (>= 4.5:1) no cenário real de uso -- texto sobre o próprio
+     tom a 10% de opacidade (badge.jsx), composto sobre as duas superfícies claras do app
+     (#FFFFFF card e #F5F6FA fundo de página), não contra branco puro. Ver
      frontend/src/lib/theme-tokens.js (fonte de verdade do cálculo, testada) e
-     PLAN-design-system-fase3.0-theme-infra.md Task 2. Mesmo matiz das versões de Dark
-     Mode abaixo, luminosidade reduzida. */
+     PLAN-design-system-fase3.0-theme-infra.md Task 2 / revisão final da Fase 3.0
+     (2026-08-20, `success`/`warning` recalibrados de novo nessa revisão). Mesmo matiz das
+     versões de Dark Mode abaixo, luminosidade reduzida. */
   --color-destructive: #BD290F;
   --color-destructive-foreground: #FFFFFF;
 
-  --color-success: #1F7A50;
+  --color-success: #1E754D;
   --color-success-foreground: #FFFFFF;
 
-  --color-warning: #9B6508;
+  --color-warning: #8F5D07;
   --color-warning-foreground: #FFFFFF;
 
   --color-info: #0F61B3;

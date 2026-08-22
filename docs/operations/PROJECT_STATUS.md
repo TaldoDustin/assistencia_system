@@ -6,8 +6,8 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-08-20 — inclui a Fase 3.0 do Fluxoly Design System (infraestrutura de tema —
-Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; implementada, aguardando PR, ver
-seção logo abaixo), o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
+Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; **mergeada em `main`, PR #59,
+commit `5b6237df`, ver seção logo abaixo**), o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
 aguardando checkpoint final + CI antes do merge) e os PRs 1-4 (Foundation, `ChecklistDevice.jsx`,
 Orders/Kanban/NewOrder/EditOrder, Estoque/Unidades Serializadas/Produtos), todos da Fase 2 do Fluxoly Design
 System, o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
@@ -83,7 +83,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## ✅ Fase 3.0 do Fluxoly Design System — Infraestrutura de Tema (implementada, aguardando PR)
+## ✅ Fase 3.0 do Fluxoly Design System — Infraestrutura de Tema ENCERRADA (PR #59 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md` para o registro completo e
 `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
@@ -124,8 +124,12 @@ Task 3. Toggle na Sidebar autenticada e o dashboard completo não foram verifica
 frame-a-frame do anti-FOUC foi feita (não prático com a ferramenta de screenshot disponível); a
 correção do script foi validada por revisão de código na Task 4.
 
-**Próximo passo:** abrir o PR desta branch (Task 6, Step 7) e, após aprovação do CTO, iniciar a Fase 3.1
-(Foundation v2).
+**Decisão do CTO:** aprovado. Mergeado em `main` (PR #59, commit `5b6237df`, 2026-08-20); branch
+`feat/design-system-fase3.0-theme-infra` ainda não deletada (remoto e local).
+
+**Próximo passo:** Fase 3.1 (Foundation v2) — migração de composição dos componentes (`Badge`/`Card`/
+`EmptyState`/etc.) para os dois modos, incluindo as 9 telas com classes Tailwind hardcoded listadas em
+KI-050.
 
 ---
 

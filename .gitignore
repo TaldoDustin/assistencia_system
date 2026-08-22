@@ -56,3 +56,8 @@ graphify-out/
 .env.local
 .env.development
 .env.production
+
+# Rascunhos de exploração de identidade visual (HTML soltos, canvases) — não é entregável
+# versionado; deliberados (ícone/wordmark/paleta) vão para docs/company/BRAND_IDENTITY.md e
+# assets finais para frontend/public/brand/ quando prontos para uso no produto.
+/Brand Indetity/

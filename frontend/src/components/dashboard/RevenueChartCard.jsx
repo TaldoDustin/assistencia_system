@@ -9,6 +9,7 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency } from "@/lib/constants";
+import { CHART_GRID_STROKE, CHART_AXIS_TICK, CHART_CURSOR_STROKE, chartColor } from "@/lib/chart-theme";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -43,36 +44,36 @@ export default function RevenueChartCard({ data }) {
         <AreaChart data={data} margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+              <stop offset="5%" stopColor={chartColor(0)} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={chartColor(0)} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="hsl(222 47% 19%)" 
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={CHART_GRID_STROKE}
             vertical={false}
             style={{ opacity: 0.5 }}
           />
-          <XAxis 
-            dataKey="data" 
-            tick={{ fill: "hsl(215 20% 55%)", fontSize: 12 }} 
-            tickLine={false} 
+          <XAxis
+            dataKey="data"
+            tick={CHART_AXIS_TICK}
+            tickLine={false}
             axisLine={false}
             style={{ opacity: 0.7 }}
           />
-          <YAxis 
-            tick={{ fill: "hsl(215 20% 55%)", fontSize: 12 }} 
-            tickLine={false} 
-            axisLine={false} 
+          <YAxis
+            tick={CHART_AXIS_TICK}
+            tickLine={false}
+            axisLine={false}
             tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
             style={{ opacity: 0.7 }}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "hsl(215 20% 55%)", strokeOpacity: 0.3 }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: CHART_CURSOR_STROKE, strokeOpacity: 0.3 }} />
           <Area
             type="monotone"
             dataKey="total"
             name="Faturamento"
-            stroke="#3B82F6"
+            stroke={chartColor(0)}
             fill="url(#colorRevenue)"
             strokeWidth={2.5}
             isAnimationActive={true}

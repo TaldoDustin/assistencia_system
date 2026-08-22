@@ -188,8 +188,8 @@ export default function Reports() {
                         <td className="px-4 py-2 font-medium text-card-foreground">{formatMonthLabel(month)}</td>
                         <td className="px-4 py-2 text-muted-foreground">{summary.total_os}</td>
                         <td className="px-4 py-2 text-card-foreground">{formatCurrency(summary.faturamento)}</td>
-                        <td className="px-4 py-2 text-red-400">{formatCurrency(summary.gastos)}</td>
-                        <td className="px-4 py-2 text-emerald-400 font-medium">{formatCurrency(summary.lucro)}</td>
+                        <td className="px-4 py-2 text-destructive">{formatCurrency(summary.gastos)}</td>
+                        <td className="px-4 py-2 text-success font-medium">{formatCurrency(summary.lucro)}</td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {Object.entries(summary.servicos || {})
                             .sort(([, a], [, b]) => b - a)
@@ -226,8 +226,8 @@ export default function Reports() {
                       <td className="px-4 py-3 font-medium text-card-foreground">{tecnico}</td>
                       <td className="px-4 py-3 text-muted-foreground">{summary.total_os}</td>
                       <td className="px-4 py-3 text-card-foreground font-medium">{formatCurrency(summary.faturamento)}</td>
-                      <td className="px-4 py-3 text-red-400">{formatCurrency(summary.gastos)}</td>
-                      <td className="px-4 py-3 text-emerald-400 font-medium">{formatCurrency(summary.lucro)}</td>
+                      <td className="px-4 py-3 text-destructive">{formatCurrency(summary.gastos)}</td>
+                      <td className="px-4 py-3 text-success font-medium">{formatCurrency(summary.lucro)}</td>
                     </tr>
                   ))
                 )}
@@ -269,7 +269,7 @@ export default function Reports() {
                       <tr key={month} className="hover:bg-accent/30">
                         <td className="px-4 py-3 font-medium text-card-foreground">{formatMonthLabel(month)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{summary.total_itens}</td>
-                        <td className="px-4 py-3 text-red-400 font-medium">{formatCurrency(summary.total_valor)}</td>
+                        <td className="px-4 py-3 text-destructive font-medium">{formatCurrency(summary.total_valor)}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {Object.entries(summary.categorias || {})
                             .slice(0, 3)
@@ -292,7 +292,7 @@ export default function Reports() {
                   categoriasRows.map(([categoria, valor]) => (
                     <div key={categoria} className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-3 py-2">
                       <span className="text-sm text-card-foreground">{categoria}</span>
-                      <span className="text-sm font-medium text-red-400">{formatCurrency(valor)}</span>
+                      <span className="text-sm font-medium text-destructive">{formatCurrency(valor)}</span>
                     </div>
                   ))
                 )}
@@ -322,7 +322,7 @@ export default function Reports() {
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatMonthLabel(month)}</td>
                         <td className="px-4 py-3 font-medium text-card-foreground">{item.descricao || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.categoria || "Outros"}</td>
-                        <td className="px-4 py-3 text-red-400 font-medium whitespace-nowrap">{formatCurrency(item.valor)}</td>
+                        <td className="px-4 py-3 text-destructive font-medium whitespace-nowrap">{formatCurrency(item.valor)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.observacoes || "—"}</td>
                       </tr>
                     ))

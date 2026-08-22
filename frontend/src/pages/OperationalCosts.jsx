@@ -137,11 +137,11 @@ export default function OperationalCosts() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-2xl font-bold text-red-400">{formatCurrency(total)}</p>
+          <p className="text-2xl font-bold text-destructive">{formatCurrency(total)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Total</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-2xl font-bold text-amber-400">{formatCurrency(thisMonth)}</p>
+          <p className="text-2xl font-bold text-warning">{formatCurrency(thisMonth)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Este mês</p>
         </div>
         <div className="col-span-2 lg:col-span-1 bg-card border border-border rounded-xl p-4">
@@ -179,7 +179,7 @@ export default function OperationalCosts() {
                     <td className="px-4 py-3">
                       <span className="text-xs bg-secondary text-secondary-foreground rounded px-2 py-0.5">{c.categoria}</span>
                     </td>
-                    <td className="px-4 py-3 text-red-400 font-medium">{formatCurrency(c.valor)}</td>
+                    <td className="px-4 py-3 text-destructive font-medium">{formatCurrency(c.valor)}</td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {c.data ? new Date(c.data).toLocaleDateString("pt-BR") : "—"}
                     </td>

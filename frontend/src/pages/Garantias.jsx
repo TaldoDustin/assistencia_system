@@ -7,9 +7,9 @@ import { getOrderDisplayNumber } from "@/lib/constants";
 
 function GarantiaBadge({ status, dias }) {
   const map = {
-    vencida:   "bg-red-500/20 text-red-400 border-red-500/30",
-    vencendo:  "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    ativa:     "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    vencida:   "bg-destructive/20 text-destructive border-destructive/30",
+    vencendo:  "bg-warning/20 text-warning border-warning/30",
+    ativa:     "bg-success/20 text-success border-success/30",
   };
   const label = status === "vencida" ? "Vencida" : status === "vencendo" ? `Vencendo (${dias}d)` : `${dias}d restantes`;
   return (

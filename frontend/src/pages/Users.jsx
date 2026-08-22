@@ -106,7 +106,10 @@ export default function Users() {
     }
   };
 
-  const perfilColor = { admin: "text-primary", tecnico: "text-blue-400", vendedor: "text-emerald-400", estoque: "text-amber-400", financeiro: "text-purple-400" };
+  // tecnico/vendedor/estoque migrados para tokens de tema (Fase 3.1, KI-050). "financeiro" fica
+  // com a classe Tailwind antiga -- não existe token semântico de roxo na paleta Pulse; criar um
+  // não está no escopo desta correção de bug. Registrado como KI-051 (não bloqueante).
+  const perfilColor = { admin: "text-primary", tecnico: "text-info", vendedor: "text-success", estoque: "text-warning", financeiro: "text-purple-400" };
 
   return (
     <div className="space-y-5">
@@ -142,7 +145,7 @@ export default function Users() {
                       <span className={`text-sm font-medium capitalize ${perfilColor[u.perfil] || "text-muted-foreground"}`}>{u.perfil}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${u.ativo !== false ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${u.ativo !== false ? "bg-success/20 text-success border-success/30" : "bg-destructive/20 text-destructive border-destructive/30"}`}>
                         {u.ativo !== false ? "Ativo" : "Inativo"}
                       </span>
                     </td>

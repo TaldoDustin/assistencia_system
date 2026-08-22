@@ -381,6 +381,50 @@ nenhum ganho visual por si só).
 
 ---
 
+## 3.4 Fluxoly Design System (Fase 3.1 — Foundation v2)
+
+Formalizado em `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md`. Evolui a Foundation
+da Fase 2 (seção 3.3) para os dois modos de tema (Light+Dark, infra da Fase 3.0) — novos recipientes de
+composição, `DataTable` real e tema único de gráfico — **sem redesenhar nenhuma tela** (mesmo princípio da
+Fase 2), exceto a correção pontual do KI-050 (troca de classe de cor, não de composição).
+
+### Recipientes de composição (`components/ui/panel.jsx`, `list-block.jsx`, `loose-metric.jsx`)
+
+`Card` deixa de ser o recipiente universal — vira 1 de 4 possíveis, conforme o peso do conteúdo (spec §7):
+
+- **`Panel`** — dominante: borda + sombra, para o único elemento de maior peso de cada tela.
+- **`ListBlock`/`ListBlockItem`** — bloco de lista: sem moldura própria, só divisor sutil entre linhas.
+- **`LooseMetric`** — métrica solta: número + rótulo, sem moldura nenhuma.
+- **`Card`** (já existente) — segue disponível para o caso genérico/elemento flutuante (dropdown/popover
+  via Radix), não descontinuado.
+
+Nenhum dos 3 recipientes novos usa o prefixo `dark:` do Tailwind — este projeto não usa esse variant para
+tema (ver `index.css`, Fase 3.0); toda diferença visual entre modos vem só de `--color-*`.
+
+### `DataTable` (`components/ui/data-table.jsx`)
+
+Tabela real, substituindo o padrão de HTML cru com bordas manuais repetido por arquivo. `stickyHeader`
+(header fixo em listas longas) e `onRowClick` (linha clicável, com suporte a teclado via `Enter`) são
+opcionais. Migração de tabelas existentes para `DataTable` é escopo das Fases 3.2+, tela a tela — este
+componente só existe a partir da Fase 3.1, ainda não é usado em nenhuma página.
+
+### Tema de gráfico (`lib/chart-theme.js`)
+
+Recharts recebe cor via prop SVG (`stroke`/`fill`), não via classe Tailwind — `chart-theme.js` centraliza
+os valores (`var(--color-*)`) para que todo gráfico reaja à troca de tema automaticamente, sem
+sincronização manual. `chartColor(index)` cicla a paleta categórica (`--color-chart-1..5`).
+
+### KI-050 — telas hardcoded migradas para tokens de tema
+
+As 9 telas identificadas na revisão final da Fase 3.0 (`KpiCard.jsx`, `Dashboard.jsx`, `Reports.jsx`,
+`OperationalCosts.jsx`, `Garantias.jsx`, `Vendas.jsx`, `Users.jsx`, `VendaDetalhe.jsx`,
+`TiposGarantia.jsx`) foram migradas de classes Tailwind cruas (`text-emerald-400` etc., calibradas só para
+Dark Mode) para os tokens semânticos já existentes (`text-success`/`warning`/`destructive`/`info`).
+Exceção registrada: o papel "financeiro" em `Users.jsx` (`text-purple-400`) não tem token semântico
+equivalente na paleta Pulse — ver KI-051.
+
+---
+
 ## 4. Padrões Frontend (React / Vite)
 
 ### 4.0 Princípio de UX: interface por perfil

@@ -1845,7 +1845,7 @@ Responsável:
 
 ---
 
-## KI-050
+## ~~KI-050~~ — RESOLVIDO
 
 Descrição:
 9 telas ainda usam classes Tailwind hardcoded calibradas só para Dark Mode, em vez dos tokens de tema
@@ -1871,6 +1871,37 @@ essas telas para os tokens de tema é escopo da Fase 3.1+ (Foundation v2 / compo
 Sprint prevista:
 Fase 3.1 (Foundation v2) — ver `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md`
 seção 12.
+
+Responsável:
+—
+
+**Resolvido em 2026-08-22** (Fase 3.1, `PLAN-design-system-fase3.1-foundation-v2.md`, Tasks 4-5) — as 9 telas
+migradas para os tokens de tema (`text-success`/`warning`/`destructive`/`info`). Exceção: o papel
+"financeiro" em `Users.jsx` não tem token semântico de roxo equivalente na paleta Pulse — registrado
+separadamente como KI-051 (não bloqueante).
+
+---
+
+## KI-051
+
+Descrição:
+`Users.jsx` (`perfilColor`, papel "financeiro") usa `text-purple-400` (Tailwind cru) para diferenciar o
+perfil de usuário "financeiro" na lista de usuários. Ao corrigir o KI-050 (Fase 3.1), os outros 3 papéis
+(`tecnico`/`vendedor`/`estoque`) foram migrados para tokens de tema já existentes (`info`/`success`/
+`warning`) — "financeiro" não tem equivalente: os 4 tokens semânticos da paleta Pulse (destructive/
+success/warning/info) não incluem roxo, e criar um token novo não é escopo de uma correção de bug.
+
+Impacto:
+Mesmo impacto de contraste do KI-050 original (calibrado só para Dark Mode, ~baixo contraste em Light
+Mode), mas isolado a 1 célula de 1 tela — a lista de usuários já é uma tela administrativa de baixo
+tráfego (Tier 4, `PLAN-design-system-fase3-visual-experience.md` §9).
+
+Status:
+Aberto — decisão de produto pendente: adicionar um 5º token semântico à paleta (decisão de marca, CTO) ou
+remover a diferenciação de cor por papel (mudança de composição, fora de escopo de correção de bug).
+
+Sprint prevista:
+Sem sprint — fica para quando a Fase 3.2+ tocar `Users.jsx` diretamente, ou decisão isolada do CTO.
 
 Responsável:
 —

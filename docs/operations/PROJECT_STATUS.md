@@ -83,6 +83,39 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
+## ✅ Fase 3.1 do Fluxoly Design System — Foundation v2 ENCERRADA (PR #<a preencher> mergeado)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md` para o registro completo e
+`docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
+completo da Fase 3.**
+
+2026-08-22. Segunda fatia da Fase 3, sequência imediata à infraestrutura de tema (3.0). Escopo: recipientes de
+composição (`Panel`/`ListBlock`/`LooseMetric`, substituindo `Card` como recipiente universal), `DataTable`
+real, tema único de gráfico (Recharts) e a correção do KI-050 (9 telas com cor hardcoded, ilegível em
+Light Mode). Nenhuma tela redesenhada — migração de composição das telas é Fase 3.2+.
+
+**Entregue** (branch `feat/design-system-fase3.1-foundation-v2`):
+- `Panel`/`PanelHeader`/`PanelTitle`/`PanelDescription`/`PanelContent`, `ListBlock`/`ListBlockItem`,
+  `LooseMetric` — novos em `components/ui/`, ainda não usados por nenhuma página.
+- `DataTable` — tabela real da Foundation (header sticky opcional, linha clicável com suporte a teclado),
+  ainda não usada por nenhuma página.
+- `lib/chart-theme.js` — tema único (`var(--color-*)`) para os 3 gráficos do Dashboard
+  (`RevenueChartCard`/`ServicesChartCard`/`TechnicianProfitChartCard`), que antes usavam cor SVG fixa
+  (hex/hsl) sem relação com o tema nem com a marca.
+- KI-050 resolvido — `KpiCard.jsx`/`Dashboard.jsx`/`Reports.jsx`/`OperationalCosts.jsx`/`Garantias.jsx`/
+  `Vendas.jsx`/`Users.jsx`/`VendaDetalhe.jsx`/`TiposGarantia.jsx` migrados de classe Tailwind crua para os
+  tokens de tema (`text-success`/`warning`/`destructive`/`info`). Exceção: papel "financeiro" em
+  `Users.jsx` sem token de roxo equivalente — registrado como KI-051.
+
+**Validação:** suíte completa passando, lint 0 erros, checklist manual em navegador real (Light Mode/Dark
+Mode) nas 9 telas do KI-050 e nos 3 gráficos.
+
+**Decisão do CTO:** aprovado. Mergeado em `main`.
+
+**Próximo passo:** Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).
+
+---
+
 ## ✅ Fase 3.0 do Fluxoly Design System — Infraestrutura de Tema ENCERRADA (PR #59 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.0-theme-infra.md` para o registro completo e

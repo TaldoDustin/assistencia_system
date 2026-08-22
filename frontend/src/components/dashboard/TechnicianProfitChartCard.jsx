@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatCurrency } from "@/lib/constants";
-import { CHART_GRID_STROKE, CHART_AXIS_TICK, chartColor } from "@/lib/chart-theme";
+import { CHART_GRID_STROKE, CHART_AXIS_TICK, CHART_CURSOR_FILL, chartColor } from "@/lib/chart-theme";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -66,7 +66,7 @@ export default function TechnicianProfitChartCard({ data }) {
             tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
             style={{ opacity: 0.7 }}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--color-muted)" }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART_CURSOR_FILL }} />
           <Bar
             dataKey="lucro"
             name="Lucro"

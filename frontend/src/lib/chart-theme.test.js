@@ -3,6 +3,7 @@ import {
   CHART_GRID_STROKE,
   CHART_AXIS_TICK,
   CHART_CURSOR_STROKE,
+  CHART_CURSOR_FILL,
   CHART_PALETTE,
   chartColor,
 } from "./chart-theme";
@@ -25,5 +26,6 @@ describe("chart-theme", () => {
     expect(CHART_GRID_STROKE).toBe("var(--color-border)");
     expect(CHART_AXIS_TICK).toEqual({ fill: "var(--color-muted-foreground)", fontSize: 12 });
     expect(CHART_CURSOR_STROKE).toBe("var(--color-muted-foreground)");
+    expect(CHART_CURSOR_FILL).toBe("var(--color-muted)");
   });
 });

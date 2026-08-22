@@ -7,11 +7,16 @@
 export const CHART_GRID_STROKE = "var(--color-border)";
 export const CHART_AXIS_TICK = { fill: "var(--color-muted-foreground)", fontSize: 12 };
 export const CHART_CURSOR_STROKE = "var(--color-muted-foreground)";
+export const CHART_CURSOR_FILL = "var(--color-muted)";
 
 // Paleta categórica (séries/fatias sem status semântico) -- os 5 tokens --color-chart-1..5 já
-// existem em index.css desde a Fase 3.0; ciclada via chartColor() quando há mais séries que cores
-// (trade-off aceito -- antes desta fase já não havia nenhuma garantia de cor única acima de 8-10
-// séries, ver COLORS[] fixo nos cards anteriores a este task).
+// existem em index.css desde a Fase 3.0; ciclada via chartColor() quando há mais séries que cores.
+// Nota: a paleta anterior (COLORS[] local em ServicesChartCard.jsx) tinha 10 cores, cobrindo
+// exatamente o cap de legenda de 10 itens daquele componente sem repetição. As 5 cores aqui
+// repetem a partir do 6º item -- registrado como KI-052 (docs/operations/KNOWN_ISSUES.md), não
+// corrigido nesta fase porque a correção adequada (limitar o gráfico a 5 fatias + agrupar o
+// resto em "Outros") mudaria a composição de ServicesChartCard.jsx, fora do escopo de uma fase
+// só de Foundation.
 export const CHART_PALETTE = [
   "var(--color-chart-1)",
   "var(--color-chart-2)",

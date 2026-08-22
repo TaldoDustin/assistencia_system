@@ -13,8 +13,11 @@ KI-050 (troca de token de cor, sem mudança de composição).
 `index.css` (Fase 3.0) — nenhum usa o prefixo `dark:` do Tailwind (que segue só `prefers-color-scheme` e
 ignoraria o override manual via `data-theme`, o mesmo motivo pelo qual `index.css` define dois blocos de
 override em vez de usar `dark:`). `Panel` funciona nos dois modos com uma única classe porque combina
-borda (visível no Dark, quase invisível no Light) + sombra (visível no Light, invisível no Dark) — nenhuma
-lógica condicional de tema é necessária em nenhum componente desta fase. Os gráficos (SVG via Recharts,
+borda (visível no Dark, quase invisível no Light) + sombra (visível no Light, invisível no Dark). A sombra
+não reage ao tema — é um valor fixo do Tailwind (`shadow-sm`); funciona nos dois modos porque é sutil o
+bastante para ler como profundidade no Light Mode e simplesmente não aparecer contra um fundo já
+quase-preto no Dark Mode. Nenhuma lógica condicional de tema é necessária em nenhum componente desta
+fase. Os gráficos (SVG via Recharts,
 que não recebe classes Tailwind em props como `stroke`/`fill`) usam strings `var(--color-*)` diretamente —
 o navegador resolve o valor a cada re-render, reagindo à troca de tema automaticamente.
 

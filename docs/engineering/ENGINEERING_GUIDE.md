@@ -423,6 +423,11 @@ Dark Mode) para os tokens semânticos já existentes (`text-success`/`warning`/`
 Exceção registrada: o papel "financeiro" em `Users.jsx` (`text-purple-400`) não tem token semântico
 equivalente na paleta Pulse — ver KI-051.
 
+Nota: a correção do KI-050 preservou as opacidades originais de cada tela (`/10`/`/20` em fundo, sempre
+`/30` em borda) — 3 receitas de "badge suave" com os mesmos tokens agora coexistem (`Badge`/
+`TiposGarantia.jsx` vs. `Garantias.jsx`/`Users.jsx`). Consolidar em uma única receita (ex.: sempre via o
+componente `Badge`) é trabalho de composição, fica para a Fase 3.2+.
+
 ---
 
 ## 4. Padrões Frontend (React / Vite)

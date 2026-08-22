@@ -14,7 +14,8 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   como recipiente universal (dominante/bloco de lista/métrica solta), ainda não usados em nenhuma página.
 - **`DataTable`** real da Foundation (header sticky opcional, linha clicável com suporte a teclado).
 - **Tema único de gráfico** (`lib/chart-theme.js`) — os 3 gráficos do Dashboard passam a usar
-  `var(--color-*)` em vez de cor SVG fixa, reagindo à troca de tema.
+  `var(--color-*)` para grade/eixo/cursor (reagem à troca de tema); as cores categóricas das séries
+  (`--color-chart-1..5`) permanecem fixas nos dois modos, por design (ver `index.css`).
 - **KI-050 resolvido** — 9 telas migradas de classe Tailwind crua para tokens de tema
   (`text-success`/`warning`/`destructive`/`info`).
 - Ver `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md` para o registro completo.

@@ -83,7 +83,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## ✅ Fase 3.1 do Fluxoly Design System — Foundation v2 ENCERRADA (PR #<a preencher> mergeado)
+## ✅ Fase 3.1 do Fluxoly Design System — Foundation v2 (implementada, aguardando checklist manual + PR)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md` para o registro completo e
 `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
@@ -107,12 +107,18 @@ Light Mode). Nenhuma tela redesenhada — migração de composição das telas �
   tokens de tema (`text-success`/`warning`/`destructive`/`info`). Exceção: papel "financeiro" em
   `Users.jsx` sem token de roxo equivalente — registrado como KI-051.
 
-**Validação:** suíte completa passando, lint 0 erros, checklist manual em navegador real (Light Mode/Dark
-Mode) nas 9 telas do KI-050 e nos 3 gráficos.
+**Validação:** suíte completa passando (133/133), lint 0 erros. Cada task passou por revisão automatizada
+individual (spec + qualidade) com verificação de token-a-token contra o diff real. **Checklist manual em
+navegador real (Light Mode/Dark Mode) ainda não executado nesta sessão** — a extensão do Claude in Chrome
+não estava conectada no ambiente; mesma classe de lacuna não bloqueante já aceita no fechamento da Fase 3.0
+("Toggle na Sidebar autenticada e o dashboard completo não foram verificados ao vivo... gap residual, não
+bloqueante").
 
-**Decisão do CTO:** aprovado. Mergeado em `main`.
+**Decisão do CTO:** pendente — aguardando checklist manual (Light/Dark nas 9 telas do KI-050 + 3 gráficos)
+e abertura do PR.
 
-**Próximo passo:** Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).
+**Próximo passo:** checklist manual visual, abrir o PR, aguardar CI 6/6 e aprovação do CTO antes do merge.
+Depois: Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).
 
 ---
 

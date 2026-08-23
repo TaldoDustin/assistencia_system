@@ -5,9 +5,11 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-20 — inclui a Fase 3.0 do Fluxoly Design System (infraestrutura de tema —
+**Última revisão:** 2026-08-22 — inclui a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
+`Panel`/`ListBlock`/`LooseMetric`, `DataTable`, tema único de gráfico, correção do KI-050; **mergeada em
+`main`, PR #60, commit `248349db`, ver seção logo abaixo**), a Fase 3.0 (infraestrutura de tema —
 Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; **mergeada em `main`, PR #59,
-commit `5b6237df`, ver seção logo abaixo**), o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
+commit `5b6237df`**), o PR 5 (Vendas/VendaDetalhe/Financeiro/Clientes, implementado,
 aguardando checkpoint final + CI antes do merge) e os PRs 1-4 (Foundation, `ChecklistDevice.jsx`,
 Orders/Kanban/NewOrder/EditOrder, Estoque/Unidades Serializadas/Produtos), todos da Fase 2 do Fluxoly Design
 System, o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
@@ -83,7 +85,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## ✅ Fase 3.1 do Fluxoly Design System — Foundation v2 (implementada, aguardando checklist manual + PR)
+## ✅ Fase 3.1 do Fluxoly Design System — Foundation v2 ENCERRADA (PR #60 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md` para o registro completo e
 `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
@@ -129,11 +131,11 @@ disponível nesta sessão) segue sem verificação direta, mas o mecanismo espec
 (resolução de `var()` em atributo SVG) está confirmado funcionando no motor de renderização mais usado.
 Gap residual não bloqueante, mesma classe já aceita no fechamento da Fase 3.0.
 
-**Decisão do CTO:** pendente — PR #60 aberto (https://github.com/TaldoDustin/assistencia_system/pull/60),
-aguardando CI 6/6 e aprovação.
+**Decisão do CTO:** aprovado. Mergeado em `main` (PR #60, squash, commit `248349db`, 2026-08-22). CI 17/17
+verde antes do merge (Backend Tests, Frontend Unit Tests, Coverage, Docker Build, Frontend Build, Frontend
+Quality, Lint — todos ×2 — mais Vercel Preview/Deploy).
 
-**Próximo passo:** checklist manual visual, abrir o PR, aguardar CI 6/6 e aprovação do CTO antes do merge.
-Depois: Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).
+**Próximo passo:** Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).
 
 ---
 

@@ -1,20 +1,24 @@
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/constants";
 
+// Cores migradas para os tokens de tema (Fase 3.1 -- corrige KI-050: as classes anteriores
+// (emerald/amber/red/blue-400) eram calibradas só para o Dark Mode anterior à Fase 3.0 e caíam
+// para contraste ~1,5:1 em fundo claro). Mesmo resultado visual em Dark Mode -- os tokens já
+// foram calibrados para ficar próximos das cores anteriores (Fase 3.0, ver theme-tokens.js).
 const colorMap = {
-  primary: "bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/20 text-blue-400",
-  green:   "bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/20 text-emerald-400",
-  amber:   "bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/20 text-amber-400",
-  red:     "bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/20 text-red-400",
-  blue:    "bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/20 text-blue-400",
+  primary: "bg-gradient-to-br from-info/20 to-info/10 border-info/20 text-info",
+  green:   "bg-gradient-to-br from-success/20 to-success/10 border-success/20 text-success",
+  amber:   "bg-gradient-to-br from-warning/20 to-warning/10 border-warning/20 text-warning",
+  red:     "bg-gradient-to-br from-destructive/20 to-destructive/10 border-destructive/20 text-destructive",
+  blue:    "bg-gradient-to-br from-info/20 to-info/10 border-info/20 text-info",
 };
 
 const iconColorMap = {
-  primary: "bg-blue-500/15 text-blue-400",
-  green:   "bg-emerald-500/15 text-emerald-400",
-  amber:   "bg-amber-500/15 text-amber-400",
-  red:     "bg-red-500/15 text-red-400",
-  blue:    "bg-blue-500/15 text-blue-400",
+  primary: "bg-info/15 text-info",
+  green:   "bg-success/15 text-success",
+  amber:   "bg-warning/15 text-warning",
+  red:     "bg-destructive/15 text-destructive",
+  blue:    "bg-info/15 text-info",
 };
 
 export default function KpiCard({ title, value, icon: Icon, isCurrency = true, color = "primary", subtitle }) {

@@ -311,7 +311,7 @@ export default function VendaDetalhe() {
       </div>
 
       {cancelando && (
-        <div className="bg-card border border-red-500/30 rounded-xl p-4 space-y-3">
+        <div className="bg-card border border-destructive/30 rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium text-card-foreground">Cancelar venda #{venda.id}</p>
           <div className="space-y-1.5">
             <Label htmlFor="motivo-cancelamento">Motivo</Label>

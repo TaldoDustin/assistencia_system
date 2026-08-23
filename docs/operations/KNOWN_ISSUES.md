@@ -1845,7 +1845,7 @@ Responsável:
 
 ---
 
-## KI-050
+## ~~KI-050~~ — RESOLVIDO
 
 Descrição:
 9 telas ainda usam classes Tailwind hardcoded calibradas só para Dark Mode, em vez dos tokens de tema
@@ -1865,12 +1865,96 @@ explicitamente no toggle. Ainda assim é dívida real: quem escolher Light Mode 
 telas com contraste ruim.
 
 Status:
-Aberto — identificado em 2026-08-20 durante a revisão final (whole-branch) da Fase 3.0. Correção: migrar
-essas telas para os tokens de tema é escopo da Fase 3.1+ (Foundation v2 / composição), não desta fase.
+**Resolvido em 2026-08-22** (Fase 3.1, `PLAN-design-system-fase3.1-foundation-v2.md`, Tasks 4-5) — as 9
+telas migradas para os tokens de tema (`text-success`/`warning`/`destructive`/`info`). Exceção: o papel
+"financeiro" em `Users.jsx` não tem token semântico de roxo equivalente na paleta Pulse — registrado
+separadamente como KI-051 (não bloqueante). Escopo desta correção: exatamente os 9 arquivos listados
+acima; `GlobalAlerts.jsx` tem 3 classes hardcoded adicionais nunca inventariadas no KI-050 original, fora
+de escopo.
 
 Sprint prevista:
 Fase 3.1 (Foundation v2) — ver `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md`
 seção 12.
+
+Responsável:
+—
+
+---
+
+## KI-051
+
+Descrição:
+`Users.jsx` (`perfilColor`, papel "financeiro") usa `text-purple-400` (Tailwind cru) para diferenciar o
+perfil de usuário "financeiro" na lista de usuários. Ao corrigir o KI-050 (Fase 3.1), os outros 3 papéis
+(`tecnico`/`vendedor`/`estoque`) foram migrados para tokens de tema já existentes (`info`/`success`/
+`warning`) — "financeiro" não tem equivalente: os 4 tokens semânticos da paleta Pulse (destructive/
+success/warning/info) não incluem roxo, e criar um token novo não é escopo de uma correção de bug.
+
+Impacto:
+Mesmo impacto de contraste do KI-050 original (calibrado só para Dark Mode, ~baixo contraste em Light
+Mode), mas isolado a 1 célula de 1 tela — a lista de usuários já é uma tela administrativa de baixo
+tráfego (Tier 4, `PLAN-design-system-fase3-visual-experience.md` §9).
+
+Status:
+Aberto — decisão de produto pendente: adicionar um 5º token semântico à paleta (decisão de marca, CTO) ou
+remover a diferenciação de cor por papel (mudança de composição, fora de escopo de correção de bug).
+
+Sprint prevista:
+Sem sprint — fica para quando a Fase 3.2+ tocar `Users.jsx` diretamente, ou decisão isolada do CTO.
+
+Responsável:
+—
+
+---
+
+## KI-052
+
+Descrição:
+`lib/chart-theme.js` (Fase 3.1) define `CHART_PALETTE` com 5 cores categóricas
+(`--color-chart-1` a `--color-chart-5`). `ServicesChartCard.jsx` usa essa paleta tanto no
+gráfico de pizza quanto na legenda (até 10 itens exibidos, `slice(0, 10)`) — a partir do 6º
+serviço, a cor se repete (`chartColor()` cicla via módulo), então duas fatias/itens de legenda
+podem ficar com a mesma cor. A implementação anterior a esta fase tinha um array `COLORS[]`
+local com exatamente 10 cores, sem essa repetição.
+
+Impacto:
+Cosmético, não esconde dado — a legenda continua listando cada serviço pelo nome, só a cor do
+indicador se repete. Visível em qualquer loja com 6+ tipos de serviço distintos no período
+filtrado (cenário plausível, não extremo).
+
+Status:
+Aberto — identificado na revisão final (whole-branch) da Fase 3.1. Correção adequada exigiria
+mudar a composição de `ServicesChartCard.jsx` (ex.: limitar a 5 fatias + agrupar o resto em
+"Outros"), fora do escopo desta fase (só Foundation/tokens, sem mudança de composição de tela).
+
+Sprint prevista:
+Fase 3.2+ (Vitrine/Operação — quando `ServicesChartCard.jsx` for revisitado para composição).
+
+Responsável:
+—
+
+---
+
+## KI-053
+
+Descrição:
+`components/ui/data-table.jsx` (Fase 3.1) — quando `onRowClick` é passado, a `<tr>` fica
+focável (`tabIndex={0}`) e responde a clique e à tecla Enter, mas não à tecla Espaço (padrão
+comum de ativação de linha/botão) nem expõe `role="button"` ou equivalente — o leitor de tela
+anuncia a linha como `row` comum, não como algo ativável além do foco.
+
+Impacto:
+Nenhum hoje — `DataTable` ainda não é consumido por nenhuma página (Fase 3.1 só construiu o
+componente). Mas como `DataTable` está destinado a substituir toda tabela HTML manual do app a
+partir da Fase 3.2+, essa lacuna de acessibilidade se propagaria silenciosamente para cada tela
+migrada se não for corrigida antes.
+
+Status:
+Aberto — identificado na revisão final (whole-branch) da Fase 3.1, achado do task review original
+da Task 2 (DataTable), registrado formalmente aqui em vez de deixar para ser redescoberto depois.
+
+Sprint prevista:
+Antes ou durante a primeira migração de tela para `DataTable` (Fase 3.2+).
 
 Responsável:
 —

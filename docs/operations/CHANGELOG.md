@@ -9,6 +9,17 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-22 — Fase 3.1 do Fluxoly Design System, Foundation v2)
+- **Recipientes de composição** `Panel`/`ListBlock`/`LooseMetric` em `components/ui/` — evoluem `Card`
+  como recipiente universal (dominante/bloco de lista/métrica solta), ainda não usados em nenhuma página.
+- **`DataTable`** real da Foundation (header sticky opcional, linha clicável com suporte a teclado).
+- **Tema único de gráfico** (`lib/chart-theme.js`) — os 3 gráficos do Dashboard passam a usar
+  `var(--color-*)` para grade/eixo/cursor (reagem à troca de tema); as cores categóricas das séries
+  (`--color-chart-1..5`) permanecem fixas nos dois modos, por design (ver `index.css`).
+- **KI-050 resolvido** — 9 telas migradas de classe Tailwind crua para tokens de tema
+  (`text-success`/`warning`/`destructive`/`info`).
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.1-foundation-v2.md` para o registro completo.
+
 ### Adicionado (2026-08-20 — Fase 3.0 do Fluxoly Design System, infraestrutura de tema)
 - **feat(design-system): infraestrutura de tema (Fase 3.0)** — Light Mode e Dark Mode, toggle
   automático/claro/escuro, persistência de preferência.

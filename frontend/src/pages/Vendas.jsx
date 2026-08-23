@@ -413,8 +413,8 @@ function NovaVenda() {
     return (
       <div className="space-y-5 max-w-xl">
         <div className="bg-card border border-border rounded-xl p-6 text-center space-y-4">
-          <div className="mx-auto h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-            <Check className="h-6 w-6 text-emerald-400" />
+          <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+            <Check className="h-6 w-6 text-success" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">Venda concluída</h1>

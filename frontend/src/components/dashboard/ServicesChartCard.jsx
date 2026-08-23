@@ -5,20 +5,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-
-// Paleta de cores moderna e vibrante
-const COLORS = [
-  "#3B82F6", // Azul
-  "#10B981", // Verde
-  "#F59E0B", // Âmbar
-  "#EF4444", // Vermelho
-  "#8B5CF6", // Roxo
-  "#EC4899", // Rosa
-  "#14B8A6", // Teal
-  "#F97316", // Laranja
-  "#06B6D4", // Cyan
-  "#6366F1", // Indigo
-];
+import { chartColor } from "@/lib/chart-theme";
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -91,7 +78,7 @@ export default function ServicesChartCard({ data }) {
                 {dataWithPercentage.map((_, i) => (
                   <Cell
                     key={`cell-${i}`}
-                    fill={COLORS[i % COLORS.length]}
+                    fill={chartColor(i)}
                     style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }}
                   />
                 ))}
@@ -108,7 +95,7 @@ export default function ServicesChartCard({ data }) {
               <LegendItem
                 key={item.name}
                 name={item.name}
-                color={COLORS[i % COLORS.length]}
+                color={chartColor(i)}
                 percentage={item.percentage}
               />
             ))}

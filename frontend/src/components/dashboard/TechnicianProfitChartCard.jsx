@@ -9,17 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatCurrency } from "@/lib/constants";
-
-const COLORS = [
-  "#3B82F6", // Azul
-  "#10B981", // Verde
-  "#F59E0B", // Âmbar
-  "#EF4444", // Vermelho
-  "#8B5CF6", // Roxo
-  "#EC4899", // Rosa
-  "#14B8A6", // Teal
-  "#F97316", // Laranja
-];
+import { CHART_GRID_STROKE, CHART_AXIS_TICK, CHART_CURSOR_FILL, chartColor } from "@/lib/chart-theme";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -56,38 +46,38 @@ export default function TechnicianProfitChartCard({ data }) {
       </div>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data} margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="hsl(222 47% 19%)" 
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={CHART_GRID_STROKE}
             vertical={false}
             style={{ opacity: 0.5 }}
           />
-          <XAxis 
-            dataKey="tecnico" 
-            tick={{ fill: "hsl(215 20% 55%)", fontSize: 12 }} 
-            tickLine={false} 
+          <XAxis
+            dataKey="tecnico"
+            tick={CHART_AXIS_TICK}
+            tickLine={false}
             axisLine={false}
             style={{ opacity: 0.7 }}
           />
-          <YAxis 
-            tick={{ fill: "hsl(215 20% 55%)", fontSize: 12 }} 
-            tickLine={false} 
-            axisLine={false} 
+          <YAxis
+            tick={CHART_AXIS_TICK}
+            tickLine={false}
+            axisLine={false}
             tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
             style={{ opacity: 0.7 }}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(59, 130, 246, 0.1)" }} />
-          <Bar 
-            dataKey="lucro" 
-            name="Lucro" 
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: CHART_CURSOR_FILL }} />
+          <Bar
+            dataKey="lucro"
+            name="Lucro"
             radius={[6, 6, 0, 0]}
             isAnimationActive={true}
             animationDuration={800}
           >
             {data.map((_, i) => (
-              <Cell 
-                key={`cell-${i}`} 
-                fill={COLORS[i % COLORS.length]}
+              <Cell
+                key={`cell-${i}`}
+                fill={chartColor(i)}
                 style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))" }}
               />
             ))}

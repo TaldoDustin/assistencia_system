@@ -224,10 +224,10 @@ export default function Dashboard() {
                   <h3 className="text-sm font-medium text-card-foreground mb-4">Resumo Financeiro</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Custo de Peças", value: data?.custo_consumido_periodo, color: "text-red-400" },
-                      { label: "Custos Operacionais", value: data?.custos_operacionais_periodo, color: "text-amber-400" },
-                      { label: "Faturamento", value: data?.faturamento_total, color: "text-emerald-400" },
-                      { label: "Lucro Bruto", value: data?.lucro_total, color: "text-blue-400" },
+                      { label: "Custo de Peças", value: data?.custo_consumido_periodo, color: "text-destructive" },
+                      { label: "Custos Operacionais", value: data?.custos_operacionais_periodo, color: "text-warning" },
+                      { label: "Faturamento", value: data?.faturamento_total, color: "text-success" },
+                      { label: "Lucro Bruto", value: data?.lucro_total, color: "text-info" },
                     ].map((item) => (
                       <div key={item.label} className="bg-secondary rounded-lg p-3">
                         <p className="text-xs text-muted-foreground">{item.label}</p>

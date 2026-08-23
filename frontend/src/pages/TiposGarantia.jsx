@@ -121,7 +121,7 @@ export default function TiposGarantia() {
                     <td className="px-4 py-3">
                       <span className={[
                         "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
-                        t.ativo ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : "bg-secondary/70 text-muted-foreground border-border",
+                        t.ativo ? "bg-success/10 text-success border-success/30" : "bg-secondary/70 text-muted-foreground border-border",
                       ].join(" ")}>
                         {t.ativo ? "Ativo" : "Inativo"}
                       </span>

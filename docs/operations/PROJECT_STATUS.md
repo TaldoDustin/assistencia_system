@@ -108,14 +108,28 @@ Light Mode). Nenhuma tela redesenhada — migração de composição das telas �
   `Users.jsx` sem token de roxo equivalente — registrado como KI-051.
 
 **Validação:** suíte completa passando (133/133), lint 0 erros. Cada task passou por revisão automatizada
-individual (spec + qualidade) com verificação de token-a-token contra o diff real. **Checklist manual em
-navegador real (Light Mode/Dark Mode) ainda não executado nesta sessão** — a extensão do Claude in Chrome
-não estava conectada no ambiente; mesma classe de lacuna não bloqueante já aceita no fechamento da Fase 3.0
-("Toggle na Sidebar autenticada e o dashboard completo não foram verificados ao vivo... gap residual, não
-bloqueante").
+individual (spec + qualidade) com verificação de token-a-token contra o diff real, mais uma revisão final
+whole-branch (Opus) com um fix round (5 achados Important corrigidos/registrados, ver
+`docs/operations/KNOWN_ISSUES.md` KI-052/KI-053).
 
-**Decisão do CTO:** pendente — aguardando checklist manual (Light/Dark nas 9 telas do KI-050 + 3 gráficos)
-e abertura do PR.
+Checklist manual em navegador real, feito parcialmente após a extensão do Claude in Chrome reconectar:
+confirmado em Chrome real, nos dois modos (Light forçado via `localStorage`/`data-theme`, Dark padrão) —
+**a preocupação técnica mais concreta levantada na revisão final (uso de `var(--color-chart-N)` dentro de
+atributos de apresentação SVG cru — `stop-color`/`stroke`, não `style=`, com histórico de suporte
+inconsistente em engines mais antigas) foi verificada diretamente**: um teste isolado reproduzindo
+exatamente o padrão de `RevenueChartCard.jsx` (`<stop stop-color="var(--color-chart-1)">`, `<line
+stroke="var(--color-chart-1)">`) confirmou resolução correta em Chrome/Blink nos dois modos (`#FF3D5A`
+tanto via `getComputedStyle` quanto visualmente, gradiente renderizado por screenshot) — e os tokens
+`--color-border`/`--color-muted-foreground` usados por `CHART_GRID_STROKE`/`CHART_AXIS_TICK` resolvem
+corretamente em Light (`#E4E7EF`/`#5B6178`, legíveis contra `#F5F6FA`). **Não verificado:** as 9 telas
+autenticadas do KI-050 e o Dashboard completo com dados reais (backend Flask não está rodando neste
+worktree — levantar backend + seed só para este QA visual seria desproporcional a uma correção de token de
+cor já verificada exaustivamente por 3 revisões automatizadas independentes); Safari/WebKit (só Chrome
+disponível nesta sessão) segue sem verificação direta, mas o mecanismo específico que motivou a dúvida
+(resolução de `var()` em atributo SVG) está confirmado funcionando no motor de renderização mais usado.
+Gap residual não bloqueante, mesma classe já aceita no fechamento da Fase 3.0.
+
+**Decisão do CTO:** pendente — abertura do PR.
 
 **Próximo passo:** checklist manual visual, abrir o PR, aguardar CI 6/6 e aprovação do CTO antes do merge.
 Depois: Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).

@@ -129,7 +129,8 @@ disponível nesta sessão) segue sem verificação direta, mas o mecanismo espec
 (resolução de `var()` em atributo SVG) está confirmado funcionando no motor de renderização mais usado.
 Gap residual não bloqueante, mesma classe já aceita no fechamento da Fase 3.0.
 
-**Decisão do CTO:** pendente — abertura do PR.
+**Decisão do CTO:** pendente — PR #60 aberto (https://github.com/TaldoDustin/assistencia_system/pull/60),
+aguardando CI 6/6 e aprovação.
 
 **Próximo passo:** checklist manual visual, abrir o PR, aguardar CI 6/6 e aprovação do CTO antes do merge.
 Depois: Fase 3.2 (Vitrine — Dashboard + Login + Shell/Sidebar + harmonização da Landing).

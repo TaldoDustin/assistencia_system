@@ -154,10 +154,13 @@ servida via Render + Vercel — a hospedagem já migrou de Fly.io, mas o nome le
 ## 10. Identidade Visual (Logo e Tipografia)
 
 **Status:** Revisado — 2026-08-20 (direção "Pulse", ver seção 10.4). Substitui a decisão de 2026-08-18
-registrada anteriormente nesta seção. **Implementação em código:** ícone (5 variações de cor) e a cor de
-assinatura `#FF3D5A` já estão em produção desde a Fase 3.0/PR #59 (ver seção 10.1/10.3 — nota de "pendente"
-mantida ali durante um tempo por desatualização deste documento, corrigida em 2026-08-24). Wordmark em
-Space Grotesk Bold aplicado em 2026-08-24 (branch `feat/wordmark-space-grotesk`) — ver seção 10.2.
+registrada anteriormente nesta seção. **Implementação em código:** a cor de assinatura `#FF3D5A` já está
+em produção desde a Fase 3.0/PR #59 (ver seção 10.3) e o wordmark em Space Grotesk Bold foi aplicado em
+2026-08-24 (branch `feat/wordmark-space-grotesk`, ver seção 10.2). **O ícone Pulse (traço de
+batimento/ECG terminando em seta ascendente) continua pendente** — os arquivos em
+`frontend/public/brand/fluxoly-icon-*.svg` em uso hoje na interface são o monograma "F" da decisão
+anterior (2026-08-18), nunca substituídos pela direção Pulse, e ainda usam a cor antiga `#FF0125`
+hardcoded (não `#FF3D5A`) — ver KI-054 e seção 10.1.
 
 ### 10.1 Ícone
 
@@ -174,9 +177,11 @@ precisar de uma letra como legenda, e é mais distintivo que um monograma — pa
 | Cinza | `#5B6178` | Uso monocromático discreto — marca d'água, estados desabilitados |
 | Invertido | Ícone branco sobre badge vermelho-sinal sólido (`#FF3D5A`) | Favicon, ícone de app, avatar |
 
-**Implementado (Fase 3.0, PR #53/#59):** as 5 variações de cor existem como arquivos
-(`frontend/public/brand/fluxoly-icon-*.svg`) e a variação invertida está aplicada em produção
-(`Layout.jsx`, `Login.jsx`, Landing, `ChecklistDevice.jsx`).
+**Pendente (confirmado em 2026-08-24, KI-054):** os 5 arquivos em `frontend/public/brand/
+fluxoly-icon-*.svg`, aplicados em produção (`Layout.jsx`, `Login.jsx`, Landing, `ChecklistDevice.jsx`),
+não são o traço Pulse descrito acima — são o monograma abstrato da letra "F" da decisão anterior
+(2026-08-18), com a cor antiga `#FF0125` hardcoded em vez de `#FF3D5A`. Nenhuma arte vetorial do ícone
+Pulse foi produzida ainda; o SVG definitivo e as 5 variações de cor seguem como trabalho não iniciado.
 
 ### 10.2 Tipografia
 

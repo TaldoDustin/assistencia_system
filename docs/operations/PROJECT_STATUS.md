@@ -8,9 +8,12 @@
 **Última revisão:** 2026-08-24 — correção do gap wordmark×marca: `BRAND_IDENTITY.md` §10.2 decidia Space
 Grotesk Bold para o logotipo desde 2026-08-20, mas `index.css`/`index.html` ainda usavam Onest 700;
 aplicado em branch `feat/wordmark-space-grotesk`, QA visual confirmada em `/login` (Chrome real), aguarda
-autorização do CTO para merge. Aproveitado para corrigir notas de "pendente" desatualizadas em
-`BRAND_IDENTITY.md` §10.1/10.3 (ícone e cor `#FF3D5A` já estavam implementados desde a Fase 3.0, PR #59).
-Antes disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
+autorização do CTO para merge. Também corrigida uma nota de "pendente" desatualizada em
+`BRAND_IDENTITY.md` §10.3 (cor `#FF3D5A` já implementada desde a Fase 3.0, PR #59). **Achado no processo,
+registrado como KI-054 e não corrigido nesta sessão:** o ícone da marca em uso hoje (`frontend/public/
+brand/fluxoly-icon-*.svg`) continua sendo o monograma "F" da decisão anterior (2026-08-18), na cor antiga
+`#FF0125` — o traço Pulse (ECG + seta ascendente) decidido em 2026-08-20 nunca foi produzido como arte
+vetorial. Antes disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
 `Panel`/`ListBlock`/`LooseMetric`, `DataTable`, tema único de gráfico, correção do KI-050; **mergeada em
 `main`, PR #60, commit `248349db`, ver seção logo abaixo**), a Fase 3.0 (infraestrutura de tema —
 Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; **mergeada em `main`, PR #59,

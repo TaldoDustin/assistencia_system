@@ -16,9 +16,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
   via Google Fonts; `.font-wordmark` usa a fonte nova. Sem mudança de lógica — só troca de fonte no
   wordmark (Login, Sidebar); corpo de texto do app não é afetado (usa `system-ui`, não Onest). QA visual
   confirmada em `/login` (`document.fonts.check` + inspeção visual, Chrome real).
-- **docs(brand): corrigir notas de "pendente" desatualizadas em `BRAND_IDENTITY.md` §10** — ícone (5
-  variações) e cor de assinatura `#FF3D5A` já estavam implementados desde a Fase 3.0 (PR #59), mas o
-  documento ainda os descrevia como pendentes.
+- **docs(brand): corrigir nota de "pendente" desatualizada sobre a cor em `BRAND_IDENTITY.md` §10.3** —
+  cor de assinatura `#FF3D5A` já estava implementada desde a Fase 3.0 (PR #59), mas o documento ainda a
+  descrevia como pendente.
+- **KI-054 registrado:** o ícone da marca ainda é o monograma "F" da decisão anterior (2026-08-18), não
+  o traço Pulse (ECG + seta) decidido em 2026-08-20 — nenhuma arte vetorial do ícone novo foi produzida.
+  Achado ao investigar um relato do usuário; a primeira verificação desta mesma sessão havia concluído
+  erroneamente que o ícone já estava correto (corrigido antes do commit).
 
 ### Adicionado (2026-08-22 — Fase 3.1 do Fluxoly Design System, Foundation v2)
 - **Recipientes de composição** `Panel`/`ListBlock`/`LooseMetric` em `components/ui/` — evoluem `Card`

@@ -1958,3 +1958,36 @@ Antes ou durante a primeira migração de tela para `DataTable` (Fase 3.2+).
 
 Responsável:
 —
+
+---
+
+## KI-054
+
+Descrição:
+`docs/company/BRAND_IDENTITY.md` §10.1 decidiu em 2026-08-20 (direção "Pulse") substituir o ícone da
+marca pelo traço de batimento/ECG estilizado terminando numa seta ascendente, no lugar do monograma
+abstrato da letra "F" da decisão anterior (2026-08-18). Nenhuma arte vetorial do ícone Pulse foi
+produzida — os 5 arquivos reais em `frontend/public/brand/fluxoly-icon-*.svg`, aplicados em produção
+(`Layout.jsx`, `Login.jsx`, componentes da Landing, `ChecklistDevice.jsx`), continuam sendo o monograma
+"F" antigo. Adicionalmente, o SVG usa a cor antiga `#FF0125` hardcoded, não `#FF3D5A` (a cor de
+assinatura Pulse já aplicada via tokens CSS desde a Fase 3.0/PR #59) — ou seja, o ícone diverge da marca
+decidida tanto na forma quanto na cor.
+
+Impacto:
+Médio (marca/produto, não funcional). O ícone visível em toda tela autenticada, no login e na Landing
+não corresponde à identidade visual decidida e documentada como vigente — inconsistência perceptível ao
+lado do vermelho-sinal correto usado no resto da UI (botões, badges) via `--color-primary`.
+
+Status:
+Aberto — identificado em 2026-08-24 ao investigar um relato do usuário (CTO) de que "a logo ainda não
+foi trocada". A investigação inicial (mesma sessão) checou apenas a existência/uso dos arquivos e
+concluiu erroneamente que o ícone já estava implementado — corrigido ao abrir o conteúdo real do SVG e
+confirmar visualmente. Nenhuma correção aplicada nesta sessão: produzir o SVG definitivo do traço Pulse
+é trabalho de design/vetorização, não uma troca mecânica de token.
+
+Sprint prevista:
+Não definida — depende de decisão do CTO sobre quando desenhar a arte vetorial final do ícone Pulse
+(hoje existe só como protótipo de direção num canvas de exploração, não como produção).
+
+Responsável:
+—

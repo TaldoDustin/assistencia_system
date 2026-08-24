@@ -9,6 +9,39 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Docs (2026-08-24 — KI-055 registrado, revisão do PR #61)
+- Achado na revisão de código do PR #61: `BRAND_IDENTITY.md` §10.2 afirmava que Onest era "mantida" para
+  UI/corpo de texto — nunca foi verdade (`body` sempre usou `system-ui`), e com a troca do wordmark para
+  Space Grotesk nesta mesma branch, Onest passou a ter zero uso em todo o código. Documentação corrigida;
+  decisão sobre aplicar Onest de fato ao corpo de texto fica em aberto para o CTO.
+
+### Corrigido (2026-08-24 — ícone Pulse aplicado, KI-054 resolvido)
+- **fix(brand): substituir o monograma "F" pelo ícone Pulse real** — os 5 arquivos em `frontend/public/
+  brand/fluxoly-icon-*.svg` e `favicon.svg` usavam o monograma "F" da decisão de identidade anterior
+  (2026-08-18), nunca substituídos pela direção "Pulse" (traço de batimento/ECG + seta ascendente)
+  decidida em 2026-08-20. O path SVG real foi recuperado do artifact de exploração "Fluxoly Identity
+  Directions" (Claude Design) e aplicado às 5 variações de cor da tabela `BRAND_IDENTITY.md` §10.1
+  (`red`/`white`/`cyan`/`gray`/`inverted` — `cyan` é novo, substitui o arquivo `black` que não fazia
+  parte da tabela oficial). QA visual confirmada em `/login` e `/` (Chrome real).
+- Achado reportado pelo usuário (CTO): a verificação anterior desta mesma sessão (ver entrada abaixo)
+  havia checado só a existência/uso dos arquivos, não o conteúdo do SVG, e concluído erroneamente que o
+  ícone já estava correto.
+
+### Corrigido (2026-08-24 — wordmark em Space Grotesk)
+- **fix(brand): aplicar Space Grotesk no wordmark** — `BRAND_IDENTITY.md` §10.2 já decidia em 2026-08-20
+  trocar a fonte do logotipo "Fluxoly" de Onest para Space Grotesk Bold, mas o código (`.font-wordmark`
+  em `index.css`) continuava usando Onest 700. `frontend/index.html` passa a carregar Space Grotesk:700
+  via Google Fonts; `.font-wordmark` usa a fonte nova. Sem mudança de lógica — só troca de fonte no
+  wordmark (Login, Sidebar); corpo de texto do app não é afetado (usa `system-ui`, não Onest). QA visual
+  confirmada em `/login` (`document.fonts.check` + inspeção visual, Chrome real).
+- **docs(brand): corrigir nota de "pendente" desatualizada sobre a cor em `BRAND_IDENTITY.md` §10.3** —
+  cor de assinatura `#FF3D5A` já estava implementada desde a Fase 3.0 (PR #59), mas o documento ainda a
+  descrevia como pendente.
+- **KI-054 registrado:** o ícone da marca ainda é o monograma "F" da decisão anterior (2026-08-18), não
+  o traço Pulse (ECG + seta) decidido em 2026-08-20 — nenhuma arte vetorial do ícone novo foi produzida.
+  Achado ao investigar um relato do usuário; a primeira verificação desta mesma sessão havia concluído
+  erroneamente que o ícone já estava correto (corrigido antes do commit).
+
 ### Adicionado (2026-08-22 — Fase 3.1 do Fluxoly Design System, Foundation v2)
 - **Recipientes de composição** `Panel`/`ListBlock`/`LooseMetric` em `components/ui/` — evoluem `Card`
   como recipiente universal (dominante/bloco de lista/métrica solta), ainda não usados em nenhuma página.

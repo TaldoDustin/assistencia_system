@@ -154,8 +154,10 @@ servida via Render + Vercel — a hospedagem já migrou de Fly.io, mas o nome le
 ## 10. Identidade Visual (Logo e Tipografia)
 
 **Status:** Revisado — 2026-08-20 (direção "Pulse", ver seção 10.4). Substitui a decisão de 2026-08-18
-registrada anteriormente nesta seção. **Implementação em código ainda pendente** — ver nota de cada
-subseção abaixo e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (Fase 3.0/3.1).
+registrada anteriormente nesta seção. **Implementação em código:** ícone (5 variações de cor) e a cor de
+assinatura `#FF3D5A` já estão em produção desde a Fase 3.0/PR #59 (ver seção 10.1/10.3 — nota de "pendente"
+mantida ali durante um tempo por desatualização deste documento, corrigida em 2026-08-24). Wordmark em
+Space Grotesk Bold aplicado em 2026-08-24 (branch `feat/wordmark-space-grotesk`) — ver seção 10.2.
 
 ### 10.1 Ícone
 
@@ -172,15 +174,17 @@ precisar de uma letra como legenda, e é mais distintivo que um monograma — pa
 | Cinza | `#5B6178` | Uso monocromático discreto — marca d'água, estados desabilitados |
 | Invertido | Ícone branco sobre badge vermelho-sinal sólido (`#FF3D5A`) | Favicon, ícone de app, avatar |
 
-**Pendente:** o traço acima existe hoje como protótipo de direção num canvas de exploração (artifact
-"Fluxoly Identity Directions", Claude Design) — ainda não é arte vetorial final de produção. Desenhar o
-SVG definitivo, gerar as 5 variações de cor como arquivos (`frontend/public/brand/fluxoly-icon-*.svg`) e
-aplicá-las (favicon, header, materiais) é trabalho da Fase 3.0/3.1, ainda não feito.
+**Implementado (Fase 3.0, PR #53/#59):** as 5 variações de cor existem como arquivos
+(`frontend/public/brand/fluxoly-icon-*.svg`) e a variação invertida está aplicada em produção
+(`Layout.jsx`, `Login.jsx`, Landing, `ChecklistDevice.jsx`).
 
 ### 10.2 Tipografia
 
 **Wordmark (logotipo):** Space Grotesk, peso **Bold (700)** — geométrica, mais técnica que a Onest,
-alinhada à direção "Pulse" (fluxo como sinal vivo, não composição arredondada/amigável).
+alinhada à direção "Pulse" (fluxo como sinal vivo, não composição arredondada/amigável). **Implementado**
+em 2026-08-24 (`frontend/index.html` carrega a fonte via Google Fonts, `.font-wordmark` em `index.css`
+usa Space Grotesk) — antes disso o código ainda usava Onest 700 para o wordmark, apesar desta decisão
+já estar registrada desde 2026-08-20.
 
 **UI e corpo de texto:** Onest — **mantida**, não foi abandonada. A mudança de wordmark não troca a
 fonte usada em botões, tabelas, formulários e texto de produto; troca apenas a fonte do logotipo
@@ -198,10 +202,8 @@ válida para UI. Space Grotesk é uma decisão nova, específica do logotipo, de
 | Cor de assinatura | `#FF3D5A` | Vermelho-sinal — ação primária, ícone padrão. Substitui `#FF0125`. |
 | 2º acento | `#29E0C9` | Ciano "fluxo ao vivo" — só indicadores positivos/tempo real. Token novo, não existia antes. |
 
-**Pendente:** `frontend/src/index.css` (`--color-primary` e demais tokens `@theme`) ainda está com os
-valores antigos (`#FF0125`, sem token de 2º acento) — atualizar o CSS é trabalho de código da Fase 3.0,
-não feito nesta revisão de documentação. Até lá, `index.css` não é a fonte de verdade para a cor de
-marca; esta tabela é.
+**Implementado (Fase 3.0, PR #59):** `frontend/src/index.css` (`--color-primary` e demais tokens `@theme`)
+já usa `#FF3D5A`. Token de 2º acento (`#29E0C9`) também aplicado (`--color-chart-5`).
 
 ### 10.4 Histórico da decisão (2026-08-20)
 

@@ -5,7 +5,12 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-22 — inclui a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
+**Última revisão:** 2026-08-24 — correção do gap wordmark×marca: `BRAND_IDENTITY.md` §10.2 decidia Space
+Grotesk Bold para o logotipo desde 2026-08-20, mas `index.css`/`index.html` ainda usavam Onest 700;
+aplicado em branch `feat/wordmark-space-grotesk`, QA visual confirmada em `/login` (Chrome real), aguarda
+autorização do CTO para merge. Aproveitado para corrigir notas de "pendente" desatualizadas em
+`BRAND_IDENTITY.md` §10.1/10.3 (ícone e cor `#FF3D5A` já estavam implementados desde a Fase 3.0, PR #59).
+Antes disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
 `Panel`/`ListBlock`/`LooseMetric`, `DataTable`, tema único de gráfico, correção do KI-050; **mergeada em
 `main`, PR #60, commit `248349db`, ver seção logo abaixo**), a Fase 3.0 (infraestrutura de tema —
 Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; **mergeada em `main`, PR #59,

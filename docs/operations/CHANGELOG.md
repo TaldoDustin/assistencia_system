@@ -9,6 +9,17 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Corrigido (2026-08-24 — wordmark em Space Grotesk)
+- **fix(brand): aplicar Space Grotesk no wordmark** — `BRAND_IDENTITY.md` §10.2 já decidia em 2026-08-20
+  trocar a fonte do logotipo "Fluxoly" de Onest para Space Grotesk Bold, mas o código (`.font-wordmark`
+  em `index.css`) continuava usando Onest 700. `frontend/index.html` passa a carregar Space Grotesk:700
+  via Google Fonts; `.font-wordmark` usa a fonte nova. Sem mudança de lógica — só troca de fonte no
+  wordmark (Login, Sidebar); corpo de texto do app não é afetado (usa `system-ui`, não Onest). QA visual
+  confirmada em `/login` (`document.fonts.check` + inspeção visual, Chrome real).
+- **docs(brand): corrigir notas de "pendente" desatualizadas em `BRAND_IDENTITY.md` §10** — ícone (5
+  variações) e cor de assinatura `#FF3D5A` já estavam implementados desde a Fase 3.0 (PR #59), mas o
+  documento ainda os descrevia como pendentes.
+
 ### Adicionado (2026-08-22 — Fase 3.1 do Fluxoly Design System, Foundation v2)
 - **Recipientes de composição** `Panel`/`ListBlock`/`LooseMetric` em `components/ui/` — evoluem `Card`
   como recipiente universal (dominante/bloco de lista/métrica solta), ainda não usados em nenhuma página.

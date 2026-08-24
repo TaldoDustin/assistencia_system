@@ -1961,7 +1961,7 @@ Responsável:
 
 ---
 
-## KI-054
+## ~~KI-054~~ — RESOLVIDO
 
 Descrição:
 `docs/company/BRAND_IDENTITY.md` §10.1 decidiu em 2026-08-20 (direção "Pulse") substituir o ícone da
@@ -1979,15 +1979,20 @@ não corresponde à identidade visual decidida e documentada como vigente — in
 lado do vermelho-sinal correto usado no resto da UI (botões, badges) via `--color-primary`.
 
 Status:
-Aberto — identificado em 2026-08-24 ao investigar um relato do usuário (CTO) de que "a logo ainda não
-foi trocada". A investigação inicial (mesma sessão) checou apenas a existência/uso dos arquivos e
-concluiu erroneamente que o ícone já estava implementado — corrigido ao abrir o conteúdo real do SVG e
-confirmar visualmente. Nenhuma correção aplicada nesta sessão: produzir o SVG definitivo do traço Pulse
-é trabalho de design/vetorização, não uma troca mecânica de token.
+Resolvido em 2026-08-24, mesma sessão do achado. O path SVG real do traço Pulse (nunca antes extraído
+para um arquivo de produção) foi localizado no artifact de exploração "Fluxoly Identity Directions"
+(Claude Design, direção B) lendo o conteúdo publicado do artifact e isolando o documento da direção
+Pulse dentro do bundle — não uma reconstrução aproximada. Os 5 arquivos em `frontend/public/brand/
+fluxoly-icon-*.svg` foram reescritos com esse path, mapeados às cores da tabela §10.1 do
+`BRAND_IDENTITY.md` (`red`→`#FF3D5A`, `white`→`#FFFFFF`, `cyan`→`#29E0C9` novo, substituindo o arquivo
+`black` que nunca fez parte das 5 variações documentadas, `gray`→`#5B6178`, `inverted`→ícone branco sobre
+badge `#FF3D5A`). `favicon.svg` (cópia do padrão `inverted`) recebeu o mesmo tratamento. Lint (0 erros,
+2 warnings pré-existentes não relacionados) e build de produção confirmados sem erro. QA visual real em
+Chrome (`/login` e `/`, branch `feat/wordmark-space-grotesk`) confirmou o ícone renderizando como o
+traço de pulso com seta ascendente, não mais o monograma "F".
 
 Sprint prevista:
-Não definida — depende de decisão do CTO sobre quando desenhar a arte vetorial final do ícone Pulse
-(hoje existe só como protótipo de direção num canvas de exploração, não como produção).
+Fora de sprint — resolvido na mesma sessão do achado, a pedido do usuário (CTO).
 
 Responsável:
 —

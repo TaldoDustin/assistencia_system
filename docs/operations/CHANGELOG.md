@@ -9,6 +9,18 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Corrigido (2026-08-24 — ícone Pulse aplicado, KI-054 resolvido)
+- **fix(brand): substituir o monograma "F" pelo ícone Pulse real** — os 5 arquivos em `frontend/public/
+  brand/fluxoly-icon-*.svg` e `favicon.svg` usavam o monograma "F" da decisão de identidade anterior
+  (2026-08-18), nunca substituídos pela direção "Pulse" (traço de batimento/ECG + seta ascendente)
+  decidida em 2026-08-20. O path SVG real foi recuperado do artifact de exploração "Fluxoly Identity
+  Directions" (Claude Design) e aplicado às 5 variações de cor da tabela `BRAND_IDENTITY.md` §10.1
+  (`red`/`white`/`cyan`/`gray`/`inverted` — `cyan` é novo, substitui o arquivo `black` que não fazia
+  parte da tabela oficial). QA visual confirmada em `/login` e `/` (Chrome real).
+- Achado reportado pelo usuário (CTO): a verificação anterior desta mesma sessão (ver entrada abaixo)
+  havia checado só a existência/uso dos arquivos, não o conteúdo do SVG, e concluído erroneamente que o
+  ícone já estava correto.
+
 ### Corrigido (2026-08-24 — wordmark em Space Grotesk)
 - **fix(brand): aplicar Space Grotesk no wordmark** — `BRAND_IDENTITY.md` §10.2 já decidia em 2026-08-20
   trocar a fonte do logotipo "Fluxoly" de Onest para Space Grotesk Bold, mas o código (`.font-wordmark`

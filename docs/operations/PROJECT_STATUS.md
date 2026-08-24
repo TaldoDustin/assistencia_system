@@ -5,15 +5,15 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-24 — correção do gap wordmark×marca: `BRAND_IDENTITY.md` §10.2 decidia Space
-Grotesk Bold para o logotipo desde 2026-08-20, mas `index.css`/`index.html` ainda usavam Onest 700;
-aplicado em branch `feat/wordmark-space-grotesk`, QA visual confirmada em `/login` (Chrome real), aguarda
-autorização do CTO para merge. Também corrigida uma nota de "pendente" desatualizada em
-`BRAND_IDENTITY.md` §10.3 (cor `#FF3D5A` já implementada desde a Fase 3.0, PR #59). **Achado no processo,
-registrado como KI-054 e não corrigido nesta sessão:** o ícone da marca em uso hoje (`frontend/public/
-brand/fluxoly-icon-*.svg`) continua sendo o monograma "F" da decisão anterior (2026-08-18), na cor antiga
-`#FF0125` — o traço Pulse (ECG + seta ascendente) decidido em 2026-08-20 nunca foi produzido como arte
-vetorial. Antes disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
+**Última revisão:** 2026-08-24 — fechamento completo do gap entre `BRAND_IDENTITY.md` (direção "Pulse",
+decidida 2026-08-20) e o código: (1) wordmark trocado de Onest para Space Grotesk Bold (`.font-wordmark`
+em `index.css`); (2) ícone da marca trocado do monograma "F" da decisão anterior para o traço de
+batimento/ECG + seta ascendente real, recuperado do artifact de exploração "Fluxoly Identity Directions"
+e aplicado às 5 variações de cor (`frontend/public/brand/fluxoly-icon-*.svg` + `favicon.svg`) — KI-054
+resolvido. Cor de assinatura `#FF3D5A` já estava correta desde a Fase 3.0 (PR #59); nota de "pendente"
+desatualizada em `BRAND_IDENTITY.md` §10.3 também corrigida. Tudo na branch `feat/wordmark-space-grotesk`,
+QA visual confirmada em `/login` e `/` (Chrome real), aguardando autorização do CTO para merge. Antes
+disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
 `Panel`/`ListBlock`/`LooseMetric`, `DataTable`, tema único de gráfico, correção do KI-050; **mergeada em
 `main`, PR #60, commit `248349db`, ver seção logo abaixo**), a Fase 3.0 (infraestrutura de tema —
 Light/Dark Mode, `ThemeProvider`, toggle de 3 estados, persistência; **mergeada em `main`, PR #59,

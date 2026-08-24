@@ -191,9 +191,13 @@ em 2026-08-24 (`frontend/index.html` carrega a fonte via Google Fonts, `.font-wo
 usa Space Grotesk) — antes disso o código ainda usava Onest 700 para o wordmark, apesar desta decisão
 já estar registrada desde 2026-08-20.
 
-**UI e corpo de texto:** Onest — **mantida**, não foi abandonada. A mudança de wordmark não troca a
-fonte usada em botões, tabelas, formulários e texto de produto; troca apenas a fonte do logotipo
-"Fluxoly" em si.
+**UI e corpo de texto:** Onest foi a fonte decidida em 2026-08-18 (ver comparativo abaixo), mas **nunca
+foi de fato aplicada ao corpo de texto** — `body` em `index.css` sempre usou a pilha `system-ui` (nunca
+Onest), e o único consumidor real de Onest no código era o wordmark (peso 700), que nesta mesma revisão
+(2026-08-24) passou a usar Space Grotesk. **Resultado: a partir desta revisão, Onest tem zero uso em
+qualquer lugar do código** — registrado como KI-055. Esta seção documentava um estado que nunca existiu
+de fato (achado durante a revisão do PR que aplicou Space Grotesk ao wordmark, não durante a decisão de
+2026-08-18 em si).
 
 Onest continua sendo o resultado do comparativo entre ~15 fontes candidatas (Cabinet Grotesk, Sora,
 General Sans, Clash Display, Satoshi, Switzer, Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist,

@@ -1996,3 +1996,36 @@ Fora de sprint — resolvido na mesma sessão do achado, a pedido do usuário (C
 
 Responsável:
 —
+
+---
+
+## KI-055
+
+Descrição:
+`docs/company/BRAND_IDENTITY.md` §10.2 documentava a fonte Onest como "mantida" para UI/corpo de texto,
+resultado de um comparativo entre ~15 fontes candidatas decidido em 2026-08-18. Essa decisão nunca foi
+de fato aplicada: `body` em `frontend/src/index.css` sempre usou a pilha `system-ui` (nunca Onest); o
+único ponto do código que carregava Onest era `.font-wordmark` (peso 700, usado só no logotipo
+"Fluxoly"), não o corpo de texto. Com a troca do wordmark para Space Grotesk nesta mesma sessão
+(KI-054/branch `feat/wordmark-space-grotesk`), Onest deixou de ter qualquer consumidor — `grep -rn
+"Onest" frontend/src frontend/index.html` não retorna nenhum resultado.
+
+Impacto:
+Baixo/médio (marca/produto, não funcional). A fonte "decidida" para toda a UI do produto nunca esteve
+de fato em uso — o corpo de texto sempre rodou na pilha padrão do sistema operacional, não na fonte da
+identidade. Nenhum critério de `ENGINEERING_GUIDE.md` §11 é atendido (não muta dado, não é caminho de
+produção com regra de negócio).
+
+Status:
+Aberto — achado durante a revisão de código do PR #61 (troca do wordmark para Space Grotesk), não
+durante a decisão de 2026-08-18 em si. Documentação corrigida em `BRAND_IDENTITY.md` §10.2 para refletir
+o estado real; nenhuma mudança de código feita — aplicar Onest ao corpo de texto (ou decidir formalmente
+não aplicar, já que o app roda hoje com `system-ui` sem reclamação de UX registrada) é decisão de escopo
+do CTO, não uma correção mecânica.
+
+Sprint prevista:
+Não definida — depende de decisão do CTO sobre se vale a pena aplicar Onest ao corpo de texto agora ou
+manter `system-ui` como está.
+
+Responsável:
+—

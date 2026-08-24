@@ -9,6 +9,12 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Docs (2026-08-24 — KI-055 registrado, revisão do PR #61)
+- Achado na revisão de código do PR #61: `BRAND_IDENTITY.md` §10.2 afirmava que Onest era "mantida" para
+  UI/corpo de texto — nunca foi verdade (`body` sempre usou `system-ui`), e com a troca do wordmark para
+  Space Grotesk nesta mesma branch, Onest passou a ter zero uso em todo o código. Documentação corrigida;
+  decisão sobre aplicar Onest de fato ao corpo de texto fica em aberto para o CTO.
+
 ### Corrigido (2026-08-24 — ícone Pulse aplicado, KI-054 resolvido)
 - **fix(brand): substituir o monograma "F" pelo ícone Pulse real** — os 5 arquivos em `frontend/public/
   brand/fluxoly-icon-*.svg` e `favicon.svg` usavam o monograma "F" da decisão de identidade anterior

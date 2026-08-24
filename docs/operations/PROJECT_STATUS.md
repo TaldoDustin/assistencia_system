@@ -11,8 +11,12 @@ em `index.css`); (2) ícone da marca trocado do monograma "F" da decisão anteri
 batimento/ECG + seta ascendente real, recuperado do artifact de exploração "Fluxoly Identity Directions"
 e aplicado às 5 variações de cor (`frontend/public/brand/fluxoly-icon-*.svg` + `favicon.svg`) — KI-054
 resolvido. Cor de assinatura `#FF3D5A` já estava correta desde a Fase 3.0 (PR #59); nota de "pendente"
-desatualizada em `BRAND_IDENTITY.md` §10.3 também corrigida. Tudo na branch `feat/wordmark-space-grotesk`,
-QA visual confirmada em `/login` e `/` (Chrome real), aguardando autorização do CTO para merge. Antes
+desatualizada em `BRAND_IDENTITY.md` §10.3 também corrigida. Revisão de código do PR encontrou e corrigiu
+mais um gap doc×código: `BRAND_IDENTITY.md` §10.2 afirmava Onest "mantida" no corpo de texto — nunca foi
+verdade (`body` sempre usou `system-ui`), e com a troca do wordmark, Onest passou a ter zero uso no
+código — registrado como **KI-055** (decisão de aplicar Onest de fato ao corpo de texto fica em aberto).
+**Mergeado em `main` (PR #61, squash, commit `e11b5209`, 2026-08-24)** — CI 17/17 verde, produção
+confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200). Antes
 disso: a Fase 3.1 do Fluxoly Design System (Foundation v2 — recipientes
 `Panel`/`ListBlock`/`LooseMetric`, `DataTable`, tema único de gráfico, correção do KI-050; **mergeada em
 `main`, PR #60, commit `248349db`, ver seção logo abaixo**), a Fase 3.0 (infraestrutura de tema —

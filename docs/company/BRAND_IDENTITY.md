@@ -191,18 +191,20 @@ em 2026-08-24 (`frontend/index.html` carrega a fonte via Google Fonts, `.font-wo
 usa Space Grotesk) — antes disso o código ainda usava Onest 700 para o wordmark, apesar desta decisão
 já estar registrada desde 2026-08-20.
 
-**UI e corpo de texto:** Onest foi a fonte decidida em 2026-08-18 (ver comparativo abaixo), mas **nunca
-foi de fato aplicada ao corpo de texto** — `body` em `index.css` sempre usou a pilha `system-ui` (nunca
-Onest), e o único consumidor real de Onest no código era o wordmark (peso 700), que nesta mesma revisão
-(2026-08-24) passou a usar Space Grotesk. **Resultado: a partir desta revisão, Onest tem zero uso em
-qualquer lugar do código** — registrado como KI-055. Esta seção documentava um estado que nunca existiu
-de fato (achado durante a revisão do PR que aplicou Space Grotesk ao wordmark, não durante a decisão de
-2026-08-18 em si).
+**UI e corpo de texto:** `system-ui` (pilha padrão do sistema operacional) — **decisão explícita, não
+pendência** (revisada em 2026-08-24, KI-055). Onest havia sido escolhida em 2026-08-18, após comparativo
+entre ~15 fontes candidatas (Cabinet Grotesk, Sora, General Sans, Clash Display, Satoshi, Switzer,
+Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist, Inter, entre outras, além de "Surgena" e "Goodly"
+testadas e descartadas), mas **nunca foi de fato aplicada** — `body` em `index.css` sempre usou
+`system-ui`; o único consumidor real de Onest no código era o wordmark (peso 700), que em 2026-08-24
+passou a usar Space Grotesk, zerando o uso de Onest em todo o código. Reavaliado nessa mesma revisão: a
+escolha de Onest é anterior à reinvenção de marca "Pulse" (2026-08-20), nenhuma queixa de UX existe contra
+`system-ui`, e trocar a fonte de corpo tem raio de impacto (toda tela do produto) desproporcional a uma
+correção de gap — decisão de manter `system-ui`, sem prazo, revisitável na Fase 3.2 (Vitrine) se houver
+uma tela de referência concreta.
 
-Onest continua sendo o resultado do comparativo entre ~15 fontes candidatas (Cabinet Grotesk, Sora,
-General Sans, Clash Display, Satoshi, Switzer, Supreme, Chillax, Manrope, Plus Jakarta Sans, Urbanist,
-Inter, entre outras, além de "Surgena" e "Goodly" testadas e descartadas) — decisão de 2026-08-18,
-válida para UI. Space Grotesk é uma decisão nova, específica do logotipo, de 2026-08-20.
+Space Grotesk (wordmark) é uma decisão à parte, específica do logotipo, de 2026-08-20 — implementada em
+2026-08-24.
 
 ### 10.3 Paleta de cores da marca
 

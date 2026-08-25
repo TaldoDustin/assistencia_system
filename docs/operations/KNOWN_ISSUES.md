@@ -2017,15 +2017,19 @@ identidade. Nenhum critério de `ENGINEERING_GUIDE.md` §11 é atendido (não mu
 produção com regra de negócio).
 
 Status:
-Aberto — achado durante a revisão de código do PR #61 (troca do wordmark para Space Grotesk), não
-durante a decisão de 2026-08-18 em si. Documentação corrigida em `BRAND_IDENTITY.md` §10.2 para refletir
-o estado real; nenhuma mudança de código feita — aplicar Onest ao corpo de texto (ou decidir formalmente
-não aplicar, já que o app roda hoje com `system-ui` sem reclamação de UX registrada) é decisão de escopo
-do CTO, não uma correção mecânica.
+Decidido não aplicar por ora (2026-08-24). Três motivos: (1) escopo desproporcional — troca de fonte de
+corpo afeta toda tela do produto, não os 3-5 pontos de uso do wordmark/ícone corrigidos em KI-054, e
+exigiria carregar pesos extras (400/500/600) além do único peso 700 já usado; (2) a decisão de 2026-08-18
+é anterior à reinvenção de marca da direção "Pulse" (2026-08-20), e `ENGINEERING_GUIDE.md` §3.2 registra
+que tipografia não foi redecidida na formalização do Design System mesmo após a marca girar duas vezes —
+sinal de que não é prioridade, não de esquecimento; (3) nenhuma queixa de UX registrada contra
+`system-ui` no corpo de texto, diferente do ícone/wordmark, que o usuário identificou ativamente como
+errados. `system-ui` permanece a fonte real do corpo de texto — `BRAND_IDENTITY.md` §10.2 atualizado para
+refletir isso como decisão explícita, não pendência.
 
 Sprint prevista:
-Não definida — depende de decisão do CTO sobre se vale a pena aplicar Onest ao corpo de texto agora ou
-manter `system-ui` como está.
+Reabrir na Fase 3.2 (Vitrine) apenas se houver uma tela de referência concreta que justifique a troca —
+não como substituição mecânica global.
 
 Responsável:
 —

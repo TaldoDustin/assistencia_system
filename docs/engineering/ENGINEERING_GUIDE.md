@@ -430,6 +430,38 @@ componente `Badge`) é trabalho de composição, fica para a Fase 3.2+.
 
 ---
 
+## 3.5 Fluxoly Design System (Fase 3.2 — Vitrine)
+
+Formalizado em `docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md`. Primeira fase a redesenhar
+composição de telas reais (Login, Shell/Sidebar, Dashboard) usando os recipientes da Foundation v2
+(Fase 3.1) — prova de conceito da hierarquia de superfície (`PLAN-design-system-fase3-visual-experience.md`
+§2) antes de escalar para as Fases 3.3-3.5 (Tiers 2-4).
+
+### Sidebar agrupado pelos 6 Pilares Macrossistêmicos
+
+`Layout.jsx::navSections` substitui o array plano `navItems` — rotas agrupadas em Vendas/Operação/
+Financeiro/Relacionamento/Serviços/Inteligência (`BRAND_IDENTITY.md` §2) + uma seção "Administração" fora
+dos pilares (Usuários/Backups, operação de sistema, não função de negócio). Uma seção inteira desaparece
+quando nenhum item dela é visível para o perfil da sessão — nunca um rótulo de seção órfão. A duplicata
+histórica de `/compras` (aparecia como "Compras" e "Lista de Compras") foi removida no mesmo commit,
+mantendo só "Lista de Compras".
+
+### Dashboard — 1 métrica dominante, resto secundário
+
+Faturamento do período usa `Panel` com número hero (`text-4xl`/`text-5xl`); os outros 7 KPIs usam
+`LooseMetric` (sem moldura); Resumo Financeiro usa `ListBlock` em vez de grade de caixas com fundo próprio.
+`KpiCard.jsx` fica sem consumidor após esta fase — registrado como KI-056, decisão de remover fica para o
+CTO.
+
+### Login e Landing
+
+`Login.jsx` migra a moldura do form para `Panel`, com respiro adicional acima/abaixo (`py-12`,
+`space-y-8`). A Landing Page **não** é redesenhada nesta fase (fora da liberdade criativa total, ver
+`PLAN-design-system-fase3-visual-experience.md` §0.1) — auditada por consistência de token/marca, nenhum
+achado (já herdava os tokens corretamente).
+
+---
+
 ## 4. Padrões Frontend (React / Vite)
 
 ### 4.0 Princípio de UX: interface por perfil

@@ -5,7 +5,15 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-24 — fechamento completo do gap entre `BRAND_IDENTITY.md` (direção "Pulse",
+**Última revisão:** 2026-08-25 — Fase 3.2 do Fluxoly Design System (Vitrine): Login/Shell-Sidebar/Dashboard
+redesenhados com os recipientes da Foundation v2 (`Panel`/`ListBlock`/`LooseMetric`, Fase 3.1), primeira
+fase a mudar composição de tela real (não só tokens). Sidebar agrupado pelos 6 Pilares Macrossistêmicos;
+Dashboard com Faturamento como métrica dominante; Landing auditada sem achados. Ver seção logo abaixo.
+KI-056 registrado (`KpiCard.jsx` órfão, decisão de remover fica para o CTO). Branch
+`feat/design-system-fase3.2-vitrine`, 136/136 testes, lint 0 erros, build ok; QA visual de Login e Sidebar
+confirmada em Chrome real, QA do Dashboard bloqueada pelo KI-027 já conhecido (sessão não persiste no
+navegador de automação — confirmado via `curl` que backend/dados funcionam corretamente). Antes disso:
+2026-08-24 — fechamento completo do gap entre `BRAND_IDENTITY.md` (direção "Pulse",
 decidida 2026-08-20) e o código: (1) wordmark trocado de Onest para Space Grotesk Bold (`.font-wordmark`
 em `index.css`); (2) ícone da marca trocado do monograma "F" da decisão anterior para o traço de
 batimento/ECG + seta ascendente real, recuperado do artifact de exploração "Fluxoly Identity Directions"
@@ -94,6 +102,61 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Fase 3.2 do Fluxoly Design System — Vitrine ENCERRADA (aguardando merge)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md` para o registro completo e
+`docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
+completo da Fase 3.**
+
+2026-08-25. Terceira fatia da Fase 3, sequência imediata à Foundation v2 (3.1). Primeira fase a mudar
+composição de tela real (Tier 1 — "Vitrine": Login, Shell/Sidebar, Dashboard), prova de conceito da
+hierarquia de superfície antes de escalar para as Fases 3.3-3.5 (Tiers 2-4). Executada via
+`superpowers:subagent-driven-development` (4 tasks de implementação + 1 de validação/docs, cada uma com
+implementador + revisor dedicados, 2 rulings do controlador sobre gaps reais do próprio plano — ver
+"Rulings" abaixo).
+
+**Entregue** (branch `feat/design-system-fase3.2-vitrine`):
+- **Login** — form migra de `bg-card border ... shadow-xl` manual para `Panel`/`PanelContent` (Foundation
+  v2), com respiro adicional (`py-12`, `space-y-8`) acima/abaixo do bloco de marca e do form.
+- **Shell/Sidebar** — os 18 itens de navegação, antes uma lista plana, agora agrupados pelos 6 Pilares
+  Macrossistêmicos da marca (`BRAND_IDENTITY.md` §2: Vendas/Operação/Financeiro/Relacionamento/Serviços/
+  Inteligência) + uma seção "Administração" fora dos pilares (Usuários/Backups). Uma seção some por
+  completo quando nenhum item dela é visível para o perfil da sessão. De quebra, corrigida uma duplicata
+  histórica (`/compras` aparecia como "Compras" e "Lista de Compras" na mesma lista).
+- **Dashboard** — de "8 KPIs + 3 gráficos, todos do mesmo peso" para hierarquia real: Faturamento vira
+  métrica dominante (`Panel`, número hero `text-4xl`/`text-5xl`); os outros 7 KPIs viram `LooseMetric`
+  (sem moldura); "Resumo Financeiro" vira `ListBlock` em vez de grade de caixas com fundo próprio.
+  `KpiCard.jsx` fica sem consumidor — registrado como **KI-056**, não removido (decisão do CTO).
+- **Landing** — auditada por consistência de token/marca (fora da liberdade criativa total da Fase 3,
+  não redesenhada). Nenhum achado — já herdava corretamente os tokens e o ícone/wordmark Pulse do PR #61.
+
+**Rulings do controlador durante a execução** (2 gaps reais encontrados no próprio plano, não erros dos
+implementadores — confirmados via RED/GREEN real antes de decidir, não por suposição):
+1. A seção "Vendas" do Sidebar contém um item também chamado "Vendas" (mesmo caso em "Financeiro") — texto
+   duplicado no DOM quebrava 3 asserções `getByText`. Resolvido via seletor idiomático
+   (`getByRole("link", ...)` para o item, `getByText(..., { selector: "p" })` para o rótulo da seção) —
+   teste-only, sem mudança de composição.
+2. O valor de Faturamento aparece duas vezes de propósito no Dashboard (métrica dominante + linha do
+   Resumo Financeiro) — colisão pré-existente desde antes desta fase (o `KpiCard` antigo já tinha esse
+   mesmo problema, nunca antes testado por string exata). Resolvido via `getAllByText` + filtro por classe
+   do elemento hero — teste-only.
+
+**Validação:** suíte completa 136/136, lint 0 erros (2 warnings pré-existentes não relacionados), build de
+produção sem erro. QA visual real em Chrome confirmada para Login e Sidebar (Dark + Light Mode, 8 seções
+corretas para perfil admin, nenhum rótulo órfão). QA visual do Dashboard com dados reais (seed via
+`scripts/seed_demo.py`, banco isolado, nunca `database.db`) **bloqueada pelo KI-027** já documentado —
+sessão de login não persiste no navegador de automação usado nesta sessão; confirmado via `curl` (cookie
+jar real, fora do navegador de automação) que login + `/api/dashboard` retornam os dados corretos com o
+código desta fase. Correção do componente confirmada independentemente pela revisão de código
+(comparação linha a linha do diff contra as cores/labels do `KpiCard` removido).
+
+**Decisão do CTO:** aprovado o plano antes da implementação (agrupamento do Sidebar e escolha do
+Faturamento como métrica dominante, ambos propostos no plano). Merge ainda não solicitado.
+
+**Próximo passo:** Fase 3.3 (Operação — Orders/Kanban/Vendas/Stock/Financeiro/Clientes).
 
 ---
 

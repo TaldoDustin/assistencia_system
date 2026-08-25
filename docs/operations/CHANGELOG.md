@@ -9,6 +9,20 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-25 — Fase 3.2 do Fluxoly Design System, Vitrine)
+- **feat(design-system): Login usa Panel da Foundation v2, respiro real** — form migra da moldura manual
+  para `Panel`/`PanelContent`.
+- **feat(design-system): Sidebar agrupado pelos 6 Pilares Macrossistêmicos** — 18 itens de navegação
+  organizados em seções (Vendas/Operação/Financeiro/Relacionamento/Serviços/Inteligência + Administração),
+  seção some quando vazia para o perfil da sessão. Duplicata histórica de `/compras` removida.
+- **feat(design-system): Dashboard com hierarquia real** — Faturamento vira métrica dominante (`Panel`,
+  número hero), outros 7 KPIs viram `LooseMetric`, Resumo Financeiro vira `ListBlock`. `KpiCard.jsx` fica
+  sem consumidor — **KI-056** registrado, não removido (decisão do CTO).
+- Landing auditada por consistência de marca — nenhum achado.
+- 2 gaps reais do próprio plano corrigidos durante a execução (colisão de texto duplicado em testes do
+  Sidebar/Dashboard) — ver `docs/operations/PROJECT_STATUS.md` para o detalhe de cada ruling.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md` para o registro completo.
+
 ### Docs (2026-08-24 — KI-055 decidido: manter `system-ui` no corpo de texto)
 - Achado na revisão de código do PR #61: `BRAND_IDENTITY.md` §10.2 afirmava que Onest era "mantida" para
   UI/corpo de texto — nunca foi verdade (`body` sempre usou `system-ui`), e com a troca do wordmark para

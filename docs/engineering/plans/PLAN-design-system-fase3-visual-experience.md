@@ -295,7 +295,7 @@ por tela dentro da fase, como já é convenção), CI 6/6 + revisão antes do me
 |---|---|---|
 | 3.0 | ✅ Concluído — Infraestrutura de tema (tokens Light/Dark, ThemeProvider, toggle, persistência) — branch feat/design-system-fase3.0-theme-infra, aguardando PR. Padrão sem preferência salva permanece Dark (ver KNOWN_ISSUES.md) até a Fase 3.1 migrar as telas com classes Tailwind hardcoded. | — |
 | 3.1 | 🟡 Implementado, PR #60 aberto, aguardando CI + aprovação do CTO — branch feat/design-system-fase3.1-foundation-v2, 2026-08-22 | 3.0 |
-| 3.2 | **Vitrine (Tier 1)** — Dashboard + Login + Shell/Sidebar + harmonização da Landing. Prova de conceito da direção antes de escalar pro resto. | 3.1 |
+| 3.2 | ✅ Concluído — Vitrine (Tier 1): Dashboard + Login + Shell/Sidebar + harmonização da Landing. Branch `feat/design-system-fase3.2-vitrine`, 2026-08-25, aguardando merge. | 3.1 |
 | 3.3 | **Operação (Tier 2)** — Orders/Kanban/Vendas/Stock/Financeiro/Clientes. | 3.2 |
 | 3.4 | **Formulários (Tier 3)** — NewOrder/EditOrder/VendaDetalhe/ChecklistDevice. | 3.2 |
 | 3.5 | **Administrativo (Tier 4)** — telas restantes. | 3.2 |

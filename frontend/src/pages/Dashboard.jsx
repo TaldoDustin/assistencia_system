@@ -1,16 +1,15 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import { toast } from "sonner";
-import {
-  CircleNotch, CurrencyDollar, TrendUp, CheckCircle, Clock, ChartBar, Wallet, Package, Tag,
-  WarningCircle, Tray, ArrowClockwise,
-} from "@phosphor-icons/react";
+import { CircleNotch, WarningCircle, Tray, ArrowClockwise } from "@phosphor-icons/react";
 import { dashboard as dashboardApi, constantes } from "@/api/client";
-import KpiCard from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Panel, PanelHeader, PanelTitle, PanelContent } from "@/components/ui/panel";
+import { ListBlock, ListBlockItem } from "@/components/ui/list-block";
+import { LooseMetric } from "@/components/ui/loose-metric";
 import { formatCurrency } from "@/lib/constants";
 
 const RevenueChartCard = lazy(() => import("@/components/dashboard/RevenueChartCard"));
@@ -195,21 +194,36 @@ export default function Dashboard() {
             <DashboardEmpty />
           ) : (
             <>
-              {/* KPIs */}
-              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
-                <KpiCard title="Faturamento" value={data?.faturamento_total} icon={CurrencyDollar} color="primary" />
-                <KpiCard title="Lucro Bruto" value={data?.lucro_total} icon={TrendUp} color="green" />
-                <KpiCard title="Finalizadas" value={data?.ordens_finalizadas} icon={CheckCircle} isCurrency={false} color="green" />
-                <KpiCard title="Em Aberto" value={data?.ordens_abertas} icon={Clock} isCurrency={false} color="amber" />
-                <KpiCard title="Peças Pendentes" value={data?.shopping_pendentes} icon={Package} isCurrency={false} color="amber" />
-                <KpiCard title="Urgentes" value={data?.shopping_urgentes} icon={Tag} isCurrency={false} color="red" />
-                <KpiCard title="Ticket Médio" value={data?.ticket_medio} icon={ChartBar} color="blue" />
-                <KpiCard title="Resultado Líq." value={data?.resultado_liquido} icon={Wallet} color={data?.resultado_liquido >= 0 ? "green" : "red"} />
+              {/* Métrica dominante */}
+              <Panel>
+                <PanelHeader>
+                  <PanelTitle>Faturamento do período</PanelTitle>
+                </PanelHeader>
+                <PanelContent className="pt-0">
+                  <p className="text-4xl sm:text-5xl font-bold text-card-foreground tracking-tight">
+                    {formatCurrency(data?.faturamento_total)}
+                  </p>
+                </PanelContent>
+              </Panel>
+
+              {/* Métricas soltas -- peso secundário, sem moldura */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+                <LooseMetric label="Lucro Bruto" value={formatCurrency(data?.lucro_total)} />
+                <LooseMetric label="Finalizadas" value={data?.ordens_finalizadas ?? "—"} />
+                <LooseMetric label="Em Aberto" value={data?.ordens_abertas ?? "—"} valueClassName="text-warning" />
+                <LooseMetric label="Peças Pendentes" value={data?.shopping_pendentes ?? "—"} />
+                <LooseMetric label="Urgentes" value={data?.shopping_urgentes ?? "—"} valueClassName="text-destructive" />
+                <LooseMetric label="Ticket Médio" value={formatCurrency(data?.ticket_medio)} />
+                <LooseMetric
+                  label="Resultado Líq."
+                  value={formatCurrency(data?.resultado_liquido)}
+                  valueClassName={data?.resultado_liquido >= 0 ? "text-success" : "text-destructive"}
+                />
               </div>
 
-              {/* Charts */}
-              <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4"><ChartFallback /><ChartFallback /></div>}>
-                <div className="grid grid-cols-1 lg:grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4">
+              {/* Charts -- 1 principal (2/3) + 2 de apoio (1/3 cada) */}
+              <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4"><ChartFallback /><ChartFallback /></div>}>
+                <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
                   <RevenueChartCard data={revenueData} />
                   <TechnicianProfitChartCard data={techData} />
                 </div>
@@ -219,22 +233,22 @@ export default function Dashboard() {
                   <ServicesChartCard data={servicesData} />
                 </Suspense>
 
-                {/* Cost Summary */}
-                <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
-                  <h3 className="text-sm font-medium text-card-foreground mb-4">Resumo Financeiro</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                {/* Resumo Financeiro -- bloco de lista, peso secundário */}
+                <div className="lg:col-span-2">
+                  <h3 className="text-sm font-medium text-card-foreground mb-2">Resumo Financeiro</h3>
+                  <ListBlock>
                     {[
                       { label: "Custo de Peças", value: data?.custo_consumido_periodo, color: "text-destructive" },
                       { label: "Custos Operacionais", value: data?.custos_operacionais_periodo, color: "text-warning" },
                       { label: "Faturamento", value: data?.faturamento_total, color: "text-success" },
                       { label: "Lucro Bruto", value: data?.lucro_total, color: "text-info" },
                     ].map((item) => (
-                      <div key={item.label} className="bg-secondary rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground">{item.label}</p>
-                        <p className={`text-lg font-bold ${item.color}`}>{formatCurrency(item.value)}</p>
-                      </div>
+                      <ListBlockItem key={item.label}>
+                        <span className="text-sm text-muted-foreground">{item.label}</span>
+                        <span className={`text-sm font-semibold ${item.color}`}>{formatCurrency(item.value)}</span>
+                      </ListBlockItem>
                     ))}
-                  </div>
+                  </ListBlock>
                 </div>
               </div>
             </>

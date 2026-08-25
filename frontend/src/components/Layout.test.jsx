@@ -45,7 +45,7 @@ describe("Layout / navegação do Sidebar", () => {
 
     expect(screen.getByText("Usuários")).toBeInTheDocument();
     expect(screen.getByText("Backups")).toBeInTheDocument();
-    expect(screen.getByText("Vendas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Vendas" })).toBeInTheDocument();
   });
 
   it("esconde itens admin-only e restritos para perfil tecnico", () => {
@@ -63,7 +63,7 @@ describe("Layout / navegação do Sidebar", () => {
     mockUser = { nome: "Vendedor", usuario: "vend1", perfil: "vendedor" };
     renderLayout();
 
-    expect(screen.getByText("Vendas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Vendas" })).toBeInTheDocument();
     expect(screen.queryByText("Usuários")).not.toBeInTheDocument();
     expect(screen.queryByText("Financeiro")).not.toBeInTheDocument();
   });
@@ -88,5 +88,26 @@ describe("Layout / navegação do Sidebar", () => {
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+  });
+
+  it("agrupa os itens do Sidebar em seções com rótulo (6 Pilares + Administração)", () => {
+    mockUser = { nome: "Admin", usuario: "admin", perfil: "admin" };
+    renderLayout();
+
+    expect(screen.getByText("Vendas", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByText("Operação")).toBeInTheDocument();
+    expect(screen.getByText("Financeiro", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByText("Relacionamento")).toBeInTheDocument();
+    expect(screen.getByText("Serviços")).toBeInTheDocument();
+    expect(screen.getByText("Inteligência")).toBeInTheDocument();
+    expect(screen.getByText("Administração")).toBeInTheDocument();
+  });
+
+  it("remove a entrada duplicada de /compras -- só 'Lista de Compras' aparece", () => {
+    mockUser = { nome: "Admin", usuario: "admin", perfil: "admin" };
+    renderLayout();
+
+    expect(screen.getByText("Lista de Compras")).toBeInTheDocument();
+    expect(screen.queryByText("Compras")).not.toBeInTheDocument();
   });
 });

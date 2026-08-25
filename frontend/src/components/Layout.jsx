@@ -19,26 +19,59 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { path: "/", label: "Dashboard", icon: SquaresFour },
-  { path: "/compras", label: "Compras", icon: ClipboardText },
-  { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardText },
-  { path: "/kanban", label: "Kanban", icon: Kanban },
-  { path: "/garantias", label: "Garantias", icon: Shield },
-  { path: "/clientes", label: "Clientes", icon: UserCircle },
-  { path: "/vendas", label: "Vendas", icon: ShoppingCart, perfis: ["admin", "vendedor"] },
-  { path: "/produtos", label: "Produtos", icon: ShoppingBag },
-  { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: Barcode },
-  { path: "/financeiro", label: "Financeiro", icon: CurrencyDollar, perfis: ["admin", "financeiro"] },
-  { path: "/estoque", label: "Estoque", icon: Package },
-  { path: "/compras", label: "Lista de Compras", icon: ClipboardText },
-  { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
-  { path: "/tipos-garantia", label: "Tipos de Garantia", icon: Shield, adminOnly: true },
-  { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
-  { path: "/custos", label: "Custos Operacionais", icon: CurrencyDollar, adminOnly: true },
-  { path: "/relatorios", label: "Relatórios", icon: ChartBar, adminOnly: true },
-  { path: "/backup", label: "Backups", icon: HardDrives, adminOnly: true },
-  { path: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
+const navSections = [
+  {
+    label: null, // sem rótulo -- item de topo, fora de qualquer pilar
+    items: [{ path: "/", label: "Dashboard", icon: SquaresFour }],
+  },
+  {
+    label: "Vendas",
+    items: [
+      { path: "/vendas", label: "Vendas", icon: ShoppingCart, perfis: ["admin", "vendedor"] },
+      { path: "/precos", label: "Tabelas de Preço", icon: Tag, adminOnly: true },
+    ],
+  },
+  {
+    label: "Operação",
+    items: [
+      { path: "/estoque", label: "Estoque", icon: Package },
+      { path: "/produtos", label: "Produtos", icon: ShoppingBag },
+      { path: "/unidades-serializadas", label: "Unidades Serializadas", icon: Barcode },
+      { path: "/compras", label: "Lista de Compras", icon: ClipboardText },
+    ],
+  },
+  {
+    label: "Financeiro",
+    items: [
+      { path: "/financeiro", label: "Financeiro", icon: CurrencyDollar, perfis: ["admin", "financeiro"] },
+      { path: "/custos", label: "Custos Operacionais", icon: CurrencyDollar, adminOnly: true },
+    ],
+  },
+  {
+    label: "Relacionamento",
+    items: [{ path: "/clientes", label: "Clientes", icon: UserCircle }],
+  },
+  {
+    label: "Serviços",
+    items: [
+      { path: "/ordens", label: "Ordens de Serviço", icon: ClipboardText },
+      { path: "/kanban", label: "Kanban", icon: Kanban },
+      { path: "/garantias", label: "Garantias", icon: Shield },
+      { path: "/reparos", label: "Tipos de Reparo", icon: Wrench },
+      { path: "/tipos-garantia", label: "Tipos de Garantia", icon: Shield, adminOnly: true },
+    ],
+  },
+  {
+    label: "Inteligência",
+    items: [{ path: "/relatorios", label: "Relatórios", icon: ChartBar, adminOnly: true }],
+  },
+  {
+    label: "Administração",
+    items: [
+      { path: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
+      { path: "/backup", label: "Backups", icon: HardDrives, adminOnly: true },
+    ],
+  },
 ];
 
 function SidebarNav({ currentPath, user }) {
@@ -46,27 +79,41 @@ function SidebarNav({ currentPath, user }) {
 
   return (
     <SidebarContent>
-      {navItems
-        .filter((item) => !item.adminOnly || user?.perfil === "admin")
-        .filter((item) => !item.perfis || item.perfis.includes(user?.perfil))
-        .map(({ path, label, icon }) => {
-          const isActive = path === "/" ? currentPath === "/" : currentPath.startsWith(path);
-          return (
-            <Link
-              key={path}
-              to={path}
-              onClick={closeMobile}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
-            >
-              {createElement(icon, { className: "h-4 w-4 shrink-0" })}
-              {label}
-            </Link>
-          );
-        })}
+      {navSections.map((section) => {
+        const visibleItems = section.items
+          .filter((item) => !item.adminOnly || user?.perfil === "admin")
+          .filter((item) => !item.perfis || item.perfis.includes(user?.perfil));
+
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <div key={section.label ?? "top"} className="space-y-1">
+            {section.label && (
+              <p className="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/40">
+                {section.label}
+              </p>
+            )}
+            {visibleItems.map(({ path, label, icon }) => {
+              const isActive = path === "/" ? currentPath === "/" : currentPath.startsWith(path);
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  onClick={closeMobile}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  }`}
+                >
+                  {createElement(icon, { className: "h-4 w-4 shrink-0" })}
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        );
+      })}
     </SidebarContent>
   );
 }

@@ -5,13 +5,19 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.1: `DataTable`
+**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.2: Vendas —
+Histórico migra para `DataTable` (sem métrica dominante), Nova Venda migra o bloco de resumo/pagamento e
+o card de confirmação para `Panel` (único elemento dominante da tela). Corrigido o KI-048 nos 3 pontos de
+`NovaVenda` (`tiposGarantiaApi`/`clientesApi`/`unidadesApi` sem `.catch`). Ver seção logo abaixo para o
+registro completo. Branch `feat/design-system-fase3.3-operacao-vendas`, 142/142 testes, lint 0 erros,
+build ok. Antes disso:
+2026-08-26 — Fase 3.3, Fatia 3.3.1: `DataTable`
 ganha `getRowProps` e corrige o KI-053 (acessibilidade de linha clicável — Espaço + `role="button"`) antes
 de `OrderTable.jsx` se tornar seu primeiro consumidor real. Orders migra para `DataTable`/`LooseMetric`
 (sem métrica dominante — tela de CRUD simples). Kanban auditado contra os 5 princípios de composição —
 nenhum achado — e corrigido o KI-048 (`fetchOrdens` sem `.catch`, mesma classe de bug já visto em outras
-telas). Ver seção logo abaixo para o registro completo. Branch
-`feat/design-system-fase3.3-operacao-orders-kanban`, 141/141 testes, lint 0 erros, build ok. Antes disso:
+telas). Branch `feat/design-system-fase3.3-operacao-orders-kanban`, 141/141 testes, lint 0 erros, build
+ok. Antes disso:
 2026-08-25 — Fase 3.2 do Fluxoly Design System (Vitrine): Login/Shell-Sidebar/Dashboard
 redesenhados com os recipientes da Foundation v2 (`Panel`/`ListBlock`/`LooseMetric`, Fase 3.1), primeira
 fase a mudar composição de tela real (não só tokens). Sidebar agrupado pelos 6 Pilares Macrossistêmicos;
@@ -113,7 +119,42 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.1 (DataTable + Orders + Kanban)
+## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.2 (Vendas)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
+fatias).**
+
+2026-08-26, sequência imediata à Fatia 3.3.1 (mergeada em `main`, PR #63). Segunda fatia do Tier 2.
+
+**Entregue** (branch `feat/design-system-fase3.3-operacao-vendas`):
+- **Histórico** — tabela migra para `DataTable`, `getRowProps` preserva `data-testid`/`data-context-row`
+  do `nav-context-highlight`, `onRowClick` navega para o detalhe da venda. Sem métrica dominante (mesmo
+  critério de Orders). Nenhuma mudança em `applyFilters`/paginação/`useDebounced`.
+- **Nova Venda** — o bloco de resumo/pagamento (único elemento dominante desta tela, decisão do CTO) migra
+  para `Panel`/`PanelContent`, total em destaque (`text-lg` → `text-2xl`). O card de confirmação "Venda
+  concluída" também migrado para `Panel` — mesmo elemento conceitual em estado diferente.
+- **KI-048 resolvido em `NovaVenda`** — os 3 pontos (`tiposGarantiaApi`/`clientesApi`/`unidadesApi`)
+  ganharam `.catch()`. Só `tiposGarantiaApi` (sem `.finally` associado) tinha risco real de tela presa —
+  ganhou `toast.error` explícito; os outros 2 já tinham `.finally()` restaurando o loading, `catch`
+  adicionado por simetria com o `res?.ok ? ... : []` já existente (mesmo resultado visual em falha).
+
+**Validação:** suíte completa 142/142 (1 teste novo), lint 0 erros (2 warnings pré-existentes não
+relacionados), build de produção sem erro. QA visual não executada ao vivo nesta fatia (mesma limitação de
+KI-027 — sessão não persiste no navegador de automação); validado por testes automatizados + revisão de
+código.
+
+**KI-048 (progresso):** `Kanban.jsx` (Fatia 3.3.1) e `Vendas.jsx::NovaVenda` (esta fatia) resolvidos.
+Restam `Stock.jsx::fetchItems` (Fatia 3.3.3) e `Clientes.jsx::PerfilCliente` (Fatia 3.3.5) + 3 pontos no
+Tier 3 (Fase 3.4, fora desta fase).
+
+**Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
+implementação. Merge desta fatia (PR) ainda não solicitado.
+
+**Próximo passo:** Fatia 3.3.3 (Stock).
+
+---
+
+## ✅ Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.1 (DataTable + Orders + Kanban) ENCERRADA (PR #63 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
 fatias) e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (§9) para o
@@ -153,9 +194,10 @@ warnings pré-existentes não relacionados), build de produção sem erro.
 corrigirem seu ponto. `KNOWN_ISSUES.md` atualizado para refletir o progresso real.
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
-implementação. Merge desta fatia (PR) ainda não solicitado.
+implementação. **Mergeado em `main` (PR #63, squash, commit `7ca3f17a`, 2026-08-26)** — CI 8/8 (×2) verde,
+produção confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200).
 
-**Próximo passo:** Fatia 3.3.2 (Vendas — Histórico + Nova Venda).
+**Próximo passo:** Fatia 3.3.2 (Vendas — Histórico + Nova Venda), ver seção acima.
 
 ---
 

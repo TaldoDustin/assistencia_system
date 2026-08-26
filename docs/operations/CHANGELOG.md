@@ -9,6 +9,19 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.1: DataTable + Orders + Kanban)
+- **feat(design-system): DataTable ganha `getRowProps`** — propaga atributos por linha (ex.:
+  `data-testid`/`data-context-row` do `nav-context-highlight`) sem sobrescrever `className`/`onClick`/
+  `tabIndex` fixos do componente.
+- **fix(design-system): DataTable corrige acessibilidade da linha clicável (KI-053)** — responde a Espaço
+  além de Enter, `role="button"` quando `onRowClick` está presente.
+- **feat(design-system): Orders migra para DataTable/LooseMetric** — stats bar vira `LooseMetric` (sem
+  dominante), `OrderTable.jsx` migra de HTML cru para `DataTable` (primeiro consumidor real).
+- Kanban auditado contra os 5 princípios de composição — nenhum achado.
+- **fix(design-system): Kanban trata rejeição de promise ao carregar ordens (KI-048)** — `fetchOrdens`
+  ganhou `.catch()`, mesmo padrão de `Orders.jsx`.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5 fatias).
+
 ### Adicionado (2026-08-25 — Fase 3.2 do Fluxoly Design System, Vitrine)
 - **feat(design-system): Login usa Panel da Foundation v2, respiro real** — form migra da moldura manual
   para `Panel`/`PanelContent`.

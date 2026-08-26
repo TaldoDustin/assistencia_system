@@ -5,7 +5,14 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-25 — Fase 3.2 do Fluxoly Design System (Vitrine): Login/Shell-Sidebar/Dashboard
+**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.1: `DataTable`
+ganha `getRowProps` e corrige o KI-053 (acessibilidade de linha clicável — Espaço + `role="button"`) antes
+de `OrderTable.jsx` se tornar seu primeiro consumidor real. Orders migra para `DataTable`/`LooseMetric`
+(sem métrica dominante — tela de CRUD simples). Kanban auditado contra os 5 princípios de composição —
+nenhum achado — e corrigido o KI-048 (`fetchOrdens` sem `.catch`, mesma classe de bug já visto em outras
+telas). Ver seção logo abaixo para o registro completo. Branch
+`feat/design-system-fase3.3-operacao-orders-kanban`, 141/141 testes, lint 0 erros, build ok. Antes disso:
+2026-08-25 — Fase 3.2 do Fluxoly Design System (Vitrine): Login/Shell-Sidebar/Dashboard
 redesenhados com os recipientes da Foundation v2 (`Panel`/`ListBlock`/`LooseMetric`, Fase 3.1), primeira
 fase a mudar composição de tela real (não só tokens). Sidebar agrupado pelos 6 Pilares Macrossistêmicos;
 Dashboard com Faturamento como métrica dominante; Landing auditada sem achados. Ver seção logo abaixo.
@@ -103,6 +110,52 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.1 (DataTable + Orders + Kanban)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
+fatias) e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (§9) para o
+faseamento por tier.**
+
+2026-08-26. Quarta fatia da Fase 3, sequência imediata à Vitrine (3.2). Primeira fatia do Tier 2
+("Operação diária"): Orders, Kanban, Vendas, Stock, Financeiro, Clientes — divididos em 5 PRs (mesmo
+critério de granularidade da Fase 2, PRs 3/4/5). Esta fatia (3.3.1) é pré-requisito das outras 4: estende
+o `DataTable` (Foundation v2, Fase 3.1) antes de qualquer tela virar seu primeiro consumidor real.
+
+**Decisões de composição aprovadas pelo CTO antes da implementação:** nem toda tela tem 1 elemento
+dominante óbvio — Orders/Clientes/Vendas-Histórico (contadores simples) ficam sem `Panel`-hero, viram só
+`LooseMetric`; Stock ("Valor Total") e Financeiro ("Saldo em caixa") têm candidato dominante real e viram
+`Panel`, mesmo tratamento do Faturamento no Dashboard (Fase 3.2). KI-048/KI-049 (bugs pré-existentes nas
+telas deste tier) decididos corrigir junto, em commit separado do de composição.
+
+**Entregue** (branch `feat/design-system-fase3.3-operacao-orders-kanban`):
+- **`DataTable`** ganha `getRowProps(row)` — propaga atributos por linha (ex.: `data-testid`/
+  `data-context-row` do `nav-context-highlight`, `useListContext.js`) sem sobrescrever `className`/
+  `onClick`/`tabIndex` fixos do componente (spread ocorre antes das props fixas).
+- **KI-053 resolvido** — `onRowClick` agora responde a Espaço além de Enter, `role="button"` adicionado à
+  linha quando clicável. Corrigido antes de `OrderTable.jsx` se tornar o primeiro consumidor real do
+  componente (a lacuna existia desde a Fase 3.1, nunca exposta por falta de consumidor).
+- **Orders** — stats bar (Total/Em aberto/Finalizadas) migra para `LooseMetric`; `OrderTable.jsx` migra de
+  HTML cru para `DataTable`. Nenhuma mudança em `applyFilters`/`extractMeta`/`fetchOrdens`/`handleDelete`.
+- **Kanban** — auditado contra os 5 princípios de composição (`PLAN-design-system-fase3-visual-
+  experience.md` §2) — nenhum achado (board de 4 colunas já não é card uniforme, já usa tom semântico via
+  `getStatusVariant`). **KI-048 resolvido** — `fetchOrdens` ganhou `.catch()` (mesmo padrão de
+  `Orders.jsx`).
+
+**Validação:** suíte completa 141/141 (5 testes novos — 4 do `DataTable`, 1 do `Kanban`), lint 0 erros (2
+warnings pré-existentes não relacionados), build de produção sem erro.
+
+**KI-048 (progresso parcial):** este KI cobre 6 pontos em 4 telas fora de Kanban (`Stock.jsx::fetchItems`,
+`Vendas.jsx::NovaVenda` ×3, `Clientes.jsx::PerfilCliente`) mais 3 no Tier 3 (`NewOrder`/`EditOrder`/
+`VendaDetalhe`, fora desta fase) — só fecha por completo quando todas as fatias/fases relevantes
+corrigirem seu ponto. `KNOWN_ISSUES.md` atualizado para refletir o progresso real.
+
+**Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
+implementação. Merge desta fatia (PR) ainda não solicitado.
+
+**Próximo passo:** Fatia 3.3.2 (Vendas — Histórico + Nova Venda).
 
 ---
 

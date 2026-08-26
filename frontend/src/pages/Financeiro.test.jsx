@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import Financeiro from "./Financeiro";
 
 const mockCaixaList = vi.fn();
 const mockContasPagarList = vi.fn();
 const mockContasReceberList = vi.fn();
+const mockSaldo = vi.fn().mockResolvedValue({ ok: true, saldo: 1000 });
 
 vi.mock("@/api/client", () => ({
-  caixa: { list: (...args) => mockCaixaList(...args), saldo: vi.fn().mockResolvedValue({ ok: true, saldo: 1000 }) },
+  caixa: { list: (...args) => mockCaixaList(...args), saldo: (...args) => mockSaldo(...args) },
   contasPagar: { list: (...args) => mockContasPagarList(...args) },
   contasReceber: { list: (...args) => mockContasReceberList(...args) },
 }));
@@ -103,5 +105,20 @@ describe("Financeiro — Movimentações: estados e status semântico (PR 5)", (
     render(<Financeiro />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Lançar" })).toBeInTheDocument());
+  });
+});
+
+describe("Financeiro — Saldo em caixa: rejeição de promise não fica silenciosa (KI-048)", () => {
+  beforeEach(() => {
+    mockCaixaList.mockReset();
+    mockSaldo.mockReset();
+  });
+
+  it("mostra toast de erro e sai do estado de loading quando a busca de saldo rejeita", async () => {
+    mockCaixaList.mockResolvedValue({ ok: true, total: 0, items: [] });
+    mockSaldo.mockRejectedValue(new Error("network error"));
+    render(<Financeiro />);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Erro ao carregar saldo em caixa"));
   });
 });

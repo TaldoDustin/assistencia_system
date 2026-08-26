@@ -673,9 +673,14 @@ export default function Financeiro() {
 
     async function buscar() {
       setSaldoLoading(true);
-      const res = await caixaApi.saldo();
-      if (ativo && res?.ok) setSaldo(res.saldo);
-      if (ativo) setSaldoLoading(false);
+      try {
+        const res = await caixaApi.saldo();
+        if (ativo && res?.ok) setSaldo(res.saldo);
+      } catch {
+        if (ativo) toast.error("Erro ao carregar saldo em caixa");
+      } finally {
+        if (ativo) setSaldoLoading(false);
+      }
     }
 
     buscar();

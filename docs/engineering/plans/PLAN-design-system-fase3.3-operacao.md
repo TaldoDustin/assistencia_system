@@ -230,15 +230,19 @@ retorna os 2 `Button` já existentes).
 
 `frontend/src/pages/Clientes.jsx` (457 linhas).
 
-- [ ] Stats (linha ~292-302 atual): "Clientes"/"Com telefone"/"Com e-mail" viram `LooseMetric`, sem
-      dominante (decisão da seção 1).
-- [ ] Tabela de clientes migra para `DataTable`.
-- [ ] **KI-049** — `fetchItems` ganha estado de erro dedicado (`ErrorState`/`ErrorBanner`, mesmo padrão já
-      usado em Orders/Stock), distinto do `loading`/vazio atuais.
-- [ ] **KI-048** — os 3 pontos restantes (`PerfilCliente`, promises sem `.catch`) corrigidos, mesmo padrão
-      da seção 3.3.
-- [ ] Suíte completa, lint, build, QA visual (Light + Dark).
-- [ ] Fechar KI-048 e KI-049 em `KNOWN_ISSUES.md` (mover para Resolvidos).
+- [x] Stats: "Clientes"/"Com telefone"/"Com e-mail" viram `LooseMetric`, sem dominante (decisão da seção 1).
+- [x] Tabela de clientes migra para `DataTable`, `onRowClick` abre o perfil (mesmo comportamento de antes),
+      coluna de ações com `stopPropagation` para não disparar o perfil ao clicar em editar/anonimizar/excluir.
+- [x] **KI-049** — `fetchItems` ganha estado de erro dedicado (`loadError` + `ErrorState` com retry, mesmo
+      padrão já usado em Orders/Stock), distinto do `loading`/vazio atuais. 2 testes novos.
+- [x] **KI-048** — o ponto restante (`PerfilCliente`, `Promise.all(...).then(...).finally(...)` sem
+      `.catch`) corrigido. Nota: como `.finally()` já roda em rejeição, `setLoading(false)` já acontecia —
+      o gap real era só a rejection não tratada (ruído no console), não tela presa; `.catch()` adicionado
+      por consistência com o resto do arquivo. 1 teste novo.
+- [x] Suíte completa (147/147), lint 0 erros, build ok. QA visual não executada ao vivo (KI-027).
+- [x] KI-049 fechado em `KNOWN_ISSUES.md` (mover para Resolvidos). KI-048 fica parcialmente resolvido —
+      fecha por completo só quando a Fase 3.4 corrigir os 3 pontos do Tier 3
+      (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`).
 
 ---
 

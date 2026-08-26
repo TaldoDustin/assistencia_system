@@ -9,6 +9,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.5: Clientes — Tier 2 completo)
+- **feat(design-system): Clientes migra para DataTable/LooseMetric** — contadores viram `LooseMetric`
+  (sem dominante); tabela migra para `DataTable` com `onRowClick` abrindo o perfil.
+- **fix(design-system): Clientes ganha estado de erro dedicado (KI-049)** — `loadError` + `ErrorState`
+  com retry.
+- **fix(design-system): PerfilCliente trata rejeição de promise (KI-048)** — último ponto do Tier 2;
+  KI-048 fecha por completo no Tier 2, resta só o Tier 3 (Fase 3.4).
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5 fatias,
+  Fase 3.3 encerrada).
+
 ### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.4: Financeiro)
 - **feat(design-system): Financeiro migra para DataTable/Panel** — Saldo em caixa vira métrica dominante
   (`Panel`, saiu do header); Movimentações/Contas a Pagar/Contas a Receber migram para `DataTable`.

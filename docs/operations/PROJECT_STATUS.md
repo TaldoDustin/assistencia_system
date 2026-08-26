@@ -5,12 +5,17 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.4: Financeiro —
+**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.5 (última do Tier
+2): Clientes — contadores viram `LooseMetric` (sem dominante), tabela migra para `DataTable` com
+`onRowClick` abrindo o perfil. **KI-049 resolvido** (estado de erro dedicado) e **KI-048 resolvido no
+último ponto do Tier 2** (`PerfilCliente`) — o Tier 2 inteiro do KI-048 está fechado agora, resta só o
+Tier 3 (Fase 3.4). Ver seção logo abaixo para o registro completo. Branch
+`feat/design-system-fase3.3-operacao-clientes`, 147/147 testes, lint 0 erros, build ok. Antes disso:
+2026-08-26 — Fase 3.3, Fatia 3.3.4: Financeiro —
 Saldo em caixa vira métrica dominante (`Panel`, saiu do header); as 3 tabelas (Movimentações/Contas a
 Pagar/Contas a Receber) migram para `DataTable`. Achado fora do escopo original do KI-048 (auditoria
-anterior não cobriu a busca de saldo do componente pai) — corrigido no mesmo padrão. Ver seção logo abaixo
-para o registro completo. Branch `feat/design-system-fase3.3-operacao-financeiro`, 144/144 testes, lint 0
-erros, build ok. Antes disso:
+anterior não cobriu a busca de saldo do componente pai) — corrigido no mesmo padrão. Branch
+`feat/design-system-fase3.3-operacao-financeiro`, 144/144 testes, lint 0 erros, build ok. Antes disso:
 2026-08-26 — Fase 3.3, Fatia 3.3.3: Stock — Valor
 Total vira métrica dominante (`Panel`), Lotes/Unidades/Críticos viram `LooseMetric`, Reposição sugerida e
 lista principal de itens migram para `DataTable`. Corrigido o KI-048 em `fetchItems` (sem `try/catch`).
@@ -128,7 +133,42 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.4 (Financeiro)
+## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.5 (Clientes) — última do Tier 2
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
+fatias) e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (§9) para o faseamento
+por tier.**
+
+2026-08-26, sequência imediata à Fatia 3.3.4 (mergeada em `main`, PR #66). Quinta e última fatia do Tier 2
+("Operação diária") — Orders/Kanban/Vendas/Stock/Financeiro/Clientes, todas migradas.
+
+**Entregue** (branch `feat/design-system-fase3.3-operacao-clientes`):
+- Contadores (Clientes/Com telefone/Com e-mail) viram `LooseMetric`, sem dominante — tela de cadastro
+  simples (decisão do CTO).
+- Tabela de clientes migra de HTML cru para `DataTable`, `onRowClick` abre o perfil (mesmo comportamento
+  de antes), coluna de ações com `stopPropagation` para não disparar o perfil ao clicar em
+  editar/anonimizar/excluir.
+- **KI-049 resolvido** — `fetchItems` ganhou `loadError` + `ErrorState` com retry, mesmo padrão de
+  Orders/Stock.
+- **KI-048 resolvido no último ponto do Tier 2** — `PerfilCliente` (`Promise.all(...).then(...)
+  .finally(...)`) ganhou `.catch()`. Como `.finally()` já rodava em rejeição, o gap real era só a
+  rejection não tratada (ruído no console), não tela presa; corrigido por consistência.
+
+**Validação:** suíte completa 147/147 (3 testes novos), lint 0 erros (2 warnings pré-existentes não
+relacionados), build de produção sem erro. QA visual não executada ao vivo (mesma limitação de KI-027).
+
+**KI-048 — Tier 2 (Fase 3.3) fechado por completo.** Resta só o Tier 3
+(`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`, Fase 3.4, ainda não iniciada).
+
+**Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
+implementação. Merge desta fatia (PR) ainda não solicitado.
+
+**Próximo passo:** Fase 3.3 completa após o merge desta fatia — Fase 3.4 (Tier 3: NewOrder/EditOrder/
+VendaDetalhe/ChecklistDevice) fica para quando o CTO autorizar o início.
+
+---
+
+## ✅ Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.4 (Financeiro) ENCERRADA (PR #66 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
 fatias).**
@@ -153,9 +193,10 @@ relacionados), build de produção sem erro. QA visual não executada ao vivo (m
 no Tier 3 (Fase 3.4, fora desta fase).
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
-implementação. Merge desta fatia (PR) ainda não solicitado.
+implementação. **Mergeado em `main` (PR #66, squash, commit `d422428e`, 2026-08-26)** — CI 8/8 (×2) verde,
+produção confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200).
 
-**Próximo passo:** Fatia 3.3.5 (Clientes — última do Tier 2).
+**Próximo passo:** Fatia 3.3.5 (Clientes — última do Tier 2), ver seção acima.
 
 ---
 

@@ -1803,23 +1803,26 @@ telas de uso frequente (criar/editar OS, Kanban, Estoque, Nova Venda, Detalhe de
 Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
-Aberto, parcialmente corrigido. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
-**`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2), `Stock.jsx::fetchItems` (Fatia 3.3.3)
-e `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — resolvidos em 2026-08-26** (Fase 3.3 —
+Aberto, Tier 2 (Fase 3.3) totalmente corrigido — resta só o Tier 3. Identificado em 2026-08-19 (PR 3),
+estendido em 2026-08-20 (PR 4 e PR 5). **`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia
+3.3.2), `Stock.jsx::fetchItems` (Fatia 3.3.3), `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — e
+`Clientes.jsx::PerfilCliente` (Fatia 3.3.5) resolvidos em 2026-08-26** (Fase 3.3 —
 `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado em `Orders.jsx::fetchOrdens`/
-`fetchReposicao`. Resta `Clientes.jsx::PerfilCliente` (Fase 3.3, Fatia 3.3.5). `NewOrder.jsx`/
-`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
+`fetchReposicao`. No caso de `Clientes.jsx::PerfilCliente`, o `.finally()` já existente já garantia que
+`setLoading(false)` rodasse mesmo em rejeição — o gap real ali era só a rejection não tratada (ruído no
+console), não tela presa; `.catch()` adicionado por consistência. Resta `NewOrder.jsx`/`EditOrder.jsx`/
+`VendaDetalhe.jsx` (Tier 3, Fase 3.4, ainda não iniciada).
 
 Sprint prevista:
-Fase 3.3 (Kanban/Stock/Vendas/Clientes, 2026-08-26) + Fase 3.4 (NewOrder/EditOrder/VendaDetalhe, Tier 3,
-ainda não iniciada).
+Fase 3.3 (Kanban/Stock/Vendas/Financeiro/Clientes) — concluída em 2026-08-26. Fase 3.4
+(NewOrder/EditOrder/VendaDetalhe, Tier 3) ainda não iniciada.
 
 Responsável:
 —
 
 ---
 
-## KI-049
+## ~~KI-049~~ — RESOLVIDO
 
 Descrição:
 `Clientes.jsx::fetchItems` (`frontend/src/pages/Clientes.jsx`) usa `try/catch` corretamente (não tem o
@@ -1835,11 +1838,9 @@ Baixo — exige falha de rede real na carga inicial de Clientes, tela de uso fre
 verdade" e "falhou ao carregar".
 
 Status:
-Aberto — identificado em 2026-08-20 durante a migração de `Clientes.jsx` para o Design System (PR 5,
-`docs/engineering/plans/PLAN-design-system-fase2.md`). Correção candidata: estado `erro` dedicado +
-`ErrorState` com retry, mesmo padrão já usado em `Vendas.jsx`/`Produtos.jsx`/`Stock.jsx`/
-`UnidadesSerializadas.jsx`. Não corrigido no PR 5 por estar fora do escopo puramente visual da migração
-(adicionar um estado de erro novo é comportamento novo, não migração de apresentação existente).
+Resolvido em 2026-08-26 (Fase 3.3, Fatia 3.3.5 — `PLAN-design-system-fase3.3-operacao.md`). `fetchItems`
+ganhou `loadError` dedicado + `ErrorState` com retry, mesmo padrão já usado em `Orders.jsx`/`Stock.jsx`. 2
+testes novos ({ok:false} e rejeição de promise).
 
 Sprint prevista:
 Não definida — candidato a qualquer sprint futura que toque `Clientes.jsx` novamente, ou a uma correção

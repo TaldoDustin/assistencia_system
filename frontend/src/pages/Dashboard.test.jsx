@@ -117,4 +117,20 @@ describe("Dashboard — estados loading/success/empty/error", () => {
 
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
   });
+
+  it("Faturamento aparece como métrica dominante (Panel), os outros KPIs como métricas soltas", async () => {
+    mockGet.mockResolvedValue(dadosComResultado);
+    render(<Dashboard />);
+
+    await waitFor(() => expect(screen.getByText("Ticket Médio")).toBeInTheDocument());
+
+    // Faturamento continua presente e com tratamento "hero" (texto maior que os outros números).
+    // O mesmo valor formatado aparece 2x na tela (Panel hero + linha no Resumo Financeiro) —
+    // colisão pré-existente (já existia no Dashboard antes desta Fase 3.2), então filtramos
+    // pelo elemento que carrega a classe de texto "hero".
+    const candidates = screen.getAllByText("R$ 1.000,00");
+    const faturamentoValor = candidates.find((el) => /text-(4|5)xl/.test(el.className));
+    expect(faturamentoValor).toBeInTheDocument();
+    expect(faturamentoValor.className).toMatch(/text-(4|5)xl/);
+  });
 });

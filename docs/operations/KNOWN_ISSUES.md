@@ -2033,3 +2033,32 @@ não como substituição mecânica global.
 
 Responsável:
 —
+
+---
+
+## KI-056
+
+Descrição:
+`frontend/src/components/dashboard/KpiCard.jsx` ficou sem nenhum consumidor depois da Fase 3.2 (Vitrine) —
+`Dashboard.jsx` (único lugar que o usava) migrou os 8 KPIs para `LooseMetric`/`Panel` da Foundation v2
+(hierarquia real: 1 métrica dominante + 7 métricas soltas, ver
+`docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md`, Task 3). Confirmado via
+`grep -rn "KpiCard" frontend/src --include="*.jsx" --include="*.js" | grep -v "KpiCard.jsx\|KpiCard.test.jsx"`
+→ nenhum resultado.
+
+Impacto:
+Nenhum em runtime — o componente simplesmente não é importado por ninguém, não afeta build nem
+comportamento. É código morto (`KpiCard.jsx` + `KpiCard.test.jsx`), mesma categoria de dívida visível já
+registrada para outros achados de "componente descontinuado sem remoção" neste projeto.
+
+Status:
+Aberto — não removido nesta fase por decisão deliberada (`CLAUDE.md`: nunca remover código sem confirmar).
+Remoção é uma ação de baixo risco mas requer decisão explícita do CTO, já que `KpiCard` foi o padrão de
+composição do Dashboard desde a Fase 1 e sua remoção também apagaria `KpiCard.test.jsx` (5 testes).
+
+Sprint prevista:
+Não definida — decisão do CTO: remover agora (branch `chore/remove-kpicard-orfao`, separado desta Fase
+3.2 por não ser mudança visual) ou manter como legado sem uso até algum outro consumidor surgir.
+
+Responsável:
+—

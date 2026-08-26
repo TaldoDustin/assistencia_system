@@ -15,10 +15,12 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterInput } from "@/components/ui/filter-bar";
-import { interactiveRowClassName } from "@/lib/interaction";
+import { DataTable } from "@/components/ui/data-table";
+import { LooseMetric } from "@/components/ui/loose-metric";
 
 const EMPTY_FORM = { nome: "", telefone: "", email: "", cpf_cnpj: "", observacoes: "" };
 
@@ -49,6 +51,8 @@ function PerfilCliente({ cliente, onClose }) {
       if (!ativo) return;
       setOrdens(histRes?.ok ? (histRes.ordens || []) : []);
       setGarantiasCliente(garRes?.ok ? (garRes.garantias || []) : []);
+    }).catch(() => {
+      if (ativo) toast.error("Erro ao carregar histórico do cliente");
     }).finally(() => { if (ativo) setLoading(false); });
     return () => { ativo = false; };
   }, [cliente.nome]);
@@ -160,6 +164,7 @@ export default function Clientes() {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -175,10 +180,16 @@ export default function Clientes() {
     setLoading(true);
     try {
       const res = await clientesApi.list({ per_page: 500 });
-      if (res?.ok) setItems(res.items || []);
-      else toast.error(res?.erro || "Erro ao carregar clientes");
+      if (res?.ok) {
+        setItems(res.items || []);
+        setLoadError(false);
+      } else {
+        toast.error(res?.erro || "Erro ao carregar clientes");
+        setLoadError(true);
+      }
     } catch {
       toast.error("Erro ao carregar clientes");
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -289,21 +300,17 @@ export default function Clientes() {
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {[
-          { label: "Clientes", value: totalClientes, color: "text-foreground" },
-          { label: "Com telefone", value: comTelefone, color: "text-success" },
-          { label: "Com e-mail", value: comEmail, color: "text-info" },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
-        ))}
+      {/* Contadores soltos, sem elemento dominante (tela de cadastro simples) */}
+      <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+        <LooseMetric label="Clientes" value={totalClientes} />
+        <LooseMetric label="Com telefone" value={comTelefone} valueClassName="text-success" />
+        <LooseMetric label="Com e-mail" value={comEmail} valueClassName="text-info" />
       </div>
 
       {loading ? (
         <ListSkeleton rows={6} />
+      ) : loadError && items.length === 0 ? (
+        <ErrorState title="Não foi possível carregar os clientes." onRetry={fetchItems} />
       ) : (
         <Reveal className="space-y-5">
           <FilterBar className="bg-card border border-border rounded-xl p-4">
@@ -319,46 +326,39 @@ export default function Clientes() {
           {filtered.length === 0 ? (
             <EmptyState title={search ? "Nenhum cliente corresponde à busca atual." : "Nenhum cliente cadastrado ainda."} />
           ) : (
-            <div className="bg-card rounded-xl border border-border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {["Nome", "Telefone", "E-mail", "CPF/CNPJ", ""].map((h) => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((item) => (
-                      <tr key={item.id} className={`${interactiveRowClassName} cursor-pointer`} data-testid={`cliente-row-${item.id}`} onClick={() => setPerfilCliente(item)}>
-                        <td className="px-4 py-3 font-medium text-card-foreground">{item.nome}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.telefone || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.email || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.cpf_cnpj || "—"}</td>
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar cliente ${item.id}`} onClick={() => openEdit(item)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            {isAdmin && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label={`Anonimizar cliente ${item.id}`} title="Anonimizar (LGPD)" onClick={() => setAnonymizeId(item.id)}>
-                                <UserMinus className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            {isAdmin && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
-                                <Trash className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DataTable
+              columns={[
+                { key: "nome", header: "Nome", className: "font-medium text-card-foreground" },
+                { key: "telefone", header: "Telefone", className: "text-muted-foreground", render: (item) => item.telefone || "—" },
+                { key: "email", header: "E-mail", className: "text-muted-foreground", render: (item) => item.email || "—" },
+                { key: "cpf_cnpj", header: "CPF/CNPJ", className: "text-muted-foreground", render: (item) => item.cpf_cnpj || "—" },
+                {
+                  key: "acoes",
+                  header: "",
+                  render: (item) => (
+                    <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar cliente ${item.id}`} onClick={() => openEdit(item)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label={`Anonimizar cliente ${item.id}`} title="Anonimizar (LGPD)" onClick={() => setAnonymizeId(item.id)}>
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir cliente ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+              rows={filtered}
+              getRowKey={(item) => item.id}
+              getRowProps={(item) => ({ "data-testid": `cliente-row-${item.id}` })}
+              onRowClick={(item) => setPerfilCliente(item)}
+            />
           )}
         </Reveal>
       )}

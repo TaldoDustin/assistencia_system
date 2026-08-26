@@ -1782,16 +1782,20 @@ Responsável:
 
 Descrição:
 `NewOrder.jsx`, `EditOrder.jsx`, `Kanban.jsx`, `Stock.jsx::fetchItems`, `Vendas.jsx::NovaVenda` (3 pontos —
-`tiposGarantiaApi`/`clientesApi`/`unidadesApi`), `VendaDetalhe.jsx` (`tiposGarantiaApi`) e
-`Clientes.jsx::PerfilCliente` (`Promise.all`) (`frontend/src/pages/`) buscam dados iniciais via
-`Promise.all([...]).then(...)` ou `<api>.list().then(...)`, sem nenhum `.catch()`. Se a chamada rejeitar
-(erro de rede, não apenas `{ok: false}` — que já é tratado), a `Promise` nunca chega ao `.then()`,
-`setLoading(false)` nunca é chamado, e a tela fica presa no spinner de carregamento indefinidamente, sem
-nenhum aviso ao usuário. Achado durante a Revisão Arquitetural do PR 3 da Fase 2 do Design System
+`tiposGarantiaApi`/`clientesApi`/`unidadesApi`), `VendaDetalhe.jsx` (`tiposGarantiaApi`),
+`Clientes.jsx::PerfilCliente` (`Promise.all`) e `Financeiro.jsx` (busca de saldo do componente pai, ver
+correção abaixo) (`frontend/src/pages/`) buscam dados iniciais via `Promise.all([...]).then(...)` ou
+`<api>.list()/.saldo().then(...)`, sem nenhum `.catch()`. Se a chamada rejeitar (erro de rede, não apenas
+`{ok: false}` — que já é tratado), a `Promise` nunca chega ao `.then()`, `setLoading(false)` nunca é
+chamado, e a tela fica presa no spinner de carregamento indefinidamente, sem nenhum aviso ao usuário.
+Achado durante a Revisão Arquitetural do PR 3 da Fase 2 do Design System
 (`docs/engineering/plans/PLAN-design-system-fase2.md`), estendido no PR 4 (`Stock.jsx`) e no PR 5 (`Vendas.jsx`,
 `VendaDetalhe.jsx`, `Clientes.jsx`) — confirmado pré-existente em todos os pontos (os PRs 3/4/5 só trocaram
-classes/ícones/estrutura visual, nunca tocaram a cadeia de promises). `Financeiro.jsx` foi auditado no PR 5
-e está limpo — os dois `buscar()` já tinham `.catch()` explícito antes da migração.
+classes/ícones/estrutura visual, nunca tocaram a cadeia de promises). **Correção de escopo (2026-08-26,
+Fase 3.3, Fatia 3.3.4):** a auditoria do PR 5 que deu `Financeiro.jsx` como "limpo" checou só os
+`buscar()` de `Movimentacoes`/`ContasTab` — não viu que o componente pai (`Financeiro`) tem sua própria
+busca de saldo (`caixaApi.saldo()`), também sem `try/catch`. Ficou mais visível ao promover o saldo a
+métrica dominante (`Panel`) nesta mesma fatia.
 
 Impacto:
 Baixo/Médio — exige falha de rede real (não `{ok: false}` do backend, que já tem tratamento), mas afeta
@@ -1800,10 +1804,11 @@ Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
 Aberto, parcialmente corrigido. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
-**`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2) e `Stock.jsx::fetchItems` (Fatia
-3.3.3) resolvidos em 2026-08-26** (Fase 3.3 — `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já
-usado em `Orders.jsx::fetchOrdens`/`fetchReposicao`. Resta `Clientes.jsx::PerfilCliente` (Fase 3.3, Fatia
-3.3.5). `NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
+**`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2), `Stock.jsx::fetchItems` (Fatia 3.3.3)
+e `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — resolvidos em 2026-08-26** (Fase 3.3 —
+`PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado em `Orders.jsx::fetchOrdens`/
+`fetchReposicao`. Resta `Clientes.jsx::PerfilCliente` (Fase 3.3, Fatia 3.3.5). `NewOrder.jsx`/
+`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
 
 Sprint prevista:
 Fase 3.3 (Kanban/Stock/Vendas/Clientes, 2026-08-26) + Fase 3.4 (NewOrder/EditOrder/VendaDetalhe, Tier 3,

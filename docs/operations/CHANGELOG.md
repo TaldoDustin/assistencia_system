@@ -9,6 +9,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.4: Financeiro)
+- **feat(design-system): Financeiro migra para DataTable/Panel** — Saldo em caixa vira métrica dominante
+  (`Panel`, saiu do header); Movimentações/Contas a Pagar/Contas a Receber migram para `DataTable`.
+- **fix(design-system): Financeiro trata rejeição de promise ao carregar saldo (KI-048)** — achado fora do
+  escopo original do KI (auditoria anterior não cobriu a busca de saldo do componente pai).
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo.
+
 ### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.3: Stock)
 - **feat(design-system): Stock migra para DataTable/Panel/LooseMetric** — Valor Total vira métrica
   dominante (`Panel`); Lotes/Unidades/Críticos viram `LooseMetric`; Reposição sugerida e lista principal

@@ -2,15 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import Vendas from "./Vendas";
 
 const mockList = vi.fn();
+const mockTiposGarantiaList = vi.fn().mockResolvedValue({ ok: true, items: [] });
 
 vi.mock("@/api/client", () => ({
   clientes: { list: vi.fn().mockResolvedValue({ ok: true, items: [] }) },
   unidadesSerializadas: { list: vi.fn().mockResolvedValue({ ok: true, items: [] }) },
   vendas: { list: (...args) => mockList(...args) },
-  tiposGarantia: { list: vi.fn().mockResolvedValue({ ok: true, items: [] }) },
+  tiposGarantia: { list: (...args) => mockTiposGarantiaList(...args) },
 }));
 
 vi.mock("sonner", () => ({
@@ -92,5 +94,18 @@ describe("Vendas — Histórico: estados e status semântico (PR 5)", () => {
     await abrirHistorico();
 
     await waitFor(() => expect(screen.getByPlaceholderText("Buscar por cliente, IMEI ou produto...")).toBeInTheDocument());
+  });
+});
+
+describe("Vendas — Nova Venda: rejeição de promise não fica silenciosa (KI-048)", () => {
+  beforeEach(() => {
+    mockTiposGarantiaList.mockReset();
+  });
+
+  it("mostra toast de erro quando a busca de tipos de garantia rejeita", async () => {
+    mockTiposGarantiaList.mockRejectedValue(new Error("network error"));
+    renderVendas();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Erro ao carregar tipos de garantia"));
   });
 });

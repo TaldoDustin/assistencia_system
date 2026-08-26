@@ -9,6 +9,15 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.2: Vendas)
+- **feat(design-system): Vendas Histórico migra para DataTable** — sem métrica dominante, `getRowProps`
+  preserva `data-testid`/`data-context-row` do `nav-context-highlight`.
+- **feat(design-system): Nova Venda usa Panel no resumo/pagamento e na confirmação** — único elemento
+  dominante desta tela, total em destaque.
+- **fix(design-system): Nova Venda trata rejeição de 3 promises sem `.catch` (KI-048)** —
+  `tiposGarantiaApi`/`clientesApi`/`unidadesApi`.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo.
+
 ### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.1: DataTable + Orders + Kanban)
 - **feat(design-system): DataTable ganha `getRowProps`** — propaga atributos por linha (ex.:
   `data-testid`/`data-context-row` do `nav-context-highlight`) sem sobrescrever `className`/`onClick`/

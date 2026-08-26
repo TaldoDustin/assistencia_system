@@ -3,20 +3,20 @@ import { interactiveRowClassName } from "@/lib/interaction";
 
 /**
  * Tabela real da Foundation (Fase 3.1) — substitui o padrão de HTML cru com bordas manuais
- * repetido por arquivo (ex.: Reports.jsx, OperationalCosts.jsx, Users.jsx). Ainda não é usada por
- * nenhuma tela nesta fase (mesmo princípio da Foundation da Fase 2 — construir antes de migrar,
- * ver PLAN-design-system-fase2.md "PR 1"); a migração tela a tela é escopo das Fases 3.2+.
+ * repetido por arquivo (ex.: Reports.jsx, OperationalCosts.jsx, Users.jsx). Migração tela a tela
+ * a partir da Fase 3.3 (`OrderTable.jsx` é o primeiro consumidor real).
  *
  * @param {{
  *   columns: Array<{ key: string, header: string, render?: (row: any) => import("react").ReactNode, className?: string, headerClassName?: string }>,
  *   rows: Array<any>,
  *   getRowKey: (row: any) => string | number,
+ *   getRowProps?: (row: any) => object,
  *   stickyHeader?: boolean,
  *   onRowClick?: (row: any) => void,
  *   className?: string,
  * }} props
  */
-export function DataTable({ columns, rows, getRowKey, stickyHeader = false, onRowClick, className }) {
+export function DataTable({ columns, rows, getRowKey, getRowProps, stickyHeader = false, onRowClick, className }) {
   return (
     <div className={cn("overflow-x-auto rounded-xl border border-border", className)}>
       <table className="w-full text-sm">
@@ -39,12 +39,19 @@ export function DataTable({ columns, rows, getRowKey, stickyHeader = false, onRo
           {rows.map((row) => (
             <tr
               key={getRowKey(row)}
+              {...(getRowProps ? getRowProps(row) : null)}
+              role={onRowClick ? "button" : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               onKeyDown={
                 onRowClick
                   ? (e) => {
-                      if (e.key === "Enter") onRowClick(row);
+                      if (e.key === "Enter") {
+                        onRowClick(row);
+                      } else if (e.key === " ") {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
                     }
                   : undefined
               }

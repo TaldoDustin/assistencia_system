@@ -14,7 +14,8 @@ import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
-import { interactiveRowClassName } from "@/lib/interaction";
+import { DataTable } from "@/components/ui/data-table";
+import { Panel, PanelContent } from "@/components/ui/panel";
 import { formatCurrency, vendaStatusVariant, vendaStatusLabel, origemUnidadeLabel } from "@/lib/constants";
 import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
 
@@ -180,52 +181,63 @@ function Historico() {
             />
           ) : (
             <>
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        {["Data", "Cliente", "Aparelho", "Vendedor", "Pagamento", "Valor", "Status"].map((h) => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {items.map((item) => {
-                        const primeiroItem = item.itens_resumo?.[0];
-                        return (
-                          <tr
-                            key={item.id}
-                            className={`${interactiveRowClassName} cursor-pointer`}
-                            data-testid={`venda-row-${item.id}`}
-                            data-context-row={item.id}
-                            onClick={() => handleRowClick(item.id)}
-                          >
-                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(item.criado_em)}</td>
-                            <td className="px-4 py-3 font-medium text-card-foreground">{item.cliente_nome || "—"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {primeiroItem ? (
-                                <>
-                                  <p className="text-card-foreground">{primeiroItem.produto_nome}</p>
-                                  <p className="text-xs font-mono">{primeiroItem.imei || "—"}</p>
-                                </>
-                              ) : "—"}
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground">{item.vendedor_nome || "—"}</td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—"}
-                            </td>
-                            <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(item.valor_total)}</td>
-                            <td className="px-4 py-3">
-                              <Badge variant={vendaStatusVariant(item.status)}>{vendaStatusLabel(item.status)}</Badge>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <DataTable
+                columns={[
+                  {
+                    key: "criado_em",
+                    header: "Data",
+                    className: "text-muted-foreground whitespace-nowrap",
+                    render: (item) => formatDateTime(item.criado_em),
+                  },
+                  {
+                    key: "cliente_nome",
+                    header: "Cliente",
+                    className: "font-medium text-card-foreground",
+                    render: (item) => item.cliente_nome || "—",
+                  },
+                  {
+                    key: "aparelho",
+                    header: "Aparelho",
+                    className: "text-muted-foreground",
+                    render: (item) => {
+                      const primeiroItem = item.itens_resumo?.[0];
+                      return primeiroItem ? (
+                        <>
+                          <p className="text-card-foreground">{primeiroItem.produto_nome}</p>
+                          <p className="text-xs font-mono">{primeiroItem.imei || "—"}</p>
+                        </>
+                      ) : "—";
+                    },
+                  },
+                  {
+                    key: "vendedor_nome",
+                    header: "Vendedor",
+                    className: "text-muted-foreground",
+                    render: (item) => item.vendedor_nome || "—",
+                  },
+                  {
+                    key: "forma_pagamento",
+                    header: "Pagamento",
+                    className: "text-muted-foreground",
+                    render: (item) => FORMAS_PAGAMENTO.find((f) => f.value === item.forma_pagamento)?.label || item.forma_pagamento || "—",
+                  },
+                  {
+                    key: "valor_total",
+                    header: "Valor",
+                    className: "font-medium text-card-foreground whitespace-nowrap",
+                    render: (item) => formatCurrency(item.valor_total),
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    render: (item) => <Badge variant={vendaStatusVariant(item.status)}>{vendaStatusLabel(item.status)}</Badge>,
+                  },
+                ]}
+                rows={items}
+                getRowKey={(item) => item.id}
+                getRowProps={(item) => ({ "data-testid": `venda-row-${item.id}`, "data-context-row": item.id })}
+                onRowClick={(item) => handleRowClick(item.id)}
+              />
 
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "venda" : "vendas"}</span>
@@ -412,32 +424,34 @@ function NovaVenda() {
     const formaLabel = FORMAS_PAGAMENTO.find((f) => f.value === vendaConcluida.formaPagamento)?.label;
     return (
       <div className="space-y-5 max-w-xl">
-        <div className="bg-card border border-border rounded-xl p-6 text-center space-y-4">
-          <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
-            <Check className="h-6 w-6 text-success" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Venda concluída</h1>
-            <p className="text-muted-foreground text-sm">Venda #{vendaConcluida.id}</p>
-          </div>
+        <Panel>
+          <PanelContent className="text-center space-y-4 pt-6">
+            <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+              <Check className="h-6 w-6 text-success" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Venda concluída</h1>
+              <p className="text-muted-foreground text-sm">Venda #{vendaConcluida.id}</p>
+            </div>
 
-          <div className="bg-secondary/40 rounded-lg p-4 text-left space-y-1.5 text-sm">
-            <p><span className="text-muted-foreground">Cliente:</span> {vendaConcluida.cliente.nome}</p>
-            <p><span className="text-muted-foreground">Aparelho:</span> {aparelhoDetalhes(vendaConcluida.aparelho)} — IMEI {vendaConcluida.aparelho.imei}</p>
-            <p><span className="text-muted-foreground">Pagamento:</span> {formaLabel}</p>
-            <p><span className="text-muted-foreground">Valor:</span> {formatCurrency(vendaConcluida.valor)}</p>
-          </div>
+            <div className="bg-secondary/40 rounded-lg p-4 text-left space-y-1.5 text-sm">
+              <p><span className="text-muted-foreground">Cliente:</span> {vendaConcluida.cliente.nome}</p>
+              <p><span className="text-muted-foreground">Aparelho:</span> {aparelhoDetalhes(vendaConcluida.aparelho)} — IMEI {vendaConcluida.aparelho.imei}</p>
+              <p><span className="text-muted-foreground">Pagamento:</span> {formaLabel}</p>
+              <p><span className="text-muted-foreground">Valor:</span> {formatCurrency(vendaConcluida.valor)}</p>
+            </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <Button onClick={novaVenda}><Plus className="h-4 w-4 mr-2" />Nova venda</Button>
-            <Button variant="outline" onClick={() => navigate(`/vendas/${vendaConcluida.id}`)}>
-              <Eye className="h-4 w-4 mr-2" />Ver venda
-            </Button>
-            <Button variant="outline" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
-              <Printer className="h-4 w-4 mr-2" />Imprimir
-            </Button>
-          </div>
-        </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Button onClick={novaVenda}><Plus className="h-4 w-4 mr-2" />Nova venda</Button>
+              <Button variant="outline" onClick={() => navigate(`/vendas/${vendaConcluida.id}`)}>
+                <Eye className="h-4 w-4 mr-2" />Ver venda
+              </Button>
+              <Button variant="outline" onClick={() => toast.info("Impressão ainda não disponível — em breve.")}>
+                <Printer className="h-4 w-4 mr-2" />Imprimir
+              </Button>
+            </div>
+          </PanelContent>
+        </Panel>
       </div>
     );
   }
@@ -546,9 +560,10 @@ function NovaVenda() {
           </div>
         )}
 
-        {/* Resumo automático + preço + pagamento */}
+        {/* Resumo automático + preço + pagamento -- único elemento dominante desta tela (Panel) */}
         {form.clienteSelecionado && form.aparelhoSelecionado && (
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <Panel>
+            <PanelContent className="space-y-4 pt-6">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="venda-valor">Preço da venda</Label>
@@ -621,7 +636,7 @@ function NovaVenda() {
 
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-lg font-bold text-foreground">
+              <span className="text-2xl font-bold text-foreground tracking-tight">
                 {formatCurrency(parseFloat(form.valorVenda) || 0)}
               </span>
             </div>
@@ -630,7 +645,8 @@ function NovaVenda() {
               {submitting && <CircleNotch className="h-4 w-4 mr-2 animate-spin" />}
               {submitting ? "Confirmando..." : "Confirmar Venda"}
             </Button>
-          </div>
+          </PanelContent>
+          </Panel>
         )}
       </form>
     </div>

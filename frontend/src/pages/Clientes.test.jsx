@@ -5,10 +5,11 @@ import Clientes from "./Clientes";
 
 const mockList = vi.fn();
 const mockGarantiasList = vi.fn();
+const mockClienteHistory = vi.fn().mockResolvedValue({ ok: true, ordens: [] });
 
 vi.mock("@/api/client", () => ({
   clientes: { list: (...args) => mockList(...args) },
-  ordens: { clienteHistory: vi.fn().mockResolvedValue({ ok: true, ordens: [] }) },
+  ordens: { clienteHistory: (...args) => mockClienteHistory(...args) },
   garantias: { list: (...args) => mockGarantiasList(...args) },
 }));
 
@@ -76,5 +77,35 @@ describe("Clientes — estados e status semântico (PR 5)", () => {
 
     await waitFor(() => expect(screen.getByText("Vencida")).toBeInTheDocument());
     expect(screen.getByText("Vencida").className).toContain("bg-destructive/10");
+  });
+
+  it("mostra ErrorState com retry quando a API de clientes falha (KI-049)", async () => {
+    mockList.mockResolvedValue({ ok: false });
+    render(<Clientes />);
+
+    await waitFor(() => expect(screen.getByText("Não foi possível carregar os clientes.")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /tentar novamente/i })).toBeInTheDocument();
+  });
+
+  it("mostra ErrorState quando a promise da API de clientes rejeita (KI-049)", async () => {
+    mockList.mockRejectedValue(new Error("network error"));
+    render(<Clientes />);
+
+    await waitFor(() => expect(screen.getByText("Não foi possível carregar os clientes.")).toBeInTheDocument());
+  });
+
+  it("perfil do cliente não fica preso no loading quando a busca de histórico/garantias rejeita (KI-048)", async () => {
+    mockList.mockResolvedValue({
+      ok: true,
+      items: [{ id: 1, nome: "Carla Souza", telefone: "11999990000", email: "carla@example.com" }],
+    });
+    mockClienteHistory.mockRejectedValue(new Error("network error"));
+    render(<Clientes />);
+
+    await waitFor(() => expect(screen.getByText("Carla Souza")).toBeInTheDocument());
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Carla Souza"));
+
+    await waitFor(() => expect(screen.getByText("Nenhuma OS encontrada para este cliente.")).toBeInTheDocument());
   });
 });

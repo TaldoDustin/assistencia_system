@@ -15,6 +15,7 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterInput } from "@/components/ui/filter-bar";
@@ -50,6 +51,8 @@ function PerfilCliente({ cliente, onClose }) {
       if (!ativo) return;
       setOrdens(histRes?.ok ? (histRes.ordens || []) : []);
       setGarantiasCliente(garRes?.ok ? (garRes.garantias || []) : []);
+    }).catch(() => {
+      if (ativo) toast.error("Erro ao carregar histórico do cliente");
     }).finally(() => { if (ativo) setLoading(false); });
     return () => { ativo = false; };
   }, [cliente.nome]);
@@ -161,6 +164,7 @@ export default function Clientes() {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -176,10 +180,16 @@ export default function Clientes() {
     setLoading(true);
     try {
       const res = await clientesApi.list({ per_page: 500 });
-      if (res?.ok) setItems(res.items || []);
-      else toast.error(res?.erro || "Erro ao carregar clientes");
+      if (res?.ok) {
+        setItems(res.items || []);
+        setLoadError(false);
+      } else {
+        toast.error(res?.erro || "Erro ao carregar clientes");
+        setLoadError(true);
+      }
     } catch {
       toast.error("Erro ao carregar clientes");
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -299,6 +309,8 @@ export default function Clientes() {
 
       {loading ? (
         <ListSkeleton rows={6} />
+      ) : loadError && items.length === 0 ? (
+        <ErrorState title="Não foi possível carregar os clientes." onRetry={fetchItems} />
       ) : (
         <Reveal className="space-y-5">
           <FilterBar className="bg-card border border-border rounded-xl p-4">

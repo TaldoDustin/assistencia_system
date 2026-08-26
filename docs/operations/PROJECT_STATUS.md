@@ -5,12 +5,12 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.5 (última do Tier
-2): Clientes — contadores viram `LooseMetric` (sem dominante), tabela migra para `DataTable` com
-`onRowClick` abrindo o perfil. **KI-049 resolvido** (estado de erro dedicado) e **KI-048 resolvido no
-último ponto do Tier 2** (`PerfilCliente`) — o Tier 2 inteiro do KI-048 está fechado agora, resta só o
-Tier 3 (Fase 3.4). Ver seção logo abaixo para o registro completo. Branch
-`feat/design-system-fase3.3-operacao-clientes`, 147/147 testes, lint 0 erros, build ok. Antes disso:
+**Última revisão:** 2026-08-26 — **Fase 3.3 do Fluxoly Design System (Operação) ENCERRADA** — 5/5 fatias
+mergeadas em `main` (PR #63 a #67), Tier 2 completo (Orders/Kanban/Vendas/Stock/Financeiro/Clientes
+migrados para `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-053` resolvido; `KI-048` fechado no
+Tier 2 (6 pontos: Kanban, Vendas ×3, Stock, Financeiro-saldo, Clientes — resta só o Tier 3, Fase 3.4);
+`KI-049` resolvido. Ver seção logo abaixo para o registro completo. Suíte completa final: 147/147, lint 0
+erros, build ok, CI 8/8 (×2) verde em cada PR. Antes disso:
 2026-08-26 — Fase 3.3, Fatia 3.3.4: Financeiro —
 Saldo em caixa vira métrica dominante (`Panel`, saiu do header); as 3 tabelas (Movimentações/Contas a
 Pagar/Contas a Receber) migram para `DataTable`. Achado fora do escopo original do KI-048 (auditoria
@@ -133,7 +133,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.5 (Clientes) — última do Tier 2
+## ✅ Fase 3.3 do Fluxoly Design System — Operação ENCERRADA (5/5 fatias mergeadas)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
 fatias) e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (§9) para o faseamento
@@ -161,7 +161,15 @@ relacionados), build de produção sem erro. QA visual não executada ao vivo (m
 (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`, Fase 3.4, ainda não iniciada).
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
-implementação. Merge desta fatia (PR) ainda não solicitado.
+implementação. **Mergeado em `main` (PR #67, squash, commit `142a22ef`, 2026-08-26)** — CI 8/8 (×2) verde,
+produção confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200).
+
+**Fase 3.3 (Operação) encerrada** — as 5 fatias (3.3.1 DataTable+Orders+Kanban/PR #63, 3.3.2 Vendas/PR #64,
+3.3.3 Stock/PR #65, 3.3.4 Financeiro/PR #66, 3.3.5 Clientes/PR #67) todas mergeadas em `main` no mesmo dia
+(2026-08-26). Tier 2 completo: Orders/Kanban/Vendas/Stock/Financeiro/Clientes migrados para os recipientes
+da Foundation v2 (`Panel`/`LooseMetric`/`DataTable`). `KI-053` resolvido (acessibilidade do `DataTable`);
+`KI-048` fechado no Tier 2 inteiro (6 pontos corrigidos: Kanban, Vendas ×3, Stock, Financeiro-saldo,
+Clientes — resta só o Tier 3); `KI-049` resolvido.
 
 **Próximo passo:** Fase 3.3 completa após o merge desta fatia — Fase 3.4 (Tier 3: NewOrder/EditOrder/
 VendaDetalhe/ChecklistDevice) fica para quando o CTO autorizar o início.

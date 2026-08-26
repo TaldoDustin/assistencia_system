@@ -89,7 +89,7 @@ function SidebarNav({ currentPath, user }) {
         return (
           <div key={section.label ?? "top"} className="space-y-1">
             {section.label && (
-              <p className="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/40">
+              <p className="px-3 pt-3 pb-1 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
                 {section.label}
               </p>
             )}

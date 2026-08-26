@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Reveal } from "@/components/ui/reveal";
+import { LooseMetric } from "@/components/ui/loose-metric";
 import OrderFilters from "@/components/orders/OrderFilters";
 import OrderTable from "@/components/orders/OrderTable";
 import { readListContext, saveListContext, useRestoreScroll } from "@/hooks/useListContext";
@@ -136,18 +137,11 @@ export default function Orders() {
         />
       ) : (
         <Reveal className="space-y-5">
-          {/* Stats bar */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Total", value: ordens.length, color: "text-foreground" },
-              { label: "Em aberto", value: abertas, color: "text-warning" },
-              { label: "Finalizadas", value: finalizadas, color: "text-success" },
-            ].map((s) => (
-              <div key={s.label} className="bg-card border border-border rounded-xl p-4 text-center">
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-              </div>
-            ))}
+          {/* Stats bar -- contadores soltos, sem elemento dominante (tela de CRUD simples) */}
+          <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+            <LooseMetric label="Total" value={ordens.length} />
+            <LooseMetric label="Em aberto" value={abertas} valueClassName="text-warning" />
+            <LooseMetric label="Finalizadas" value={finalizadas} valueClassName="text-success" />
           </div>
 
           <OrderFilters filters={filters} setFilters={setFilters} tecnicos={tecnicos} vendedores={vendedores} constants={constants} />

@@ -211,13 +211,18 @@ retorna os 2 `Button` já existentes).
 
 `frontend/src/pages/Financeiro.jsx` (730 linhas, 3 abas: Movimentações/Contas a Pagar/Contas a Receber).
 
-- [ ] "Saldo em caixa" (linha ~694-706 atual, hoje um badge pequeno no header) vira `Panel` dominante,
-      número hero (mesmo tratamento do Faturamento no Dashboard) — sai do header, ganha espaço próprio
-      logo abaixo do título da página.
-- [ ] As 3 tabelas (Movimentações, Contas a Pagar, Contas a Receber) migram para `DataTable`.
-- [ ] Nenhuma mudança em `caixaApi`/`contasPagarApi`/`contasReceberApi`, cálculo de saldo, ou fluxo de
+- [x] "Saldo em caixa" (antes um badge pequeno no header) vira `Panel` dominante, número hero (mesmo
+      tratamento do Faturamento no Dashboard) — sai do header, ganha espaço próprio logo abaixo do título.
+- [x] As 3 tabelas (Movimentações, Contas a Pagar, Contas a Receber) migram para `DataTable`.
+- [x] Nenhuma mudança em `caixaApi`/`contasPagarApi`/`contasReceberApi`, cálculo de saldo, ou fluxo de
       estorno/cancelamento.
-- [ ] Suíte completa, lint, build, QA visual (Light + Dark, incluindo as 3 abas).
+- [x] **Achado fora do escopo original do plano, corrigido no mesmo commit da correção (bug, não
+      composição):** a busca de saldo (`Financeiro.jsx::buscar`, componente pai) era um `async function`
+      sem `try/catch` — mesma classe do KI-048, mas em um ponto que a auditoria original do KI-048 não
+      cobriu (essa auditoria olhou só os `buscar()` de `Movimentacoes`/`ContasTab`, não o do componente
+      pai). Ficou mais visível ao promover o saldo a métrica dominante (`Panel`) — antes era só um badge
+      pequeno no header. Corrigido com `try/catch/finally` + `toast.error`, 1 teste novo.
+- [x] Suíte completa (144/144), lint 0 erros, build ok. QA visual não executada ao vivo (KI-027).
 
 ---
 

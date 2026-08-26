@@ -5,11 +5,16 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.3: Stock — Valor
+**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.4: Financeiro —
+Saldo em caixa vira métrica dominante (`Panel`, saiu do header); as 3 tabelas (Movimentações/Contas a
+Pagar/Contas a Receber) migram para `DataTable`. Achado fora do escopo original do KI-048 (auditoria
+anterior não cobriu a busca de saldo do componente pai) — corrigido no mesmo padrão. Ver seção logo abaixo
+para o registro completo. Branch `feat/design-system-fase3.3-operacao-financeiro`, 144/144 testes, lint 0
+erros, build ok. Antes disso:
+2026-08-26 — Fase 3.3, Fatia 3.3.3: Stock — Valor
 Total vira métrica dominante (`Panel`), Lotes/Unidades/Críticos viram `LooseMetric`, Reposição sugerida e
 lista principal de itens migram para `DataTable`. Corrigido o KI-048 em `fetchItems` (sem `try/catch`).
-Ver seção logo abaixo para o registro completo. Branch `feat/design-system-fase3.3-operacao-stock`,
-143/143 testes, lint 0 erros, build ok. Antes disso:
+Branch `feat/design-system-fase3.3-operacao-stock`, 143/143 testes, lint 0 erros, build ok. Antes disso:
 2026-08-26 — Fase 3.3, Fatia 3.3.2: Vendas —
 Histórico migra para `DataTable` (sem métrica dominante), Nova Venda migra o bloco de resumo/pagamento e
 o card de confirmação para `Panel` (único elemento dominante da tela). Corrigido o KI-048 nos 3 pontos de
@@ -123,7 +128,38 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.3 (Stock)
+## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.4 (Financeiro)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
+fatias).**
+
+2026-08-26, sequência imediata à Fatia 3.3.3 (mergeada em `main`, PR #65). Quarta fatia do Tier 2.
+
+**Entregue** (branch `feat/design-system-fase3.3-operacao-financeiro`):
+- **Saldo em caixa** (antes um badge pequeno no header) vira métrica dominante (`Panel`, número hero) —
+  mesmo tratamento do Faturamento no Dashboard, decisão do CTO.
+- As 3 tabelas (Movimentações, Contas a Pagar, Contas a Receber) migram de HTML cru para `DataTable`,
+  ações (estornar/pagar/receber/editar/cancelar/excluir) preservadas na coluna final.
+- **Achado fora do escopo original do KI-048, corrigido nesta fatia:** a busca de saldo do componente pai
+  (`Financeiro.jsx::buscar`) era um `async function` sem `try/catch` — a auditoria original do PR 5 que
+  deu `Financeiro.jsx` como "limpo" checou só os `buscar()` de `Movimentacoes`/`ContasTab`, não este. Ficou
+  mais visível ao promover o saldo a métrica dominante.
+
+**Validação:** suíte completa 144/144 (1 teste novo), lint 0 erros (2 warnings pré-existentes não
+relacionados), build de produção sem erro. QA visual não executada ao vivo (mesma limitação de KI-027).
+
+**KI-048 (progresso):** `Kanban.jsx`, `Vendas.jsx::NovaVenda`, `Stock.jsx::fetchItems` e
+`Financeiro.jsx::buscar` (saldo) resolvidos. Resta `Clientes.jsx::PerfilCliente` (Fatia 3.3.5) + 3 pontos
+no Tier 3 (Fase 3.4, fora desta fase).
+
+**Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
+implementação. Merge desta fatia (PR) ainda não solicitado.
+
+**Próximo passo:** Fatia 3.3.5 (Clientes — última do Tier 2).
+
+---
+
+## ✅ Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.3 (Stock) ENCERRADA (PR #65 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
 fatias).**
@@ -145,9 +181,10 @@ relacionados), build de produção sem erro. QA visual não executada ao vivo (m
 `Clientes.jsx::PerfilCliente` (Fatia 3.3.5) + 3 pontos no Tier 3 (Fase 3.4, fora desta fase).
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
-implementação. Merge desta fatia (PR) ainda não solicitado.
+implementação. **Mergeado em `main` (PR #65, squash, commit `184815a1`, 2026-08-26)** — CI 8/8 (×2) verde,
+produção confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200).
 
-**Próximo passo:** Fatia 3.3.4 (Financeiro).
+**Próximo passo:** Fatia 3.3.4 (Financeiro), ver seção acima.
 
 ---
 

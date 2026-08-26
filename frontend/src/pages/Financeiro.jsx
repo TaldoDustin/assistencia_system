@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
   CircleNotch, Lock, Plus, ArrowCounterClockwise, XCircle, Pencil, Trash,
-  CaretLeft, CaretRight, Wallet, ArrowCircleDown, ArrowCircleUp,
+  CaretLeft, CaretRight, ArrowCircleDown, ArrowCircleUp,
 } from "@phosphor-icons/react";
 import { caixa as caixaApi, contasPagar as contasPagarApi, contasReceber as contasReceberApi } from "@/api/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,7 +22,8 @@ import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
-import { interactiveRowClassName } from "@/lib/interaction";
+import { DataTable } from "@/components/ui/data-table";
+import { Panel, PanelHeader, PanelTitle, PanelContent } from "@/components/ui/panel";
 import { formatCurrency } from "@/lib/constants";
 
 const PER_PAGE = 20;
@@ -200,46 +201,54 @@ function Movimentacoes({ onMutate }) {
             <EmptyState title="Nenhuma movimentação encontrada." />
           ) : (
             <>
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        {["Data", "Tipo", "Valor", "Descrição", "Origem", "Status", ""].map((h) => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {items.map((m) => (
-                        <tr key={m.id} className={interactiveRowClassName}>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDateTime(m.criado_em)}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant={tipoVariant(m.tipo)}>{TIPO_LABEL[m.tipo] || m.tipo}</Badge>
-                          </td>
-                          <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(m.valor)}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{m.descricao || "—"}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{ORIGEM_LABEL[m.origem] || m.origem}</td>
-                          <td className="px-4 py-3">
-                            {m.estornada ? (
-                              <span className="text-xs text-muted-foreground">Estornada</span>
-                            ) : (
-                              <span className="text-xs text-success">Ativa</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            {!m.estornada && m.origem === "manual" && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Estornar" onClick={() => setEstornarId(m.id)}>
-                                <ArrowCounterClockwise className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <DataTable
+                columns={[
+                  {
+                    key: "criado_em",
+                    header: "Data",
+                    className: "text-muted-foreground whitespace-nowrap",
+                    render: (m) => formatDateTime(m.criado_em),
+                  },
+                  {
+                    key: "tipo",
+                    header: "Tipo",
+                    render: (m) => <Badge variant={tipoVariant(m.tipo)}>{TIPO_LABEL[m.tipo] || m.tipo}</Badge>,
+                  },
+                  {
+                    key: "valor",
+                    header: "Valor",
+                    className: "font-medium text-card-foreground whitespace-nowrap",
+                    render: (m) => formatCurrency(m.valor),
+                  },
+                  { key: "descricao", header: "Descrição", className: "text-muted-foreground", render: (m) => m.descricao || "—" },
+                  {
+                    key: "origem",
+                    header: "Origem",
+                    className: "text-muted-foreground",
+                    render: (m) => ORIGEM_LABEL[m.origem] || m.origem,
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    render: (m) => m.estornada ? (
+                      <span className="text-xs text-muted-foreground">Estornada</span>
+                    ) : (
+                      <span className="text-xs text-success">Ativa</span>
+                    ),
+                  },
+                  {
+                    key: "acoes",
+                    header: "",
+                    render: (m) => !m.estornada && m.origem === "manual" && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Estornar" onClick={() => setEstornarId(m.id)}>
+                        <ArrowCounterClockwise className="h-3.5 w-3.5" />
+                      </Button>
+                    ),
+                  },
+                ]}
+                rows={items}
+                getRowKey={(m) => m.id}
+              />
 
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "movimentação" : "movimentações"}</span>
@@ -502,53 +511,51 @@ function ContasTab({ dominio, onMutate }) {
             <EmptyState title={cfg.vazio} />
           ) : (
             <>
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        {["Descrição", "Categoria", "Valor", "Vencimento", "Status", ""].map((h) => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {items.map((c) => {
-                        const pendente = c.status === "pendente";
-                        return (
-                          <tr key={c.id} className={interactiveRowClassName}>
-                            <td className="px-4 py-3 font-medium text-card-foreground">{c.descricao}</td>
-                            <td className="px-4 py-3 text-muted-foreground">{c.categoria || "—"}</td>
-                            <td className="px-4 py-3 font-medium text-card-foreground whitespace-nowrap">{formatCurrency(c.valor)}</td>
-                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatData(c.data_vencimento)}</td>
-                            <td className="px-4 py-3">
-                              <Badge variant={statusContaVariant(c.status)}>{STATUS_CONTA_LABEL[c.status] || c.status}</Badge>
-                            </td>
-                            <td className="px-4 py-3">
-                              {pendente && (
-                                <div className="flex items-center gap-1 justify-end">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" title={cfg.acaoLabel} onClick={() => setAcaoId(c.id)}>
-                                    <AcaoIcon className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar" onClick={() => openEdit(c)}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Cancelar" onClick={() => setCancelarId(c.id)}>
-                                    <XCircle className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteId(c.id)}>
-                                    <Trash className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <DataTable
+                columns={[
+                  { key: "descricao", header: "Descrição", className: "font-medium text-card-foreground" },
+                  { key: "categoria", header: "Categoria", className: "text-muted-foreground", render: (c) => c.categoria || "—" },
+                  {
+                    key: "valor",
+                    header: "Valor",
+                    className: "font-medium text-card-foreground whitespace-nowrap",
+                    render: (c) => formatCurrency(c.valor),
+                  },
+                  {
+                    key: "data_vencimento",
+                    header: "Vencimento",
+                    className: "text-muted-foreground whitespace-nowrap",
+                    render: (c) => formatData(c.data_vencimento),
+                  },
+                  {
+                    key: "status",
+                    header: "Status",
+                    render: (c) => <Badge variant={statusContaVariant(c.status)}>{STATUS_CONTA_LABEL[c.status] || c.status}</Badge>,
+                  },
+                  {
+                    key: "acoes",
+                    header: "",
+                    render: (c) => c.status === "pendente" && (
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title={cfg.acaoLabel} onClick={() => setAcaoId(c.id)}>
+                          <AcaoIcon className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar" onClick={() => openEdit(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Cancelar" onClick={() => setCancelarId(c.id)}>
+                          <XCircle className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteId(c.id)}>
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                rows={items}
+                getRowKey={(c) => c.id}
+              />
 
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Página {page} de {totalPaginas} — {total} {total === 1 ? "conta" : "contas"}</span>
@@ -666,9 +673,14 @@ export default function Financeiro() {
 
     async function buscar() {
       setSaldoLoading(true);
-      const res = await caixaApi.saldo();
-      if (ativo && res?.ok) setSaldo(res.saldo);
-      if (ativo) setSaldoLoading(false);
+      try {
+        const res = await caixaApi.saldo();
+        if (ativo && res?.ok) setSaldo(res.saldo);
+      } catch {
+        if (ativo) toast.error("Erro ao carregar saldo em caixa");
+      } finally {
+        if (ativo) setSaldoLoading(false);
+      }
     }
 
     buscar();
@@ -686,25 +698,26 @@ export default function Financeiro() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
-          <p className="text-muted-foreground text-sm">Caixa, contas a pagar e contas a receber</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl px-5 py-3 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Wallet className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Saldo em caixa</p>
-            {saldoLoading ? (
-              <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" />
-            ) : (
-              <p className={`text-lg font-bold ${saldo < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(saldo)}</p>
-            )}
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Financeiro</h1>
+        <p className="text-muted-foreground text-sm">Caixa, contas a pagar e contas a receber</p>
       </div>
+
+      {/* Métrica dominante */}
+      <Panel>
+        <PanelHeader>
+          <PanelTitle>Saldo em caixa</PanelTitle>
+        </PanelHeader>
+        <PanelContent className="pt-0">
+          {saldoLoading ? (
+            <CircleNotch className="h-8 w-8 animate-spin text-muted-foreground" />
+          ) : (
+            <p className={`text-4xl sm:text-5xl font-bold tracking-tight ${saldo < 0 ? "text-destructive" : "text-card-foreground"}`}>
+              {formatCurrency(saldo)}
+            </p>
+          )}
+        </PanelContent>
+      </Panel>
 
       <div className="flex gap-1 bg-secondary p-1 rounded-lg w-fit">
         {TABS.map((tab) => (

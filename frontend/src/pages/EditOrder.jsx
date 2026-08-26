@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Reveal } from "@/components/ui/reveal";
+import { Panel, PanelHeader, PanelTitle, PanelContent } from "@/components/ui/panel";
+import { LooseMetric } from "@/components/ui/loose-metric";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
@@ -341,236 +343,258 @@ export default function EditOrder() {
 
       <Reveal className="space-y-5">
       {checklistMeta ? (
-        <section className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="text-sm font-semibold text-card-foreground">Checklist do aparelho</h2>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Checklist do aparelho</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm text-muted-foreground">
                 Touch: {checklistMeta.status_touch} • Audio: {checklistMeta.status_audio} • Microfone: {checklistMeta.status_microfone}
               </p>
+              <Button type="button" variant="outline" onClick={() => setChecklistDialog(true)} disabled={!checklistMeta.access_token}>
+                Ver QR
+              </Button>
             </div>
-            <Button type="button" variant="outline" onClick={() => setChecklistDialog(true)} disabled={!checklistMeta.access_token}>
-              Ver QR
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {checklistMeta.atualizado_em
-              ? `Ultima atualizacao: ${checklistMeta.atualizado_em}`
-              : "Checklist ainda nao preenchido."}
-          </p>
-        </section>
+            <p className="text-xs text-muted-foreground">
+              {checklistMeta.atualizado_em
+                ? `Ultima atualizacao: ${checklistMeta.atualizado_em}`
+                : "Checklist ainda nao preenchido."}
+            </p>
+          </PanelContent>
+        </Panel>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Cliente / Tipo */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Cliente</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="edit-order-cliente">Nome do Cliente *</Label>
-              <Input id="edit-order-cliente" value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} required />
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Cliente</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="edit-order-cliente">Nome do Cliente *</Label>
+                <Input id="edit-order-cliente" value={form.cliente} onChange={(e) => setField("cliente", e.target.value)} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tipo de OS</Label>
+                <Select value={form.tipo} onValueChange={(v) => setField("tipo", v)}>
+                  <SelectTrigger aria-label="Tipo de OS"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(constants?.os_tipos || OS_TYPES_FALLBACK).map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-order-data-os">Data da OS</Label>
+                <Input id="edit-order-data-os" type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Tipo de OS</Label>
-              <Select value={form.tipo} onValueChange={(v) => setField("tipo", v)}>
-                <SelectTrigger aria-label="Tipo de OS"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(constants?.os_tipos || OS_TYPES_FALLBACK).map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-order-data-os">Data da OS</Label>
-              <Input id="edit-order-data-os" type="date" value={form.data_os} onChange={(e) => setField("data_os", e.target.value)} />
-            </div>
-          </div>
-        </section>
+          </PanelContent>
+        </Panel>
 
         {/* Aparelho */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Aparelho</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Modelo *</Label>
-              <Select value={form.modelo} onValueChange={(v) => { setField("modelo", v); setField("cor", ""); }}>
-                <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
-                <SelectContent>
-                  {/* Garante que o modelo atual apareça mesmo se não estiver na lista */}
-                  {(!constants?.iphone_models?.includes(form.modelo) && form.modelo) && (
-                    <SelectItem key={form.modelo} value={form.modelo}>{form.modelo}</SelectItem>
-                  )}
-                  {(constants?.iphone_models || []).map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Aparelho</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Modelo *</Label>
+                <Select value={form.modelo} onValueChange={(v) => { setField("modelo", v); setField("cor", ""); }}>
+                  <SelectTrigger aria-label="Modelo"><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
+                  <SelectContent>
+                    {/* Garante que o modelo atual apareça mesmo se não estiver na lista */}
+                    {(!constants?.iphone_models?.includes(form.modelo) && form.modelo) && (
+                      <SelectItem key={form.modelo} value={form.modelo}>{form.modelo}</SelectItem>
+                    )}
+                    {(constants?.iphone_models || []).map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Cor</Label>
+                <Select value={form.cor} onValueChange={(v) => setField("cor", v)}>
+                  <SelectTrigger aria-label="Cor"><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
+                  <SelectContent>
+                    {/* Garante que a cor atual apareça mesmo se não estiver na lista */}
+                    {(!constants?.iphone_colors?.[form.modelo]?.includes(form.cor) && form.cor) && (
+                      <SelectItem key={form.cor} value={form.cor}>{form.cor}</SelectItem>
+                    )}
+                    {(constants?.iphone_colors?.[form.modelo] || []).map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="edit-order-imei">IMEI</Label>
+                <Input id="edit-order-imei" value={form.imei} onChange={(e) => setField("imei", e.target.value)} maxLength={16} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Cor</Label>
-              <Select value={form.cor} onValueChange={(v) => setField("cor", v)}>
-                <SelectTrigger aria-label="Cor"><SelectValue placeholder="Cor do aparelho" /></SelectTrigger>
-                <SelectContent>
-                  {/* Garante que a cor atual apareça mesmo se não estiver na lista */}
-                  {(!constants?.iphone_colors?.[form.modelo]?.includes(form.cor) && form.cor) && (
-                    <SelectItem key={form.cor} value={form.cor}>{form.cor}</SelectItem>
-                  )}
-                  {(constants?.iphone_colors?.[form.modelo] || []).map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="edit-order-imei">IMEI</Label>
-              <Input id="edit-order-imei" value={form.imei} onChange={(e) => setField("imei", e.target.value)} maxLength={16} />
-            </div>
-          </div>
-        </section>
+          </PanelContent>
+        </Panel>
 
         {/* Serviço */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Serviço</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Técnico</Label>
-              <Select value={form.tecnico} onValueChange={(v) => setField("tecnico", v)}>
-                <SelectTrigger aria-label="Técnico"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {(constants?.tecnicos || []).map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Vendedor</Label>
-              <Select value={form.vendedor} onValueChange={(v) => setField("vendedor", v)}>
-                <SelectTrigger aria-label="Vendedor"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {(constants?.vendedores || []).map((v) => (
-                    <SelectItem key={v} value={v}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={(v) => setField("status", v)}>
-                <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(constants?.status_opcoes || STATUS_OPTIONS_FALLBACK).map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {reparosDisponiveis.length > 0 && (
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <Label>Tipos de Reparo</Label>
-                <span className="text-xs text-muted-foreground">{selectedReparos.length} selecionado(s)</span>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Serviço</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Técnico</Label>
+                <Select value={form.tecnico} onValueChange={(v) => setField("tecnico", v)}>
+                  <SelectTrigger aria-label="Técnico"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {(constants?.tecnicos || []).map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="rounded-xl border border-border/70 bg-secondary/30 p-3">
-                <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-                  {reparosDisponiveis.map((r) => {
-                    const selecionado = selectedReparos.includes(r.id);
-                    return (
-                      <label
-                        key={r.id}
-                        className={[
-                          "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors",
-                          selecionado
-                            ? "border-primary/60 bg-primary/10"
-                            : "border-border/70 bg-background/50 hover:border-primary/40 hover:bg-background",
-                        ].join(" ")}
-                      >
-                        <Checkbox
-                          checked={selecionado}
-                          onCheckedChange={() => toggleReparo(r.id)}
-                        />
-                        <span className="font-medium uppercase tracking-wide text-card-foreground">{r.nome}</span>
-                      </label>
-                    );
-                  })}
+              <div className="space-y-1.5">
+                <Label>Vendedor</Label>
+                <Select value={form.vendedor} onValueChange={(v) => setField("vendedor", v)}>
+                  <SelectTrigger aria-label="Vendedor"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {(constants?.vendedores || []).map((v) => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setField("status", v)}>
+                  <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(constants?.status_opcoes || STATUS_OPTIONS_FALLBACK).map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {reparosDisponiveis.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <Label>Tipos de Reparo</Label>
+                  <span className="text-xs text-muted-foreground">{selectedReparos.length} selecionado(s)</span>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-secondary/30 p-3">
+                  <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+                    {reparosDisponiveis.map((r) => {
+                      const selecionado = selectedReparos.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className={[
+                            "group flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors",
+                            selecionado
+                              ? "border-primary/60 bg-primary/10"
+                              : "border-border/70 bg-background/50 hover:border-primary/40 hover:bg-background",
+                          ].join(" ")}
+                        >
+                          <Checkbox
+                            checked={selecionado}
+                            onCheckedChange={() => toggleReparo(r.id)}
+                          />
+                          <span className="font-medium uppercase tracking-wide text-card-foreground">{r.nome}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </PanelContent>
+        </Panel>
 
         {/* Financeiro */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Financeiro</h2>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Financeiro</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <LooseMetric label="Custo total de peças" value={formatCurrency(pecasTotal)} />
+              <LooseMetric
+                label="Sugestão de serviço"
+                value={suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}
+                valueClassName="text-primary"
+              />
+              <div className="flex items-end justify-end">
+                <Button type="button" disabled={!suggestedPrice} onClick={() => suggestedPrice !== null && setField("valor_cobrado", String(suggestedPrice))}>
+                  Usar sugestão
+                </Button>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div className="bg-secondary rounded-xl p-4">
-              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Custo total de peças</p>
-              <p className="mt-3 text-2xl font-bold text-foreground">{formatCurrency(pecasTotal)}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-order-valor-cobrado">Valor Cobrado (R$)</Label>
+                <Input id="edit-order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-order-valor-descontado">Valor com Desconto (R$)</Label>
+                <Input id="edit-order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} />
+              </div>
             </div>
-            <div className="bg-secondary rounded-xl p-4">
-              <p className="text-xs uppercase font-semibold tracking-[0.2em] text-muted-foreground">Sugestão de serviço</p>
-              <p className="mt-3 text-2xl font-bold text-primary">{suggestedPrice !== null ? formatCurrency(suggestedPrice) : "—"}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Baseado na tabela de preços.</p>
-            </div>
-            <div className="flex items-end justify-end">
-              <Button type="button" disabled={!suggestedPrice} onClick={() => suggestedPrice !== null && setField("valor_cobrado", String(suggestedPrice))}>
-                Usar sugestão
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-order-valor-cobrado">Valor Cobrado (R$)</Label>
-              <Input id="edit-order-valor-cobrado" type="number" step="0.01" min="0" value={form.valor_cobrado} onChange={(e) => setField("valor_cobrado", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-order-valor-descontado">Valor com Desconto (R$)</Label>
-              <Input id="edit-order-valor-descontado" type="number" step="0.01" min="0" value={form.valor_descontado} onChange={(e) => setField("valor_descontado", e.target.value)} />
-            </div>
-          </div>
-        </section>
+          </PanelContent>
+        </Panel>
 
         {/* Peças */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Peças do Estoque</h2>
-          <div className="relative">
-            <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar peça..." value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} className="pl-8" />
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {filteredEstoque.map((item) => (
-              <div key={item.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-card-foreground truncate">{item.descricao}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.modelo} • Estoque: {item.quantidade} • {formatCurrency(item.valor || 0)}
-                    {item.quantidade <= 0 && (pecas[item.id] || 0) > 0 ? " • Consumido nesta OS" : ""}
-                  </p>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Peças do Estoque</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <div className="relative">
+              <MagnifyingGlass className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar peça..." value={stockSearch} onChange={(e) => setStockSearch(e.target.value)} className="pl-8" />
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {filteredEstoque.map((item) => (
+                <div key={item.id} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-card-foreground truncate">{item.descricao}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.modelo} • Estoque: {item.quantidade} • {formatCurrency(item.valor || 0)}
+                      {item.quantidade <= 0 && (pecas[item.id] || 0) > 0 ? " • Consumido nesta OS" : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => adjustPeca(item.id, -1)}>
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="w-6 text-center text-sm font-medium">{pecas[item.id] || 0}</span>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => adjustPeca(item.id, 1)}>
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => adjustPeca(item.id, -1)}>
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="w-6 text-center text-sm font-medium">{pecas[item.id] || 0}</span>
-                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => adjustPeca(item.id, 1)}>
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </PanelContent>
+        </Panel>
 
         {/* Observações */}
-        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-card-foreground">Observações</h2>
-          <Textarea value={form.observacoes} onChange={(e) => setField("observacoes", e.target.value)} />
-        </section>
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>Observações</PanelTitle>
+          </PanelHeader>
+          <PanelContent className="space-y-4">
+            <Textarea value={form.observacoes} onChange={(e) => setField("observacoes", e.target.value)} />
+          </PanelContent>
+        </Panel>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={submitting} data-testid="order-save-button">

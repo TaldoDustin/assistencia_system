@@ -50,7 +50,11 @@ dominante artificial seria pior que não ter nenhum.
 
 **Bugs conhecidos, decisão do CTO: corrigir junto** (mesma tela já sendo tocada por composição, commit
 separado do de composição — bug fix ≠ mudança visual):
-- **KI-048** (promises sem `.catch` — `Vendas.jsx::NovaVenda` 3×, `Clientes.jsx::PerfilCliente` 1×).
+- **KI-048** (promises sem `.catch`) — o KI real cobre `Kanban.jsx`, `Stock.jsx::fetchItems`,
+  `Vendas.jsx::NovaVenda` (3 pontos) e `Clientes.jsx::PerfilCliente`, além de `NewOrder.jsx`/
+  `EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3, fora desta fase — ver `KNOWN_ISSUES.md`). As 4 telas/pontos
+  dentro do escopo desta fase (Kanban, Stock, Vendas, Clientes) são corrigidos junto; o KI só fecha por
+  completo quando o Tier 3 (Fase 3.4) também corrigir os 3 pontos restantes.
 - **KI-049** (`Clientes.jsx::fetchItems` sem estado de erro dedicado).
 
 `KI-052` (paleta de gráfico cíclica) e `KI-053` (acessibilidade do `DataTable`) **não** são bugs destas 6
@@ -123,15 +127,18 @@ retorna os 2 `Button` já existentes).
       caminho, só a tabela populada.
 - [ ] Nenhuma mudança em `onDelete`/`onEditClick`/nas rotas dos links de edição.
 
-### 2.5 Kanban — auditoria, sem mudança de composição esperada
+### 2.5 Kanban — auditoria de composição + KI-048
 
 - [ ] Conferir contra os 5 princípios da seção 2 do
       `PLAN-design-system-fase3-visual-experience.md` (hierarquia de superfície, vermelho como
       assinatura, 2 modos, respiro, nem tudo é card) — o board de 4 colunas já usa `TONE` semântico
       (`getStatusVariant`, sem vermelho fora dos badges/estado de erro) e já não é um card uniforme
       (colunas de largura variável por conteúdo, cards de OS com peso claramente secundário aos
-      cabeçalhos de coluna). Expectativa: nenhum achado, registrar no relatório da fatia se algo aparecer.
-- [ ] Nenhum código deve mudar neste item a menos que a auditoria encontre um desvio real.
+      cabeçalhos de coluna). Expectativa: nenhum achado de composição, registrar no relatório da fatia
+      se algo aparecer.
+- [ ] **KI-048** — `fetchOrdens` usa `.then()` sem `.catch()`; adicionar o mesmo tratamento já usado em
+      `Orders.jsx::fetchOrdens` (`toast.error` + `setLoadError(true)` + `setLoading(false)`). Commit
+      separado do de composição.
 
 ### 2.6 Testes e validação (3.3.1)
 
@@ -187,7 +194,9 @@ retorna os 2 `Button` já existentes).
 - [ ] "Reposição sugerida" (linha ~249-288 atual) — tabela interna migra para `DataTable`; o container ao
       redor (título + botão "Atualizar sugestões") permanece como está, só a tabela muda.
 - [ ] Lista principal de itens de estoque migra para `DataTable`.
-- [ ] Nenhuma mudança em `fetchItems`/`fetchReposicao`/lógica de filtro/paginação.
+- [ ] **KI-048** — `fetchItems` usa `.then()` sem `.catch()`; adicionar o mesmo tratamento já usado em
+      `Orders.jsx::fetchOrdens`. Commit separado do de composição.
+- [ ] Nenhuma mudança na lógica de filtro/paginação/`fetchReposicao`.
 - [ ] Suíte completa, lint, build, QA visual (Light + Dark).
 
 ---

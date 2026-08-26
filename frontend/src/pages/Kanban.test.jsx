@@ -53,4 +53,11 @@ describe("Kanban — estados e semântica de status", () => {
     await waitFor(() => expect(screen.getByText("Não foi possível carregar as ordens.")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /tentar novamente/i })).toBeInTheDocument();
   });
+
+  it("mostra ErrorState quando a promise da API rejeita, não fica preso no spinner (KI-048)", async () => {
+    mockList.mockRejectedValue(new Error("network error"));
+    renderKanban();
+
+    await waitFor(() => expect(screen.getByText("Não foi possível carregar as ordens.")).toBeInTheDocument());
+  });
 });

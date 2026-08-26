@@ -44,6 +44,10 @@ export default function Kanban() {
         setLoadError(true);
       }
       setLoading(false);
+    }).catch(() => {
+      toast.error("Erro ao carregar ordens");
+      setLoadError(true);
+      setLoading(false);
     });
   };
 

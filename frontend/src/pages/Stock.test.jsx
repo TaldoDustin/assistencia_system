@@ -55,4 +55,11 @@ describe("Stock — estados e status semântico", () => {
     await waitFor(() => expect(screen.getByText("Não foi possível carregar o estoque.")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /tentar novamente/i })).toBeInTheDocument();
   });
+
+  it("mostra ErrorState quando a promise da API rejeita, não fica preso no skeleton (KI-048)", async () => {
+    mockList.mockRejectedValue(new Error("network error"));
+    render(<Stock />);
+
+    await waitFor(() => expect(screen.getByText("Não foi possível carregar o estoque.")).toBeInTheDocument());
+  });
 });

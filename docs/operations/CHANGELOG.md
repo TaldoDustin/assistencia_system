@@ -9,6 +9,14 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.3: Stock)
+- **feat(design-system): Stock migra para DataTable/Panel/LooseMetric** — Valor Total vira métrica
+  dominante (`Panel`); Lotes/Unidades/Críticos viram `LooseMetric`; Reposição sugerida e lista principal
+  migram para `DataTable`.
+- **fix(design-system): Stock trata rejeição de promise ao carregar itens (KI-048)** — `fetchItems` sem
+  `try/catch`.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo.
+
 ### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.2: Vendas)
 - **feat(design-system): Vendas Histórico migra para DataTable** — sem métrica dominante, `getRowProps`
   preserva `data-testid`/`data-context-row` do `nav-context-highlight`.

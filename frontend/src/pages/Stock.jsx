@@ -14,7 +14,9 @@ import { ErrorState } from "@/components/ui/error-state";
 import { ListSkeleton } from "@/components/ui/loading-state";
 import { Reveal } from "@/components/ui/reveal";
 import { FilterBar, FilterSelect, FilterInput } from "@/components/ui/filter-bar";
-import { interactiveRowClassName } from "@/lib/interaction";
+import { DataTable } from "@/components/ui/data-table";
+import { Panel, PanelHeader, PanelTitle, PanelContent } from "@/components/ui/panel";
+import { LooseMetric } from "@/components/ui/loose-metric";
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -81,15 +83,21 @@ export default function Stock() {
   const fetchItems = async () => {
     const params = { include_zerados: incluirZerados ? "1" : "0" };
     if (statusFilter) params.status = statusFilter;
-    const res = await estoqueApi.list(params);
-    if (res?.ok) {
-      setItems(res.items || []);
-      setLoadError(false);
-    } else {
+    try {
+      const res = await estoqueApi.list(params);
+      if (res?.ok) {
+        setItems(res.items || []);
+        setLoadError(false);
+      } else {
+        toast.error("Erro ao carregar estoque");
+        setLoadError(true);
+      }
+    } catch {
       toast.error("Erro ao carregar estoque");
       setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchReposicao = async () => {
@@ -231,19 +239,23 @@ export default function Stock() {
         <ErrorState title="Não foi possível carregar o estoque." onRetry={fetchItems} />
       ) : (
         <Reveal className="space-y-5">
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              { label: "Lotes", value: totalLotes, color: "text-foreground" },
-              { label: "Unidades", value: totalUnidades, color: "text-info" },
-              { label: "Valor Total", value: formatCurrency(totalValor), color: "text-success" },
-              { label: "Críticos (≤2)", value: criticos, color: "text-destructive" },
-            ].map((s) => (
-              <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-              </div>
-            ))}
+          {/* Métrica dominante */}
+          <Panel>
+            <PanelHeader>
+              <PanelTitle>Valor Total em estoque</PanelTitle>
+            </PanelHeader>
+            <PanelContent className="pt-0">
+              <p className="text-4xl sm:text-5xl font-bold text-card-foreground tracking-tight">
+                {formatCurrency(totalValor)}
+              </p>
+            </PanelContent>
+          </Panel>
+
+          {/* Métricas soltas -- peso secundário, sem moldura */}
+          <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+            <LooseMetric label="Lotes" value={totalLotes} />
+            <LooseMetric label="Unidades" value={totalUnidades} valueClassName="text-info" />
+            <LooseMetric label="Críticos (≤2)" value={criticos} valueClassName="text-destructive" />
           </div>
 
           <div className="bg-card border border-border rounded-xl p-4">
@@ -260,30 +272,22 @@ export default function Stock() {
             {reposicao.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-3">Sem itens para reposição no momento.</p>
             ) : (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      { ["Peça", "Saldo", "Consumo 30d", "Sugestão", "Prioridade"].map((h) => (
-                        <th key={h} className="text-left px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {reposicao.slice(0, 8).map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2 text-card-foreground">{item.descricao}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.quantidade_atual}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.consumo_periodo}</td>
-                        <td className="px-3 py-2 font-semibold text-success">{item.sugestao_reposicao}</td>
-                        <td className="px-3 py-2">
-                          <Badge variant={reposicaoPrioridadeVariant(item.prioridade)}>{item.prioridade}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                className="mt-3"
+                columns={[
+                  { key: "descricao", header: "Peça", className: "text-card-foreground" },
+                  { key: "quantidade_atual", header: "Saldo", className: "text-muted-foreground" },
+                  { key: "consumo_periodo", header: "Consumo 30d", className: "text-muted-foreground" },
+                  { key: "sugestao_reposicao", header: "Sugestão", className: "font-semibold text-success" },
+                  {
+                    key: "prioridade",
+                    header: "Prioridade",
+                    render: (item) => <Badge variant={reposicaoPrioridadeVariant(item.prioridade)}>{item.prioridade}</Badge>,
+                  },
+                ]}
+                rows={reposicao.slice(0, 8)}
+                getRowKey={(item) => item.id}
+              />
             )}
           </div>
 
@@ -351,61 +355,71 @@ export default function Stock() {
               }
             />
           ) : (
-            <div className="bg-card rounded-xl border border-border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      { ["Descrição", "Modelo", "Tipo", "Qualidade", "Status", "Valor", "Fornecedor", "Qtd", "Compra", ""].map((h) => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filtered.map((item) => (
-                      <tr key={item.id} className={interactiveRowClassName} data-testid={`stock-row-${item.id}`}>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {(item.quantidade || 0) <= 2 && <WarningCircle className="h-3.5 w-3.5 text-warning shrink-0" />}
-                            <span className="font-medium text-card-foreground">{item.descricao}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.modelo || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.tipo || "Outros"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.qualidade || "Padrao"}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={estoqueStatusVariant(item.status_estoque)}>{labelStatus(item.status_estoque)}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-card-foreground font-medium">{formatCurrency(item.valor)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{item.fornecedor || "—"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`font-bold ${(item.quantidade || 0) <= 2 ? "text-destructive" : "text-success"}`}>
-                            {item.quantidade}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                          {item.data_compra ? new Date(item.data_compra).toLocaleDateString("pt-BR") : "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            {canManage && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar peça ${item.id}`} onClick={() => openEdit(item)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            {canDelete && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir peça ${item.id}`} onClick={() => setDeleteId(item.id)}>
-                                <Trash className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DataTable
+              columns={[
+                {
+                  key: "descricao",
+                  header: "Descrição",
+                  render: (item) => (
+                    <div className="flex items-center gap-2">
+                      {(item.quantidade || 0) <= 2 && <WarningCircle className="h-3.5 w-3.5 text-warning shrink-0" />}
+                      <span className="font-medium text-card-foreground">{item.descricao}</span>
+                    </div>
+                  ),
+                },
+                { key: "modelo", header: "Modelo", className: "text-muted-foreground", render: (item) => item.modelo || "—" },
+                { key: "tipo", header: "Tipo", className: "text-muted-foreground", render: (item) => item.tipo || "Outros" },
+                { key: "qualidade", header: "Qualidade", className: "text-muted-foreground", render: (item) => item.qualidade || "Padrao" },
+                {
+                  key: "status_estoque",
+                  header: "Status",
+                  render: (item) => <Badge variant={estoqueStatusVariant(item.status_estoque)}>{labelStatus(item.status_estoque)}</Badge>,
+                },
+                {
+                  key: "valor",
+                  header: "Valor",
+                  className: "text-card-foreground font-medium",
+                  render: (item) => formatCurrency(item.valor),
+                },
+                { key: "fornecedor", header: "Fornecedor", className: "text-muted-foreground", render: (item) => item.fornecedor || "—" },
+                {
+                  key: "quantidade",
+                  header: "Qtd",
+                  render: (item) => (
+                    <span className={`font-bold ${(item.quantidade || 0) <= 2 ? "text-destructive" : "text-success"}`}>
+                      {item.quantidade}
+                    </span>
+                  ),
+                },
+                {
+                  key: "data_compra",
+                  header: "Compra",
+                  className: "text-muted-foreground whitespace-nowrap",
+                  render: (item) => (item.data_compra ? new Date(item.data_compra).toLocaleDateString("pt-BR") : "—"),
+                },
+                {
+                  key: "acoes",
+                  header: "",
+                  render: (item) => (
+                    <div className="flex items-center gap-1 justify-end">
+                      {canManage && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Editar peça ${item.id}`} onClick={() => openEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Excluir peça ${item.id}`} onClick={() => setDeleteId(item.id)}>
+                          <Trash className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+              rows={filtered}
+              getRowKey={(item) => item.id}
+              getRowProps={(item) => ({ "data-testid": `stock-row-${item.id}` })}
+            />
           )}
         </Reveal>
       )}

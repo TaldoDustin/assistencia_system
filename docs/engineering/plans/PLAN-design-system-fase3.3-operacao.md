@@ -157,31 +157,36 @@ retorna os 2 `Button` já existentes).
 
 ### 3.1 Histórico — sem dominante
 
-- [ ] Tabela de histórico migra para `DataTable` (mesmo padrão da seção 2.4), `getRowProps` para o mesmo
+- [x] Tabela de histórico migra para `DataTable` (mesmo padrão da seção 2.4), `getRowProps` para o mesmo
       mecanismo de `nav-context-highlight` já usado aqui (`NAV_CONTEXT_KEY = "vendas-historico"`).
-- [ ] Nenhuma mudança em `applyFilters`/paginação/`useDebounced`.
+- [x] Nenhuma mudança em `applyFilters`/paginação/`useDebounced`.
 
 ### 3.2 Nova Venda — resumo do carrinho vira `Panel`
 
-- [ ] Bloco de resumo/total da venda (grid de 2 colunas, linha ~552 na versão atual) migra para `Panel`/
-      `PanelContent`, mantendo os mesmos campos e o total em destaque (número maior, mesmo princípio do
-      Faturamento — mas aqui é o resultado de uma ação em andamento, não uma métrica de período).
-- [ ] Nenhuma mudança em `FORMAS_PAGAMENTO`/validação/submissão do formulário.
+- [x] Bloco de resumo/total da venda (grid de 2 colunas) migra para `Panel`/`PanelContent`, mesmos campos,
+      total em destaque (`text-lg` → `text-2xl`). Card de confirmação ("Venda concluída") também migrado
+      para `Panel` — mesmo elemento conceitual (resumo dominante da ação), em estado diferente.
+- [x] Nenhuma mudança em `FORMAS_PAGAMENTO`/validação/submissão do formulário.
 
 ### 3.3 KI-048 — 3 promises sem `.catch` em `NovaVenda`
 
-- [ ] Identificar os 3 pontos exatos (fetch de clientes/unidades/tipos de garantia na montagem, conforme
-      `KNOWN_ISSUES.md` KI-048) e adicionar `.catch(() => toast.error(...))`, mesmo padrão já usado no
-      resto do arquivo.
-- [ ] Commit separado do de composição (bug fix ≠ visual).
-- [ ] Teste novo: falha simulada de um desses fetches não deixa a tela sem feedback.
+- [x] Identificados e corrigidos os 3 pontos (`tiposGarantiaApi`/`clientesApi`/`unidadesApi`). O ponto de
+      `tiposGarantiaApi` (sem `.finally` associado) ganhou `toast.error` explícito — era o único caso real
+      de "tela presa" (nenhum estado de loading dependia dele, mas o catch evita a rejection não tratada).
+      Os outros 2 (`clientesApi`/`unidadesApi`) já tinham `.finally()` restaurando o estado de loading —
+      `catch` adicionado apenas para tratar a rejection de forma simétrica ao `res?.ok ? ... : []` já
+      existente (mesmo resultado visual: resultados vazios, sem toast, mesmo padrão de busca silenciosa).
+- [x] Commit separado do de composição (bug fix ≠ visual).
+- [x] Teste novo: rejeição da busca de tipos de garantia dispara `toast.error`.
 
 ### 3.4 Validação (3.3.2)
 
-- [ ] Suíte completa, lint, build.
-- [ ] Fechar a fatia de KI-048 referente a `Vendas.jsx` (1 dos 4 pontos totais do KI — os outros 3 são de
+- [x] Suíte completa, lint, build.
+- [x] Fechar a fatia de KI-048 referente a `Vendas.jsx` (1 dos 4 pontos totais do KI — os outros 3 são de
       `Clientes.jsx`, seção 6).
-- [ ] QA visual: Histórico (tabela) + Nova Venda (Panel do resumo), Light + Dark.
+- [ ] QA visual: Histórico (tabela) + Nova Venda (Panel do resumo), Light + Dark — não executado nesta
+      fatia (mesma limitação de ambiente já registrada em KI-027, sessão não persiste no navegador de
+      automação; validado via testes automatizados + revisão de código).
 
 ---
 

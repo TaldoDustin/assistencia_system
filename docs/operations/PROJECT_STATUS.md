@@ -5,12 +5,16 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.2: Vendas —
+**Última revisão:** 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação), Fatia 3.3.3: Stock — Valor
+Total vira métrica dominante (`Panel`), Lotes/Unidades/Críticos viram `LooseMetric`, Reposição sugerida e
+lista principal de itens migram para `DataTable`. Corrigido o KI-048 em `fetchItems` (sem `try/catch`).
+Ver seção logo abaixo para o registro completo. Branch `feat/design-system-fase3.3-operacao-stock`,
+143/143 testes, lint 0 erros, build ok. Antes disso:
+2026-08-26 — Fase 3.3, Fatia 3.3.2: Vendas —
 Histórico migra para `DataTable` (sem métrica dominante), Nova Venda migra o bloco de resumo/pagamento e
 o card de confirmação para `Panel` (único elemento dominante da tela). Corrigido o KI-048 nos 3 pontos de
-`NovaVenda` (`tiposGarantiaApi`/`clientesApi`/`unidadesApi` sem `.catch`). Ver seção logo abaixo para o
-registro completo. Branch `feat/design-system-fase3.3-operacao-vendas`, 142/142 testes, lint 0 erros,
-build ok. Antes disso:
+`NovaVenda` (`tiposGarantiaApi`/`clientesApi`/`unidadesApi` sem `.catch`). Branch
+`feat/design-system-fase3.3-operacao-vendas`, 142/142 testes, lint 0 erros, build ok. Antes disso:
 2026-08-26 — Fase 3.3, Fatia 3.3.1: `DataTable`
 ganha `getRowProps` e corrige o KI-053 (acessibilidade de linha clicável — Espaço + `role="button"`) antes
 de `OrderTable.jsx` se tornar seu primeiro consumidor real. Orders migra para `DataTable`/`LooseMetric`
@@ -119,7 +123,35 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.2 (Vendas)
+## 🟡 Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.3 (Stock)
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
+fatias).**
+
+2026-08-26, sequência imediata à Fatia 3.3.2 (mergeada em `main`, PR #64). Terceira fatia do Tier 2.
+
+**Entregue** (branch `feat/design-system-fase3.3-operacao-stock`):
+- **Valor Total** vira métrica dominante (`Panel`, número hero) — único candidato dominante real da tela
+  (decisão do CTO); Lotes/Unidades/Críticos (≤2) viram `LooseMetric`.
+- **Reposição sugerida** e **lista principal de itens** migram de HTML cru para `DataTable`, ações de
+  editar/excluir preservadas na coluna final (`getRowProps` para `data-testid`).
+- **KI-048 resolvido em `fetchItems`** — não tinha `try/catch`; adicionado o mesmo padrão já usado em
+  `fetchReposicao` no mesmo arquivo.
+
+**Validação:** suíte completa 143/143 (1 teste novo), lint 0 erros (2 warnings pré-existentes não
+relacionados), build de produção sem erro. QA visual não executada ao vivo (mesma limitação de KI-027).
+
+**KI-048 (progresso):** `Kanban.jsx`, `Vendas.jsx::NovaVenda` e `Stock.jsx::fetchItems` resolvidos. Resta
+`Clientes.jsx::PerfilCliente` (Fatia 3.3.5) + 3 pontos no Tier 3 (Fase 3.4, fora desta fase).
+
+**Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
+implementação. Merge desta fatia (PR) ainda não solicitado.
+
+**Próximo passo:** Fatia 3.3.4 (Financeiro).
+
+---
+
+## ✅ Fase 3.3 do Fluxoly Design System — Operação, Fatia 3.3.2 (Vendas) ENCERRADA (PR #64 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.3-operacao.md` para o registro completo (5
 fatias).**
@@ -148,9 +180,10 @@ Restam `Stock.jsx::fetchItems` (Fatia 3.3.3) e `Clientes.jsx::PerfilCliente` (Fa
 Tier 3 (Fase 3.4, fora desta fase).
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
-implementação. Merge desta fatia (PR) ainda não solicitado.
+implementação. **Mergeado em `main` (PR #64, squash, commit `5d1ad723`, 2026-08-26)** — CI 8/8 (×2) verde,
+produção confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200).
 
-**Próximo passo:** Fatia 3.3.3 (Stock).
+**Próximo passo:** Fatia 3.3.3 (Stock), ver seção acima.
 
 ---
 

@@ -194,15 +194,16 @@ retorna os 2 `Button` já existentes).
 
 `frontend/src/pages/Stock.jsx` (515 linhas).
 
-- [ ] Stats (linha ~235-247 atual): "Valor Total" sai do grid uniforme e vira `Panel` dominante (número
-      hero); "Lotes"/"Unidades"/"Críticos (≤2)" viram `LooseMetric`.
-- [ ] "Reposição sugerida" (linha ~249-288 atual) — tabela interna migra para `DataTable`; o container ao
-      redor (título + botão "Atualizar sugestões") permanece como está, só a tabela muda.
-- [ ] Lista principal de itens de estoque migra para `DataTable`.
-- [ ] **KI-048** — `fetchItems` usa `.then()` sem `.catch()`; adicionar o mesmo tratamento já usado em
-      `Orders.jsx::fetchOrdens`. Commit separado do de composição.
-- [ ] Nenhuma mudança na lógica de filtro/paginação/`fetchReposicao`.
-- [ ] Suíte completa, lint, build, QA visual (Light + Dark).
+- [x] Stats: "Valor Total" sai do grid uniforme e vira `Panel` dominante (número hero);
+      "Lotes"/"Unidades"/"Críticos (≤2)" viram `LooseMetric`.
+- [x] "Reposição sugerida" — tabela interna migra para `DataTable`; o container ao redor (título + botão
+      "Atualizar sugestões") permanece como está, só a tabela muda.
+- [x] Lista principal de itens de estoque migra para `DataTable`.
+- [x] **KI-048** — `fetchItems` não tinha `try/catch`; adicionado o mesmo padrão já usado em
+      `fetchReposicao` no mesmo arquivo. Commit separado do de composição. 1 teste novo.
+- [x] Nenhuma mudança na lógica de filtro/paginação/`fetchReposicao`.
+- [x] Suíte completa (143/143), lint 0 erros, build ok. QA visual não executada ao vivo (mesma limitação
+      de KI-027).
 
 ---
 

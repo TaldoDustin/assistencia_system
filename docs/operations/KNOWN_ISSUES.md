@@ -1800,11 +1800,10 @@ Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
 Aberto, parcialmente corrigido. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
-**`Kanban.jsx` resolvido em 2026-08-26** (Fase 3.3, Fatia 3.3.1) e **`Vendas.jsx::NovaVenda` resolvido em
-2026-08-26** (Fase 3.3, Fatia 3.3.2 — `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado em
-`Orders.jsx::fetchOrdens`. Restam `Stock.jsx::fetchItems` (Fase 3.3, Fatia 3.3.3) e
-`Clientes.jsx::PerfilCliente` (Fase 3.3, Fatia 3.3.5) — corrigidos nas fatias correspondentes desta mesma
-fase. `NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
+**`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2) e `Stock.jsx::fetchItems` (Fatia
+3.3.3) resolvidos em 2026-08-26** (Fase 3.3 — `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já
+usado em `Orders.jsx::fetchOrdens`/`fetchReposicao`. Resta `Clientes.jsx::PerfilCliente` (Fase 3.3, Fatia
+3.3.5). `NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
 
 Sprint prevista:
 Fase 3.3 (Kanban/Stock/Vendas/Clientes, 2026-08-26) + Fase 3.4 (NewOrder/EditOrder/VendaDetalhe, Tier 3,

@@ -1803,19 +1803,28 @@ telas de uso frequente (criar/editar OS, Kanban, Estoque, Nova Venda, Detalhe de
 Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
-Aberto, Tier 2 (Fase 3.3) totalmente corrigido — resta só o Tier 3. Identificado em 2026-08-19 (PR 3),
-estendido em 2026-08-20 (PR 4 e PR 5). **`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia
-3.3.2), `Stock.jsx::fetchItems` (Fatia 3.3.3), `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — e
-`Clientes.jsx::PerfilCliente` (Fatia 3.3.5) resolvidos em 2026-08-26** (Fase 3.3 —
-`PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado em `Orders.jsx::fetchOrdens`/
-`fetchReposicao`. No caso de `Clientes.jsx::PerfilCliente`, o `.finally()` já existente já garantia que
-`setLoading(false)` rodasse mesmo em rejeição — o gap real ali era só a rejection não tratada (ruído no
-console), não tela presa; `.catch()` adicionado por consistência. Resta `NewOrder.jsx`/`EditOrder.jsx`/
-`VendaDetalhe.jsx` (Tier 3, Fase 3.4, ainda não iniciada).
+Aberto, Tier 2 (Fase 3.3) totalmente corrigido, Tier 3 com 2 dos 3 pontos resolvidos — resta só
+`VendaDetalhe.jsx`. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
+**`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2), `Stock.jsx::fetchItems` (Fatia
+3.3.3), `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — e `Clientes.jsx::PerfilCliente` (Fatia 3.3.5)
+resolvidos em 2026-08-26** (Fase 3.3 — `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado
+em `Orders.jsx::fetchOrdens`/`fetchReposicao`. No caso de `Clientes.jsx::PerfilCliente`, o `.finally()`
+já existente já garantia que `setLoading(false)` rodasse mesmo em rejeição — o gap real ali era só a
+rejection não tratada (ruído no console), não tela presa; `.catch()` adicionado por consistência.
+**`NewOrder.jsx`/`EditOrder.jsx` resolvidos em 2026-08-26** (Fase 3.4, Fatia 3.4.1 —
+`PLAN-design-system-fase3.4-formularios.md`, Task 1), mesmo padrão. Em `EditOrder.jsx` o `.catch()`
+também navega para `/ordens` (não só `toast.error`+`setLoading(false)`): diferente das outras telas do
+KI, `form` começa em `null` e só é populado no branch de sucesso do `.then()` — sem navegar para longe,
+o restante do componente tentaria renderizar `form.cliente` contra `null` e quebraria. Também foi
+adicionada uma guarda defensiva (`if (loading || !form)`) para cobrir a janela entre o `catch` chamar
+`setLoading(false)`/`navigate` e o React efetivamente desmontar o componente na troca de rota — sem ela,
+esse frame intermediário quebra (reproduzido durante o teste desta correção). Resta **`VendaDetalhe.jsx`**
+(`tiposGarantiaApi.list().then()`, Fatia 3.4.2, Task 2 — ainda não iniciada nesta sessão), o único ponto
+que falta para fechar o KI-048 por completo.
 
 Sprint prevista:
-Fase 3.3 (Kanban/Stock/Vendas/Financeiro/Clientes) — concluída em 2026-08-26. Fase 3.4
-(NewOrder/EditOrder/VendaDetalhe, Tier 3) ainda não iniciada.
+Fase 3.3 (Kanban/Stock/Vendas/Financeiro/Clientes) — concluída em 2026-08-26. Fase 3.4 (NewOrder/EditOrder
+concluídos em 2026-08-26, Fatia 3.4.1; VendaDetalhe — Fatia 3.4.2 — ainda não iniciada).
 
 Responsável:
 —

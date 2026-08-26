@@ -21,7 +21,13 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - Landing auditada por consistência de marca — nenhum achado.
 - 2 gaps reais do próprio plano corrigidos durante a execução (colisão de texto duplicado em testes do
   Sidebar/Dashboard) — ver `docs/operations/PROJECT_STATUS.md` para o detalhe de cada ruling.
+- **fix(design-system): skeleton do Dashboard e contraste do rótulo do Sidebar** — 2 achados Important da
+  revisão final whole-branch, corrigidos antes do merge: `DashboardSkeleton` atualizado para a composição
+  nova (Panel dominante + `LooseMetric`s, em vez do grid antigo de 8 KPIs); rótulos de seção do Sidebar
+  ajustados de `/40` (~3.3:1) para `/50` (~4.65:1), acima do piso WCAG AA de 4.5:1.
 - Ver `docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md` para o registro completo.
+- **Mergeado em `main` (PR #62, squash, commit `deb460c5`, 2026-08-25)** — CI 8/8 (×2) verde, produção
+  saudável pós-merge.
 
 ### Docs (2026-08-24 — KI-055 decidido: manter `system-ui` no corpo de texto)
 - Achado na revisão de código do PR #61: `BRAND_IDENTITY.md` §10.2 afirmava que Onest era "mantida" para

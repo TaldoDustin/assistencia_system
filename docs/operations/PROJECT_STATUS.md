@@ -9,10 +9,11 @@
 redesenhados com os recipientes da Foundation v2 (`Panel`/`ListBlock`/`LooseMetric`, Fase 3.1), primeira
 fase a mudar composição de tela real (não só tokens). Sidebar agrupado pelos 6 Pilares Macrossistêmicos;
 Dashboard com Faturamento como métrica dominante; Landing auditada sem achados. Ver seção logo abaixo.
-KI-056 registrado (`KpiCard.jsx` órfão, decisão de remover fica para o CTO). Branch
-`feat/design-system-fase3.2-vitrine`, 136/136 testes, lint 0 erros, build ok; QA visual de Login e Sidebar
-confirmada em Chrome real, QA do Dashboard bloqueada pelo KI-027 já conhecido (sessão não persiste no
-navegador de automação — confirmado via `curl` que backend/dados funcionam corretamente). Antes disso:
+KI-056 registrado (`KpiCard.jsx` órfão, decisão de remover fica para o CTO). Revisão final whole-branch
+achou 2 Important (skeleton do Dashboard fora de sincronia com a composição nova; contraste dos rótulos
+de seção do Sidebar abaixo do piso AA) — ambos corrigidos antes do merge — e 8 Minor aceitos como estão.
+**Mergeado em `main` (PR #62, squash, commit `deb460c5`, 2026-08-25)** — CI 8/8 (×2) verde, produção
+confirmada saudável pós-merge (`/health` backend → 200, frontend Vercel → 200). Antes disso:
 2026-08-24 — fechamento completo do gap entre `BRAND_IDENTITY.md` (direção "Pulse",
 decidida 2026-08-20) e o código: (1) wordmark trocado de Onest para Space Grotesk Bold (`.font-wordmark`
 em `index.css`); (2) ícone da marca trocado do monograma "F" da decisão anterior para o traço de
@@ -105,7 +106,7 @@ Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08
 
 ---
 
-## ✅ Fase 3.2 do Fluxoly Design System — Vitrine ENCERRADA (aguardando merge)
+## ✅ Fase 3.2 do Fluxoly Design System — Vitrine ENCERRADA (PR #62 mergeado)
 
 **Ver `docs/engineering/plans/PLAN-design-system-fase3.2-vitrine.md` para o registro completo e
 `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (seção 12) para o faseamento
@@ -153,8 +154,26 @@ jar real, fora do navegador de automação) que login + `/api/dashboard` retorna
 código desta fase. Correção do componente confirmada independentemente pela revisão de código
 (comparação linha a linha do diff contra as cores/labels do `KpiCard` removido).
 
+**Achados da revisão final (corrigidos antes do merge):**
+1. `DashboardSkeleton` ainda desenhava os 8 KPIs uniformes antigos no loading — salto visual toda vez que
+   a tela carrega, já que o conteúdo real mudou para a hierarquia nova. Corrigido para refletir a mesma
+   composição (Panel dominante + `LooseMetric`s + gráficos).
+2. Rótulos de seção do Sidebar (`text-sidebar-foreground/40`) não passavam no WCAG AA (~3.3:1 vs piso de
+   4.5:1) — mesma classe de achado que o KI-050 já havia corrigido antes, teria se propagado para as Fases
+   3.3-3.5 se não corrigido agora. Ajustado para `/50` (~4.65:1).
+
+Suíte completa reconfirmada 136/136 (uma falha isolada de flakiness sob carga, não reproduzida em
+reexecução), lint 0 erros, build ok. CI 8/8 (×2) verde no commit de correção antes do merge.
+
+**Achados Minor, aceitos como estão** (decisão de manter escopo cirúrgico): Faturamento aparece duas vezes
+na tela (hero + Resumo Financeiro, colisão pré-existente); cores dos `LooseMetric`s sem regra clara de
+quais mantêm cor; sombra do Login mais achatada que a doc descreve; 4 containers de gráfico ainda usam
+legenda manual; agrupamento do Sidebar é só visual (sem `role="group"`/`aria-labelledby`); asserção de
+teste do Dashboard poderia falhar de forma mais clara; 2 pequenas imprecisões de documentação.
+
 **Decisão do CTO:** aprovado o plano antes da implementação (agrupamento do Sidebar e escolha do
-Faturamento como métrica dominante, ambos propostos no plano). Merge ainda não solicitado.
+Faturamento como métrica dominante, ambos propostos no plano) e aprovado o merge após a correção dos 2
+achados Important. Mergeado em `main` (squash, PR #62, commit `deb460c5`, 2026-08-25).
 
 **Próximo passo:** Fase 3.3 (Operação — Orders/Kanban/Vendas/Stock/Financeiro/Clientes).
 

@@ -48,6 +48,9 @@ export default function NewOrder() {
       if (r?.ok) setReparosList(r.reparos || []);
       if (e?.ok) setEstoqueList(e.items || []);
       setLoading(false);
+    }).catch(() => {
+      toast.error("Erro ao carregar dados da nova ordem");
+      setLoading(false);
     });
   }, []);
 

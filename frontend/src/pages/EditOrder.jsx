@@ -118,6 +118,15 @@ export default function EditOrder() {
       if (rRes?.ok) setReparosList(rRes.reparos || []);
       setLoading(false);
       initialized.current = true;
+    }).catch(() => {
+      // `form` só é preenchido dentro do branch de sucesso do `.then()` acima -- em rejeição de
+      // rede, `form` permanece `null` (useState inicial). Sem navegar para longe daqui, o restante
+      // do componente tentaria renderizar `form.cliente`/etc. contra `null` e quebraria. Mesmo
+      // destino (`/ordens`) já usado no branch de erro de negocio (`!osRes?.ok`) alguns paragrafos
+      // acima, só que para rejeição de rede em vez de `{ok:false}`.
+      toast.error("Erro ao carregar dados da ordem");
+      setLoading(false);
+      navigate("/ordens");
     });
 
     checklistApi.getByOrder(id).then((res) => {
@@ -315,7 +324,11 @@ export default function EditOrder() {
       .sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
   }, [reparosList]);
 
-  if (loading) {
+  // `!form` cobre a janela entre o `.catch()` da carga inicial (que faz `setLoading(false)` e
+  // `navigate("/ordens")`, mas não popula `form`) e o React efetivamente desmontar este componente
+  // ao trocar de rota -- sem essa guarda, esse frame tentaria renderizar `form.cliente`/etc. contra
+  // `null` e quebraria (KI-048).
+  if (loading || !form) {
     return (
       <div className="flex items-center justify-center h-64">
         <CircleNotch className="h-8 w-8 animate-spin text-primary" />

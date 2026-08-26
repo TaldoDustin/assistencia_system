@@ -57,4 +57,44 @@ describe("DataTable", () => {
     const row = screen.getByText("Item A").closest("tr");
     expect(row).not.toHaveAttribute("tabindex");
   });
+
+  it("onRowClick também é chamado ao pressionar Espaço com foco na linha (KI-053)", async () => {
+    const onRowClick = vi.fn();
+    render(<DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} onRowClick={onRowClick} />);
+    const user = userEvent.setup();
+
+    screen.getByText("Item A").closest("tr").focus();
+    await user.keyboard(" ");
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
+
+  it("com onRowClick, a linha expõe role=button para leitor de tela (KI-053)", () => {
+    render(<DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} onRowClick={() => {}} />);
+    expect(screen.getByText("Item A").closest("tr")).toHaveAttribute("role", "button");
+  });
+
+  it("sem onRowClick, a linha não recebe role=button", () => {
+    render(<DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} />);
+    expect(screen.getByText("Item A").closest("tr")).not.toHaveAttribute("role");
+  });
+
+  it("getRowProps propaga atributos por linha sem sobrescrever className/onClick do componente", async () => {
+    const onRowClick = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowKey={(r) => r.id}
+        getRowProps={(r) => ({ "data-testid": `row-${r.id}`, className: "should-not-win" })}
+        onRowClick={onRowClick}
+      />
+    );
+    const row = screen.getByText("Item A").closest("tr");
+    expect(row).toHaveAttribute("data-testid", "row-1");
+    expect(row.className).not.toContain("should-not-win");
+
+    const user = userEvent.setup();
+    await user.click(row);
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
 });

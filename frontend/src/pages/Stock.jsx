@@ -83,15 +83,21 @@ export default function Stock() {
   const fetchItems = async () => {
     const params = { include_zerados: incluirZerados ? "1" : "0" };
     if (statusFilter) params.status = statusFilter;
-    const res = await estoqueApi.list(params);
-    if (res?.ok) {
-      setItems(res.items || []);
-      setLoadError(false);
-    } else {
+    try {
+      const res = await estoqueApi.list(params);
+      if (res?.ok) {
+        setItems(res.items || []);
+        setLoadError(false);
+      } else {
+        toast.error("Erro ao carregar estoque");
+        setLoadError(true);
+      }
+    } catch {
       toast.error("Erro ao carregar estoque");
       setLoadError(true);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchReposicao = async () => {

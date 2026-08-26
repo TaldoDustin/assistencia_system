@@ -305,6 +305,8 @@ function NovaVenda() {
   useEffect(() => {
     tiposGarantiaApi.list().then((res) => {
       if (res?.ok) setTiposGarantiaList(res.items || []);
+    }).catch(() => {
+      toast.error("Erro ao carregar tipos de garantia");
     });
   }, []);
 
@@ -321,6 +323,8 @@ function NovaVenda() {
     clientesApi.list({ q: clienteQueryDebounced }).then((res) => {
       if (!ativo) return;
       setClienteResultados(res?.ok ? res.items || [] : []);
+    }).catch(() => {
+      if (ativo) setClienteResultados([]);
     }).finally(() => { if (ativo) setBuscandoCliente(false); });
     return () => { ativo = false; };
   }, [clienteQueryDebounced, form.clienteSelecionado]);
@@ -335,6 +339,8 @@ function NovaVenda() {
     unidadesApi.list({ q: aparelhoQueryDebounced, status: "disponivel", per_page: 10 }).then((res) => {
       if (!ativo) return;
       setAparelhoResultados(res?.ok ? res.items || [] : []);
+    }).catch(() => {
+      if (ativo) setAparelhoResultados([]);
     }).finally(() => { if (ativo) setBuscandoAparelho(false); });
     return () => { ativo = false; };
   }, [aparelhoQueryDebounced, form.clienteSelecionado, form.aparelhoSelecionado]);

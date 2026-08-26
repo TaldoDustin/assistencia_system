@@ -1799,15 +1799,16 @@ telas de uso frequente (criar/editar OS, Kanban, Estoque, Nova Venda, Detalhe de
 Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
-Aberto — identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5). Correção candidata:
-`.catch(() => { toast.error(...); setLoading(false); })` em cada ponto, mesmo padrão já usado em
-`Orders.jsx::fetchOrdens`/`Produtos.jsx::fetchItems`/`UnidadesSerializadas.jsx::buscar`/
-`Financeiro.jsx::buscar` (que já têm `try/catch` ou `.catch()`). Não corrigido nas Revisões Arquiteturais
-por estar fora do escopo puramente visual dos PRs.
+Aberto, parcialmente corrigido. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
+**`Kanban.jsx` resolvido em 2026-08-26** (Fase 3.3, Fatia 3.3.1 —
+`PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado em `Orders.jsx::fetchOrdens`. Restam
+`Stock.jsx::fetchItems` (Fase 3.3, Fatia 3.3.3), `Vendas.jsx::NovaVenda` (3 pontos) e
+`Clientes.jsx::PerfilCliente` (Fase 3.3, Fatias 3.3.2/3.3.5) — corrigidos nas fatias correspondentes desta
+mesma fase. `NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx` (Tier 3) ficam para a Fase 3.4.
 
 Sprint prevista:
-Não definida — candidato a qualquer sprint futura que toque essas telas novamente, ou a uma correção
-isolada de baixo risco (`fix:`, um arquivo por vez).
+Fase 3.3 (Kanban/Stock/Vendas/Clientes, 2026-08-26) + Fase 3.4 (NewOrder/EditOrder/VendaDetalhe, Tier 3,
+ainda não iniciada).
 
 Responsável:
 —

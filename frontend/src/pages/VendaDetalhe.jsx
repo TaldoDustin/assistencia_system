@@ -177,7 +177,11 @@ export default function VendaDetalhe() {
 
   useEffect(() => {
     if (podeCorrigirGarantia) {
-      tiposGarantiaApi.list().then((res) => { if (res?.ok) setTiposGarantiaList(res.items || []); });
+      tiposGarantiaApi.list().then((res) => {
+        if (res?.ok) setTiposGarantiaList(res.items || []);
+      }).catch(() => {
+        toast.error("Erro ao carregar tipos de garantia");
+      });
     }
   }, [podeCorrigirGarantia]);
 

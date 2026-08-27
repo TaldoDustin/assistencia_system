@@ -1778,7 +1778,7 @@ Responsável:
 
 ---
 
-## KI-048
+## ~~KI-048~~ — RESOLVIDO
 
 Descrição:
 `NewOrder.jsx`, `EditOrder.jsx`, `Kanban.jsx`, `Stock.jsx::fetchItems`, `Vendas.jsx::NovaVenda` (3 pontos —
@@ -1803,8 +1803,7 @@ telas de uso frequente (criar/editar OS, Kanban, Estoque, Nova Venda, Detalhe de
 Sem crash, sem perda de dado — só a UX de "tela travada sem explicação".
 
 Status:
-Aberto, Tier 2 (Fase 3.3) totalmente corrigido, Tier 3 com 2 dos 3 pontos resolvidos — resta só
-`VendaDetalhe.jsx`. Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
+**Resolvido em 2026-08-26.** Identificado em 2026-08-19 (PR 3), estendido em 2026-08-20 (PR 4 e PR 5).
 **`Kanban.jsx` (Fatia 3.3.1), `Vendas.jsx::NovaVenda` (Fatia 3.3.2), `Stock.jsx::fetchItems` (Fatia
 3.3.3), `Financeiro.jsx` — busca de saldo (Fatia 3.3.4) — e `Clientes.jsx::PerfilCliente` (Fatia 3.3.5)
 resolvidos em 2026-08-26** (Fase 3.3 — `PLAN-design-system-fase3.3-operacao.md`), mesmo padrão já usado
@@ -1818,13 +1817,17 @@ KI, `form` começa em `null` e só é populado no branch de sucesso do `.then()`
 o restante do componente tentaria renderizar `form.cliente` contra `null` e quebraria. Também foi
 adicionada uma guarda defensiva (`if (loading || !form)`) para cobrir a janela entre o `catch` chamar
 `setLoading(false)`/`navigate` e o React efetivamente desmontar o componente na troca de rota — sem ela,
-esse frame intermediário quebra (reproduzido durante o teste desta correção). Resta **`VendaDetalhe.jsx`**
-(`tiposGarantiaApi.list().then()`, Fatia 3.4.2, Task 2 — ainda não iniciada nesta sessão), o único ponto
-que falta para fechar o KI-048 por completo.
+esse frame intermediário quebra (reproduzido durante o teste desta correção). **`VendaDetalhe.jsx`
+resolvido em 2026-08-26** (Fase 3.4, Fatia 3.4.2 — `PLAN-design-system-fase3.4-formularios.md`, Task 2),
+3º e último ponto do KI: `tiposGarantiaApi.list().then()` (sem `.finally()` associado) ganhou `.catch(()
+=> toast.error("Erro ao carregar tipos de garantia"))`, mesma mensagem já usada no ponto equivalente de
+`Vendas.jsx::NovaVenda` (Fatia 3.3.2). 1 teste novo (rejeição da busca de tipos de garantia dispara
+`toast.error` sem travar a tela). Todos os 8 pontos originais do KI estão corrigidos — nenhum ponto
+restante.
 
 Sprint prevista:
 Fase 3.3 (Kanban/Stock/Vendas/Financeiro/Clientes) — concluída em 2026-08-26. Fase 3.4 (NewOrder/EditOrder
-concluídos em 2026-08-26, Fatia 3.4.1; VendaDetalhe — Fatia 3.4.2 — ainda não iniciada).
+— Fatia 3.4.1 — e VendaDetalhe — Fatia 3.4.2 — concluídas em 2026-08-26).
 
 Responsável:
 —

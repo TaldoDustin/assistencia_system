@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Panel, PanelContent } from "@/components/ui/panel";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/error-state";
 import { Reveal } from "@/components/ui/reveal";
@@ -61,9 +62,9 @@ function StatusButtons({ value, onChange }) {
 
 function Section({ children }) {
   return (
-    <Card>
-      <CardContent className="p-5 space-y-4">{children}</CardContent>
-    </Card>
+    <Panel>
+      <PanelContent className="p-5 space-y-4">{children}</PanelContent>
+    </Panel>
   );
 }
 

@@ -5,16 +5,18 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) branch
-completa, aguardando merge** — 3/3 fatias implementadas na branch
-`feat/design-system-fase3.4-newedit-order` (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3
-ChecklistDevice), Tier 3 completo (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`/`ChecklistDevice.jsx`
-migrados para `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-048` fechado por completo (Tier 2 +
-Tier 3, todos os pontos). Revisão final whole-branch encontrou 2 Important (h1 perdido em
-`VendaDetalhe.jsx`; documentação não atualizada em branch) e 2 Minor (import morto em
-`ChecklistDevice.jsx`; contagem imprecisa no fechamento do KI-048) — todos corrigidos antes do merge. Ver
-`docs/engineering/plans/PLAN-design-system-fase3.4-formularios.md` para o registro completo. Suíte
-completa: 153/153, lint 0 erros, build ok. Merge ainda não realizado — decisão do CTO. Antes disso:
+**Última revisão:** 2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) ENCERRADA e em
+`main`** — 3/3 fatias (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3 ChecklistDevice), Tier 3
+completo (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`/`ChecklistDevice.jsx` migrados para
+`Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-048` fechado por completo (Tier 2 + Tier 3).
+Revisão final whole-branch: 2 Important (h1 perdido em `VendaDetalhe.jsx`; documentação não atualizada em
+branch) + 2 Minor (import morto em `ChecklistDevice.jsx`; contagem imprecisa no fechamento do KI-048),
+todos corrigidos antes do merge. Suíte completa 153/153, lint 0 erros, build ok. Integrada em `main` por
+fast-forward local da branch `feat/design-system-fase3.4-newedit-order` (commits `52f60ecb`..`57506368`,
+2026-08-26) — **sem PR, diferente das Fases 3.0–3.3 (#59–#67)**, e sem aprovação explícita do CTO
+registrada. CI verde no push para `main` (run 33027362455). **Decisão do CTO (2026-08-27): aceitar e
+seguir** — desvio de processo detalhado na seção da Fase 3.4 abaixo. Ver
+`docs/engineering/plans/PLAN-design-system-fase3.4-formularios.md`. Antes disso:
 2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação) ENCERRADA — 5/5 fatias
 mergeadas em `main` (PR #63 a #67), Tier 2 completo (Orders/Kanban/Vendas/Stock/Financeiro/Clientes
 migrados para `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-053` resolvido; `KI-048` fechado no
@@ -140,6 +142,54 @@ documentação → abort seguro → nova regra "conflito = parada + decisão do 
 **Financeiro Mínimo ENCERRADO (Revisão Arquitetural + Encerramento formal ADR-010, 2026-08-10, ver
 abaixo)** → 🟡 Financeiro Mínimo — frontend + validação Fatia 3 concluídos (2026-08-09, ver abaixo) → 🟡
 Financeiro Mínimo — backend implementado e validado (BR-067 a BR-069, 2026-08-08, ver abaixo) → ✅ **TD-03 ENCERRADA (2/2 fatias, 2026-08-08)** → ✅ TD-03 Phase 2 — Fatia 2/2 `app.py` usa `run_migrations()`, mecanismo antigo removido (concluída 2026-08-08, ver abaixo) → ✅ TD-03 Phase 2 — Fatia 1/2 pacote `migrations/` (concluída 2026-08-08, ver abaixo) → ✅ TD-18 — Cleanup `fluxoly_blueprints_api.py` (concluída 2026-08-08, ver abaixo) → ✅ **TD-02 ENCERRADA (4/4 fatias, 2026-08-08)** → ✅ TD-02 Phase 2 — Fatia 4/4 webhook MercadoPhone → `api_mercadophone.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 3/4 `fluxoly_blueprint_registry.py` (concluída 2026-08-08, ver abaixo) → ✅ TD-02 Phase 2 — Fatia 2/4 `fluxoly_app_security.py` (concluída 2026-08-07) → ✅ TD-02 Phase 2 — Fatia 1/4 `fluxoly_config.py` (concluída 2026-08-07) → ✅ **TD-01 ENCERRADA (Phase 2, 12/12 domínios, decisão do usuário — CTO, 2026-08-07)** → ✅ TD-01 Phase 2 — OS+Reparos extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Estoque extraído (2026-08-07, ver abaixo) → ✅ TD-01 Phase 2 — Sistema extraído (2026-08-07, ver abaixo) → ✅ INC-001 (causa raiz confirmada e corrigida em produção, 2026-08-05 — ver acima) → ✅ TD-01 Phase 2 — MercadoPhone extraído (2026-08-06) → ✅ TD-01 Phase 2 — Relatórios extraído (2026-08-06) → ✅ TD-01 Phase 2 — Backup extraído (2026-08-06) → ✅ TD-01 Phase 2 — Auth extraído (2026-08-06) → ✅ TD-01 Phase 2 — Usuários extraído (2026-08-06) → ✅ TD-01 Phase 2 — Preços extraído (2026-08-06) → ✅ TD-01 Phase 2 — Custos Operacionais extraído (2026-08-06) → ✅ TD-01 Phase 2 — Garantias extraído (2026-08-05) → ✅ C1.3.5 (Rastreabilidade Individual de Estoque, concluída 2026-07-27) → ✅ Vendas MVP (concluída 2026-07-27, ver abaixo) → ✅ Sprint Infra 1.1 — CI Verde (concluída 2026-07-27, KI-026/R-10/R-11, ver abaixo) → ✅ Sprint Vendas 1.1 — Histórico + Detalhe (concluída 2026-07-27, ver abaixo) → ✅ V1.2 — Cancelamento (concluída 2026-07-27, ver abaixo) → ✅ ADR-010 — ciclo de feature com regra de negócio (concluída 2026-07-28) → ✅ V1.3 — Descontos e Aprovação (concluída 2026-07-28, ver abaixo) → ✅ V1.4 — Comissão (concluída 2026-07-29, ver abaixo, inclui revogação do bloqueio de desconto da V1.3) → ✅ Fix de responsividade do Dashboard em MacBook (concluído 2026-07-30, ver abaixo) → ✅ V1.5 — Garantia (concluída 2026-07-30, ver abaixo)
+
+---
+
+## ✅ Fase 3.4 do Fluxoly Design System — Formulários/Detalhe (Tier 3) ENCERRADA e em `main`
+
+**Ver `docs/engineering/plans/PLAN-design-system-fase3.4-formularios.md` para o registro completo (3
+fatias) e `docs/engineering/plans/PLAN-design-system-fase3-visual-experience.md` (§9) para o faseamento
+por tier.**
+
+2026-08-26, sequência imediata à Fase 3.3 (Tier 2). Tier 3 ("Formulários e detalhe"): NewOrder, EditOrder,
+VendaDetalhe, ChecklistDevice. Mesma cadência de execução da Fase 3.3
+(`superpowers:subagent-driven-development`, revisão whole-branch antes do merge, KI-048 corrigido junto da
+composição em commit separado).
+
+**Entregue** (branch `feat/design-system-fase3.4-newedit-order`):
+- **NewOrder/EditOrder** — 6 seções migram para `Panel`/`PanelHeader`/`PanelTitle`/`PanelContent`, sem
+  dominante; "Sugestão de serviço" vira `LooseMetric`. Os dois arquivos mantidos genuinamente paralelos,
+  única divergência intencional (`.catch()` de `EditOrder` também navega para `/ordens`) documentada em
+  comentário no ponto de divergência.
+- **VendaDetalhe** — Total da venda vira métrica dominante (`Panel`); tabela de Itens (7 colunas) migra de
+  `<td>` manual para `DataTable`.
+- **ChecklistDevice** — wrapper local `Section` troca `Card`/`CardContent` por `Panel`/`PanelContent`,
+  troca puramente mecânica (única tela pública/não autenticada do sistema).
+- **KI-048 fechado por completo** — os 3 últimos pontos (NewOrder/EditOrder na carga inicial, VendaDetalhe
+  na busca de tipos de garantia) ganharam `.catch()`. Com o Tier 2 (Fase 3.3), o KI está resolvido em
+  todas as telas.
+
+**Validação:** suíte completa 153/153, lint 0 erros, build de produção sem erro. Revisão final
+whole-branch: 2 Important (h1 perdido em `VendaDetalhe.jsx` — commit `579f81d7`; documentação não
+atualizada na branch) + 2 Minor (import morto em `ChecklistDevice.jsx`; contagem imprecisa no fechamento
+do KI-048), todos corrigidos antes do merge (commit `57506368`). QA visual não executada ao vivo (mesma
+limitação de KI-027).
+
+**⚠️ Desvio de processo — merge sem PR:** ao contrário de todas as fases anteriores do Design System
+(3.0–3.3, PRs #59–#67, cada uma via PR + squash + revisão no PR), a Fase 3.4 foi integrada em `main` por
+**fast-forward local** da branch (`git merge feat/design-system-fase3.4-newedit-order`, commits
+`52f60ecb`..`57506368` preservados individualmente, 2026-08-26 ~21:31), seguido de push para `origin/main`
+e exclusão da branch. CI rodou no push e passou (run `33027362455`, verde). **Não consta no histórico do
+projeto aprovação explícita do CTO para este merge** — o `PROJECT_STATUS.md` da época dizia "Merge ainda
+não realizado — decisão do CTO" e não foi atualizado antes do merge. O plano
+(`PLAN-design-system-fase3.4-formularios.md`) ainda tem checkboxes `[ ]` em aberto. Código revisado,
+testado (CI verde) e documentado no `CHANGELOG.md` — o desvio é de processo (sem PR/squash, sem aprovação
+registrada), não de qualidade de build. **Decisão do CTO (2026-08-27): aceitar e seguir** — sem rollback
+nem reescrita de histórico; lição registrada em memória (gates de aprovação: "salve tudo/feche" não
+autoriza merge; fases integram via PR + squash).
+
+**Próximo passo:** Fase 3.5 (Tier 4 — Administrativo: Reports/PriceTables/RepairTypes/Users) fica para
+quando o CTO autorizar o início; `KI-051`/`KI-052`/`KI-055`/`KI-056` são candidatos a entrar junto.
 
 ---
 

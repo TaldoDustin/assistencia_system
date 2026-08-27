@@ -74,12 +74,11 @@ aguardando checkpoint final + CI antes do merge) e os PRs 1-4 (Foundation, `Chec
 Orders/Kanban/NewOrder/EditOrder, Estoque/Unidades Serializadas/Produtos), todos da Fase 2 do Fluxoly Design
 System, o PR #53 (aplicação da marca — ícone e wordmark), a implementação da
 Landing Page institucional (PR #49), a Fase 1 do Fluxoly Design System e a Fase 1 de LGPD/Compliance
-**Próxima revisão:** Fase 1 de LGPD/Compliance (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010`
-completo **encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes
-→ QA Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). Branch
-`feat/lgpd-compliance-fase1`, CI 6/6 verde, auditada (escopo confere exatamente com o plano, `main`
-intocada, KI-029 Fase 2 confirmada não executada). **Merge em `main` ainda não autorizado** — decisão
-separada do CTO, produção não afetada por este ciclo. Ver `docs/engineering/plans/PLAN-LGPD-Compliance.md`
+**Fase 1 de LGPD/Compliance** (KI-029 Fase 1 + KI-043 + KI-044 + KI-045) — ciclo `ADR-010` completo
+**encerrado em 2026-08-17** (Discovery → Decisões do CTO → Plano Técnico → Implementação → Testes → QA
+Manual 14/14 → Revisão Arquitetural aprovada com ressalva → Encerramento). **Mergeada em `main` via PR #40
+(`84deb30a`, 2026-08-16)** — CI verde. KI-029 Fase 2 (reescrita de histórico) confirmada não executada,
+gate próprio. Ver `docs/engineering/plans/PLAN-LGPD-Compliance.md`
 para o registro completo e `docs/product/research/DISCOVERY_LGPD.md`/
 `DISCOVERY_RELEASE_1.0_RESTANTE.md` para o levantamento que originou este ciclo. Achado residual não
 bloqueante da Revisão Arquitetural registrado como **KI-046** (busca de cliente por CPF vaza sinal de
@@ -110,10 +109,10 @@ condition em `criar_admin_padrao()` sob `--workers 2`) seguem sem decisão, não
 do usuário e Piloto/homologação seguem sem decisão, um por vez, conforme o CTO for decidindo.
 Sequência recente: ✅ **Landing Page institucional — implementação ENCERRADA (PR #49 mergeado em `main`,
 2026-08-17, ver seção própria abaixo)** → ✅ **Fase 1 do Fluxoly Design System ENCERRADA (7 PRs — #41 a #47 — mergeados em `main`,
-2026-08-16, ver seção própria abaixo)** → 🟡 **Fase 1 de LGPD/Compliance ENCERRADA (ciclo `ADR-010` completo — KI-029 Fase 1 +
-KI-043 mitigado + KI-044/KI-045 resolvidos + KI-046 registrado; branch `feat/lgpd-compliance-fase1`, CI
-6/6, QA Manual 14/14, Revisão Arquitetural aprovada com ressalva; merge em `main` pendente de autorização,
-2026-08-17, ver abaixo)** → 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
+2026-08-16, ver seção própria abaixo)** → ✅ **Fase 1 de LGPD/Compliance ENCERRADA e mergeada (ciclo `ADR-010` completo — KI-029 Fase 1 +
+KI-043 mitigado + KI-044/KI-045 resolvidos + KI-046 registrado; CI 6/6, QA Manual 14/14, Revisão
+Arquitetural aprovada com ressalva; mergeada em `main` via PR #40 em 2026-08-16,
+ver abaixo)** → 🟢 **Homologação Interna Controlada — APROVADA; KI-041 corrigido e reexecutado com
 sucesso no Demo real, KI-042 registrado como frente futura (2026-08-15, ver abaixo)** → 🟡 **Homologação
 Interna Controlada executada — achado inicial KI-041, Demo restaurado ao seed-inicial (2026-08-15, ver
 abaixo)** → 🟡 **Roteiro de Homologação Interna
@@ -727,7 +726,8 @@ critério do PR 3 (NewOrder/EditOrder). Suíte completa 89/89, lint 0 erros, bui
 lógica de negócio. Mergeado em `main` (squash, `58c40e7b`, PR #58), branch preservada.
 
 **Próximo passo:** PR 6 (Reports + Price Tables + Repair Types + Users) — não iniciado, aguardando
-autorização do CTO.
+autorização do CTO. _(Reconciliação 2026-08-27: escopo absorvido pelo replan do Design System — é a Fase
+3.5 / Tier 4 Administrativo, ver seções da Fase 3 acima.)_
 
 ---
 
@@ -843,7 +843,7 @@ data definida.
 
 ---
 
-## 🟡 Fase 1 de LGPD/Compliance — ENCERRADA (ciclo ADR-010 completo, merge pendente)
+## ✅ Fase 1 de LGPD/Compliance — ENCERRADA e em `main` (ciclo ADR-010 completo, PR #40)
 
 **Ver `docs/engineering/plans/PLAN-LGPD-Compliance.md` para o registro completo (Discovery, Decisões do
 CTO, Plano Técnico, Implementação, Testes, QA Manual, Revisão Arquitetural, Encerramento) e
@@ -861,7 +861,7 @@ jurídica conservadora provisória.
 **Entregue** (branch `feat/lgpd-compliance-fase1`, commits atômicos por escopo, CI 6/6 verde):
 - **KI-029 Fase 1:** os dois arquivos `.db` reais removidos do índice do git (`git rm --cached`, não do
   histórico); `.gitignore` reforçado. Fase 2 (reescrita de histórico) confirmada não executada em nenhum
-  momento — `main` permanece no mesmo commit desde o início do ciclo.
+  momento — só a Fase 1 não-destrutiva entrou.
 - **KI-043 (mitigado):** destinos externos de backup (Google Drive, e-mail) contidos por decisão de
   produto (`EXTERNAL_BACKUP_DESTINATIONS_ENABLED = False`); backup local não afetado.
 - **KI-044 (resolvido):** `POST /api/clientes/<id>/anonimizar` (admin-only) mascara PII preservando `id`
@@ -881,8 +881,12 @@ específica separada), criptografia completa de backup em repouso, prazos reais 
 (aguardam orientação jurídica/operacional), documento de privacidade, validação jurídica formal do
 relacionamento Fluxoly (operador) × loja-cliente (controladora), KI-046.
 
-**Decisão do CTO:** ciclo de engenharia formalmente encerrado. **Merge em `main` não realizado** — decisão
-separada, ainda não autorizada; produção não foi afetada em nenhum momento deste ciclo.
+**Decisão do CTO:** ciclo de engenharia formalmente encerrado. **Mergeada em `main` via PR #40 (merge
+commit `84deb30a`, 2026-08-16)** — CI verde, branch `feat/lgpd-compliance-fase1` deletada pós-merge.
+
+_(Reconciliação 2026-08-27: este bloco e o topo do arquivo diziam "merge não autorizado / `main` intocada"
+apesar de o PR #40 já ter sido mergeado em 2026-08-16 — narrativa nunca atualizada. Corrigido nesta
+passada; KI-029 Fase 2 / reescrita de histórico segue não executada, gate próprio.)_
 
 ---
 

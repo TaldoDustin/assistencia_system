@@ -5,12 +5,22 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — **Fase 3.3 do Fluxoly Design System (Operação) ENCERRADA** — 5/5 fatias
+**Última revisão:** 2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) branch
+completa, aguardando merge** — 3/3 fatias implementadas na branch
+`feat/design-system-fase3.4-newedit-order` (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3
+ChecklistDevice), Tier 3 completo (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`/`ChecklistDevice.jsx`
+migrados para `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-048` fechado por completo (Tier 2 +
+Tier 3, todos os pontos). Revisão final whole-branch encontrou 2 Important (h1 perdido em
+`VendaDetalhe.jsx`; documentação não atualizada em branch) e 2 Minor (import morto em
+`ChecklistDevice.jsx`; contagem imprecisa no fechamento do KI-048) — todos corrigidos antes do merge. Ver
+`docs/engineering/plans/PLAN-design-system-fase3.4-formularios.md` para o registro completo. Suíte
+completa: 153/153, lint 0 erros, build ok. Merge ainda não realizado — decisão do CTO. Antes disso:
+2026-08-26 — Fase 3.3 do Fluxoly Design System (Operação) ENCERRADA — 5/5 fatias
 mergeadas em `main` (PR #63 a #67), Tier 2 completo (Orders/Kanban/Vendas/Stock/Financeiro/Clientes
 migrados para `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-053` resolvido; `KI-048` fechado no
-Tier 2 (6 pontos: Kanban, Vendas ×3, Stock, Financeiro-saldo, Clientes — resta só o Tier 3, Fase 3.4);
-`KI-049` resolvido. Ver seção logo abaixo para o registro completo. Suíte completa final: 147/147, lint 0
-erros, build ok, CI 8/8 (×2) verde em cada PR. Antes disso:
+Tier 2 (6 pontos: Kanban, Vendas ×3, Stock, Financeiro-saldo, Clientes — Tier 3 concluído na Fase 3.4, ver
+revisão acima); `KI-049` resolvido. Ver seção logo abaixo para o registro completo. Suíte completa final:
+147/147, lint 0 erros, build ok, CI 8/8 (×2) verde em cada PR. Antes disso:
 2026-08-26 — Fase 3.3, Fatia 3.3.4: Financeiro —
 Saldo em caixa vira métrica dominante (`Panel`, saiu do header); as 3 tabelas (Movimentações/Contas a
 Pagar/Contas a Receber) migram para `DataTable`. Achado fora do escopo original do KI-048 (auditoria
@@ -157,8 +167,9 @@ por tier.**
 **Validação:** suíte completa 147/147 (3 testes novos), lint 0 erros (2 warnings pré-existentes não
 relacionados), build de produção sem erro. QA visual não executada ao vivo (mesma limitação de KI-027).
 
-**KI-048 — Tier 2 (Fase 3.3) fechado por completo.** Resta só o Tier 3
-(`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`, Fase 3.4, ainda não iniciada).
+**KI-048 — Tier 2 (Fase 3.3) fechado por completo.** Tier 3
+(`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`, Fase 3.4) também concluído — ver "Última revisão" no
+topo do arquivo.
 
 **Decisão do CTO:** aprovado o plano da Fase 3.3 (5 fatias) e as decisões de composição por tela antes da
 implementação. **Mergeado em `main` (PR #67, squash, commit `142a22ef`, 2026-08-26)** — CI 8/8 (×2) verde,

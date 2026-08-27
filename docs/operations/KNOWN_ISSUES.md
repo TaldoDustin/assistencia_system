@@ -1822,8 +1822,11 @@ resolvido em 2026-08-26** (Fase 3.4, Fatia 3.4.2 — `PLAN-design-system-fase3.4
 3º e último ponto do KI: `tiposGarantiaApi.list().then()` (sem `.finally()` associado) ganhou `.catch(()
 => toast.error("Erro ao carregar tipos de garantia"))`, mesma mensagem já usada no ponto equivalente de
 `Vendas.jsx::NovaVenda` (Fatia 3.3.2). 1 teste novo (rejeição da busca de tipos de garantia dispara
-`toast.error` sem travar a tela). Todos os 8 pontos originais do KI estão corrigidos — nenhum ponto
-restante.
+`toast.error` sem travar a tela). Todos os pontos originais do KI (8 arquivos) estão corrigidos.
+Fora de escopo: `EditOrder.jsx` (`checklistApi.getByOrder(id).then(...)`) e `precosApi.sugerir(...).then(...)`
+em `NewOrder.jsx`/`EditOrder.jsx` continuam sem `.catch()`, mas nenhum dos três segura spinner nem bloqueia
+render (o Impacto deste KI é especificamente "tela travada sem explicação") — exclusão deliberada, não
+descuido.
 
 Sprint prevista:
 Fase 3.3 (Kanban/Stock/Vendas/Financeiro/Clientes) — concluída em 2026-08-26. Fase 3.4 (NewOrder/EditOrder

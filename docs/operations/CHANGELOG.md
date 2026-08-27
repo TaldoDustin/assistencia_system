@@ -9,6 +9,24 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-08-26 — Fase 3.4 do Fluxoly Design System, Formulários/Detalhe — Tier 3 completo)
+- **feat(design-system): NewOrder/EditOrder migram para Panel/LooseMetric (Fatia 3.4.1)** — seis seções
+  em `Panel`/`PanelHeader`/`PanelTitle`/`PanelContent`, sem dominante; "Sugestão de serviço" vira
+  `LooseMetric`. `NewOrder.jsx` e `EditOrder.jsx` mantidos genuinamente paralelos, única divergência
+  intencional (o `.catch()` de `EditOrder` também navega para `/ordens`) documentada em comentário no
+  ponto de divergência.
+- **fix(design-system): NewOrder/EditOrder tratam rejeição de promise na carga inicial (KI-048)** —
+  guarda defensiva `if (loading || !form)` também cobre o branch pré-existente `!osRes?.ok`.
+- **feat(design-system): VendaDetalhe migra para Panel/DataTable, Total da venda vira dominante (Fatia
+  3.4.2)** — tabela de Itens (7 colunas) migra de `<td>` manual para `DataTable` via `ITENS_COLUMNS`.
+- **fix(design-system): VendaDetalhe trata rejeição de promise ao carregar tipos de garantia (KI-048)** —
+  3º e último ponto do KI, mesma mensagem de `Vendas.jsx::NovaVenda`.
+- **feat(design-system): ChecklistDevice troca Card por Panel (Fatia 3.4.3)** — troca pura de recipiente,
+  visualmente neutra (única tela pública/não autenticada do sistema).
+- **KI-048 fecha por completo** — todos os pontos do Tier 2 (Fase 3.3) e do Tier 3 (Fase 3.4) corrigidos.
+- Ver `docs/engineering/plans/PLAN-design-system-fase3.4-formularios.md` para o registro completo (3
+  fatias, revisão final whole-branch: 2 Important + 2 Minor corrigidos antes do merge).
+
 ### Adicionado (2026-08-26 — Fase 3.3 do Fluxoly Design System, Fatia 3.3.5: Clientes — Tier 2 completo)
 - **feat(design-system): Clientes migra para DataTable/LooseMetric** — contadores viram `LooseMetric`
   (sem dominante); tabela migra para `DataTable` com `onRowClick` abrindo o perfil.

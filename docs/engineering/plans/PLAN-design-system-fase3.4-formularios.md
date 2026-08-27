@@ -9,8 +9,10 @@ hierarquia de superfície (Panel/ListBlock/LooseMetric/DataTable, Foundation v2 
 VendaDetalhe, ChecklistDevice. Sequência imediata à Fase 3.3 (Operação — Tier 2), que fechou o Tier 2
 inteiro.
 
-**Status:** 🟡 Planejado — decisões de composição por tela aprovadas pelo CTO em conversa (ver seção 1).
-Nenhum código escrito ainda.
+**Status:** 🟢 Concluído — as 3 fatias (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3
+ChecklistDevice) implementadas e revisadas. Revisão final whole-branch (2026-08-26) encontrou 0 Critical /
+2 Important / 2 Minor — todos corrigidos antes do merge. `KI-048` fechado por completo (Tier 2 + Tier 3).
+Branch `feat/design-system-fase3.4-newedit-order` pronta, aguardando merge.
 
 ---
 

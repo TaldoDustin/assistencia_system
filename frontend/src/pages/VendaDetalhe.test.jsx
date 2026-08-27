@@ -83,7 +83,7 @@ describe("VendaDetalhe — tipos de garantia (KI-048)", () => {
     mockTiposGarantiaList.mockResolvedValue({ ok: true, items: [] });
     renderVendaDetalhe();
 
-    await waitFor(() => expect(screen.getByText("Venda #42")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText("Venda #42").length).toBeGreaterThan(0));
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -96,6 +96,6 @@ describe("VendaDetalhe — tipos de garantia (KI-048)", () => {
     // entao o useEffect de tiposGarantiaApi.list() dispara e deve cair no catch.
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Erro ao carregar tipos de garantia"));
     // A tela continua funcional -- nao trava no spinner nem quebra o restante da renderizacao.
-    expect(screen.getByText("Venda #42")).toBeInTheDocument();
+    expect(screen.getAllByText("Venda #42").length).toBeGreaterThan(0);
   });
 });

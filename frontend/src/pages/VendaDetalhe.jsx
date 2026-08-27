@@ -337,6 +337,8 @@ export default function VendaDetalhe() {
         </div>
       </div>
 
+      <h1 className="sr-only">Venda #{venda.id}</h1>
+
       {cancelando && (
         <div className="bg-card border border-destructive/30 rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium text-card-foreground">Cancelar venda #{venda.id}</p>

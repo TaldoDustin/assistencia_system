@@ -24,14 +24,21 @@ outro sistema.
 
 ## 1. Criar o projeto Vercel **[você]**
 
+> ⚠️ A pasta `apps/lista-aparelhos-disponiveis/` **só existe na branch `feat/lista-aparelhos-disponiveis`**,
+> ainda não em `main`. O navegador de pastas da Vercel mostra só a `main` — então você **digita** o
+> caminho no campo Root Directory (botão **Edit**), não procura na lista.
+
 1. Vercel → **Add New → Project** → importar o repo `TaldoDustin/assistencia_system`.
-2. **Root Directory:** `apps/lista-aparelhos-disponiveis` ← passo crítico, não esqueça.
-3. **Framework Preset:** `Other`.
-4. Build Command: deixar vazio. Output Directory: `public`. Install Command: `npm install` (padrão).
-5. **Project Name:** `estoque-fluxoly`.
-6. Antes de "Deploy", pule para o passo 2 (adicionar o Redis) — ou faça o deploy e ajuste depois.
-7. Depois do primeiro deploy: **Settings → Git → Production Branch** = `feat/lista-aparelhos-disponiveis`
-   (temporário, para o QA rodar com cron antes do merge). Troca para `main` no Encerramento.
+2. **Root Directory:** clicar **Edit** e digitar `apps/lista-aparelhos-disponiveis`. Vai aparecer um
+   aviso de "pasta não encontrada" — ignore, é porque ele olha a `main`.
+3. **Framework Preset:** `Other`. Build Command: vazio. Output Directory: `public`.
+4. **Project Name:** `estoque-fluxoly`.
+5. **Deploy.** O primeiro deploy (da `main`) vai **falhar** (a pasta não existe lá) — normal.
+6. **Settings → Git → Production Branch** = `feat/lista-aparelhos-disponiveis` → **Redeploy**. Agora
+   builda da branch certa. (Troca para `main` no Encerramento, depois do merge.)
+7. Alternativa: em vez de mudar a Production Branch, usar direto a **URL de Preview** que a Vercel
+   gera para a branch (`estoque-fluxoly-git-feat-...vercel.app`) — funciona igual para o QA, só marque
+   as env vars também no ambiente **Preview**.
 
 > Por que projeto separado: ADR-013 — nenhuma env var ou binding compartilhado com os projetos
 > `assistencia-system` / `assistencia-system-do1h` (Fluxoly + Demo).

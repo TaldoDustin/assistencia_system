@@ -87,6 +87,22 @@
     </form>
   </dialog>
 
+  <!-- Modal de detalhe (nota de condição) -->
+  <dialog id="dlgDetalhe">
+    <form method="dialog">
+      <h3>Detalhes da unidade</h3>
+      <p id="dlgDetResumo" class="dlg-resumo"></p>
+      <label>Nota de condição (visível para os vendedores)
+        <textarea id="dlgDetTexto" maxlength="280" rows="3" autocomplete="off"
+          placeholder="Ex.: marca de uso leve na traseira; tela trocada — original"></textarea>
+      </label>
+      <div class="dlg-acoes">
+        <button value="cancel" class="btn ghost">Cancelar</button>
+        <button value="ok" class="btn">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/xlsx.js"></script>
   <script src="/app.js"></script>
 </body>

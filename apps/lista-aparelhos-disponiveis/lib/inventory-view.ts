@@ -25,8 +25,12 @@ export async function montarResposta(
   store: Store,
   papel: Papel,
 ): Promise<RespostaGeral | RespostaEstoque | null> {
-  const reservas = await store.getReservas();
+  const [reservas, detalhes] = await Promise.all([store.getReservas(), store.getDetalhes()]);
   const reservado = (id: number): Reserva | undefined => reservas[String(id)];
+  const detalheDe = <T extends { id: number }>(item: T): T => {
+    const d = detalhes[String(item.id)];
+    return d ? { ...item, detalhe: d } : item;
+  };
 
   if (papel === "geral") {
     const snap = await store.getSnapshotGeral();
@@ -34,7 +38,7 @@ export async function montarResposta(
     return {
       papel: "geral",
       geradoEm: snap.geradoEm,
-      itens: snap.itens.filter((i) => !reservado(i.id)),
+      itens: snap.itens.filter((i) => !reservado(i.id)).map(detalheDe),
     };
   }
 
@@ -42,7 +46,8 @@ export async function montarResposta(
   if (!snap) return null;
   const disponiveis: EstoqueItem[] = [];
   const reservados: EstoqueItem[] = [];
-  for (const item of snap.itens) {
+  for (const base of snap.itens) {
+    const item = detalheDe(base);
     const r = reservado(item.id);
     if (r) reservados.push({ ...item, reservado: r });
     else disponiveis.push(item);

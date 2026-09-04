@@ -13,8 +13,8 @@
 - [x] ADR-013 — aprovado pelo CTO (2026-09-03)
 - [x] Plano Técnico — aprovado pelo CTO (2026-09-03)
 - [x] Implementação — branch `feat/lista-aparelhos-disponiveis` (2026-09-03)
-- [x] Testes — 61/61 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
-- [ ] QA Manual — pendente (precisa do deploy: 2 senhas, Redis, cron)
+- [x] Testes — 71/71 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
+- [~] QA Manual — em andamento no deploy `estoque-gamma-nine.vercel.app` (Vercel Hobby + Upstash). Achados até agora: (1) tela de bloqueio não sumia — `.lock{display:flex}` vencia `[hidden]`, corrigido; (2) CTO pediu ordenação natural de modelo + campo "Detalhes" editável — ver §"Ajustes pós-QA"
 - [ ] Revisão Arquitetural — **obrigatória** (feature nova, >3 arquivos)
 - [ ] Encerramento
 
@@ -231,3 +231,34 @@ implementação revelar uma regra não decidida, este plano **pausa** e volta pa
 Pendências **operacionais** (não de negócio, não bloqueiam a aprovação do plano):
 - Valores de `SENHA_GERAL` / `SENHA_ESTOQUE` — o CTO define no provisionamento.
 - Confirmar o plano da conta Vercel (define cron nativo × GitHub Actions).
+
+---
+
+## Ajustes pós-QA (2026-09-04, pedidos do CTO durante o QA Manual)
+
+Aditivo ao escopo original, aprovado pelo CTO na conversa. Não altera nenhuma BR-070..078;
+acrescenta BR-079 e BR-080 (a formalizar no Encerramento).
+
+### A. Ordenação natural da lista (`lib/ordenar.ts`)
+Antes: alfabético por `modelo`. Agora: **tipo** (iPhone → iPad → MacBook → Apple Watch) →
+**modelo em ordem natural** (`Intl.Collator numeric` — IPHONE 9 < 11 < 11 PRO < 11 PRO MAX < …) →
+**estado** (Lacrado/Novo/Open box/CPO antes de Seminovo; "com detalhe" por último) → **preço** crescente.
+Como o front agrupa por `modelo + estado` preservando ordem de inserção, os grupos saem na sequência
+certa (ex.: "17 PRO MAX Lacrado" imediatamente antes de "17 PRO MAX Seminovo").
+**BR-080 (candidata):** a lista é ordenada por tipo → modelo (ordem natural) → estado → preço.
+
+### B. Campo "Detalhes" — nota de condição curada (`api/detalhe.ts`, overlay no Redis)
+Texto livre por unidade (≤280 chars), ex.: "marca de uso leve na traseira", "tela trocada — original".
+- **Editável só na área Estoque** (`POST /api/detalhe`, role estoque); texto vazio limpa.
+- **Visível também na área Geral** (read-only) — decisão explícita do CTO: o vendedor precisa da
+  informação para falar com o cliente.
+- Guardado no hash `detalhes` do Redis (chave = `id` do MercadoPhone), igual à reserva. `editadoEm`
+  registrado; **sem `editadoPor`** (não há login individual — desvio consciente da proposta inicial,
+  atribuição não agrega em ferramenta de senha compartilhada).
+- **BR-079 (candidata):** a nota de "Detalhes" é conteúdo curado manualmente na área Estoque, exibido
+  nas duas áreas. A responsabilidade de não incluir dado pessoal é de quem edita (a ferramenta não
+  sanitiza). O MercadoPhone **não** tem campo equivalente aproveitável — o `obs` deles é nota interna
+  com PII ("… com o marcelo, celular pagbank"), deliberadamente fora do snapshot.
+
+### Testes acrescentados
+`test/ordenar.test.ts` (5), `test/detalhe.test.ts` (5). Suíte: 71/71.

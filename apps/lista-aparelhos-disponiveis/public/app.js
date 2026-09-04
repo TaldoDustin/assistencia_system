@@ -184,6 +184,7 @@
             <thead><tr>
               <th>ID</th><th>Armazenam.</th><th>Cor</th><th>Bateria</th><th>Preço</th>
               ${ehEstoque ? "<th>Custo</th><th>Margem</th><th>Dias</th>" : ""}
+              <th>Detalhes</th>
               ${ehEstoque ? "<th></th>" : ""}
             </tr></thead>
             <tbody>
@@ -208,6 +209,9 @@
     cont.querySelectorAll("[data-liberar]").forEach((b) =>
       b.addEventListener("click", () => liberar(Number(b.dataset.liberar))),
     );
+    cont.querySelectorAll("[data-detalhe]").forEach((b) =>
+      b.addEventListener("click", () => abrirDetalhe(Number(b.dataset.detalhe))),
+    );
   }
 
   function linhaHtml(i, ehEstoque, reservadosView) {
@@ -226,6 +230,12 @@
       <td class="money">${i.custo != null ? brl.format(i.custo) : "—"}</td>
       <td class="money">${i.margem != null ? `${brl.format(i.margem)}${i.margemPct != null ? ` (${i.margemPct}%)` : ""}` : "—"}</td>
       <td>${i.diasEmEstoque != null ? i.diasEmEstoque : "—"}</td>`;
+    }
+    const det = escapeHtml(i.detalhe?.texto || "");
+    cols += ehEstoque
+      ? `<td class="det">${det ? `<span>${det}</span> ` : ""}<button class="linha-acao" data-detalhe="${i.id}">${det ? "editar" : "+ detalhe"}</button></td>`
+      : `<td class="det">${det || "—"}</td>`;
+    if (ehEstoque) {
       cols += reservadosView
         ? `<td class="reserva-info">${escapeHtml(i.reservado?.vendedor || "")} · <button class="linha-acao" data-liberar="${i.id}">liberar</button></td>`
         : `<td><button class="linha-acao" data-reservar="${i.id}">reservar</button></td>`;
@@ -276,16 +286,47 @@
     await carregar();
   }
 
+  /* ---------------- Detalhes (nota de condição) ---------------- */
+  const dlgDet = $("dlgDetalhe");
+  let detalheAlvo = null;
+
+  function abrirDetalhe(id) {
+    const it = estado.itens.find((x) => x.id === id);
+    if (!it) return;
+    detalheAlvo = id;
+    $("dlgDetResumo").textContent = `${it.modelo} · ${it.estado} · ID ${it.idCurto}`;
+    $("dlgDetTexto").value = it.detalhe?.texto || "";
+    dlgDet.showModal();
+  }
+
+  dlgDet.addEventListener("close", async () => {
+    if (dlgDet.returnValue !== "ok" || detalheAlvo == null) return;
+    const texto = $("dlgDetTexto").value.trim().slice(0, 280);
+    const r = await fetch("/api/detalhe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: detalheAlvo, texto }),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      setStatus(j.erro || "Não foi possível salvar o detalhe.", true);
+    }
+    detalheAlvo = null;
+    await carregar();
+  });
+
   /* ---------------- Excel ---------------- */
   $("btnExcel").addEventListener("click", () => {
     const ehEstoque = estado.papel === "estoque";
     const linhas = filtrar();
     const head = ["ID", "Tipo", "Modelo", "Armazenamento", "Cor", "Estado", "Bateria (%)", "Preço"];
     if (ehEstoque) head.push("Custo", "Margem", "Margem (%)", "Dias em estoque");
+    head.push("Detalhes");
     const rows = linhas.map((i) => {
       const base = [i.idCurto, i.tipoProduto, i.modelo, i.armazenamento || "", i.cor || "",
         i.estado, i.saudeBateria ?? "", i.precoVenda ?? ""];
       if (ehEstoque) base.push(i.custo ?? "", i.margem ?? "", i.margemPct ?? "", i.diasEmEstoque ?? "");
+      base.push(i.detalhe?.texto || "");
       return base;
     });
     const dia = new Date().toISOString().slice(0, 10);

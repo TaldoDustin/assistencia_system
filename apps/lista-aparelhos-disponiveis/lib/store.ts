@@ -4,7 +4,7 @@
  * `KvStore` usa @vercel/kv em produção. `MemoryStore` serve testes e o modo
  * degradado local. As duas implementam a mesma interface mínima.
  */
-import type { EstoqueItem, GeralItem, Snapshot } from "./types.js";
+import type { DetalheNota, EstoqueItem, GeralItem, Snapshot } from "./types.js";
 
 export interface Reserva {
   vendedor: string;
@@ -25,6 +25,9 @@ export interface Store {
   getReservas(): Promise<Record<string, Reserva>>;
   reservar(id: number, reserva: Reserva): Promise<"ok" | "ja-reservado">;
   desreservar(id: number): Promise<void>;
+  getDetalhes(): Promise<Record<string, DetalheNota>>;
+  /** texto vazio limpa a nota. */
+  setDetalhe(id: number, texto: string): Promise<void>;
   getSyncStatus(): Promise<SyncStatus | null>;
   setSyncStatus(s: SyncStatus): Promise<void>;
   /** Contador simples de rate-limit por chave; retorna o total após incrementar. */
@@ -35,6 +38,7 @@ interface RedisLike {
   get(key: string): Promise<unknown>;
   set(key: string, value: unknown): Promise<unknown>;
   hgetall(key: string): Promise<Record<string, unknown> | null>;
+  hset(key: string, obj: Record<string, unknown>): Promise<unknown>;
   hsetnx(key: string, field: string, value: unknown): Promise<number>;
   hdel(key: string, field: string): Promise<unknown>;
   incr(key: string): Promise<number>;
@@ -45,9 +49,13 @@ const K = {
   geral: "snapshot:geral",
   estoque: "snapshot:estoque",
   reservas: "reservas",
+  detalhes: "detalhes",
   sync: "sync:last",
   rate: (c: string) => `rate:${c}`,
 };
+
+const DETALHE_MAX = 280;
+
 
 export class MemoryStore implements Store {
   private data = new Map<string, unknown>();
@@ -76,6 +84,17 @@ export class MemoryStore implements Store {
   }
   async desreservar(id: number) {
     this.hashes.get(K.reservas)?.delete(String(id));
+  }
+  async getDetalhes() {
+    const h = this.hashes.get(K.detalhes);
+    return h ? (Object.fromEntries(h) as Record<string, DetalheNota>) : {};
+  }
+  async setDetalhe(id: number, texto: string) {
+    const h = this.hashes.get(K.detalhes) ?? new Map();
+    const t = texto.trim().slice(0, DETALHE_MAX);
+    if (t) h.set(String(id), { texto: t, editadoEm: new Date().toISOString() } satisfies DetalheNota);
+    else h.delete(String(id));
+    this.hashes.set(K.detalhes, h);
   }
   async getSyncStatus() {
     return (this.data.get(K.sync) as SyncStatus) ?? null;
@@ -118,6 +137,19 @@ export class KvStore implements Store {
   }
   async desreservar(id: number) {
     await this.kv.hdel(K.reservas, String(id));
+  }
+  async getDetalhes() {
+    return ((await this.kv.hgetall(K.detalhes)) as Record<string, DetalheNota>) ?? {};
+  }
+  async setDetalhe(id: number, texto: string) {
+    const t = texto.trim().slice(0, DETALHE_MAX);
+    if (t) {
+      await this.kv.hset(K.detalhes, {
+        [String(id)]: { texto: t, editadoEm: new Date().toISOString() } satisfies DetalheNota,
+      });
+    } else {
+      await this.kv.hdel(K.detalhes, String(id));
+    }
   }
   async getSyncStatus() {
     return (await this.kv.get(K.sync)) as SyncStatus | null;

@@ -67,6 +67,16 @@ export interface GeralItem {
   /** null quando a fonte não tem preço → a UI mostra "sob consulta". */
   precoVenda: number | null;
   dataEntrada: string | null;
+  /**
+   * Nota de condição curada manualmente na área Estoque, visível também na Geral
+   * (pedido do CTO, 2026-09-04). Preenchida pelo inventory-view, não pelo snapshot.
+   */
+  detalhe?: DetalheNota;
+}
+
+export interface DetalheNota {
+  texto: string;
+  editadoEm: string;
 }
 
 /** Linha da área Estoque (organizador). Geral + custo/margem/dias. */

@@ -11,6 +11,7 @@
 import { dedup, imeiReal } from "./dedup.js";
 import { filtrarAparelhosDisponiveis, idComDetalhe } from "./filter.js";
 import { calcularMargem, diasEmEstoque, rotuloEstado } from "./labels.js";
+import { compararItens } from "./ordenar.js";
 import { calcularIdsCurtos } from "./short-id.js";
 import type {
   AvailabilityLookup,
@@ -94,6 +95,8 @@ export function buildSnapshots(input: BuildInput): BuildOutput {
       diasEmEstoque: diasEmEstoque(it.dataEntrada, agora),
     };
   });
+
+  estoqueItens.sort(compararItens);
 
   // A Geral é o subconjunto de campos do Estoque — sem custo/margem/dias.
   const geralItens: GeralItem[] = estoqueItens.map((e) => ({

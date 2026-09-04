@@ -113,6 +113,13 @@ th, td { padding: 9px 12px; border-top: 1px solid var(--line); text-align: left;
 th { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: #fafbfe; }
 td.money { font-variant-numeric: tabular-nums; font-weight: 700; }
 td.id { font-variant-numeric: tabular-nums; color: var(--muted); }
+td.det { white-space: normal; max-width: 260px; font-size: 0.8rem; color: var(--muted); }
+td.det span { color: var(--text); }
+
+dialog textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  font: inherit; resize: vertical;
+}
 
 .bat { display: inline-block; min-width: 42px; text-align: center; padding: 1px 6px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; }
 .bat.ok { background: var(--ok-bg); color: var(--ok); }

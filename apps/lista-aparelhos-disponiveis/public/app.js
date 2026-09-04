@@ -183,7 +183,7 @@
           <table>
             <thead><tr>
               <th>ID</th><th>Armazenam.</th><th>Cor</th><th>Bateria</th><th>Preço</th>
-              ${ehEstoque ? "<th>Custo</th><th>Margem</th><th>Dias</th>" : ""}
+              ${ehEstoque ? "<th>Custo</th><th>Margem</th><th>Parado</th>" : ""}
               <th>Detalhes</th>
               ${ehEstoque ? "<th></th>" : ""}
             </tr></thead>
@@ -214,6 +214,12 @@
     );
   }
 
+  function paradoBadge(d) {
+    if (d == null) return "—";
+    const cls = d <= 30 ? "ok" : d <= 90 ? "warn" : "bad";
+    return `<span class="bat ${cls}" title="${d} dias parado no estoque">${d} d</span>`;
+  }
+
   function linhaHtml(i, ehEstoque, reservadosView) {
     const preco = i.precoVenda != null ? brl.format(i.precoVenda) : "sob consulta";
     const bat = i.saudeBateria != null
@@ -229,7 +235,7 @@
       cols += `
       <td class="money">${i.custo != null ? brl.format(i.custo) : "—"}</td>
       <td class="money">${i.margem != null ? `${brl.format(i.margem)}${i.margemPct != null ? ` (${i.margemPct}%)` : ""}` : "—"}</td>
-      <td>${i.diasEmEstoque != null ? i.diasEmEstoque : "—"}</td>`;
+      <td>${paradoBadge(i.diasEmEstoque)}</td>`;
     }
     const det = escapeHtml(i.detalhe?.texto || "");
     cols += ehEstoque
@@ -320,7 +326,7 @@
     const ehEstoque = estado.papel === "estoque";
     const linhas = filtrar();
     const head = ["ID", "Tipo", "Modelo", "Armazenamento", "Cor", "Estado", "Bateria (%)", "Preço"];
-    if (ehEstoque) head.push("Custo", "Margem", "Margem (%)", "Dias em estoque");
+    if (ehEstoque) head.push("Custo", "Margem", "Margem (%)", "Dias parado");
     head.push("Detalhes");
     const rows = linhas.map((i) => {
       const base = [i.idCurto, i.tipoProduto, i.modelo, i.armazenamento || "", i.cor || "",

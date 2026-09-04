@@ -1,0 +1,4 @@
+test/
+vitest.config.ts
+_smoke.*
+*.md

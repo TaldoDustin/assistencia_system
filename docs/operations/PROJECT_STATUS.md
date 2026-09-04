@@ -13,11 +13,15 @@ Render/Vercel do Fluxoly. Deploy próprio na Vercel (Hobby) + Upstash Redis; syn
 Actions. Duas áreas por senha compartilhada (Geral/Estoque), snapshots por allowlist (custo/PII/IMEI
 completo nunca alcançam a Geral). Ciclo ADR-010 completo — Discovery + ADR-013 + Plano aprovados, QA
 Manual aprovado, Revisão Arquitetural (`/code-review high`, 8 achados corrigidos). BR-070..080
-formalizadas. 77 testes vitest + typecheck (job CI `estoque_app`). **Pendências operacionais pós-merge:**
-trocar Production Branch do projeto Vercel `estoque` para `main`; criar `ESTOQUE_SYNC_URL`/
-`ESTOQUE_SYNC_SECRET` no GitHub; apontar `estoque.fluxoly.com`; **rotacionar o `MERCADOPHONE_API_KEY`**
-(exposto em texto puro na conversa de Discovery). Ver
-`docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md` e
+formalizadas. 77 testes vitest + typecheck (job CI `estoque_app`). **No ar e funcionando** em
+`estoque-gamma-nine.vercel.app` (projeto Vercel `estoque`, Root Directory `apps/lista-aparelhos-disponiveis`
+ajustado após o 1º deploy git da `main` ter quebrado por apontar a raiz do repo); cron GitHub Actions
+(`estoque-sync.yml`) validado verde. **Pendências operacionais (não bloqueiam o uso):**
+(a) **rotacionar o `MERCADOPHONE_API_KEY`** — exposto em texto puro na conversa de Discovery;
+(b) apontar `estoque.fluxoly.com` (CNAME) e trocar `ESTOQUE_SYNC_URL` no GitHub;
+(c) apagar a branch `feat/lista-aparelhos-disponiveis`;
+(d) liberar 1 reserva de teste (`reservas:1`).
+Ver `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md` e
 `apps/lista-aparelhos-disponiveis/DEPLOY.md`. Antes disso:
 2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) ENCERRADA e em
 `main`** — 3/3 fatias (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3 ChecklistDevice), Tier 3

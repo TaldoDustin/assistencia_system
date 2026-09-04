@@ -13,9 +13,8 @@
 - [x] ADR-013 — aprovado pelo CTO (2026-09-03)
 - [x] Plano Técnico — aprovado pelo CTO (2026-09-03)
 - [x] Implementação — branch `feat/lista-aparelhos-disponiveis` (2026-09-03)
-- [x] Testes — 71/71 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
-- [~] QA Manual — em andamento no deploy `estoque-gamma-nine.vercel.app` (Vercel Hobby + Upstash). Achados até agora: (1) tela de bloqueio não sumia — `.lock{display:flex}` vencia `[hidden]`, corrigido; (2) CTO pediu ordenação natural de modelo + campo "Detalhes" editável — ver §"Ajustes pós-QA"
-- [x] QA Manual — aprovado no deploy `estoque-gamma-nine.vercel.app` (2 achados corrigidos durante: tela de bloqueio + pedidos de ordenação/Detalhes; badge "Parado" adicionado)
+- [x] Testes — 77/77 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
+- [x] QA Manual — aprovado no deploy `estoque-gamma-nine.vercel.app` (Vercel Hobby + Upstash). Corrigidos durante: tela de bloqueio não sumia (`.lock{display:flex}` vencia `[hidden]`); ordenação natural de modelo + campo "Detalhes" editável + badge "Parado" (pedidos do CTO — ver §"Ajustes pós-QA")
 - [x] Revisão Arquitetural — `/code-review high` 2026-09-04. Propriedade central OK (custo/PII nunca alcançam a Geral; auth centralizada; cookie não-forjável). 8 achados, **todos corrigidos** — ver §"Revisão Arquitetural" abaixo.
 - [ ] Encerramento
 

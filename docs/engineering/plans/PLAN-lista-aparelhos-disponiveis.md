@@ -12,9 +12,9 @@
 - [x] Discovery — aprovada (BR-070 a BR-078)
 - [x] ADR-013 — aprovado pelo CTO (2026-09-03)
 - [x] Plano Técnico — aprovado pelo CTO (2026-09-03)
-- [ ] Implementação
-- [ ] Testes
-- [ ] QA Manual
+- [x] Implementação — branch `feat/lista-aparelhos-disponiveis` (2026-09-03)
+- [x] Testes — 61/61 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
+- [ ] QA Manual — pendente (precisa do deploy: 2 senhas, Redis, cron)
 - [ ] Revisão Arquitetural — **obrigatória** (feature nova, >3 arquivos)
 - [ ] Encerramento
 

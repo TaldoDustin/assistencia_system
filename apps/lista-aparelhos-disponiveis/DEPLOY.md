@@ -67,15 +67,18 @@ O "Vercel KV" foi descontinuado; agora é Upstash Redis pelo Marketplace.
 
 ---
 
-## 4. Cron do sync **[você — decisão de plano]**
+## 4. Cron do sync — **plano Hobby → via GitHub Actions**
 
-`vercel.json` já declara `crons: [{ path: "/api/sync", schedule: "*/20 * * * *" }]`.
+O `vercel.json` tem um cron **diário** (`0 6 * * *`) só como rede de segurança — no Hobby o cron da
+Vercel não roda mais que 1×/dia. A cadência real de **20 min** vem do workflow
+`.github/workflows/estoque-sync.yml` (já no repo). Para ativá-lo **[você]**:
 
-- **Plano Pro:** funciona direto. Defina `CRON_SECRET` (passo 3) — a Vercel manda
-  `Authorization: Bearer $CRON_SECRET` nas chamadas de cron.
-- **Plano Hobby:** cron só roda 1×/dia. Opções: (a) subir para Pro; (b) usar um cron externo
-  (GitHub Actions `schedule` ou cron-job.org) chamando
-  `POST https://estoque.fluxoly.com/api/sync` com header `Authorization: Bearer <SYNC_SECRET>`.
+1. GitHub → repo → **Settings → Secrets and variables → Actions**:
+   - aba **Variables** → nova variável `ESTOQUE_SYNC_URL` = `https://estoque.fluxoly.com/api/sync`
+     (ou a URL do deploy Vercel enquanto o domínio não estiver pronto).
+   - aba **Secrets** → novo secret `ESTOQUE_SYNC_SECRET` = **o mesmo valor** do `SYNC_SECRET` do passo 3.
+2. Enquanto a variável não existir, o workflow é pulado (não falha).
+3. Testar agora: **Actions → "Estoque — sync MercadoPhone" → Run workflow**.
 
 ---
 

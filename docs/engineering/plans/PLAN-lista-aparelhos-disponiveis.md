@@ -148,8 +148,9 @@ Sem migração de schema. Sequência de provisionamento (ADR-013 DoD):
 2. Provisionar Redis gerenciado (Upstash), vincular só a esse projeto.
 3. Env vars no projeto Vercel: `MERCADOPHONE_API_KEY`, `SENHA_GERAL`, `SENHA_ESTOQUE`,
    `COOKIE_SIGNING_SECRET`, `SYNC_SECRET` (+ as do KV, automáticas).
-4. `vercel.json` → `crons: [{ path: "/api/sync", schedule: "*/20 * * * *" }]`. Se o plano não permitir
-   sub-diário: workflow `.github/workflows/estoque-sync.yml` (`schedule` + `curl` com `SYNC_SECRET`).
+4. Cadência do sync: conta Vercel é **Hobby** → `.github/workflows/estoque-sync.yml` (`schedule */20`,
+   `curl` com `Authorization: Bearer $SYNC_SECRET`). Precisa da var de repo `ESTOQUE_SYNC_URL` + secret
+   `ESTOQUE_SYNC_SECRET`. `vercel.json` mantém um cron diário só como rede de segurança.
 5. Rodar `/api/sync` uma vez à mão, conferir `snapshot:*` e `/api/health`.
 6. Apontar `estoque.fluxoly.com` (CNAME) para o projeto.
 7. Primeiro acesso real das duas senhas.

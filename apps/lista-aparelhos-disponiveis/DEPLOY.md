@@ -94,12 +94,18 @@ Vercel não roda mais que 1×/dia. A cadência real de **20 min** vem do workflo
 Depois do deploy com as env vars:
 
 ```bash
-# dispara o job manualmente
-curl "https://<url-do-deploy>/api/sync?secret=<SYNC_SECRET>"
+# dispara o job manualmente — segredo SÓ no header (nunca ?secret=, que vai pro log de acesso)
+curl -X POST "https://<url-do-deploy>/api/sync" -H "Authorization: Bearer <SYNC_SECRET>"
 # -> {"ok":true,"diagnostico":{"totalCru":583,"aposFiltro":~212,...}}
 
 curl "https://<url-do-deploy>/api/health"
 # -> {"ok":true,"idadeMinutos":0,"itensGeral":~212,...}
+```
+
+PowerShell:
+
+```powershell
+Invoke-RestMethod -Uri "https://<url-do-deploy>/api/sync" -Method Post -Headers @{ Authorization = "Bearer <SYNC_SECRET>" }
 ```
 
 Se `ok:false` com `erro` sobre `MERCADOPHONE_API_KEY` → env var não aplicada / precisa redeploy.

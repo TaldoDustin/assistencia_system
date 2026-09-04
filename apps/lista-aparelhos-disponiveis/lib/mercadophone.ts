@@ -56,14 +56,22 @@ export class MercadoPhoneClient {
   /** Puxa TODAS as páginas de /inventory. */
   async listarInventarioCompleto(): Promise<RawInventoryItem[]> {
     const out: RawInventoryItem[] = [];
+    let total = 0;
     for (let page = 1; page <= MAX_PAGES; page++) {
       const data = await getJson<PageResponse<RawInventoryItem>>(
         `${BASE}/inventory?limit=${PAGE_LIMIT}&page=${page}`,
         this.apiKey,
         this.fetchImpl,
       );
+      total = typeof data.total === "number" ? data.total : total;
       out.push(...data.items);
-      if (data.items.length < PAGE_LIMIT || out.length >= data.total) break;
+      // Página vazia antes de esgotar o total = glitch da API. Aborta para o
+      // sync preservar o snapshot anterior em vez de sobrescrever com dados parciais.
+      if (data.items.length === 0 && total > 0 && out.length < total) {
+        throw new Error(`inventário incompleto: página ${page} vazia com ${out.length}/${total} itens`);
+      }
+      if (data.items.length < PAGE_LIMIT) break;
+      if (total > 0 && out.length >= total) break;
     }
     return out;
   }

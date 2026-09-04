@@ -15,7 +15,8 @@
 - [x] Implementação — branch `feat/lista-aparelhos-disponiveis` (2026-09-03)
 - [x] Testes — 71/71 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
 - [~] QA Manual — em andamento no deploy `estoque-gamma-nine.vercel.app` (Vercel Hobby + Upstash). Achados até agora: (1) tela de bloqueio não sumia — `.lock{display:flex}` vencia `[hidden]`, corrigido; (2) CTO pediu ordenação natural de modelo + campo "Detalhes" editável — ver §"Ajustes pós-QA"
-- [ ] Revisão Arquitetural — **obrigatória** (feature nova, >3 arquivos)
+- [x] QA Manual — aprovado no deploy `estoque-gamma-nine.vercel.app` (2 achados corrigidos durante: tela de bloqueio + pedidos de ordenação/Detalhes; badge "Parado" adicionado)
+- [x] Revisão Arquitetural — `/code-review high` 2026-09-04. Propriedade central OK (custo/PII nunca alcançam a Geral; auth centralizada; cookie não-forjável). 8 achados, **todos corrigidos** — ver §"Revisão Arquitetural" abaixo.
 - [ ] Encerramento
 
 ---
@@ -262,3 +263,29 @@ Texto livre por unidade (≤280 chars), ex.: "marca de uso leve na traseira", "t
 
 ### Testes acrescentados
 `test/ordenar.test.ts` (5), `test/detalhe.test.ts` (5). Suíte: 71/71.
+
+---
+
+## Revisão Arquitetural (2026-09-04)
+
+`/code-review high` sobre a branch inteira. **Propriedade central verificada e sã:** custo, margem,
+IMEI completo e PII (nome de cliente/fornecedor) nunca alcançam a área Geral nem o navegador de quem
+não é estoque; toda rota de dados passa por `papelDoRequest` (cookie HMAC); não há caminho para forjar
+um cookie de estoque sem `COOKIE_SIGNING_SECRET`.
+
+8 achados, nenhum bloqueador de segurança — **todos corrigidos antes do merge** (commit(s) de fix na
+branch):
+
+| # | Sev | Achado | Correção |
+|---|---|---|---|
+| 1 | Alto (op.) | `getStore()` caía em silêncio para `MemoryStore` se o Redis sumisse em produção | `getStore()` lança erro se `process.env.VERCEL` e sem credencial de Redis (falha alto) |
+| 2 | Médio | Rate-limit de login contava acertos e era por IP → loja atrás de um NAT se auto-bloqueava | Só falhas contam; senha certa nunca é bloqueada; limite 20/5min |
+| 3 | Médio | Paginação do MercadoPhone truncava em silêncio se uma página viesse vazia | Aborta com erro se página vazia antes de esgotar `total` → sync preserva o snapshot anterior |
+| 4 | Médio | `/api/sync` aceitava o segredo em `?secret=` (vai pro log da Vercel) | Removido; só header (`Authorization: Bearer` / `x-sync-secret`) |
+| 5 | Baixo | `incr`+`expire` do rate-limit não atômicos → chave podia ficar sem TTL | `expire` incondicional (janela deslizante) |
+| 6 | Baixo | `cookies.txt` de teste commitado | `git rm` + entrada no `.gitignore` |
+| 7 | Baixo | `verificarToken` não validava `exp` numérico | `typeof payload.exp !== "number"` → rejeita |
+| 8 | Baixo | `Cache-Control: no-store` só nas respostas 200 | Header `no-store` para `/api/(.*)` no `vercel.json` |
+
+Testes acrescentados: `test/mercadophone.test.ts` (3 — paginação/truncamento), `test/store.test.ts`
+(2 — fallback proibido em produção), rate-limit reescrito em `test/api.test.ts`. Suíte: 77/77.

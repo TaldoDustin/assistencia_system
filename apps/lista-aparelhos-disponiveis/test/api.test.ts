@@ -44,15 +44,33 @@ describe("POST /api/session", () => {
       expect(out.statusCode).toBe(401);
     }));
 
-  it("rate-limit após muitas tentativas", () =>
+  it("rate-limit só conta falhas; senha certa nunca é bloqueada", () =>
     withEnv(ENV, async () => {
-      for (let i = 0; i < 11; i++) {
+      const ip = { "x-forwarded-for": "9.9.9.9" };
+      let ultimo = 0;
+      for (let i = 0; i < 25; i++) {
+        const { res, out } = mockRes();
+        await sessionHandler(mockReq({ method: "POST", body: { senha: "no" }, headers: ip }), res);
+        ultimo = out.statusCode;
+      }
+      expect(ultimo).toBe(429); // 25 falhas > limite (20)
+
+      // ...mas a senha correta ainda entra, mesmo com o IP "quente"
+      const { res, out } = mockRes();
+      await sessionHandler(mockReq({ method: "POST", body: { senha: "2222" }, headers: ip }), res);
+      expect(out.statusCode).toBe(200);
+    }));
+
+  it("acerto de senha não incrementa o contador de falhas", () =>
+    withEnv(ENV, async () => {
+      const ip = { "x-forwarded-for": "8.8.8.8" };
+      for (let i = 0; i < 30; i++) {
         const { res } = mockRes();
-        await sessionHandler(mockReq({ method: "POST", body: { senha: "no" }, headers: { "x-forwarded-for": "9.9.9.9" } }), res);
+        await sessionHandler(mockReq({ method: "POST", body: { senha: "1111" }, headers: ip }), res);
       }
       const { res, out } = mockRes();
-      await sessionHandler(mockReq({ method: "POST", body: { senha: "2222" }, headers: { "x-forwarded-for": "9.9.9.9" } }), res);
-      expect(out.statusCode).toBe(429);
+      await sessionHandler(mockReq({ method: "POST", body: { senha: "1111" }, headers: ip }), res);
+      expect(out.statusCode).toBe(200);
     }));
 });
 

@@ -160,7 +160,9 @@ export class KvStore implements Store {
   async bumpRate(chave: string, janelaSegundos: number) {
     const k = K.rate(chave);
     const n = (await this.kv.incr(k)) as number;
-    if (n === 1) await this.kv.expire(k, janelaSegundos);
+    // `expire` incondicional (não só em n===1): evita a chave ficar sem TTL se a
+    // request morrer entre o incr e o expire. Vira janela deslizante — aceitável.
+    await this.kv.expire(k, janelaSegundos);
     return n;
   }
 }
@@ -180,6 +182,13 @@ export async function getStore(): Promise<Store> {
   if (env) {
     const { Redis } = await import("@upstash/redis");
     cached = new KvStore(new Redis(env) as unknown as RedisLike);
+  } else if (process.env.VERCEL) {
+    // Em produção/preview o MemoryStore é um bug silencioso: escritas "funcionam"
+    // mas somem entre invocações. Falhar alto em vez de degradar sem aviso.
+    throw new Error(
+      "Redis não configurado (KV_REST_API_URL/KV_REST_API_TOKEN ausentes). " +
+        "Verifique o binding do Upstash no projeto Vercel.",
+    );
   } else {
     cached = new MemoryStore();
   }

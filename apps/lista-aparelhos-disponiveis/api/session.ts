@@ -9,7 +9,9 @@ import { cookieDeLogin, cookieDeLogout, emitirToken, lerAuthEnv, papelDaSenha } 
 import { ipDoRequest, jsonBody } from "../lib/request.js";
 import { getStore } from "../lib/store.js";
 
-const LIMITE_TENTATIVAS = 10;
+// Só falhas contam contra o limite; a senha certa passa sempre (não trava a
+// equipe atrás do mesmo IP da loja). 20 senhas erradas em 5 min = abuso.
+const LIMITE_FALHAS = 20;
 const JANELA_SEGUNDOS = 300;
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -26,23 +28,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   let env;
   try {
     env = lerAuthEnv();
-  } catch (e) {
+  } catch {
     res.status(500).json({ erro: "configuração de senha ausente no servidor" });
-    return;
-  }
-
-  const store = await getStore();
-  const ip = ipDoRequest(req);
-  const tentativas = await store.bumpRate(`login:${ip}`, JANELA_SEGUNDOS);
-  if (tentativas > LIMITE_TENTATIVAS) {
-    res.status(429).json({ erro: "muitas tentativas, tente de novo em alguns minutos" });
     return;
   }
 
   const { senha } = jsonBody<{ senha?: string }>(req.body);
   const papel = typeof senha === "string" ? papelDaSenha(senha, env) : null;
+
   if (!papel) {
-    res.status(401).json({ erro: "senha incorreta" });
+    const store = await getStore();
+    const falhas = await store.bumpRate(`login:${ipDoRequest(req)}`, JANELA_SEGUNDOS);
+    res
+      .status(falhas > LIMITE_FALHAS ? 429 : 401)
+      .json({ erro: falhas > LIMITE_FALHAS ? "muitas tentativas, tente de novo em alguns minutos" : "senha incorreta" });
     return;
   }
 

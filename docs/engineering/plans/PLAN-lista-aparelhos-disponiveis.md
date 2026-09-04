@@ -256,7 +256,12 @@ Texto livre por unidade (≤280 chars), ex.: "marca de uso leve na traseira", "t
   registrado; **sem `editadoPor`** (não há login individual — desvio consciente da proposta inicial,
   atribuição não agrega em ferramenta de senha compartilhada).
 - **BR-079 (candidata):** a nota de "Detalhes" é conteúdo curado manualmente na área Estoque, exibido
-  nas duas áreas. A responsabilidade de não incluir dado pessoal é de quem edita (a ferramenta não
+  nas duas áreas.
+- **Obs. do MercadoPhone (2026-09-04, opção 1 escolhida pelo CTO):** o `obs` cru entra no snapshot
+  **Estoque** sob a chave `obsMercadoPhone` (read-only), **nunca** no snapshot Geral — verificado por
+  teste contra dados reais (o item com "… com o marcelo, celular pagbank" fica só no Estoque). O
+  organizador usa como referência para escrever o `detalhe` limpo que os vendedores veem. Não há
+  importação automática `obs → detalhe`. A responsabilidade de não incluir dado pessoal é de quem edita (a ferramenta não
   sanitiza). O MercadoPhone **não** tem campo equivalente aproveitável — o `obs` deles é nota interna
   com PII ("… com o marcelo, celular pagbank"), deliberadamente fora do snapshot.
 

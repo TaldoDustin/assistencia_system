@@ -238,9 +238,15 @@
       <td>${paradoBadge(i.diasEmEstoque)}</td>`;
     }
     const det = escapeHtml(i.detalhe?.texto || "");
-    cols += ehEstoque
-      ? `<td class="det">${det ? `<span>${det}</span> ` : ""}<button class="linha-acao" data-detalhe="${i.id}">${det ? "editar" : "+ detalhe"}</button></td>`
-      : `<td class="det">${det || "—"}</td>`;
+    if (ehEstoque) {
+      const obs = escapeHtml(i.obsMercadoPhone || "");
+      cols += `<td class="det">`
+        + (obs ? `<span class="obs-mp">MP: ${obs}</span>` : "")
+        + (det ? `<span>${det}</span> ` : "")
+        + `<button class="linha-acao" data-detalhe="${i.id}">${det ? "editar" : "+ detalhe"}</button></td>`;
+    } else {
+      cols += `<td class="det">${det || "—"}</td>`;
+    }
     if (ehEstoque) {
       cols += reservadosView
         ? `<td class="reserva-info">${escapeHtml(i.reservado?.vendedor || "")} · <button class="linha-acao" data-liberar="${i.id}">liberar</button></td>`
@@ -301,6 +307,13 @@
     if (!it) return;
     detalheAlvo = id;
     $("dlgDetResumo").textContent = `${it.modelo} · ${it.estado} · ID ${it.idCurto}`;
+    const obsEl = $("dlgDetObs");
+    if (it.obsMercadoPhone) {
+      obsEl.textContent = `Obs. do MercadoPhone (não vai para os vendedores): ${it.obsMercadoPhone}`;
+      obsEl.hidden = false;
+    } else {
+      obsEl.hidden = true;
+    }
     $("dlgDetTexto").value = it.detalhe?.texto || "";
     dlgDet.showModal();
   }
@@ -328,11 +341,13 @@
     const head = ["ID", "Tipo", "Modelo", "Armazenamento", "Cor", "Estado", "Bateria (%)", "Preço"];
     if (ehEstoque) head.push("Custo", "Margem", "Margem (%)", "Dias parado");
     head.push("Detalhes");
+    if (ehEstoque) head.push("Obs. MercadoPhone");
     const rows = linhas.map((i) => {
       const base = [i.idCurto, i.tipoProduto, i.modelo, i.armazenamento || "", i.cor || "",
         i.estado, i.saudeBateria ?? "", i.precoVenda ?? ""];
       if (ehEstoque) base.push(i.custo ?? "", i.margem ?? "", i.margemPct ?? "", i.diasEmEstoque ?? "");
       base.push(i.detalhe?.texto || "");
+      if (ehEstoque) base.push(i.obsMercadoPhone || "");
       return base;
     });
     const dia = new Date().toISOString().slice(0, 10);

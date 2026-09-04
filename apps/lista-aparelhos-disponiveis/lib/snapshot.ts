@@ -42,6 +42,12 @@ export interface BuildOutput {
   };
 }
 
+function normalizarObs(obs: unknown): string | undefined {
+  if (typeof obs !== "string") return undefined;
+  const t = obs.replace(/\s+/g, " ").trim();
+  return t || undefined;
+}
+
 function armazenamento(
   item: RawInventoryItem,
   storageById: Map<number, string>,
@@ -93,6 +99,7 @@ export function buildSnapshots(input: BuildInput): BuildOutput {
       margem,
       margemPct,
       diasEmEstoque: diasEmEstoque(it.dataEntrada, agora),
+      obsMercadoPhone: normalizarObs(it.obs),
     };
   });
 

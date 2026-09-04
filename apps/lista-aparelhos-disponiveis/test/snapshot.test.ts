@@ -51,21 +51,6 @@ describe("buildSnapshots — allowlist (BR-070/071)", () => {
   it("nenhum IMEI real no snapshot ESTOQUE", () => {
     expect(JSON.stringify(estoque)).not.toMatch(/\d{14,}/);
   });
-
-  it("obs do MercadoPhone entra no ESTOQUE (renomeado) mas NUNCA no GERAL", () => {
-    const SENT = "SENTINELA_OBS_com_o_marcelo_pagbank";
-    const alvo = inventarioCru.find(
-      (it) => it.snAcessorio === 0 &&
-        ["3719", "4959", "4960", "4961"].includes(String(it.tipoProdutoId)) &&
-        [1, 62177].includes(it.produtoDisponibilidadeId as number),
-    )!;
-    const itens = inventarioCru.map((it) => (it === alvo ? { ...it, obs: SENT } : it));
-    const r = buildSnapshots({ itens, availability, storageSizes, agora: AGORA });
-    expect(JSON.stringify(r.geral)).not.toContain(SENT);
-    expect(JSON.stringify(r.geral)).not.toContain("obsMercadoPhone");
-    expect(JSON.stringify(r.estoque)).toContain(SENT);
-    expect(r.estoque.itens.some((i) => i.obsMercadoPhone === SENT)).toBe(true);
-  });
 });
 
 describe("buildSnapshots — conteúdo", () => {

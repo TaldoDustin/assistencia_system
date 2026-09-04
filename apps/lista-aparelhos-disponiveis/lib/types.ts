@@ -85,12 +85,6 @@ export interface EstoqueItem extends GeralItem {
   margem: number | null;
   margemPct: number | null;
   diasEmEstoque: number | null;
-  /**
-   * `obs` cru do MercadoPhone — nota interna, pode conter dado pessoal.
-   * Read-only, EXCLUSIVO da área Estoque (nunca entra no snapshot Geral).
-   * Serve de referência para o organizador curar o campo `detalhe`.
-   */
-  obsMercadoPhone?: string;
   reservado?: { vendedor: string; reservadoEm: string };
 }
 

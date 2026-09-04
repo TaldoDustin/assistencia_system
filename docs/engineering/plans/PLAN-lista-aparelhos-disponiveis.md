@@ -31,11 +31,11 @@ sobreposição própria. Não repete as regras — ver Discovery / BR-070..078.
 ## Escopo
 
 1. Estrutura do app em `apps/lista-aparelhos-disponiveis/` (novo diretório no repo).
-2. Job de sincronização MercadoPhone → 2 snapshots no Vercel KV.
+2. Job de sincronização MercadoPhone → 2 snapshots no Redis gerenciado (Upstash).
 3. Camada serverless: sessão (2 senhas), entrega de dados por papel, reservar/desreservar.
 4. Página única com tela de bloqueio + tabela agrupada (Geral e Estoque são a mesma página, conteúdo
    por papel).
-5. Deploy: projeto Vercel `estoque-fluxoly`, domínio `estoque.fluxoly.com`, Vercel KV, cron.
+5. Deploy: projeto Vercel `estoque-fluxoly`, domínio `estoque.fluxoly.com`, Redis gerenciado (Upstash), cron.
 6. Testes automatizados do job e da camada serverless.
 7. Ajuste de CI para lintar/testar o novo diretório.
 
@@ -51,7 +51,7 @@ sobreposição própria. Não repete as regras — ver Discovery / BR-070..078.
 
 ## Impacto no banco
 
-**Nenhum.** Não há SQLite. O estado persistente é o Vercel KV:
+**Nenhum.** Não há SQLite. O estado persistente é o Redis gerenciado (Upstash):
 
 | Chave KV | Tipo | Conteúdo |
 |---|---|---|
@@ -79,9 +79,11 @@ filtro/dedup/allowlist vive em `lib/` e é compartilhada com o job e testada iso
 | `/api/sync` | POST | — (segredo) | header `x-sync-secret: $SYNC_SECRET`; roda o job; idempotente |
 | `/api/health` | GET | — | idade do último snapshot + contagem de itens/reservas (sem dado sensível) |
 
-**Middleware** (`middleware.ts`): qualquer rota de página e `/api/inventory|reservar|desreservar` exige
-cookie `sess` válido; sem cookie → serve só a tela de bloqueio. `role=geral` recebe 403 em
-`reservar`/`desreservar`.
+**Gate de acesso:** feito na camada de API, não em edge middleware. A página (`index.html`/`app.js`/
+`styles.css`/`xlsx.js`) é 100% estática e sem dado sensível — sempre carrega e mostra a tela de
+bloqueio. `/api/inventory|reservar|desreservar` exigem cookie `sess` válido; `role=geral` recebe 403
+em `reservar`/`desreservar`. (Edge middleware exigiria reimplementar o HMAC em Web Crypto sem ganho
+real de segurança, já que nenhum asset estático carrega dado protegido.)
 
 ### Job de sync (`lib/build-snapshot.ts`, chamado por `/api/sync` e pelo cron)
 
@@ -143,7 +145,7 @@ Sem migração de schema. Sequência de provisionamento (ADR-013 DoD):
 
 1. Criar projeto Vercel `estoque-fluxoly` a partir de `apps/lista-aparelhos-disponiveis/` (root
    directory do projeto).
-2. Provisionar Vercel KV, vincular só a esse projeto.
+2. Provisionar Redis gerenciado (Upstash), vincular só a esse projeto.
 3. Env vars no projeto Vercel: `MERCADOPHONE_API_KEY`, `SENHA_GERAL`, `SENHA_ESTOQUE`,
    `COOKIE_SIGNING_SECRET`, `SYNC_SECRET` (+ as do KV, automáticas).
 4. `vercel.json` → `crons: [{ path: "/api/sync", schedule: "*/20 * * * *" }]`. Se o plano não permitir
@@ -202,7 +204,7 @@ Sem Playwright nesta entrega (mesma linha do resto do projeto; QA manual cobre o
 | Campo de preço/condição da API muda de nome ou vem nulo | `allowlist.test` sobre fixture real; job registra item sem `valorVenda` como "sob consulta" em vez de quebrar; alerta em `sync:last` se >X% sem preço |
 | `snExibirPdv`/ids de disponibilidade mudam no MercadoPhone | job resolve via `catalog/availability` a cada execução, não hardcoda |
 | Token exposto no chat | rota-lo após deploy (critério 10); só como secret; sem endpoint de escrita na API reduz o dano |
-| Vercel KV indisponível | `/api/inventory` serve o último snapshot em cache de módulo; `/api/health` acusa; reservas ficam somente-leitura |
+| Redis gerenciado (Upstash) indisponível | `/api/inventory` serve o último snapshot em cache de módulo; `/api/health` acusa; reservas ficam somente-leitura |
 | Senha compartilhada vaza para fora da loja | ferramenta interna, sem dado de cliente; trocar a senha é 1 env var + redeploy; sem custo exposto no papel Geral |
 | Plano Vercel não permite cron sub-diário | fallback GitHub Actions já previsto no deploy |
 | `.xlsx` export com muitos itens trava o browser | mesmo gerador da Skyline já roda com ~300 linhas; limitar export ao filtro atual |

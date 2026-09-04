@@ -555,6 +555,69 @@ Sprint Segurança 1.0, decisão de negócio do usuário (CTO) sobre quais perfis
 
 ---
 
+## Lista de Aparelhos Disponíveis (ferramenta interna — `apps/lista-aparelhos-disponiveis/`)
+
+Ferramenta **fora do Fluxoly-plataforma** (ADR-013), consulta ao estoque de aparelhos da loja IR
+Phones. Fonte: API nova do MercadoPhone. Duas áreas atrás de senha compartilhada: **Geral** (vendedores)
+e **Estoque** (organizador). Ciclo ADR-010 completo, mergeada em `main` via PR #68 (`eb13e836`,
+2026-09-04). Discovery: `docs/product/research/DISCOVERY_LISTA_PRECOS_PUBLICA.md`.
+
+**BR-070 — ✅ Implementado (2026-09-04)**
+A área **Geral** expõe modelo, armazenamento, cor, estado, saúde de bateria, preço de venda e
+disponibilidade. **Nunca** custo, margem, fornecedor, nome de cliente, IMEI completo, campos fiscais nem
+texto livre. Os snapshots são montados por **allowlist** de campos (nunca blocklist).
+
+**BR-071 — ✅ Implementado (2026-09-04)**
+A área **Estoque** acrescenta custo, margem e dias parado em estoque; é a única que registra reservas e
+edita o campo Detalhes. Também **não** expõe nome de cliente/fornecedor.
+
+**BR-072 — ✅ Implementado (2026-09-04)**
+Unidades vindas de fontes diferentes são deduplicadas pelo IMEI completo; sem IMEI real (`0`/vazio),
+pelo `id` interno do MercadoPhone. Em empate, vence o registro de `dataModificacao` mais recente.
+
+**BR-073 — ✅ Implementado (2026-09-04)**
+O identificador visível de uma unidade são os últimos 4 dígitos do IMEI, estendido um dígito por vez
+(5, 6, …) **apenas nas unidades cujo identificador colidiria** com o de outra unidade exibida. Sem IMEI
+→ `#<id>`. O IMEI completo nunca chega ao navegador.
+
+**BR-074 — ✅ Implementado (2026-09-04)**
+Só entram aparelhos Apple serializados: `snAcessorio == 0` e `tipoProduto ∈ {IPHONE, IPAD, MACBOOK,
+APPLE WATCH}`. Acessórios, peças, serviços, brindes, AirPods e Apple Pencil nunca entram.
+
+**BR-075 — ✅ Implementado (2026-09-04)**
+Só aparecem unidades cuja situação de estoque tem `snExibirPdv == 1` no MercadoPhone (hoje "Disponível
+para venda" e "Disponível com detalhe"). "Laboratório" e "ANALISE" ficam de fora. "Disponível com
+detalhe" recebe a etiqueta "(com detalhe)".
+
+**BR-076 — ✅ Implementado (2026-09-04)**
+Uma unidade reservada (na área Estoque) sai da área Geral e aparece só na lista "Reservados". A reserva
+**não expira**: sai por ação do organizador ou quando a unidade some do estoque do MercadoPhone (venda).
+
+**BR-077 — ✅ Implementado (2026-09-04)**
+A reserva registra apenas vendedor + data. **Nunca** nome ou qualquer dado do cliente.
+
+**BR-078 — ✅ Implementado (2026-09-04)**
+O MercadoPhone não tem status "Reservado". A reserva é um registro exclusivo desta ferramenta (Redis
+próprio) e **não** é escrita de volta no MercadoPhone.
+
+**BR-079 — ✅ Implementado (2026-09-04)**
+O campo "Detalhes" é uma nota de condição curada manualmente na área Estoque (ex.: "marca de uso leve
+na traseira", "tela trocada — original"), exibida nas **duas** áreas. A responsabilidade de não incluir
+dado pessoal é de quem edita — a ferramenta não sanitiza. O campo `obs` do MercadoPhone (nota interna,
+com PII observada) fica deliberadamente fora dos snapshots.
+
+**BR-080 — ✅ Implementado (2026-09-04)**
+A lista é ordenada por tipo (iPhone → iPad → MacBook → Apple Watch) → modelo em ordem natural
+(`IPHONE 9` < `11` < `11 PRO` < `11 PRO MAX` < …) → estado (Lacrado/Novo/Open box/CPO antes de Seminovo;
+"com detalhe" por último) → preço crescente.
+
+*Fonte: `apps/lista-aparelhos-disponiveis/` (`lib/snapshot.ts`, `lib/filter.ts`, `lib/dedup.ts`,
+`lib/short-id.ts`, `lib/ordenar.ts`, `lib/inventory-view.ts`, `api/`); testes em
+`apps/lista-aparelhos-disponiveis/test/` (77 casos, `snapshot.test.ts` garante 0 vazamento de
+custo/PII/IMEI na Geral); `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md`.*
+
+---
+
 ## Documentos relacionados
 
 - `docs/product/features/VENDAS.md` — fonte das regras de Vendas (BR-017 a BR-022, BR-031 a BR-066)

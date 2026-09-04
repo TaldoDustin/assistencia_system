@@ -5,7 +5,21 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) ENCERRADA e em
+**Última revisão:** 2026-09-04 — **Lista de Aparelhos Disponíveis (ferramenta interna IR Phones)
+ENCERRADA e em `main`** (PR #68, squash `eb13e836`). App **standalone** em
+`apps/lista-aparelhos-disponiveis/` — consulta ao estoque de aparelhos com fonte na API nova do
+MercadoPhone, **fora do Fluxoly-plataforma** (ADR-013): não toca `app.py`/`database.db`/projetos
+Render/Vercel do Fluxoly. Deploy próprio na Vercel (Hobby) + Upstash Redis; sync 20/20min via GitHub
+Actions. Duas áreas por senha compartilhada (Geral/Estoque), snapshots por allowlist (custo/PII/IMEI
+completo nunca alcançam a Geral). Ciclo ADR-010 completo — Discovery + ADR-013 + Plano aprovados, QA
+Manual aprovado, Revisão Arquitetural (`/code-review high`, 8 achados corrigidos). BR-070..080
+formalizadas. 77 testes vitest + typecheck (job CI `estoque_app`). **Pendências operacionais pós-merge:**
+trocar Production Branch do projeto Vercel `estoque` para `main`; criar `ESTOQUE_SYNC_URL`/
+`ESTOQUE_SYNC_SECRET` no GitHub; apontar `estoque.fluxoly.com`; **rotacionar o `MERCADOPHONE_API_KEY`**
+(exposto em texto puro na conversa de Discovery). Ver
+`docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md` e
+`apps/lista-aparelhos-disponiveis/DEPLOY.md`. Antes disso:
+2026-08-26 — **Fase 3.4 do Fluxoly Design System (Formulários/Detalhe) ENCERRADA e em
 `main`** — 3/3 fatias (3.4.1 NewOrder/EditOrder, 3.4.2 VendaDetalhe, 3.4.3 ChecklistDevice), Tier 3
 completo (`NewOrder.jsx`/`EditOrder.jsx`/`VendaDetalhe.jsx`/`ChecklistDevice.jsx` migrados para
 `Panel`/`LooseMetric`/`DataTable`, Foundation v2). `KI-048` fechado por completo (Tier 2 + Tier 3).

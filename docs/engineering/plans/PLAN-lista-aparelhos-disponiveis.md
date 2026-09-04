@@ -3,7 +3,7 @@
 **Data:** 2026-09-03
 **Feature:** `docs/product/research/DISCOVERY_LISTA_PRECOS_PUBLICA.md` (aprovada 2026-09-03) — BR-070 a BR-078 (a formalizar em `docs/product/BUSINESS_RULES.md` no Encerramento)
 **Arquitetura:** `docs/engineering/adr/ADR-013.md`
-**Status:** Aprovado pelo CTO (2026-09-03) — em implementação
+**Status:** ENCERRADO (2026-09-04) — mergeado em `main` via PR #68 (`eb13e836`)
 
 > Documento efêmero (ADR-010). Vira histórico da decisão de implementação depois do Encerramento.
 
@@ -16,7 +16,7 @@
 - [x] Testes — 77/77 vitest + typecheck; verificado ponta a ponta contra a API viva (583→212, 0 vazamento)
 - [x] QA Manual — aprovado no deploy `estoque-gamma-nine.vercel.app` (Vercel Hobby + Upstash). Corrigidos durante: tela de bloqueio não sumia (`.lock{display:flex}` vencia `[hidden]`); ordenação natural de modelo + campo "Detalhes" editável + badge "Parado" (pedidos do CTO — ver §"Ajustes pós-QA")
 - [x] Revisão Arquitetural — `/code-review high` 2026-09-04. Propriedade central OK (custo/PII nunca alcançam a Geral; auth centralizada; cookie não-forjável). 8 achados, **todos corrigidos** — ver §"Revisão Arquitetural" abaixo.
-- [ ] Encerramento
+- [x] Encerramento — BR-070..080 em `BUSINESS_RULES.md`, CHANGELOG, PROJECT_STATUS (2026-09-04). Pendências operacionais pós-merge listadas no PROJECT_STATUS.
 
 ---
 

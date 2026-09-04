@@ -9,6 +9,20 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-09-04 — Lista de Aparelhos Disponíveis, ferramenta interna IR Phones — PR #68)
+- **feat(estoque): app standalone `apps/lista-aparelhos-disponiveis/`** — ferramenta interna de consulta
+  ao estoque de aparelhos (fonte: API nova do MercadoPhone), **fora do Fluxoly-plataforma** (ADR-013).
+  Não toca `app.py`, `database.db` nem os projetos Render/Vercel do Fluxoly. Deploy próprio na Vercel
+  (Hobby) + Upstash Redis; sync a cada 20 min via GitHub Actions.
+- Duas áreas atrás de senha compartilhada (cookie HMAC por papel): **Geral** (vendedores — modelo,
+  atributos, saúde de bateria, preço, disponibilidade) e **Estoque** (organizador — + custo/margem/dias
+  parado, reserva de unidade, campo Detalhes editável). Snapshots por allowlist de campos — custo/PII/
+  IMEI completo nunca alcançam a Geral (teste sobre o JSON inteiro).
+- Ciclo ADR-010 completo: Discovery + ADR-013 + Plano Técnico aprovados; QA Manual aprovado; Revisão
+  Arquitetural (`/code-review high`) — propriedade central sã, 8 achados corrigidos antes do merge.
+- BR-070 a BR-080 formalizadas em `docs/product/BUSINESS_RULES.md`. 77 testes vitest + typecheck no CI
+  (job `estoque_app`). Ver `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md`.
+
 ### Adicionado (2026-08-26 — Fase 3.4 do Fluxoly Design System, Formulários/Detalhe — Tier 3 completo)
 - **feat(design-system): NewOrder/EditOrder migram para Panel/LooseMetric (Fatia 3.4.1)** — seis seções
   em `Panel`/`PanelHeader`/`PanelTitle`/`PanelContent`, sem dominante; "Sugestão de serviço" vira

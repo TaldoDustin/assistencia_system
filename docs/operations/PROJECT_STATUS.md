@@ -6,8 +6,11 @@
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
 **Última revisão:** 2026-09-11 — **Estoque 1/Estoque 2 + reserva automática Estela
-(`apps/lista-aparelhos-disponiveis/`) implementados e validados — ainda não commitados/mergeados em
-`main`.** BR-081 (localização manual Estoque 1/Estoque 2 por unidade, Geral só mostra Estoque 1, novo
+(`apps/lista-aparelhos-disponiveis/`) implementados, validados e mergeados em `main`** (3 commits —
+`81244de` feat, `c2a4314` chore/script de import, `924aeb3` docs —, branch `feat/estoque-locais-estela`
+integrada via fast-forward local, mesmo padrão sem-PR já usado na Fase 3.4 do Design System, decisão
+explícita do CTO desta vez; push bypassou 1 status check obrigatório do branch protection porque não
+passou por PR — CI roda no push mesmo assim, conferir depois). BR-081 (localização manual Estoque 1/Estoque 2 por unidade, Geral só mostra Estoque 1, novo
 `POST /api/migrar-estoque`, abas do organizador viram "Estoque 1"/"Estoque 2"/"Disponíveis") e BR-082
 (reserva automática para a vendedora "Estela" de toda unidade "Disponível com detalhe" no MercadoPhone,
 reaproveitando o mecanismo de reserva já existente — `lib/estela.ts`, novo, função pura) implementadas em
@@ -21,12 +24,13 @@ conferido antes do `--apply`): 161 de 174 unidades da planilha resolvidas por IM
 vivo do MercadoPhone (13 não encontradas, provavelmente já vendidas), localização Estoque 1/2 aplicada às
 161, nota de Detalhes preenchida em 95 (nenhuma sobrescrita — todas estavam vazias), 6 de 7 unidades
 "STELLA" da planilha reservadas para a vendedora Estela (a 7ª não encontrada), 0 conflitos com reserva
-humana. **Pendências antes de considerar este trabalho encerrado:** (a) commitar e revisar as mudanças de
-código (ainda só no working tree); (b) mergear/deployar para a produção real do app `estoque`; (c) rodar
-o QA Manual do `DEPLOY.md` §6 (atualizado) contra o deploy; (d) apagar o projeto Vercel vazio
-`estoque-fluxoly`, criado por engano ao linkar o CLI (nome antigo do projeto na doc de provisionamento —
-o projeto real chama-se `estoque`) e ainda não removido. Ver `docs/product/BUSINESS_RULES.md` BR-081/082
-e `docs/operations/CHANGELOG.md`. Antes disso:
+humana. **Pendências antes de considerar este trabalho encerrado:** (a) confirmar que o CI passou no push
+direto a `main` (bypassou branch protection por não ter passado por PR); (b) o deploy do app `estoque` na
+Vercel é automático a partir de `main` (produção) — confirmar que o deploy novo subiu e rodar o QA Manual
+do `DEPLOY.md` §6 (roteiro já atualizado) contra ele; (c) apagar o projeto Vercel vazio `estoque-fluxoly`,
+criado por engano ao linkar o CLI (nome antigo do projeto na doc de provisionamento — o projeto real
+chama-se `estoque`) e ainda não removido. Ver `docs/product/BUSINESS_RULES.md` BR-081/082 e
+`docs/operations/CHANGELOG.md`. Antes disso:
 2026-09-04 — **Lista de Aparelhos Disponíveis (ferramenta interna IR Phones)
 ENCERRADA e em `main`** (PR #68, squash `eb13e836`). App **standalone** em
 `apps/lista-aparelhos-disponiveis/` — consulta ao estoque de aparelhos com fonte na API nova do

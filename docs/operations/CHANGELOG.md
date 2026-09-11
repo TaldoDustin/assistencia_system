@@ -9,6 +9,10 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Alterado (2026-09-11 — ordem do desempate corrigida para cor → GB → bateria, `apps/lista-aparelhos-disponiveis/`)
+- **fix(estoque): cor decide antes do GB (BR-080)** — troca a ordem: cor (alfabética) → GB crescente →
+  saúde de bateria decrescente. Correção sobre o ajuste anterior do mesmo dia, que tinha GB antes de cor.
+
 ### Alterado (2026-09-11 — ordenação por GB/cor/bateria, `apps/lista-aparelhos-disponiveis/`)
 - **fix(estoque): critério de desempate da lista vira GB → cor → bateria (BR-080)** — substitui o
   desempate por preço crescente. GB crescente, cor em ordem alfabética, saúde de bateria decrescente

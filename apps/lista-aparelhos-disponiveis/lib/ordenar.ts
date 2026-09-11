@@ -3,7 +3,7 @@
  *   tipo (iPhone → iPad → MacBook → Apple Watch) — pedido do CTO, 2026-09-04
  *   → modelo em ordem natural (IPHONE 9 < IPHONE 11 < IPHONE 11 PRO < IPHONE 11 PRO MAX < …)
  *   → estado (Lacrado/Novo antes de Seminovo; "com detalhe" por último)
- *   → GB crescente → cor (alfabética) → saúde de bateria decrescente (maior % primeiro)
+ *   → cor (alfabética) → GB crescente → saúde de bateria decrescente (maior % primeiro)
  *     — pedido do CTO, 2026-09-11, substitui o antigo tiebreak por preço.
  *   → (só na área Estoque) dias parado em estoque decrescente (mais parado primeiro)
  *
@@ -49,7 +49,7 @@ function rankArmazenamento(a: string | null): number {
 
 const colador = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 
-/** tipo → modelo → estado → GB → cor → bateria (sem o desempate final por id). */
+/** tipo → modelo → estado → cor → GB → bateria (sem o desempate final por id). */
 function compararBase(a: GeralItem, b: GeralItem): number {
   const t = rankTipo(a.tipoProduto) - rankTipo(b.tipoProduto);
   if (t) return t;
@@ -60,11 +60,11 @@ function compararBase(a: GeralItem, b: GeralItem): number {
   const e = rankEstado(a.estado) - rankEstado(b.estado);
   if (e) return e;
 
-  const g = rankArmazenamento(a.armazenamento) - rankArmazenamento(b.armazenamento);
-  if (g) return g;
-
   const c = colador.compare(a.cor ?? "", b.cor ?? "");
   if (c) return c;
+
+  const g = rankArmazenamento(a.armazenamento) - rankArmazenamento(b.armazenamento);
+  if (g) return g;
 
   const sa = a.saudeBateria ?? Number.NEGATIVE_INFINITY;
   const sb = b.saudeBateria ?? Number.NEGATIVE_INFINITY;

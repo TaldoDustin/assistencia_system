@@ -608,12 +608,12 @@ na traseira", "tela trocada — original"), exibida nas **duas** áreas. A respo
 dado pessoal é de quem edita — a ferramenta não sanitiza. O campo `obs` do MercadoPhone (nota interna,
 com PII observada) fica deliberadamente fora dos snapshots.
 
-**BR-080 — ✅ Implementado (2026-09-04; critério de desempate revisado em 2026-09-11)**
+**BR-080 — ✅ Implementado (2026-09-04; critério de desempate revisado em 2026-09-11, duas vezes)**
 A lista é ordenada por tipo (iPhone → iPad → MacBook → Apple Watch) → modelo em ordem natural
 (`IPHONE 9` < `11` < `11 PRO` < `11 PRO MAX` < …) → estado (Lacrado/Novo/Open box/CPO antes de Seminovo;
-"com detalhe" por último) → GB crescente → cor (ordem alfabética) → saúde de bateria decrescente (maior %
+"com detalhe" por último) → cor (ordem alfabética) → GB crescente → saúde de bateria decrescente (maior %
 primeiro). O mesmo critério vale nas duas áreas; a área Estoque tem um desempate a mais só para ela: dias
-parado em estoque decrescente (quem está parado há mais tempo aparece primeiro), depois de GB/cor/bateria.
+parado em estoque decrescente (quem está parado há mais tempo aparece primeiro), depois de cor/GB/bateria.
 Substitui o desempate por preço crescente da versão original.
 
 **BR-081 — ✅ Implementado (2026-09-11)**
@@ -633,7 +633,7 @@ humano **nunca** é criada, sobrescrita ou removida por este mecanismo.
 
 *Fonte: `apps/lista-aparelhos-disponiveis/` (`lib/snapshot.ts`, `lib/filter.ts`, `lib/dedup.ts`,
 `lib/short-id.ts`, `lib/ordenar.ts`, `lib/inventory-view.ts`, `lib/estela.ts`, `lib/store.ts`, `api/`);
-testes em `apps/lista-aparelhos-disponiveis/test/` (100 casos, `snapshot.test.ts` garante 0 vazamento de
+testes em `apps/lista-aparelhos-disponiveis/test/` (101 casos, `snapshot.test.ts` garante 0 vazamento de
 custo/PII/IMEI na Geral); `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md`.*
 
 ---

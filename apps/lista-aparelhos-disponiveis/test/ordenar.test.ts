@@ -52,23 +52,32 @@ describe("compararItens", () => {
     ]);
   });
 
-  it("mesmo modelo+estado: por GB crescente, sem GB reconhecível por último", () => {
+  it("mesma cor: por GB crescente, sem GB reconhecível por último", () => {
     const arr = [
-      it_({ armazenamento: null }),
-      it_({ armazenamento: "256GB" }),
-      it_({ armazenamento: "64GB" }),
-      it_({ armazenamento: "128GB" }),
+      it_({ cor: "Azul", armazenamento: null }),
+      it_({ cor: "Azul", armazenamento: "256GB" }),
+      it_({ cor: "Azul", armazenamento: "64GB" }),
+      it_({ cor: "Azul", armazenamento: "128GB" }),
     ];
     expect(ordenado(arr).map((s) => s.split("/")[2])).toEqual(["64GB", "128GB", "256GB", "null"]);
   });
 
-  it("mesmo GB: por cor em ordem alfabética (pt-BR)", () => {
+  it("mesmo modelo+estado: por cor em ordem alfabética (pt-BR), antes do GB", () => {
     const arr = [
       it_({ armazenamento: "128GB", cor: "Rosa" }),
       it_({ armazenamento: "128GB", cor: "Azul" }),
       it_({ armazenamento: "128GB", cor: "Preto" }),
     ];
     expect(ordenado(arr).map((s) => s.split("/")[3])).toEqual(["Azul", "Preto", "Rosa"]);
+  });
+
+  it("cor decide antes do GB, mesmo quando o GB 'desempataria' na direção oposta", () => {
+    const arr = [
+      it_({ cor: "Rosa", armazenamento: "64GB" }),
+      it_({ cor: "Azul", armazenamento: "256GB" }),
+    ];
+    // "Azul" (256GB) vem antes de "Rosa" (64GB) — cor manda, apesar do GB menor do outro
+    expect(ordenado(arr).map((s) => s.split("/")[3])).toEqual(["Azul", "Rosa"]);
   });
 
   it("mesmo GB+cor: por saúde de bateria decrescente (maior % primeiro)", () => {
@@ -97,12 +106,13 @@ describe("compararItensEstoque — critério extra de dias parado", () => {
     expect(ordenadoEstoque(arr)).toEqual([90, 45, 10, null]);
   });
 
-  it("dias parado só desempata DEPOIS de GB/cor/bateria", () => {
+  it("dias parado só desempata DEPOIS de cor/GB/bateria", () => {
     const arr = [
       it_({ armazenamento: "256GB", diasEmEstoque: 5 }),
       it_({ armazenamento: "64GB", diasEmEstoque: 200 }),
     ];
-    // 64GB vem antes de 256GB mesmo tendo bem menos dias parado que o de 256GB
+    // mesma cor (null) nos dois — GB ainda decide: 64GB vem antes de 256GB mesmo tendo
+    // bem menos dias parado que o de 256GB
     expect([...arr].sort(compararItensEstoque).map((x) => x.armazenamento)).toEqual(["64GB", "256GB"]);
   });
 

@@ -9,6 +9,16 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Alterado (2026-09-11 — ordenação por GB/cor/bateria, `apps/lista-aparelhos-disponiveis/`)
+- **fix(estoque): critério de desempate da lista vira GB → cor → bateria (BR-080)** — substitui o
+  desempate por preço crescente. GB crescente, cor em ordem alfabética, saúde de bateria decrescente
+  (maior % primeiro). Mesmo critério nas duas áreas.
+- **feat(estoque): área Estoque ganha desempate extra por dias parado (BR-080)** — depois de GB/cor/
+  bateria, quem está parado há mais tempo aparece primeiro. Só na área Estoque — a Geral não conhece
+  `diasEmEstoque`. `lib/snapshot.ts` passa a ordenar os dois snapshots separadamente (antes a Geral só
+  herdava a ordem da Estoque).
+- 6 testes novos em `test/ordenar.test.ts` (100 no total).
+
 ### Adicionado (2026-09-11 — Estoque 1/Estoque 2 + reserva automática Estela, `apps/lista-aparelhos-disponiveis/`)
 - **feat(estoque): localização manual Estoque 1/Estoque 2 por unidade (BR-081)** — nova coleção no Redis
   (`estoque_local`, ausência = Estoque 1). Área Estoque ganha 3 abas: "Estoque 1", "Estoque 2" (cada uma

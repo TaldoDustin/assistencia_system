@@ -11,7 +11,7 @@
 import { dedup, imeiReal } from "./dedup.js";
 import { filtrarAparelhosDisponiveis, idComDetalhe } from "./filter.js";
 import { calcularMargem, diasEmEstoque, rotuloEstado } from "./labels.js";
-import { compararItens } from "./ordenar.js";
+import { compararItens, compararItensEstoque } from "./ordenar.js";
 import { calcularIdsCurtos } from "./short-id.js";
 import type {
   AvailabilityLookup,
@@ -96,22 +96,27 @@ export function buildSnapshots(input: BuildInput): BuildOutput {
     };
   });
 
-  estoqueItens.sort(compararItens);
+  // Ordenadas separadamente: a área Estoque tem um critério de desempate a mais
+  // ("dias parado") que a Geral não tem — não dá pra a Geral só derivar da ordem
+  // da Estoque como antes.
+  estoqueItens.sort(compararItensEstoque);
 
   // A Geral é o subconjunto de campos do Estoque — sem custo/margem/dias.
-  const geralItens: GeralItem[] = estoqueItens.map((e) => ({
-    id: e.id,
-    idCurto: e.idCurto,
-    tipoProduto: e.tipoProduto,
-    modelo: e.modelo,
-    armazenamento: e.armazenamento,
-    cor: e.cor,
-    estado: e.estado,
-    saudeBateria: e.saudeBateria,
-    comDetalhe: e.comDetalhe,
-    precoVenda: e.precoVenda,
-    dataEntrada: e.dataEntrada,
-  }));
+  const geralItens: GeralItem[] = estoqueItens
+    .map((e) => ({
+      id: e.id,
+      idCurto: e.idCurto,
+      tipoProduto: e.tipoProduto,
+      modelo: e.modelo,
+      armazenamento: e.armazenamento,
+      cor: e.cor,
+      estado: e.estado,
+      saudeBateria: e.saudeBateria,
+      comDetalhe: e.comDetalhe,
+      precoVenda: e.precoVenda,
+      dataEntrada: e.dataEntrada,
+    }))
+    .sort(compararItens);
 
   const geradoEm = agora.toISOString();
   return {

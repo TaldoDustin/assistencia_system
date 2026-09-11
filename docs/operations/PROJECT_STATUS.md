@@ -5,7 +5,29 @@
 **Branch principal:** `main`
 **Ambiente de produção:** Render (backend) — `https://irflow-backend.onrender.com` · Vercel (frontend) — `https://assistencia-system.vercel.app`
 
-**Última revisão:** 2026-09-04 — **Lista de Aparelhos Disponíveis (ferramenta interna IR Phones)
+**Última revisão:** 2026-09-11 — **Estoque 1/Estoque 2 + reserva automática Estela
+(`apps/lista-aparelhos-disponiveis/`) implementados e validados — ainda não commitados/mergeados em
+`main`.** BR-081 (localização manual Estoque 1/Estoque 2 por unidade, Geral só mostra Estoque 1, novo
+`POST /api/migrar-estoque`, abas do organizador viram "Estoque 1"/"Estoque 2"/"Disponíveis") e BR-082
+(reserva automática para a vendedora "Estela" de toda unidade "Disponível com detalhe" no MercadoPhone,
+reaproveitando o mecanismo de reserva já existente — `lib/estela.ts`, novo, função pura) implementadas em
+`lib/store.ts`, `lib/inventory-view.ts`, `lib/sync.ts`, `api/migrar-estoque.ts` (novo), `public/`. 94
+testes vitest (17 novos) + typecheck verdes localmente; QA visual ao vivo não executada (mesma limitação
+recorrente desta ferramenta — sessão de bloqueio não persiste no navegador de automação —, mitigada por
+cobertura de teste no nível de handler HTTP real). Import pontual (rodar uma vez, per decisão do CTO) da
+planilha Excel existente do organizador (`scripts/importar-planilha-estoque.ts`, fora do `tsconfig.json`
+`include` — não entra no typecheck/CI) **executado com sucesso contra a produção real** (dry-run
+conferido antes do `--apply`): 161 de 174 unidades da planilha resolvidas por IMEI contra o inventário ao
+vivo do MercadoPhone (13 não encontradas, provavelmente já vendidas), localização Estoque 1/2 aplicada às
+161, nota de Detalhes preenchida em 95 (nenhuma sobrescrita — todas estavam vazias), 6 de 7 unidades
+"STELLA" da planilha reservadas para a vendedora Estela (a 7ª não encontrada), 0 conflitos com reserva
+humana. **Pendências antes de considerar este trabalho encerrado:** (a) commitar e revisar as mudanças de
+código (ainda só no working tree); (b) mergear/deployar para a produção real do app `estoque`; (c) rodar
+o QA Manual do `DEPLOY.md` §6 (atualizado) contra o deploy; (d) apagar o projeto Vercel vazio
+`estoque-fluxoly`, criado por engano ao linkar o CLI (nome antigo do projeto na doc de provisionamento —
+o projeto real chama-se `estoque`) e ainda não removido. Ver `docs/product/BUSINESS_RULES.md` BR-081/082
+e `docs/operations/CHANGELOG.md`. Antes disso:
+2026-09-04 — **Lista de Aparelhos Disponíveis (ferramenta interna IR Phones)
 ENCERRADA e em `main`** (PR #68, squash `eb13e836`). App **standalone** em
 `apps/lista-aparelhos-disponiveis/` — consulta ao estoque de aparelhos com fonte na API nova do
 MercadoPhone, **fora do Fluxoly-plataforma** (ADR-013): não toca `app.py`/`database.db`/projetos

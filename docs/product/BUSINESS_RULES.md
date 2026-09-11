@@ -590,8 +590,10 @@ para venda" e "Disponível com detalhe"). "Laboratório" e "ANALISE" ficam de fo
 detalhe" recebe a etiqueta "(com detalhe)".
 
 **BR-076 — ✅ Implementado (2026-09-04)**
-Uma unidade reservada (na área Estoque) sai da área Geral e aparece só na lista "Reservados". A reserva
-**não expira**: sai por ação do organizador ou quando a unidade some do estoque do MercadoPhone (venda).
+Uma unidade reservada (na área Estoque) sai da área Geral e some da lista "Disponíveis" (BR-081) — segue
+visível na aba do seu Estoque 1/2, marcada com o vendedor. A reserva **não expira**: sai por ação do
+organizador (ou automaticamente, no caso da reserva Estela — BR-082) ou quando a unidade some do estoque
+do MercadoPhone (venda).
 
 **BR-077 — ✅ Implementado (2026-09-04)**
 A reserva registra apenas vendedor + data. **Nunca** nome ou qualquer dado do cliente.
@@ -611,9 +613,24 @@ A lista é ordenada por tipo (iPhone → iPad → MacBook → Apple Watch) → m
 (`IPHONE 9` < `11` < `11 PRO` < `11 PRO MAX` < …) → estado (Lacrado/Novo/Open box/CPO antes de Seminovo;
 "com detalhe" por último) → preço crescente.
 
+**BR-081 — ✅ Implementado (2026-09-11)**
+Toda unidade tem uma localização manual, **Estoque 1** ou **Estoque 2** (default: Estoque 1 para
+unidade nova, sem precisar popular nada). A área **Geral** só mostra unidades do Estoque 1 (além de
+excluir as reservadas, BR-076) — Estoque 2 nunca aparece para o vendedor. Na área Estoque, o organizador
+vê 3 abas: "Estoque 1", "Estoque 2" (cada uma com todas as unidades daquele local, reservadas inclusive)
+e "Disponíveis" (união dos dois locais, só as não reservadas) — e tem um botão por unidade para mover
+entre os dois locais a qualquer momento.
+
+**BR-082 — ✅ Implementado (2026-09-11)**
+Toda unidade cuja situação de estoque no MercadoPhone é "Disponível com detalhe" é reservada
+automaticamente, no sync, para a vendedora fictícia **"Estela"** (reaproveita o mecanismo de reserva do
+BR-076/077/078 — nenhum filtro novo foi necessário para sumir da Geral). Se a situação deixar de ser "com
+detalhe" num sync seguinte, a reserva Estela é liberada automaticamente. Uma reserva feita por um vendedor
+humano **nunca** é criada, sobrescrita ou removida por este mecanismo.
+
 *Fonte: `apps/lista-aparelhos-disponiveis/` (`lib/snapshot.ts`, `lib/filter.ts`, `lib/dedup.ts`,
-`lib/short-id.ts`, `lib/ordenar.ts`, `lib/inventory-view.ts`, `api/`); testes em
-`apps/lista-aparelhos-disponiveis/test/` (77 casos, `snapshot.test.ts` garante 0 vazamento de
+`lib/short-id.ts`, `lib/ordenar.ts`, `lib/inventory-view.ts`, `lib/estela.ts`, `lib/store.ts`, `api/`);
+testes em `apps/lista-aparelhos-disponiveis/test/` (94 casos, `snapshot.test.ts` garante 0 vazamento de
 custo/PII/IMEI na Geral); `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md`.*
 
 ---

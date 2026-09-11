@@ -9,6 +9,23 @@ Versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado (2026-09-11 — Estoque 1/Estoque 2 + reserva automática Estela, `apps/lista-aparelhos-disponiveis/`)
+- **feat(estoque): localização manual Estoque 1/Estoque 2 por unidade (BR-081)** — nova coleção no Redis
+  (`estoque_local`, ausência = Estoque 1). Área Estoque ganha 3 abas: "Estoque 1", "Estoque 2" (cada uma
+  com todas as unidades daquele local) e "Disponíveis" (união dos dois locais, só não reservadas),
+  substituindo as abas antigas "Disponíveis"/"Reservados". Novo `POST /api/migrar-estoque` (role=estoque)
+  move uma unidade entre os dois locais; botão correspondente em cada linha da tabela.
+- **feat(estoque): área Geral só mostra Estoque 1 (BR-081)** — filtro adicional em `montarResposta`, além
+  do filtro de reservado já existente (BR-076).
+- **feat(estoque): reserva automática para a vendedora "Estela" (BR-082)** — toda unidade com situação
+  "Disponível com detalhe" no MercadoPhone é reservada automaticamente no sync (reaproveita o mecanismo
+  de reserva do BR-076/077/078, sem filtro novo para sumir da Geral); liberada automaticamente se deixar
+  de ter essa situação. Nunca mexe em reserva de vendedor humano — `lib/estela.ts` (função pura,
+  totalmente coberta por teste) decide os ajustes, `lib/sync.ts` os aplica após cada sync.
+- A funcionalidade de reserva por vendedor (BR-076/077/078) continua existindo sem alteração de
+  comportamento, agora em paralelo e independente da localização Estoque 1/2.
+- BR-081/082 formalizadas em `docs/product/BUSINESS_RULES.md`. 94 testes vitest (17 novos) + typecheck.
+
 ### Adicionado (2026-09-04 — Lista de Aparelhos Disponíveis, ferramenta interna IR Phones — PR #68)
 - **feat(estoque): app standalone `apps/lista-aparelhos-disponiveis/`** — ferramenta interna de consulta
   ao estoque de aparelhos (fonte: API nova do MercadoPhone), **fora do Fluxoly-plataforma** (ADR-013).

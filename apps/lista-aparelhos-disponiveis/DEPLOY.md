@@ -5,6 +5,13 @@ da Vercel/MercadoPhone e não podem ser feitos por código.
 
 Ordem: criar projeto → Redis → env vars → deploy → primeiro sync → QA → domínio → rotacionar token.
 
+> ⚠️ **Nome real do projeto Vercel hoje: `estoque`, não `estoque-fluxoly`.** O passo 1 abaixo descreve o
+> provisionamento original (já executado uma vez); o projeto foi recriado/renomeado depois porque o 1º
+> deploy git da `main` quebrou apontando pra raiz do repo (ver `PROJECT_STATUS.md`). Se for linkar o CLI
+> (`vercel link --project <nome>`) num projeto que já existe, use `estoque` — usar `estoque-fluxoly`
+> **cria um projeto novo e vazio** em vez de linkar no real (aconteceu em 2026-09-11, corrigido na hora).
+> Confirme sempre com `vercel project ls` antes de confiar no nome.
+
 ---
 
 ## 0. Segredos a gerar antes de começar
@@ -117,14 +124,23 @@ Se `ok:false` com `erro` sobre `MERCADOPHONE_API_KEY` → env var não aplicada 
 Roteiro em `docs/engineering/plans/PLAN-lista-aparelhos-disponiveis.md` §"Critérios de aceite". Resumo:
 
 1. Abrir o site → tela de bloqueio aparece.
-2. Senha **Geral** → lista agrupada por modelo+estado, **sem** coluna de custo, sem botão reservar.
-   Conferir uma contagem (ex.: nº de iPhones) contra o painel do MercadoPhone.
-3. Sair → senha **Estoque** → agora tem Custo / Margem / Dias e botão **reservar** por linha.
-4. Reservar uma unidade → informar vendedor → ela some da aba "Disponíveis" e aparece em "Reservados".
-5. Sair, entrar de novo como **Geral** → a unidade reservada **não** aparece.
-6. Voltar como Estoque → "Reservados" → **liberar** → ela volta para Disponíveis.
-7. Botão **Excel** nas duas áreas baixa `.xlsx` com as colunas visíveis do papel.
-8. `curl .../api/inventory` sem cookie → 401. Com cookie Geral, `grep -i custo` na resposta → nada.
+2. Senha **Geral** → lista agrupada por modelo+estado, **sem** coluna de custo, sem botão reservar. Só
+   aparecem unidades do **Estoque 1** (BR-081). Conferir uma contagem (ex.: nº de iPhones) contra o
+   painel do MercadoPhone.
+3. Sair → senha **Estoque** → agora tem Custo / Margem / Dias, abas **Estoque 1 / Estoque 2 /
+   Disponíveis**, e por linha os botões **reservar**/**liberar** + **mover p/ Estoque 2**/**mover p/
+   Estoque 1**.
+4. Mover uma unidade do Estoque 1 → Estoque 2 → ela some da aba Estoque 1, aparece na Estoque 2 e
+   continua em Disponíveis (se não estiver reservada).
+5. Sair, entrar como **Geral** → a unidade movida para Estoque 2 **não** aparece mais.
+6. Voltar como Estoque → reservar uma unidade → informar vendedor → ela some da aba "Disponíveis" mas
+   continua visível na aba do seu Estoque 1/2, marcada com o vendedor.
+7. Sair, entrar de novo como **Geral** → a unidade reservada **não** aparece.
+8. Voltar como Estoque → **liberar** a reserva → ela volta a aparecer em Disponíveis.
+9. Conferir que uma unidade com situação "Disponível com detalhe" no MercadoPhone aparece automaticamente
+   reservada para **"Estela"** (BR-082) e não aparece na Geral, sem nenhuma ação manual.
+10. Botão **Excel** nas duas áreas baixa `.xlsx` com as colunas visíveis do papel.
+11. `curl .../api/inventory` sem cookie → 401. Com cookie Geral, `grep -i custo` na resposta → nada.
 
 ---
 

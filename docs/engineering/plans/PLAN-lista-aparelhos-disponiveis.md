@@ -288,3 +288,53 @@ branch):
 
 Testes acrescentados: `test/mercadophone.test.ts` (3 — paginação/truncamento), `test/store.test.ts`
 (2 — fallback proibido em produção), rate-limit reescrito em `test/api.test.ts`. Suíte: 77/77.
+
+---
+
+## Adendo (2026-09-11) — Estoque 1/Estoque 2 + reserva automática Estela (BR-081/082)
+
+Pedido do CTO, incremento sobre o app já encerrado (ver BR-081/082 em `docs/product/BUSINESS_RULES.md`
+para a regra de negócio completa). **Status: implementado e testado localmente; import da planilha
+aplicado em produção; código ainda não commitado/mergeado/deployado.**
+
+**Mudanças:**
+- Nova localização manual por unidade (Estoque 1/2, default 1) — nova coleção Redis `estoque_local`
+  (`lib/store.ts`). Área Geral ganha o filtro adicional "só Estoque 1", além do filtro de reservado já
+  existente. Área Estoque troca as abas "Disponíveis"/"Reservados" por "Estoque 1"/"Estoque 2"/
+  "Disponíveis" — `lib/inventory-view.ts` reestrutura `RespostaEstoque`. Novo `POST /api/migrar-estoque`
+  (role=estoque) + botão por linha no frontend.
+- Reserva automática para a vendedora "Estela" de toda unidade "Disponível com detalhe" no MercadoPhone —
+  `lib/estela.ts` (função pura `calcularAjustesEstela`, testada isoladamente), aplicada em `lib/sync.ts`
+  logo após `setSnapshots`. Reaproveita o mecanismo de reserva do BR-076/077/078 por completo — nenhum
+  filtro novo foi necessário para sumir da Geral. Nunca mexe em reserva de vendedor humano.
+- A reserva por vendedor (BR-076/077/078) continua existindo sem mudança de comportamento, agora em
+  paralelo e independente da localização Estoque 1/2.
+
+**Testes:** 94/94 (17 novos: `test/estela.test.ts`, `test/migrar-estoque.test.ts`, +2 em `test/sync.test.ts`,
+ajustes em `test/api.test.ts` pro contrato novo). `tsc --noEmit` limpo. QA visual ao vivo não executada
+(mesma limitação já registrada nesta ferramenta — sessão de bloqueio não persiste no navegador de
+automação usado nesta sessão); mitigado por testes no nível de handler HTTP real (`api/*.ts` chamados
+diretamente, não mockados) cobrindo os fluxos novos ponta a ponta contra `MemoryStore`.
+
+**Import pontual da planilha (rodar uma vez — decisão do CTO, não vira funcionalidade permanente):**
+`scripts/importar-planilha-estoque.ts` (fora do `include` do `tsconfig.json`, não entra no typecheck/CI —
+é tooling de migração, não parte do produto). Lê um JSON pré-extraído da planilha do organizador (extração
+via script Python auxiliar, fora do repo — a planilha original nunca sai do computador do operador),
+resolve cada linha por IMEI completo contra o inventário AO VIVO do MercadoPhone (o snapshot no Redis
+nunca tem IMEI, BR-070/071), e aplica localização + nota de Detalhes (só se ainda vazia — nunca sobrescreve
+o que já existia na ferramenta) + reserva Estela (só se ainda não reservada — nunca sobrescreve reserva
+humana). Modo `--dry-run` por padrão, `--apply` grava de verdade. **Executado em 2026-09-11** contra a
+produção real (`vercel env pull`, credencial `MERCADOPHONE_API_KEY` colada localmente fora do chat): 161
+de 174 unidades resolvidas (13 não encontradas — provavelmente vendidas), localização aplicada às 161,
+Detalhes preenchido em 95 (0 sobrescritas), 6 de 7 "STELLA" da planilha reservadas para Estela (0
+conflitos com reserva humana). Relatório completo no `PROJECT_STATUS.md`.
+
+**Incidente durante a execução (contido, sem impacto em produção):** `vercel link --project
+estoque-fluxoly` criou um projeto Vercel novo e vazio em vez de linkar no projeto real (`estoque` — nome
+mudou depois do provisionamento original, `DEPLOY.md` desatualizado nesse ponto, corrigido nesta revisão).
+Corrigido na hora (relink no projeto certo); o projeto vazio `estoque-fluxoly` ainda não foi removido —
+pendência registrada no `PROJECT_STATUS.md`.
+
+**Pendências antes do Encerramento formal deste incremento:** commit + revisão do código; merge/deploy
+para produção (`estoque`); QA Manual do `DEPLOY.md` §6 (roteiro já atualizado para as 3 abas novas)
+executado contra o deploy real; remover o projeto Vercel vazio criado por engano.

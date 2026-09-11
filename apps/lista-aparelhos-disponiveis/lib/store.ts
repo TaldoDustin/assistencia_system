@@ -4,7 +4,7 @@
  * `KvStore` usa @vercel/kv em produção. `MemoryStore` serve testes e o modo
  * degradado local. As duas implementam a mesma interface mínima.
  */
-import type { DetalheNota, EstoqueItem, GeralItem, Snapshot } from "./types.js";
+import type { DetalheNota, EstoqueItem, EstoqueLocal, GeralItem, Snapshot } from "./types.js";
 
 export interface Reserva {
   vendedor: string;
@@ -28,6 +28,9 @@ export interface Store {
   getDetalhes(): Promise<Record<string, DetalheNota>>;
   /** texto vazio limpa a nota. */
   setDetalhe(id: number, texto: string): Promise<void>;
+  /** Ausência = Estoque 1 (default) — ver `montarResposta`. */
+  getEstoqueLocais(): Promise<Record<string, EstoqueLocal>>;
+  setEstoqueLocal(id: number, local: EstoqueLocal): Promise<void>;
   getSyncStatus(): Promise<SyncStatus | null>;
   setSyncStatus(s: SyncStatus): Promise<void>;
   /** Contador simples de rate-limit por chave; retorna o total após incrementar. */
@@ -50,6 +53,7 @@ const K = {
   estoque: "snapshot:estoque",
   reservas: "reservas",
   detalhes: "detalhes",
+  locais: "estoque_local",
   sync: "sync:last",
   rate: (c: string) => `rate:${c}`,
 };
@@ -95,6 +99,15 @@ export class MemoryStore implements Store {
     if (t) h.set(String(id), { texto: t, editadoEm: new Date().toISOString() } satisfies DetalheNota);
     else h.delete(String(id));
     this.hashes.set(K.detalhes, h);
+  }
+  async getEstoqueLocais() {
+    const h = this.hashes.get(K.locais);
+    return h ? (Object.fromEntries(h) as Record<string, EstoqueLocal>) : {};
+  }
+  async setEstoqueLocal(id: number, local: EstoqueLocal) {
+    const h = this.hashes.get(K.locais) ?? new Map();
+    h.set(String(id), local);
+    this.hashes.set(K.locais, h);
   }
   async getSyncStatus() {
     return (this.data.get(K.sync) as SyncStatus) ?? null;
@@ -150,6 +163,12 @@ export class KvStore implements Store {
     } else {
       await this.kv.hdel(K.detalhes, String(id));
     }
+  }
+  async getEstoqueLocais() {
+    return ((await this.kv.hgetall(K.locais)) as Record<string, EstoqueLocal>) ?? {};
+  }
+  async setEstoqueLocal(id: number, local: EstoqueLocal) {
+    await this.kv.hset(K.locais, { [String(id)]: local });
   }
   async getSyncStatus() {
     return (await this.kv.get(K.sync)) as SyncStatus | null;

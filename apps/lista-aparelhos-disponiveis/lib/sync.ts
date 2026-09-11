@@ -5,14 +5,28 @@
  * Se a API do MercadoPhone falhar, o snapshot anterior é PRESERVADO
  * (nunca sobrescrito por lista vazia) e o erro fica em sync:last.
  */
+import { calcularAjustesEstela, VENDEDOR_ESTELA } from "./estela.js";
 import { MercadoPhoneClient } from "./mercadophone.js";
 import { buildSnapshots } from "./snapshot.js";
 import type { Store } from "./store.js";
+import type { EstoqueItem } from "./types.js";
 
 export interface SyncResult {
   ok: boolean;
   erro?: string;
   diagnostico?: unknown;
+}
+
+/** Aplica os ajustes de reserva automática da Estela (BR-082) a partir do snapshot recém-sincronizado. */
+async function aplicarAjustesEstela(store: Store, itens: EstoqueItem[], agora: Date): Promise<void> {
+  const reservas = await store.getReservas();
+  const { paraReservar, paraLiberar } = calcularAjustesEstela(itens, reservas);
+  for (const id of paraReservar) {
+    await store.reservar(id, { vendedor: VENDEDOR_ESTELA, reservadoEm: agora.toISOString() });
+  }
+  for (const id of paraLiberar) {
+    await store.desreservar(id);
+  }
 }
 
 export async function rodarSync(store: Store, apiKey: string, agora = new Date()): Promise<SyncResult> {
@@ -27,6 +41,7 @@ export async function rodarSync(store: Store, apiKey: string, agora = new Date()
 
     const { geral, estoque, diagnostico } = buildSnapshots({ itens, availability, storageSizes, agora });
     await store.setSnapshots(geral, estoque);
+    await aplicarAjustesEstela(store, estoque.itens, agora);
     const status = { em: agora.toISOString(), ok: true, diagnostico };
     await store.setSyncStatus(status);
     return { ok: true, diagnostico };

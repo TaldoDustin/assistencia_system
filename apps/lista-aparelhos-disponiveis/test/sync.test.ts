@@ -43,6 +43,46 @@ describe("rodarSync", () => {
       expect((await store.getSyncStatus())?.ok).toBe(true);
     }));
 
+  it("marca automaticamente como Estela os itens 'com detalhe' (BR-082)", () =>
+    comFetch(fakeFetch(MAPA), async () => {
+      const store = new MemoryStore();
+      await rodarSync(store, "chave-fake");
+
+      const { estoque } = buildSnapshots({ itens: inventarioCru, availability, storageSizes });
+      const comDetalheIds = estoque.itens.filter((i) => i.comDetalhe).map((i) => i.id);
+      expect(comDetalheIds.length).toBeGreaterThan(0);
+
+      const reservas = await store.getReservas();
+      for (const id of comDetalheIds) {
+        expect(reservas[String(id)]?.vendedor).toBe("Estela");
+      }
+    }));
+
+  it("libera a reserva Estela quando o item deixa de ser 'com detalhe' num sync seguinte", async () => {
+    const store = new MemoryStore();
+    const orig = globalThis.fetch;
+    try {
+      globalThis.fetch = fakeFetch(MAPA);
+      await rodarSync(store, "chave-fake");
+
+      const { estoque } = buildSnapshots({ itens: inventarioCru, availability, storageSizes });
+      const alvo = estoque.itens.find((i) => i.comDetalhe)!.id;
+      expect((await store.getReservas())[String(alvo)]?.vendedor).toBe("Estela");
+
+      const itensSemDetalhe = inventarioCru.map((it) =>
+        it.id === alvo ? { ...it, produtoDisponibilidadeId: 1 } : it,
+      );
+      globalThis.fetch = fakeFetch({
+        ...MAPA,
+        "/inventory": { total: itensSemDetalhe.length, items: itensSemDetalhe, page: 1, limit: 300 },
+      });
+      await rodarSync(store, "chave-fake");
+      expect((await store.getReservas())[String(alvo)]).toBeUndefined();
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
   it("API falhando NÃO sobrescreve o snapshot anterior", () =>
     comFetch(fakeFetch(MAPA, { falharInventory: true }), async () => {
       const store = new MemoryStore();

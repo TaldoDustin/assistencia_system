@@ -103,7 +103,7 @@
   function aplicarAba() {
     const d = estado.respostaEstoque;
     if (!d) return;
-    estado.itens = estado.aba === "reservados" ? d.reservados : d.disponiveis;
+    estado.itens = d[estado.aba] || d.disponiveis;
     render();
   }
 
@@ -143,7 +143,6 @@
     preencherFiltros();
     const linhas = filtrar();
     const ehEstoque = estado.papel === "estoque";
-    const reservadosView = ehEstoque && estado.aba === "reservados";
 
     $("kTotal").textContent = String(estado.itens.length);
     $("kVisiveis").textContent = String(linhas.length);
@@ -185,10 +184,10 @@
               <th>ID</th><th>Armazenam.</th><th>Cor</th><th>Bateria</th><th>Preço</th>
               ${ehEstoque ? "<th>Custo</th><th>Margem</th><th>Parado</th>" : ""}
               <th>Detalhes</th>
-              ${ehEstoque ? "<th></th>" : ""}
+              ${ehEstoque ? "<th></th><th></th>" : ""}
             </tr></thead>
             <tbody>
-              ${its.map((i) => linhaHtml(i, ehEstoque, reservadosView)).join("")}
+              ${its.map((i) => linhaHtml(i, ehEstoque)).join("")}
             </tbody>
           </table>
         </div>
@@ -212,6 +211,9 @@
     cont.querySelectorAll("[data-detalhe]").forEach((b) =>
       b.addEventListener("click", () => abrirDetalhe(Number(b.dataset.detalhe))),
     );
+    cont.querySelectorAll("[data-migrar]").forEach((b) =>
+      b.addEventListener("click", () => migrar(Number(b.dataset.migrar), Number(b.dataset.local))),
+    );
   }
 
   function paradoBadge(d) {
@@ -220,7 +222,7 @@
     return `<span class="bat ${cls}" title="${d} dias parado no estoque">${d} d</span>`;
   }
 
-  function linhaHtml(i, ehEstoque, reservadosView) {
+  function linhaHtml(i, ehEstoque) {
     const preco = i.precoVenda != null ? brl.format(i.precoVenda) : "sob consulta";
     const bat = i.saudeBateria != null
       ? `<span class="bat ${i.saudeBateria >= 85 ? "ok" : i.saudeBateria >= 80 ? "warn" : "bad"}">${i.saudeBateria}%</span>`
@@ -242,9 +244,11 @@
       ? `<td class="det">${det ? `<span>${det}</span> ` : ""}<button class="linha-acao" data-detalhe="${i.id}">${det ? "editar" : "+ detalhe"}</button></td>`
       : `<td class="det">${det || "—"}</td>`;
     if (ehEstoque) {
-      cols += reservadosView
-        ? `<td class="reserva-info">${escapeHtml(i.reservado?.vendedor || "")} · <button class="linha-acao" data-liberar="${i.id}">liberar</button></td>`
+      cols += i.reservado
+        ? `<td class="reserva-info">${escapeHtml(i.reservado.vendedor)} · <button class="linha-acao" data-liberar="${i.id}">liberar</button></td>`
         : `<td><button class="linha-acao" data-reservar="${i.id}">reservar</button></td>`;
+      const outroLocal = i.estoqueLocal === 2 ? 1 : 2;
+      cols += `<td><button class="linha-acao" data-migrar="${i.id}" data-local="${outroLocal}">mover p/ Estoque ${outroLocal}</button></td>`;
     }
     return `<tr>${cols}</tr>`;
   }
@@ -288,6 +292,20 @@
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
       setStatus(j.erro || "Não foi possível liberar.", true);
+    }
+    await carregar();
+  }
+
+  /* ---------------- Migrar entre estoques ---------------- */
+  async function migrar(id, local) {
+    const r = await fetch("/api/migrar-estoque", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, local }),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      setStatus(j.erro || "Não foi possível mover.", true);
     }
     await carregar();
   }

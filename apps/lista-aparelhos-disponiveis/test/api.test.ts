@@ -125,8 +125,12 @@ describe("reserva (BR-076/077)", () => {
 
       const e = mockRes();
       await inventoryHandler(mockReq({ headers: { cookie: cookie("estoque") } }), e.res);
-      const est = e.out.body as { reservados: Array<{ id: number; reservado?: { vendedor: string } }> };
-      expect(est.reservados.find((i) => i.id === alvo)?.reservado?.vendedor).toBe("Ana");
+      const est = e.out.body as {
+        estoque1: Array<{ id: number; reservado?: { vendedor: string } }>;
+        disponiveis: Array<{ id: number }>;
+      };
+      expect(est.estoque1.find((i) => i.id === alvo)?.reservado?.vendedor).toBe("Ana");
+      expect(est.disponiveis.some((i) => i.id === alvo)).toBe(false);
 
       const r2 = mockRes();
       await reservarHandler(mockReq({ method: "POST", headers: { cookie: cookie("estoque") }, body: { id: alvo, vendedor: "Bia" } }), r2.res);

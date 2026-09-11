@@ -79,6 +79,9 @@ export interface DetalheNota {
   editadoEm: string;
 }
 
+/** Localização física do aparelho, controlada manualmente pelo organizador. */
+export type EstoqueLocal = 1 | 2;
+
 /** Linha da área Estoque (organizador). Geral + custo/margem/dias. */
 export interface EstoqueItem extends GeralItem {
   custo: number | null;
@@ -86,6 +89,12 @@ export interface EstoqueItem extends GeralItem {
   margemPct: number | null;
   diasEmEstoque: number | null;
   reservado?: { vendedor: string; reservadoEm: string };
+  /**
+   * Estoque 1 ou 2 (BR-081). Ausente no snapshot cru (`buildSnapshots`) — preenchido
+   * em `montarResposta` a partir do store, sempre presente na resposta da API.
+   * Ausência no store = Estoque 1 (default).
+   */
+  estoqueLocal?: EstoqueLocal;
 }
 
 export interface Snapshot<T> {
